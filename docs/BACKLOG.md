@@ -255,19 +255,65 @@ attempted ahead of that work landing.
 
 ---
 
-## 10. `TEMP_DELTA` alert fires on one reading; contract requires two consecutive **(found reconciling against Data Contract v1.1, §8.3)**
+## 10. DEFECT — `TEMP_DELTA` fires on one reading; contract requires two consecutive **(found reconciling against Data Contract v1.1, §8.3)**
 
-The contract's condition is "ΔT > 2.2°C ต่อเนื่อง ≥ 2 ครั้งวัด" — continuous
-across **at least 2 consecutive measurements**, not a single crossing.
-`AlertStore.evaluate()` currently raises `temp.delta` the instant one
-`CombinedSnapshot` crosses `TEMP_DELTA_THRESHOLD`. Not fixed in this pass —
-noted in a comment at `TEMP_DELTA_THRESHOLD`'s declaration in `constants.ts`
-so it isn't missed, but implementing the 2-reading requirement means
-`AlertStore` needs to start tracking a tiny bit of state per side (last N
-temperature readings or a simple "was over threshold last time" flag) that
-it currently doesn't carry. Small in scope, but it's a behavior change to
-alert firing, worth its own pass rather than folding into a docs
-reconciliation.
+**This is a defect, not an enhancement.** It changes what the app tells a
+patient today, not just what it will eventually support.
+
+**What the contract requires vs. what the code does:** the contract's
+condition (§8.3) is "ΔT > 2.2°C ต่อเนื่อง ≥ 2 ครั้งวัด" — the threshold must
+be exceeded on **at least 2 consecutive measurements** before the alert
+fires. `AlertStore.evaluate()` (`src/ts/data/AlertStore.ts`) raises
+`temp.delta` the instant a single `CombinedSnapshot` crosses
+`TEMP_DELTA_THRESHOLD` — there is no consecutive-reading check at all; one
+noisy sample is sufficient.
+
+**Affected code path:** `AlertStore.evaluate()`, the `dT !== null && dT >
+TEMP_DELTA_THRESHOLD` branch that calls `this.raise('temp.delta', …)`. This
+runs on every `DeviceManager.onSnapshot()` tick (10 Hz), so a single noisy
+sample is enough to fire.
+
+**Why this matters more than it looks:** skin temperature fluctuates for
+mundane reasons — poor sensor contact, airflow, shoes just removed. The
+contract's 2-consecutive-reading condition exists specifically to filter
+that noise out before it reaches the patient. Firing on one reading
+produces false alerts, and false alerts in a diabetic foot monitor are not
+a cosmetic annoyance: alert fatigue means the patient stops reading the
+alert that matters. This is the same class of harm the safety rule in
+`CLAUDE.md` (no fabricated bilateral readings) is written to prevent —
+a technically-derived number reaching the patient as a false clinical
+signal.
+
+**What IS implemented correctly, so it isn't confused with this gap:** the
+30-minute per-code repeat suppression (`REPEAT_SUPPRESSION_MS` in
+`AlertStore`) is present and correct, and matches the contract's §8.5
+requirement exactly. The gap here is specifically in the **firing
+condition** — whether a single noisy reading is enough to raise the alert
+in the first place — not in how often an already-raised alert can re-fire.
+Suppression cannot compensate for this: it only prevents the *same* alert
+firing twice within 30 minutes, it does nothing to stop the *first* false
+firing.
+
+**Checked every other rule in the contract's §8.3 table for a similar
+gap** (an implemented alert missing part of its firing condition, as
+opposed to not being implemented at all — that's item 9's scope):
+
+| Code | Contract condition | Implemented as | Gap? |
+| --- | --- | --- | --- |
+| `TEMP_DELTA` | ΔT > 2.2°C, ≥2 consecutive readings | fires on 1 reading | **Yes — this item** |
+| `PRESSURE_WATCH` | any point > 75 kPa (no persistence condition in the contract itself) | fires on 1 reading | No — matches; the contract's own condition is single-reading |
+| `PRESSURE_PEAK` (→ `pressure.alert` in code) | Peak > 200 kPa **ขณะเดิน** ("while walking") | fires on 1 reading, with **no walking/gait-state check at all** | **Yes — found while checking this table.** The app has no walking-detection state anywhere (`walkingMinutes` on Home is a display-only mock summary stat, not a live signal `AlertStore` can read); a foot resting on something heavy while seated could raise a false `PRESSURE_PEAK`-equivalent alert exactly as easily as if the patient were actually walking. Not scoped further here — recording it so it doesn't get missed again. |
+| `PRESSURE_PTI`, `ASYMMETRY_PEAK`, `LOAD_CONCENTRATION`, `GAIT_ABNORMAL`, `DEVICE_LOST`, `BATTERY_LOW` | — | not implemented at all | Out of scope for this item — already tracked as missing rules in item 9, not a partial-condition gap on an existing rule |
+
+**Not fixed in this pass**, as instructed — recorded and scoped only. A
+comment at `TEMP_DELTA_THRESHOLD`'s declaration in `constants.ts` already
+points here. Implementing the 2-reading requirement means `AlertStore`
+needs to start tracking a small amount of state per side (e.g. the last N
+temperature readings, or a simple "was over threshold last time" flag) that
+it currently doesn't carry — small in scope, but a behavior change to
+alert firing, and (per the `PRESSURE_PEAK` finding above) worth
+re-examining alongside the walking-state gap rather than fixing in
+isolation, since both are the same category of defect on adjacent rules.
 
 ---
 

@@ -45,6 +45,17 @@ file.
 
 There is no linter and no test runner. `dist/` is generated output — gitignored, never edited or committed.
 
+## Reporting
+
+Write the report for each pass to `docs/reports/NNN-<short-name>.md`
+(zero-padded, incrementing — check the highest existing number in
+`docs/reports/` first) and commit it. Chat gets only a short summary: what
+changed, anything that needs a decision, and a pointer to the file. If the
+chat summary would run long, that's the signal the report should carry it,
+not chat — chat output has been observed to truncate mid-pass, silently
+dropping content (including, once, a real defect finding), and a committed
+file cannot be truncated that way.
+
 ## Architecture
 
 This is a **single-page vanilla TS app** — Thai-language Smart Insole
