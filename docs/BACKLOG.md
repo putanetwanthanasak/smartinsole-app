@@ -35,15 +35,31 @@ window. So this is not a stand-in awaiting IMU work — it is the metric. When
 stride segmentation eventually lands, the window definition changes from "2 s
 wall-clock" to "1 stride" and the metric formula survives unchanged.
 
-**Correction found while implementing:** this paragraph originally said the
-per-window peak was something "`DeviceManager` already computes per side" —
-it wasn't. `DeviceManager`'s snapshot only ever carries the latest single
-sample's pressure per side; nothing upstream of the screen accumulates a
-peak over a window. The rolling-window accumulation (fold each 10 Hz
-snapshot's per-zone max into a running window peak, roll the window every
-`WINDOW_MS`) is implemented in `gait.ts` itself, not in `DeviceManager` — see
-the report for why that's the right layer for it (screen-local state, not
-shared data-layer state, since nothing else needs it yet).
+**Correction found while implementing, then corrected again:** this
+paragraph originally said the per-window peak was something "`DeviceManager`
+already computes per side" — it wasn't, and the first implementation pass
+(`docs/reports/003-gait-pai.md`) built the window accumulation in `gait.ts`
+by folding `DeviceManager`'s throttled 10 Hz `onSnapshot` stream. That was
+itself a bug, caught in review, not a stopping point: `onSnapshot` is
+throttled to 10 Hz, so a 2 s window only ever saw 20 of the 100 samples the
+source actually produced at 50 Hz — a peak taken from 20% of the data
+under-reads exactly the kind of fast-rising-and-falling signal (plantar
+pressure at heel strike) most likely to have its true peak in the discarded
+80%. Fixed in `docs/reports/004-*.md`: `DeviceManager` now exposes a second,
+**unthrottled** subscription, `onRawSample`, alongside the unchanged 10 Hz
+`onSnapshot` — `gait.ts` accumulates its window from the raw stream and
+still renders at 10 Hz off snapshots. Measurement rate and render rate are
+now two different subscriptions, not one conflated stream.
+
+**This raw path is not just for PAI.** Data Contract v1.1 §7.1 fixes Model
+A's input shape at `[1, 100, 24]` — 100 timesteps, which at the contract's
+50 Hz sample rate is exactly the full-rate stream, not the UI's 10 Hz. Once
+that model (or a raw data-collection export) exists, both need
+`DeviceManager.onRawSample`, not `onSnapshot` — feeding either from the
+throttled path would silently produce wrong model input with no obvious
+symptom until accuracy quietly under-performs training. Recorded here so
+whoever builds either of those starts from `onRawSample`, not from copying
+`gait.ts`'s or `home.ts`'s existing `onSnapshot` usage.
 
 **Now recorded in Data Contract v1.1 §8.2–8.3** (`docs/DATA-CONTRACT.md`,
 filled in after this entry was first written): PAI watch threshold is

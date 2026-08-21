@@ -20,7 +20,7 @@ import { initNavigation, renderStatusBar } from './navigation.js';
 import { refreshIcons } from './icons.js';
 import { deviceManager } from './data/DeviceManager.js';
 import { isUsable } from './data/types.js';
-import type { CombinedSnapshot, Unsubscribe } from './data/types.js';
+import type { CombinedSnapshot, RawPressureSample, Unsubscribe } from './data/types.js';
 import type { FootPressure } from './types.js';
 
 // ─── Rolling-window definition ──────────────────────────────
@@ -52,10 +52,17 @@ function peakOf(pressure: FootPressure): number {
 // PAI section when data isn't there — one visual pattern for "nothing to
 // show here," matching the nodata treatment already used on Home/Temperature
 // (same "NO DATA"/muted-icon/em-dash vocabulary, see home.ts's ΔT tile and
-// temperature.ts's dt-hero). ───────────────────────────────────
+// temperature.ts's dt-hero). The ICON is not shared, deliberately: `bluetooth`
+// means "no data from the device" and is only accurate for PAI, whose
+// unavailability really is a connectivity question. The other three sections
+// use `construction` — absent-by-design (no classifier/CoP/trend source
+// exists at all, regardless of connection state) — because `bluetooth` on
+// those cards would tell anyone who reads the icon before the caption
+// (most people) that connecting both insoles would fix it, which is false.
+// ─────────────────────────────────────────────────────────────
 
 function unavailableCardHTML(opts: {
-  th: string; en: string; pill: string; bodyTH: string; bodyEN: string;
+  th: string; en: string; pill: string; bodyTH: string; bodyEN: string; icon: string;
 }): string {
   return `
     <div class="head">
@@ -66,7 +73,7 @@ function unavailableCardHTML(opts: {
       <span class="pill">${opts.pill}</span>
     </div>
     <div class="section-empty">
-      <div class="ic"><i data-lucide="bluetooth"></i></div>
+      <div class="ic"><i data-lucide="${opts.icon}"></i></div>
       <div class="big">—</div>
       <div class="label-th">${opts.bodyTH}</div>
       <div class="label-en">${opts.bodyEN}</div>
@@ -108,26 +115,34 @@ function renderClassification(): void {
     pill: 'NOT AVAILABLE',
     bodyTH: 'ยังไม่มีระบบจำแนกรูปแบบการเดิน',
     bodyEN: 'No classifier built yet',
+    icon: 'construction',
   });
 }
 
 // ─── PAI (peak asymmetry index) — the one real metric on this screen ──
 //
-// Rolling-window accumulation: on every throttled snapshot (10 Hz) where
-// both feet are usable, the per-side peak-over-all-zones is folded into the
-// in-progress window's running max. When WINDOW_MS elapses, that window
-// closes (pushed into `history`, capped at WINDOW_COUNT-1) and a fresh one
-// starts. The chart always shows WINDOW_COUNT columns: WINDOW_COUNT-1
-// completed windows plus the still-filling live one, so the last bar and
-// the headline PAI figure are always computed from the exact same numbers —
-// they cannot disagree.
+// Rolling-window accumulation happens off the RAW per-sample stream
+// (deviceManager.onRawSample, up to 50 Hz per side), not off the throttled
+// 10 Hz onSnapshot. This split matters, not just for tidiness: a 2 s window
+// at 50 Hz is 100 samples, and onSnapshot only ever delivers 20 of them
+// (10 Hz x 2 s) — a "peak" taken from that would be the max of a set with
+// 80% of the data thrown away, which under-reads exactly the kind of signal
+// (plantar pressure rising and falling fast at heel strike) most likely to
+// have its true peak fall in the discarded 80%. onRawSample exists
+// specifically so this doesn't happen. onSnapshot is still used, but only to
+// drive the RENDER (10 Hz is plenty for a human-readable chart) and to
+// gate/reset accumulation when a foot's usability changes — measurement
+// rate and render rate are different concerns, handled by two different
+// subscriptions here.
 //
-// Per docs/BACKLOG.md item 1 / CLAUDE.md's safety rule: PAI is computed
-// ONLY while both feet are usable. The instant that stops being true, all
-// window state is discarded (not paused, not shown stale) and the section
-// falls back to the same nodata pattern as every other unavailable section
-// on this screen — a one-footed asymmetry figure is not a degraded reading,
-// it's a meaningless one.
+// Per docs/BACKLOG.md item 1 / CLAUDE.md's safety rule: accumulation only
+// happens while both feet are usable (checked via the `bothUsableNow` flag
+// below, refreshed every onSnapshot tick — good enough at 10 Hz resolution
+// for a 2 s window). The instant that flag flips false, all window state is
+// discarded (not paused, not shown stale) and the section falls back to the
+// same nodata pattern as every other unavailable section on this screen —
+// a one-footed asymmetry figure is not a degraded reading, it's a
+// meaningless one.
 
 interface WindowAccum { peakL: number; peakR: number; hasSample: boolean; }
 function freshAccum(): WindowAccum { return { peakL: 0, peakR: 0, hasSample: false }; }
@@ -135,6 +150,8 @@ function freshAccum(): WindowAccum { return { peakL: 0, peakR: 0, hasSample: fal
 let windowStart = 0;
 let live: WindowAccum = freshAccum();
 let history: { peakL: number; peakR: number }[] = [];
+/** Refreshed once per onSnapshot tick (10 Hz); onRawSample reads this rather than re-deriving usability itself, since it fires far more often than that needs re-checking. */
+let bothUsableNow = false;
 
 // Build-once DOM refs for the live chart (Convention #3 in CLAUDE.md: the
 // snapshot stream is 10 Hz, so this subtree is built once and mutated in
@@ -199,6 +216,7 @@ function renderSymmetryUnavailable(): void {
     pill: 'NO DATA',
     bodyTH: 'ต้องมีข้อมูลทั้งสองข้าง',
     bodyEN: 'needs both feet',
+    icon: 'bluetooth',
   });
   symmetryLiveBuilt = false;
   pillEl = paiNumEl = subThEl = null;
@@ -264,6 +282,7 @@ function renderCoP(): void {
     pill: 'NOT AVAILABLE',
     bodyTH: 'ยังไม่มีการคำนวณจุดศูนย์ถ่วงแรงกด',
     bodyEN: 'Not computed yet',
+    icon: 'construction',
   });
 }
 
@@ -277,6 +296,7 @@ function renderTrend(): void {
     pill: 'NOT AVAILABLE',
     bodyTH: 'ยังไม่มีข้อมูลแนวโน้มความสมมาตร',
     bodyEN: 'No trend data yet',
+    icon: 'construction',
   });
 }
 
@@ -284,38 +304,47 @@ function renderTrend(): void {
 
 let unsubs: Unsubscribe[] = [];
 
+/**
+ * Runs on every raw sample (up to 50 Hz per side) — accumulation only, no
+ * DOM work. See the PAI section comment above for why this is the raw
+ * subscription and not onSnapshot.
+ */
+function handleRawSample(s: RawPressureSample): void {
+  if (!bothUsableNow) return;   // gated by the flag applySnapshot maintains
+
+  const peak = peakOf(s.pressure);
+  if (s.side === 'left') live.peakL = Math.max(live.peakL, peak);
+  else live.peakR = Math.max(live.peakR, peak);
+  live.hasSample = true;
+
+  if (windowStart === 0) windowStart = s.tUnixMs;
+  if (s.tUnixMs - windowStart >= WINDOW_MS) {
+    history.push({ peakL: live.peakL, peakR: live.peakR });
+    if (history.length > WINDOW_COUNT - 1) history.shift();
+    live = freshAccum();
+    windowStart = s.tUnixMs;
+  }
+}
+
+/** Runs at 10 Hz (onSnapshot) — usability gating/reset and the actual render. */
 function applySnapshot(snap: CombinedSnapshot): void {
-  const now = Date.now();
   const left = snap.left;
   const right = snap.right;
-  const bothUsable = isUsable(left) && isUsable(right) && !!left.pressure && !!right.pressure;
+  const wasUsable = bothUsableNow;
+  bothUsableNow = isUsable(left) && isUsable(right) && !!left.pressure && !!right.pressure;
 
-  if (!bothUsable) {
+  if (!bothUsableNow) {
     // Discard any in-progress/completed window state rather than let it sit
     // stale and get shown once a foot reconnects — a fresh window on
     // reconnect is correct; resuming a window that was interrupted mid-way
     // is not.
-    if (history.length > 0 || live.hasSample || symmetryLiveBuilt) {
+    if (wasUsable || history.length > 0 || live.hasSample || symmetryLiveBuilt) {
       history = [];
       live = freshAccum();
-      windowStart = now;
+      windowStart = 0;
     }
     renderSymmetryUnavailable();
     return;
-  }
-
-  const peakL = peakOf(left.pressure!);
-  const peakR = peakOf(right.pressure!);
-  live.peakL = Math.max(live.peakL, peakL);
-  live.peakR = Math.max(live.peakR, peakR);
-  live.hasSample = true;
-
-  if (windowStart === 0) windowStart = now;
-  if (now - windowStart >= WINDOW_MS) {
-    history.push({ peakL: live.peakL, peakR: live.peakR });
-    if (history.length > WINDOW_COUNT - 1) history.shift();
-    live = freshAccum();
-    windowStart = now;
   }
 
   if (!symmetryLiveBuilt) {
@@ -338,9 +367,14 @@ export function mount(): void {
   windowStart = 0;
   live = freshAccum();
   history = [];
+  bothUsableNow = false;
   symmetryLiveBuilt = false;
   renderSymmetryUnavailable();
 
+  // Two subscriptions, two different rates and jobs (see the PAI section
+  // comment): raw for accumulation, snapshot for gating + render. Both are
+  // unsubscribed in unmount() per CLAUDE.md Convention #2.
+  unsubs.push(deviceManager.onRawSample(handleRawSample));
   unsubs.push(deviceManager.onSnapshot(applySnapshot));
   initNavigation();
 }

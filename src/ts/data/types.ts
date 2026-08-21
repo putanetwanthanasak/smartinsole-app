@@ -92,6 +92,22 @@ export interface CombinedSnapshot {
   deltaForefootC: number | null;
 }
 
+/**
+ * One converted sample, emitted at the SOURCE's real rate (50 Hz per side,
+ * unthrottled) rather than DeviceManager's 10 Hz UI-render rate. See
+ * `DeviceManager.onRawSample` — for anything that needs to measure the
+ * signal (a rolling-window peak, model input, a data-collection export),
+ * not just display it. `pressure` is pre-converted (never raw `fsrKpa`) for
+ * the same reason `SideSnapshot.pressure` is: nothing outside DeviceManager
+ * may touch the wire-indexed array directly.
+ */
+export interface RawPressureSample {
+  side: FootSide;
+  /** Arrival time (Date.now() when DeviceManager received it), matching every other timestamp in this file — never the device's own clock. */
+  tUnixMs: number;
+  pressure: FootPressure;
+}
+
 // ─── Temperature history ──────────────────────────────────────
 
 /**

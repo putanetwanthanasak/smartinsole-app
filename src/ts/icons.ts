@@ -9,8 +9,10 @@
 // barrel object defeats tree-shaking. The set below is exhaustive as of this
 // commit and includes the names assigned dynamically at
 // home.ts (shield / alert-triangle / activity), heatmap.ts (shield /
-// alert-triangle) and alerts.ts (gauge / thermometer / footprints), which a
-// search for `data-lucide="..."` alone does not reveal.
+// alert-triangle), alerts.ts (gauge / thermometer / footprints), and
+// gait.ts (bluetooth / construction, chosen per-section — see the comment
+// at unavailableCardHTML in gait.ts for why they're not interchangeable),
+// which a search for `data-lucide="..."` alone does not reveal.
 //
 // If you add a new `data-lucide` name, add it here too — `warnMissingIcons()`
 // below will flag it in dev if you forget.
@@ -28,6 +30,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
+  Construction,
   FileDown,
   Footprints,
   Gauge,
@@ -59,6 +62,7 @@ const USED_ICONS = {
   ChevronLeft,
   ChevronRight,
   Clock,
+  Construction,
   FileDown,
   Footprints,
   Gauge,

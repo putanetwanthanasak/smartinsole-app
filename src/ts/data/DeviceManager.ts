@@ -13,7 +13,7 @@ import type { IDataSource } from './IDataSource.js';
 import { MockDataSource } from './MockDataSource.js';
 import type {
   ConnectionState, Unsubscribe, SensorSample, TempReading, DeviceStatus,
-  SideSnapshot, CombinedSnapshot, TempHistoryPoint, TempHistory,
+  SideSnapshot, CombinedSnapshot, TempHistoryPoint, TempHistory, RawPressureSample,
 } from './types.js';
 import { isUsable } from './types.js';
 
@@ -55,6 +55,15 @@ interface SideBox {
 export class DeviceManager {
   private sides: Record<FootSide, SideBox>;
   private listeners = new Set<(s: CombinedSnapshot) => void>();
+  /**
+   * Unthrottled — fires on every converted sample as it arrives (up to
+   * 50 Hz per side), not the 10 Hz `onSnapshot` rate. For measuring the
+   * signal, not displaying it: `onSnapshot` stays 10 Hz for the UI on
+   * purpose, this exists alongside it, not instead of it. See
+   * `onRawSample` below for the cost/safety notes before adding a second
+   * subscriber here.
+   */
+  private rawListeners = new Set<(s: RawPressureSample) => void>();
   private timer: ReturnType<typeof setInterval> | null = null;
   private dirty = true;
 
@@ -76,8 +85,14 @@ export class DeviceManager {
         b.pressure = fsrToFootPressure(s.fsrKpa);
         // Arrival time, NOT s.tUnixMs - a device with a skewed clock must not be
         // able to make its own data look permanently fresh or permanently stale.
-        b.lastSampleAt = Date.now();
+        const arrivedAt = Date.now();
+        b.lastSampleAt = arrivedAt;
         this.dirty = true;
+        // Unthrottled, fires before this handler returns - see onRawSample.
+        if (b.pressure && this.rawListeners.size > 0) {
+          const raw: RawPressureSample = { side: source.side, tUnixMs: arrivedAt, pressure: b.pressure };
+          for (const cb of this.rawListeners) cb(raw);
+        }
       }),
       source.onTemp(t => { b.temp = t; this.pushHistory(b, t); this.dirty = true; }),
       source.onStatus(d => { b.status = d; this.dirty = true; }),
@@ -165,9 +180,42 @@ export class DeviceManager {
     };
   }
 
+  /**
+   * Unthrottled per-sample subscription — up to 50 Hz per side, ~100 Hz
+   * combined with both feet connected, called synchronously from inside
+   * the source's own sample handler (see `box()` above). Exists for
+   * anything that needs to MEASURE the signal rather than display it:
+   * gait.ts's PAI folds its running max from this, because DeviceManager's
+   * throttled `onSnapshot` (10 Hz) would silently discard 80% of the
+   * samples in any window before a peak could be taken from them — see
+   * docs/BACKLOG.md item 1's correction and docs/reports/004-*.md. The
+   * eventual Model A input (Data Contract v1.1 §7.1, [1, 100, 24] @ 50 Hz)
+   * and any raw data-collection export both need this same rate, not
+   * `onSnapshot`'s.
+   *
+   * Cost/safety note for whoever adds a second subscriber here: this fires
+   * synchronously, on the same thread as everything else in the app,
+   * before the sample handler that triggered it returns. A callback here
+   * MUST stay O(1)-cheap (a running max, a counter, a ring-buffer push) —
+   * anything heavier (model inference, per-sample IndexedDB writes) run
+   * here WILL block the main thread and stall the 10 Hz UI, exactly the
+   * failure mode this rate split exists to keep away from `onSnapshot`.
+   * There is no queueing, batching, or Web Worker offload here yet; if a
+   * future subscriber needs real per-sample work done, that infrastructure
+   * has to be built then, not assumed to already exist.
+   */
+  onRawSample(cb: (s: RawPressureSample) => void): Unsubscribe {
+    this.rawListeners.add(cb);
+    return () => { this.rawListeners.delete(cb); };
+  }
+
   /** Diagnostics for the navigation-leak check. */
-  stats(): { snapshotListeners: number; timerRunning: boolean } {
-    return { snapshotListeners: this.listeners.size, timerRunning: this.timer !== null };
+  stats(): { snapshotListeners: number; rawListeners: number; timerRunning: boolean } {
+    return {
+      snapshotListeners: this.listeners.size,
+      rawListeners: this.rawListeners.size,
+      timerRunning: this.timer !== null,
+    };
   }
 
   private ensureTimer(): void {
@@ -219,6 +267,7 @@ export class DeviceManager {
   dispose(): void {
     this.stopTimer();
     this.listeners.clear();
+    this.rawListeners.clear();
     for (const side of ['left', 'right'] as FootSide[]) {
       this.sides[side].unsubs.forEach(u => u());
       this.sides[side].unsubs = [];
