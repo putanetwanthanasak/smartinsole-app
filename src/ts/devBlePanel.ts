@@ -66,7 +66,7 @@ export function mountDevBlePanel(deviceManager: DeviceManager, bleSources: Recor
       row.querySelector('[data-role="diag"]')!.textContent =
         `pkts=${diag.totalPackets} dropped=${diag.droppedPackets} truncated=${diag.truncatedPackets} `
         + `unparseable=${diag.unparseablePackets} seq=${diag.lastSeq ?? '—'} `
-        + `offset=${diag.timeOffsetMs ?? '—'}ms cal=${diag.calibrationDeviceId ?? '—'}`;
+        + `offset=${diag.timeOffsetMs ?? '—'}ms cal=${diag.calibration?.deviceId ?? '—'}`;
     }
   }, 500);
 }

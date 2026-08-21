@@ -189,27 +189,31 @@ const SUPPLY_VOLTAGE = 3.3;
 const ADC_MAX = 4095;
 
 /**
- * docs/BLE-INTERFACE.md "FSR scaling" formula, applied exactly as given:
- *   V_out = (adc/4095) x 3.3; R_fsr = R_pulldown x (3.3-V_out)/V_out;
+ * docs/BLE-INTERFACE.md "FSR scaling" formula, now WITH offset_adc applied
+ * — resolved (was an open gap in report 005; see docs/reports/006-*.md):
+ *   adc_corrected = max(0, adc_raw - offset_adc)
+ *   V_out = (adc_corrected/4095) x 3.3; R_fsr = R_pulldown x (3.3-V_out)/V_out;
  *   F_newton = a x R_fsr^b; P_kPa = F_newton / A_sensor.
  *
- * GAP FOUND IMPLEMENTING THIS (see docs/reports/005-web-ble-datasource.md):
- * the calibration blob carries a per-channel `offset_adc`, but the formula
- * above never shows where it's applied. Rather than guess (e.g. subtracting
- * it from the raw ADC before computing V_out, the common convention for a
- * field named "offset") this function does NOT use `offsetAdc` at all —
- * "do not invent any value that should come from those [docs]" was explicit
- * in the brief for this pass, and this is exactly that kind of value.
- * `offsetAdc` is still parsed and stored on CalibrationChannel so it's not
- * silently dropped from the type, just not consumed by this formula yet.
+ * `offset_adc` is the zero-point: the raw ADC reading from that channel
+ * under no load. It's the stored result of a TARE (control opcode 0x05,
+ * "ปรับ zero-point ของ FSR") — the contract defines no second zero-point
+ * mechanism, so TARE's result and this field are the same concept. Clamped
+ * at 0, not left negative: a reading below the channel's own recorded
+ * zero-point means drift or sensor noise, not negative pressure.
  *
- * The `Math.min`/`Math.max` clamps below are numeric-safety only (adc=0
- * would make V_out=0 -> division by zero; adc=4095 makes R_fsr=0, and a
- * negative `b` makes 0^b = Infinity) — not a calibration decision, and not
- * a value invented in place of one the docs specify.
+ * This changes measured kPa values from the first implementation (report
+ * 005), which didn't apply this subtraction at all — anything computed
+ * before this fix reads high by whatever offset_adc was for that channel.
+ *
+ * The `Math.min`/`Math.max` clamps in the body below are numeric-safety
+ * only (adc_corrected=0 would make V_out=0 -> division by zero; adc=4095
+ * makes R_fsr=0, and a negative `b` makes 0^b = Infinity) — not a
+ * calibration decision.
  */
 export function adcToKpa(rawAdc: number, channel: CalibrationChannel, cal: Calibration): number {
-  const adc = Math.min(ADC_MAX, Math.max(1, rawAdc));
+  const corrected = Math.max(0, rawAdc - channel.offsetAdc);
+  const adc = Math.min(ADC_MAX, Math.max(1, corrected));
   const vOut = (adc / ADC_MAX) * SUPPLY_VOLTAGE;
   const rFsr = Math.max(1e-6, (cal.rPulldownOhm * (SUPPLY_VOLTAGE - vOut)) / vOut);
   const fNewton = channel.a * Math.pow(rFsr, channel.b);

@@ -65,7 +65,8 @@ export interface BleDiagnostics {
   unparseablePackets: number;
   lastSeq: number | null;
   timeOffsetMs: number | null;
-  calibrationDeviceId: string | null;
+  /** Full parsed blob (not just the device_id) — see docs/BLE-TEST-CHECKLIST.md, which inspects this directly from the console to confirm a calibration read actually succeeded and looks right, not just that it didn't throw. */
+  calibration: Calibration | null;
 }
 
 export class WebBleDataSource implements IDataSource {
@@ -129,7 +130,7 @@ export class WebBleDataSource implements IDataSource {
       unparseablePackets: this.unparseablePackets,
       lastSeq: this.lastSeq,
       timeOffsetMs: this.timeOffsetMs,
-      calibrationDeviceId: this.calibration?.deviceId ?? null,
+      calibration: this.calibration,
     };
   }
 

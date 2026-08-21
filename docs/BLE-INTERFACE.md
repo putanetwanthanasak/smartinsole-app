@@ -191,11 +191,26 @@ read once at connect via the Calibration characteristic
 re-entering calibration data.
 
 ```
-V_out     = (adc / 4095) × 3.3
-R_fsr     = R_pulldown × (3.3 − V_out) / V_out
-F_newton  = a × R_fsr^b        // a, b are per-channel, from the calibration blob
-P_kPa     = F_newton / A_sensor
+adc_corrected = max(0, adc − offset_adc)   // offset_adc = the zero-point reading (no load), per channel
+V_out         = (adc_corrected / 4095) × 3.3
+R_fsr         = R_pulldown × (3.3 − V_out) / V_out
+F_newton      = a × R_fsr^b        // a, b are per-channel, from the calibration blob
+P_kPa         = F_newton / A_sensor
 ```
+
+**`offset_adc` — resolved, was an open gap through report 005:** it's the
+raw ADC reading from that channel under no load, i.e. the stored result of
+a TARE (control opcode `0x05`, "ปรับ zero-point ของ FSR" — the contract
+defines no second zero-point mechanism, so TARE's result and this field are
+the same concept). Subtracted from the raw reading before anything else,
+clamped at 0 — a reading below the channel's own zero-point means drift or
+sensor noise, not negative pressure.
+
+**This changes measured kPa values.** `adcToKpa()` in
+`src/ts/data/blePacketParser.ts` did NOT apply this subtraction before
+report 006 — anything computed before that fix reads high by whatever
+`offset_adc` was for that channel. If you're comparing against numbers
+captured earlier, re-capture rather than trust the old ones.
 
 Calibration blob shape (JSON, read from the Calibration characteristic):
 
@@ -259,8 +274,8 @@ temperature.)
 ## What's still open
 
 Updated after implementing `WebBleDataSource` (`docs/reports/005-web-ble-datasource.md`)
-— two of the three items below are now resolved or narrowed; one new gap
-was found.
+and after the contract owner's follow-up (`docs/reports/006-*.md`) — one item
+resolved outright, one resolved by the contract owner, one narrowed.
 
 - **RESOLVED**: `WebBleDataSource` pointed at the ESP32 simulator IS this
   app's answer to the contract's `SimulatorDataSource` — there is no
@@ -279,15 +294,13 @@ was found.
   MTU in one exchange (standard GATT behavior, not something the app has to
   implement). This has NOT been verified against the real simulator's
   actual calibration characteristic — only reasoned from how Web
-  Bluetooth/GATT reads are generally supposed to behave. Flagged as
-  unverified in this pass's report, not as still-completely-unknown.
-- **NEW GAP FOUND**: the FSR scaling formula (`docs/BLE-INTERFACE.md`
-  "FSR scaling" section above) never shows where the calibration blob's
-  per-channel `offset_adc` is applied. `blePacketParser.ts`'s `adcToKpa()`
-  implements the formula exactly as given and does NOT use `offsetAdc` —
-  deliberately, rather than guessing where a per-channel baseline
-  correction belongs (e.g. subtracted from raw ADC before computing
-  `V_out`, the most common convention for a field named "offset", but not
-  confirmed). Needs an answer from whoever owns this section of the
-  contract; see the code comment at `adcToKpa` and this pass's report for
-  the full reasoning.
+  Bluetooth/GATT reads are generally supposed to behave. See
+  `docs/BLE-TEST-CHECKLIST.md` for how to check this against real hardware.
+- **RESOLVED by the contract owner**: `offset_adc` is the zero-point ADC
+  reading under no load — the stored result of a TARE (opcode `0x05`).
+  Subtracted from the raw ADC before the rest of the FSR scaling formula,
+  clamped at 0. See the "FSR scaling" section above and
+  `docs/DATA-CONTRACT.md` §5.1, both updated to show it explicitly, and
+  `adcToKpa()` in `src/ts/data/blePacketParser.ts`. **This changed measured
+  kPa values** — anything computed before this fix reads high by whatever
+  the offset was for that channel.

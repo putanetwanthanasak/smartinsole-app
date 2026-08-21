@@ -199,11 +199,14 @@ over the code if the two ever disagree in the future.
 การออกแบบนี้แก้ปัญหาสำคัญ — หากผู้ป่วยมีแผ่นรองเท้าหลายคู่ หรือเปลี่ยนคู่ใหม่ แอปจะอ่านค่า calibration ที่ถูกต้องได้เองอัตโนมัติจาก characteristic `...b45905` ตอนเชื่อมต่อ ไม่ต้องให้ผู้ใช้ตั้งค่าเอง
 
 ```
-V_out = (adc / 4095) × 3.3
+adc_corrected = max(0, adc − offset_adc)   // offset_adc = ค่า ADC ที่จุดศูนย์ (ไม่มีแรงกด) — ผลลัพธ์ของ TARE (opcode 0x05)
+V_out = (adc_corrected / 4095) × 3.3
 R_fsr = R_pulldown × (3.3 − V_out) / V_out
 F_newton = a × R_fsr^b        // a, b จาก curve fitting รายชิ้น
 P_kPa = F_newton / A_sensor   // A_sensor = พื้นที่รับแรงจริง (m²)
 ```
+
+ค่าที่ต่ำกว่าจุดศูนย์ (adc < offset_adc) หมายถึง drift หรือ noise ของเซนเซอร์ ไม่ใช่แรงกดติดลบ — จึง clamp ที่ 0 เสมอ
 
 ทีมฮาร์ดแวร์ต้องส่งมอบ **ตาราง calibration** ในรูปแบบ JSON:
 
