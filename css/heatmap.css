@@ -138,6 +138,22 @@
 }
 .zone-group.invert-text .zone-value { fill: #fff; }
 
+/* Generalizes the 12px danger-tier tuning above for values wider than the
+   3 digits it was measured against — rather than hand-tuning a fourth fixed
+   size that breaks again the next time an out-of-range value shows up (see
+   the comment in heatmap.ts's setPressure() where these classes are set:
+   this app has already hit this once, when a raw ADC value, up to 4 digits,
+   briefly reached the heatmap during BLE debugging and overlapped two
+   adjacent metatarsal labels into one garbled string). The combined
+   `.wide-value.danger` / `.x-wide-value.danger` selectors have higher
+   specificity than the bare `.danger` rule above, so they win whenever both
+   apply; the bare `.wide-value` / `.x-wide-value` rules tie with `.danger`
+   on specificity and win on source order for the non-danger case. */
+.zone-group.wide-value .zone-value          { font-size: 8.5px; }
+.zone-group.wide-value.danger .zone-value   { font-size: 9px; }
+.zone-group.x-wide-value .zone-value        { font-size: 6.5px; }
+.zone-group.x-wide-value.danger .zone-value { font-size: 7px; }
+
 /* Pulse rings are present on every zone and gated by class, so that toggling a
    zone into or out of the alert tier does not recreate the node and restart the
    animation mid-flight. */
@@ -404,8 +420,9 @@
 }
 .danger-zone-row .chip {
   font-family: var(--font-en);
-  width: 36px;
+  min-width: 36px;   /* not a fixed width — same reasoning as .wide-value above: this only ever showed 3-digit alert-tier kPa values until it didn't, and a fixed width doesn't degrade gracefully the way min-width + padding does */
   height: 28px;
+  padding: 0 4px;
   border-radius: 7px;
   color: #fff;
   display: flex;

@@ -98,6 +98,14 @@ export class WebBleDataSource implements IDataSource {
   private unparseablePackets = 0;
   private consecutiveTruncations = 0;
 
+  // TEMP DEBUG — see docs/reports/007-*.md, investigating the raw-ADC-passthrough
+  // anomaly (reported kPa values numerically ~= raw ADC input, not the
+  // computed conversion). Logs the raw ADC integer and adcToKpa()'s return
+  // value, in isolation, for the hallux channel of the first N samples per
+  // connection — remove once the anomaly is confirmed/fixed.
+  private debugSamplesLogged = 0;
+  private static readonly DEBUG_SAMPLE_LIMIT = 16;
+
   private samples = emitter<SensorSample>();
   private temps = emitter<TempReading>();
   private statuses = emitter<DeviceStatus>();
@@ -401,18 +409,40 @@ export class WebBleDataSource implements IDataSource {
     for (let i = 0; i < parsed.samples.length; i++) {
       const raw = parsed.samples[i];
       const deviceMs = parsed.header.t0Ms + i * SENSOR_SAMPLE_SPACING_MS;
+      const tUnixMs = this.toUnixMs(deviceMs);
+      const debugThisSample = this.debugSamplesLogged < WebBleDataSource.DEBUG_SAMPLE_LIMIT;
+
       const fsrKpa = raw.fsrAdc.map((adc, ch) => {
         const channel = this.calibByIndex.get(ch);
         if (!channel) throw new Error(`No calibration channel for FSR index ${ch}`);
-        return adcToKpa(adc, channel, calibration);
+        const kpa = adcToKpa(adc, channel, calibration);
+        // TEMP DEBUG (channel 0 = hallux only, first DEBUG_SAMPLE_LIMIT samples).
+        if (debugThisSample && ch === 0) {
+          console.log(
+            `[BLE-DEBUG:${this.side}] STAGE 1 (adcToKpa isolated) seq=${parsed.header.seq} i=${i} `
+            + `tUnixMs=${tUnixMs} rawAdc=${adc} offsetAdc=${channel.offsetAdc} a=${channel.a} `
+            + `b=${channel.b} rPulldownOhm=${calibration.rPulldownOhm} sensorAreaM2=${calibration.sensorAreaM2} `
+            + `-> adcToKpa()=${kpa}`,
+          );
+        }
+        return kpa;
       });
       const sample: SensorSample = {
-        tUnixMs: this.toUnixMs(deviceMs),
+        tUnixMs,
         side: this.side,
         fsrKpa,
         accelG: raw.accelRaw.map(accelRawToG) as [number, number, number],
         gyroDps: raw.gyroRaw.map(gyroRawToDps) as [number, number, number],
       };
+      // TEMP DEBUG — what actually ends up on the emitted SensorSample, for
+      // the same channel/sample logged just above (match by tUnixMs).
+      if (debugThisSample) {
+        console.log(
+          `[BLE-DEBUG:${this.side}] STAGE 2 (emitted SensorSample) tUnixMs=${sample.tUnixMs} `
+          + `fsrKpa[0](hallux)=${sample.fsrKpa[0]}`,
+        );
+        this.debugSamplesLogged++;
+      }
       this.samples.emit(sample);
     }
   }

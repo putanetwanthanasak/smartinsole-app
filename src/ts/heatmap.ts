@@ -102,10 +102,23 @@ export class Heatmap {
         } else {
           const v = values[z.id];
           const isDanger = v >= PRESSURE_ALERT_KPA;
+          const rounded = String(Math.round(v));
           zr.fill.setAttribute('fill', pressureColor(v));
-          zr.text.textContent = String(Math.round(v));
+          zr.text.textContent = rounded;
           zr.group.classList.toggle('danger', isDanger);
           zr.group.classList.toggle('invert-text', v < PRESSURE_LABEL_INVERT_MAX_KPA);
+          // Font-size was already tuned once for 3-digit kPa values (see the
+          // CSS comment on .zone-group.danger .zone-value — "220" measured
+          // 28.3px against a 27px zone at 14px, fixed at 12px). That tuning
+          // assumes the value never exceeds 3 digits, which held until a raw
+          // ADC value briefly reached the heatmap during BLE debugging
+          // (0-4095, up to 4 digits) and produced two adjacent zones'
+          // overlapping text rendering as one garbled string. Rather than
+          // re-tune a THIRD fixed size for "4 digits" and leave the same trap
+          // for a 5th, this scales by digit count generally — see the
+          // .wide-value / .x-wide-value rules in heatmap.css.
+          zr.group.classList.toggle('wide-value', rounded.replace('-', '').length === 4);
+          zr.group.classList.toggle('x-wide-value', rounded.replace('-', '').length >= 5);
           zr.text.setAttribute('y', String(z.cy + (isDanger ? 5 : 4)));
         }
       }

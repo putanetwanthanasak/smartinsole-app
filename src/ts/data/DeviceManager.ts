@@ -78,6 +78,12 @@ export class DeviceManager {
       temp: null, status: null, lastSampleAt: null, connectedAt: null,
       history: [], unsubs: [],
     };
+    // TEMP DEBUG — see docs/reports/007-*.md, investigating the raw-ADC-passthrough
+    // anomaly. Correlates with WebBleDataSource's own STAGE 1/STAGE 2 logs by
+    // tUnixMs — same window (first 16 samples), so all three stages should be
+    // directly comparable for the same sample. Remove once confirmed/fixed.
+    let debugSamplesLogged = 0;
+    const DEBUG_SAMPLE_LIMIT = 16;
     b.unsubs.push(
       source.onSample(s => {
         // Latest-wins, no queue: a throttled tick emits whatever is current when
@@ -89,6 +95,14 @@ export class DeviceManager {
         const arrivedAt = Date.now();
         b.lastSampleAt = arrivedAt;
         this.dirty = true;
+        if (import.meta.env.DEV && debugSamplesLogged < DEBUG_SAMPLE_LIMIT) {
+          console.log(
+            `[BLE-DEBUG:DeviceManager] STAGE 3 (post fsrToFootPressure) side=${source.side} `
+            + `tUnixMs=${s.tUnixMs} s.fsrKpa[0]=${s.fsrKpa[0]} b.pressure.hallux=${b.pressure?.hallux} `
+            + '(this is also exactly what onRawSample callers receive as pressure.hallux)',
+          );
+          debugSamplesLogged++;
+        }
         // Unthrottled, fires before this handler returns - see onRawSample.
         if (b.pressure && this.rawListeners.size > 0) {
           const raw: RawPressureSample = { side: source.side, tUnixMs: arrivedAt, pressure: b.pressure };
