@@ -21,10 +21,20 @@ import '@fontsource/jetbrains-mono/500.css';
 import '@fontsource/jetbrains-mono/600.css';
 
 import { startRouter } from './router.js';
-import { deviceManager } from './data/DeviceManager.js';
+import { deviceManager, usingWebBle, bleSources } from './data/DeviceManager.js';
+import { mountDevBlePanel } from './devBlePanel.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   startRouter();
+
+  if (usingWebBle && bleSources) {
+    // Web Bluetooth's requestDevice() requires a real user gesture per
+    // device — a boot-time call can never provide that, and two insoles
+    // means two separate gestures regardless (see devBlePanel.ts). The
+    // usual auto-connect below is skipped entirely in this mode.
+    mountDevBlePanel(deviceManager, bleSources);
+    return;
+  }
 
   // Connect ONCE at app start, not from any screen's mount().
   // Screens used to call connectAll() themselves, which meant simply changing

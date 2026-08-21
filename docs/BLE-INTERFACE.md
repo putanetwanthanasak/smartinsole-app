@@ -258,15 +258,36 @@ temperature.)
 
 ## What's still open
 
-- The calibration blob's exact byte-level framing over BLE (it's read as
-  JSON per the contract, but confirm there's no length-prefix or chunking
-  detail the 512-byte max implies) — not spelled out further in the
-  contract text as reconciled.
-- No `SimulatorDataSource` exists in this repo yet distinct from
-  `MockDataSource` — the contract's own `IDataSource` sketch (section 6)
-  lists `MockDataSource | SimulatorDataSource | BleDataSource` as the three
-  implementations; this repo currently only has `MockDataSource` and plans
-  `WebBleDataSource`, with no separate simulator-specific source. Worth
-  confirming whether `WebBleDataSource` pointed at the ESP32 simulator is
-  meant to *be* the contract's `SimulatorDataSource`, or whether a fourth,
-  simulator-only implementation was intended.
+Updated after implementing `WebBleDataSource` (`docs/reports/005-web-ble-datasource.md`)
+— two of the three items below are now resolved or narrowed; one new gap
+was found.
+
+- **RESOLVED**: `WebBleDataSource` pointed at the ESP32 simulator IS this
+  app's answer to the contract's `SimulatorDataSource` — there is no
+  separate simulator-only implementation, and none seems warranted: the
+  simulator and real hardware are electrically identical BLE peripherals
+  from this app's side of the link (same service, same characteristics,
+  same packet formats), so one adapter class serves both. Not confirmed
+  with the hardware/contract team, just the position this implementation
+  took — revisit if that turns out to be wrong.
+- **NARROWED, not fully resolved**: the calibration blob's byte-level
+  framing. `WebBleDataSource` reads it with a single
+  `characteristic.readValue()` call and decodes the result as UTF-8 JSON —
+  no manual chunking logic was written, relying on Web Bluetooth's
+  underlying GATT stack to transparently perform the standard "Read Long
+  Characteristic Value" procedure for any value exceeding the negotiated
+  MTU in one exchange (standard GATT behavior, not something the app has to
+  implement). This has NOT been verified against the real simulator's
+  actual calibration characteristic — only reasoned from how Web
+  Bluetooth/GATT reads are generally supposed to behave. Flagged as
+  unverified in this pass's report, not as still-completely-unknown.
+- **NEW GAP FOUND**: the FSR scaling formula (`docs/BLE-INTERFACE.md`
+  "FSR scaling" section above) never shows where the calibration blob's
+  per-channel `offset_adc` is applied. `blePacketParser.ts`'s `adcToKpa()`
+  implements the formula exactly as given and does NOT use `offsetAdc` —
+  deliberately, rather than guessing where a per-channel baseline
+  correction belongs (e.g. subtracted from raw ADC before computing
+  `V_out`, the most common convention for a field named "offset", but not
+  confirmed). Needs an answer from whoever owns this section of the
+  contract; see the code comment at `adcToKpa` and this pass's report for
+  the full reasoning.

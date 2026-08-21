@@ -11,6 +11,7 @@ import type { FootSide, FootPressure } from '../types.js';
 import { FSR_CHANNEL_ORDER } from '../constants.js';
 import type { IDataSource } from './IDataSource.js';
 import { MockDataSource } from './MockDataSource.js';
+import { WebBleDataSource } from './WebBleDataSource.js';
 import type {
   ConnectionState, Unsubscribe, SensorSample, TempReading, DeviceStatus,
   SideSnapshot, CombinedSnapshot, TempHistoryPoint, TempHistory, RawPressureSample,
@@ -295,10 +296,31 @@ export const mockSources = {
   right: new MockDataSource('right'),
 };
 
-export const deviceManager = new DeviceManager(mockSources.left, mockSources.right);
+/**
+ * Dev-only switch to real Web Bluetooth hardware/simulator instead of the
+ * mock sources: load the app with `?ds=ble` in the URL. Gated to DEV builds
+ * only — this is a debug toggle for this pass, not a shipped feature (see
+ * docs/reports/005-web-ble-datasource.md). When active, main.ts skips its
+ * usual boot-time `connectAll()` and mounts a small dev-only connect panel
+ * instead (src/ts/devBlePanel.ts) — Web Bluetooth's `requestDevice()`
+ * requires a real user gesture per device, which a boot-time call can never
+ * provide, and two insoles means two separate gestures regardless.
+ */
+export const usingWebBle =
+  import.meta.env.DEV && new URLSearchParams(location.search).get('ds') === 'ble';
+
+/** Only constructed when usingWebBle — null otherwise so nothing accidentally touches navigator.bluetooth on a normal (mock) run. */
+export const bleSources = usingWebBle
+  ? { left: new WebBleDataSource('left'), right: new WebBleDataSource('right') }
+  : null;
+
+export const deviceManager = new DeviceManager(
+  bleSources ? bleSources.left : mockSources.left,
+  bleSources ? bleSources.right : mockSources.right,
+);
 
 if (import.meta.env.DEV) {
   // Dev-only handle so connection states can be driven from the console without
   // shipping disconnect buttons in the UI.
-  (window as unknown as Record<string, unknown>).__insole = { deviceManager, mockSources };
+  (window as unknown as Record<string, unknown>).__insole = { deviceManager, mockSources, bleSources };
 }
