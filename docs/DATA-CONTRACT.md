@@ -203,7 +203,7 @@ adc_corrected = max(0, adc − offset_adc)   // offset_adc = ค่า ADC ท�
 V_out = (adc_corrected / 4095) × 3.3
 R_fsr = R_pulldown × (3.3 − V_out) / V_out
 F_newton = a × R_fsr^b        // a, b จาก curve fitting รายชิ้น
-P_kPa = F_newton / A_sensor   // A_sensor = พื้นที่รับแรงจริง (m²)
+P_kPa = F_newton / A_sensor / 1000   // A_sensor = พื้นที่รับแรงจริง (m²); F_newton / A_sensor คือหน่วย Pa — ต้องหาร 1000 เพื่อแปลงเป็น kPa
 ```
 
 ค่าที่ต่ำกว่าจุดศูนย์ (adc < offset_adc) หมายถึง drift หรือ noise ของเซนเซอร์ ไม่ใช่แรงกดติดลบ — จึง clamp ที่ 0 เสมอ

@@ -195,7 +195,7 @@ adc_corrected = max(0, adc − offset_adc)   // offset_adc = the zero-point read
 V_out         = (adc_corrected / 4095) × 3.3
 R_fsr         = R_pulldown × (3.3 − V_out) / V_out
 F_newton      = a × R_fsr^b        // a, b are per-channel, from the calibration blob
-P_kPa         = F_newton / A_sensor
+P_kPa         = F_newton / A_sensor / 1000   // F_newton / A_sensor is Pa, not kPa — the /1000 is required
 ```
 
 **`offset_adc` — resolved, was an open gap through report 005:** it's the
@@ -206,11 +206,22 @@ the same concept). Subtracted from the raw reading before anything else,
 clamped at 0 — a reading below the channel's own zero-point means drift or
 sensor noise, not negative pressure.
 
-**This changes measured kPa values.** `adcToKpa()` in
-`src/ts/data/blePacketParser.ts` did NOT apply this subtraction before
-report 006 — anything computed before that fix reads high by whatever
-`offset_adc` was for that channel. If you're comparing against numbers
-captured earlier, re-capture rather than trust the old ones.
+**`/1000` — resolved, was an open gap through report 007:** `F_newton /
+A_sensor` (N / m²) is Pascals, not kilopascals — this formula never showed
+the conversion despite the field being called `P_kPa`. Confirmed against
+instrumented hardware logs, not just unit analysis: reported "raw-ADC-
+passthrough" readings that looked like the raw ADC value with a decimal
+fraction attached were this bug, not a separate one — e.g. rawAdc=345
+produced 5411 Pa by hand and 5385.22 Pa logged; both are ≈1000x the ≈5.41
+kPa a patient's foot would actually be reading.
+
+**This changes measured kPa values, twice over.** `adcToKpa()` in
+`src/ts/data/blePacketParser.ts` did not apply the `offset_adc` subtraction
+before report 006, and did not apply this `/1000` before report 008 —
+anything computed before report 006 reads high by `offset_adc`; anything
+computed before report 008 reads ~1000x too high on top of that. If you're
+comparing against numbers captured earlier, re-capture rather than trust
+the old ones.
 
 Calibration blob shape (JSON, read from the Calibration characteristic):
 
@@ -273,10 +284,15 @@ temperature.)
 
 ## What's still open
 
-Updated after implementing `WebBleDataSource` (`docs/reports/005-web-ble-datasource.md`)
-and after the contract owner's follow-up (`docs/reports/006-*.md`) — one item
-resolved outright, one resolved by the contract owner, one narrowed.
+Updated after implementing `WebBleDataSource` (`docs/reports/005-web-ble-datasource.md`),
+the contract owner's follow-up (`docs/reports/006-*.md`), and the raw-hardware
+debugging pass that found and fixed the Pa/kPa unit gap
+(`docs/reports/007-*.md`, `docs/reports/008-*.md`).
 
+- **RESOLVED**: the FSR scaling formula's missing Pa→kPa conversion. Found
+  via instrumented logging against real hardware, not code review alone —
+  see the "FSR scaling" section above and `docs/reports/008-*.md` for the
+  confirming data points. `adcToKpa()` now divides by 1000.
 - **RESOLVED**: `WebBleDataSource` pointed at the ESP32 simulator IS this
   app's answer to the contract's `SimulatorDataSource` — there is no
   separate simulator-only implementation, and none seems warranted: the

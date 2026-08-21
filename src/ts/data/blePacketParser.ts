@@ -190,10 +190,12 @@ const ADC_MAX = 4095;
 
 /**
  * docs/BLE-INTERFACE.md "FSR scaling" formula, now WITH offset_adc applied
- * — resolved (was an open gap in report 005; see docs/reports/006-*.md):
+ * (resolved — was an open gap in report 005, fixed in report 006) AND WITH
+ * the Pa->kPa conversion applied (resolved — found and confirmed by
+ * instrumented logging in report 007, fixed here in report 008):
  *   adc_corrected = max(0, adc_raw - offset_adc)
  *   V_out = (adc_corrected/4095) x 3.3; R_fsr = R_pulldown x (3.3-V_out)/V_out;
- *   F_newton = a x R_fsr^b; P_kPa = F_newton / A_sensor.
+ *   F_newton = a x R_fsr^b; P_kPa = F_newton / A_sensor / 1000.
  *
  * `offset_adc` is the zero-point: the raw ADC reading from that channel
  * under no load. It's the stored result of a TARE (control opcode 0x05,
@@ -202,9 +204,16 @@ const ADC_MAX = 4095;
  * at 0, not left negative: a reading below the channel's own recorded
  * zero-point means drift or sensor noise, not negative pressure.
  *
- * This changes measured kPa values from the first implementation (report
- * 005), which didn't apply this subtraction at all — anything computed
- * before this fix reads high by whatever offset_adc was for that channel.
+ * `F_newton / A_sensor` (N / m²) is Pascals, not kilopascals — the
+ * documented formula never showed the /1000 step despite the field being
+ * called `P_kPa`. Confirmed against instrumented hardware logs (report
+ * 007/008): reported "anomaly" values that looked like raw ADC passed
+ * through with a decimal fraction were actually this — e.g. rawAdc=345
+ * produced 5411 Pa by hand and 5385.22 logged, not the ~5.41 kPa expected.
+ *
+ * Both fixes change measured kPa values from earlier implementations —
+ * anything computed before report 006 reads high by offset_adc; anything
+ * computed before this fix (report 008) reads ~1000x too high.
  *
  * The `Math.min`/`Math.max` clamps in the body below are numeric-safety
  * only (adc_corrected=0 would make V_out=0 -> division by zero; adc=4095
@@ -217,5 +226,5 @@ export function adcToKpa(rawAdc: number, channel: CalibrationChannel, cal: Calib
   const vOut = (adc / ADC_MAX) * SUPPLY_VOLTAGE;
   const rFsr = Math.max(1e-6, (cal.rPulldownOhm * (SUPPLY_VOLTAGE - vOut)) / vOut);
   const fNewton = channel.a * Math.pow(rFsr, channel.b);
-  return fNewton / cal.sensorAreaM2;
+  return fNewton / cal.sensorAreaM2 / 1000;
 }
