@@ -7,38 +7,55 @@ worth knowing which is which when prioritizing.
 
 ---
 
-## 1. Gait screen pass — PENDING, prompt already written, not started
-
-A full prompt for this was written and given to Claude, but explicitly **not
-implemented** — the session was paused first. The prompt is reproducible from
-conversation history; the agreed direction, for a cold read:
+## 1. Gait screen pass — DECIDED, ready to implement
 
 The gait screen currently shows nothing real: the classification card's
 "87% confidence" and "status 2/5" are literal template text, the 8-stride bar
 chart array has no data source, and the CoP trajectory is a fixed decorative
 SVG path. There is no gait classifier and none is in scope for this pass.
 
-**Agreed direction (from the paused conversation):**
-- **PAI (Pressure-time / peak-per-window)** — real, derivable from the
-  pressure stream today — becomes a genuine rolling-window metric. Critically:
-  **label it as what it is** (a rolling window over recent samples), **never**
-  as "strides" or "steps" — stride segmentation needs IMU processing that does
-  not exist yet, and mislabeling a pressure-window metric as stride data would
-  be exactly the kind of fabricated-precision problem this app has been
-  actively removing elsewhere (see the ΔT safety rule in `CLAUDE.md`).
-- **Everything else on the screen — the classification verdict, confidence,
-  stride segmentation, CoP trajectory — goes to an explicit "not yet
-  available" state.** Do not invent a classifier, do not fake a confidence
-  number. Delete the "87%" and "2/5" outright rather than replace them with a
-  different fake number.
-- One open decision was left for the user to make before implementation:
-  whether the peak-per-stride bar chart becomes a relabeled rolling-window
-  chart (real data, changed meaning, changed axis label) or is blanked to the
-  same "not yet available" state as the rest of the screen. **Whoever resumes
-  this needs to get that decision before writing code.**
+**The decision (previously recorded here as open — it was not; the user had
+simply not sent it yet):** rolling-window relabel, option (a), built as a
+real metric, not a placeholder.
 
-Do not start this without re-confirming the decision above is still current —
-it was made in conversation, not committed anywhere else.
+**Why this is the right call, not just the available one** — this is the
+part that makes the choice non-obvious, so it's recorded rather than just the
+conclusion: PAI (Peak Asymmetry Index) is a metric the Data Contract already
+specifies, and it was designed specifically to avoid needing stride
+segmentation. With six discrete sensors per foot rather than a full pressure
+mat, absolute peak pressure under-reads badly (see item 4 below) — but the
+left-vs-right *ratio* stays meaningful even when both sides under-read
+together. PAI = `|L-R| / ((L+R)/2) × 100` needs only a peak per foot per
+window, which `DeviceManager` already computes per side. So this is not a
+stand-in awaiting IMU work — it is the metric. When stride segmentation
+eventually lands, the window definition changes from "2 s wall-clock" to "1
+stride" and the metric formula survives unchanged.
+
+**Requirements (not suggestions):**
+- Surface the computed PAI number on screen, not just the bars — it is a
+  contract metric, not a decorative chart.
+- The PAI watch threshold goes in `constants.ts`, named, not inlined —
+  follow the pattern of `PRESSURE_WATCH_KPA` / `PRESSURE_ALERT_KPA`.
+- PAI is computed only when both feet are usable (`isUsable(left) &&
+  isUsable(right)`, same guard as `DeviceManager.deltaForefootC`). One-footed
+  asymmetry is not a degraded reading, it's meaningless — same no-data state
+  as everywhere else this rule applies (see "The safety rule" in
+  `CLAUDE.md`).
+- **HARD CONSTRAINT: the words "stride" / "ก้าว" must not appear anywhere in
+  that section** — heading, axis label, legend, tooltip, or any other label.
+  Grep both terms before reporting the pass done.
+- Structure the window definition (currently "2 s wall-clock") as a single
+  named constant/comment such that swapping it for "1 stride" once
+  segmentation exists is a one-line change — comment it as such at the
+  declaration site.
+- The other three sections on the screen — the classification card, the CoP
+  trajectory, and the 7-day sparkline — become explicit unavailable states,
+  visually consistent with the unavailable-foot treatment already used on
+  Home. Delete the "87%" and the "2/5" outright, don't replace them with a
+  different fake number. Remove the decorative CoP path entirely — a fake
+  trace next to an "unavailable" caption is worse than an empty box.
+
+This is ready to implement — no further decision is pending.
 
 ---
 
