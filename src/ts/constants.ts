@@ -3,38 +3,50 @@
 import type { ZoneInfo, RiskStatus, StatusMeta, PresetName } from './types.js';
 
 // ─── Clinical thresholds ────────────────────────────────────
-// Plantar pressure is in kPa. Confirmed against Data Contract v1.1 §8.3
-// (`docs/DATA-CONTRACT.md`), which fixes the same two tiers:
+// Plantar pressure is in kPa. The Data Contract fixes two tiers:
 //   75 kPa  — watch  (surfaced on the heatmap, not notification-worthy)
-//   200 kPa — alert  (notification-worthy)
+//   200 kPa — alert  (notification-worthy, sourced from Owings et al. 2009,
+//             measured with high-density research pressure mapping)
 // Both are inclusive lower bounds: a zone at exactly 200 kPa is in the alert tier.
-// The contract's own §8.3 note raises exactly the under-reading concern this
-// comment used to describe as an open worry: six discrete FSRs per foot (vs.
-// a full pressure mat) will systematically under-read the true peak, since a
-// sensor rarely sits exactly on it — the contract's answer is that the
-// asymmetry metrics in §8.2 (PAI, PTI asymmetry, load concentration) exist
-// specifically to compensate for that, not that 75/200 themselves are wrong.
-// Do not re-litigate these two numbers against the literature; they are
-// contract-fixed values, not this codebase's estimate.
+// PROVISIONAL, expect to recalibrate against real hardware. Two reasons to
+// distrust 75 as a watch level: published peak plantar pressures for normal
+// barefoot gait routinely exceed it, so taken literally this threshold would
+// flag healthy walking; and this build has six discrete FSRs per foot rather
+// than a full pressure mat, so a sensor rarely sits exactly on the true peak and
+// measured values will under-read relative to the literature. Those two errors
+// push in opposite directions and neither is quantified yet. The 200 kPa alert
+// tier carries the identical under-reading problem, for the identical reason —
+// Owings' figure also comes from a dense research mat, not six discrete points.
+// Revisit both once real device data exists — do not tune this against the
+// mock presets.
 //
-// Unresolved architectural gap, not a value problem: the contract requires
-// ALL threshold values to live in a runtime `thresholds.json`, not be
-// hardcoded in source (§8.3 — "จะต้องปรับหลังการทดสอบกับฮาร์ดแวร์จริงอย่างแน่นอน",
-// i.e. these will definitely need tuning after real-hardware testing, without
-// a rebuild). This file still hardcodes them as TS constants. See
-// `docs/BACKLOG.md` — not fixed in this pass; introducing config loading is
-// a bigger decision than a threshold correction.
+// Both values also appear in Data Contract v1.1 §8.3 (`docs/DATA-CONTRACT.md`)
+// as the team's agreed figures. That is not the same claim as "validated
+// against measurement" — the contract records what was agreed, not what has
+// been checked against real device data, and its own §8.3 note states this
+// exact under-reading gap in the contract's own words. Being in the contract
+// changes where these numbers are recorded, not their evidentiary status;
+// keep treating them as provisional. See `docs/BACKLOG.md` item 4.
+//
+// Separate, architectural point: the contract requires ALL threshold values
+// to live in a runtime `thresholds.json`, not be hardcoded in source (§8.3 —
+// they will definitely need tuning after real-hardware testing, without a
+// rebuild). This file still hardcodes them as TS constants; not fixed here,
+// see `docs/BACKLOG.md` item 4.
 export const PRESSURE_WATCH_KPA     = 75;
 export const PRESSURE_ALERT_KPA     = 200;
 // Top of the display scale — the heatmap legend and the gait bar chart both map
 // values onto 0..this, so it is not merely cosmetic.
 export const PRESSURE_SCALE_MAX_KPA = 250;
 
-// °C between L/R same zone. Confirmed against contract §8.3 (Lavery et al.
-// 2004). One gap vs. the contract's own condition: the contract requires
-// this to fire only after ≥2 consecutive over-threshold readings
-// ("ต่อเนื่อง ≥ 2 ครั้งวัด"); `AlertStore.evaluate()` currently fires on a
-// single reading. Not changed here — see `docs/BACKLOG.md`.
+// °C between L/R same zone. Sourced from Lavery et al. (2004) and recorded
+// as the team's agreed value in Data Contract v1.1 §8.3 — that means agreed,
+// not validated against this system's own measurements; same distinction as
+// PRESSURE_WATCH_KPA above. One additional gap vs. the contract's own
+// condition: the contract requires this to fire only after ≥2 consecutive
+// over-threshold readings ("ต่อเนื่อง ≥ 2 ครั้งวัด"); `AlertStore.evaluate()`
+// currently fires on a single reading. Not changed here — see
+// `docs/BACKLOG.md` item 10.
 export const TEMP_DELTA_THRESHOLD   = 2.2;
 
 // Six-stop colour ramp, expressed in kPa and derived from the two contract

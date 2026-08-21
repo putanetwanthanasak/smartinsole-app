@@ -31,9 +31,12 @@ stand-in awaiting IMU work — it is the metric. When stride segmentation
 eventually lands, the window definition changes from "2 s wall-clock" to "1
 stride" and the metric formula survives unchanged.
 
-**Now confirmed against Data Contract v1.1 §8.2–8.3** (`docs/DATA-CONTRACT.md`,
+**Now recorded in Data Contract v1.1 §8.2–8.3** (`docs/DATA-CONTRACT.md`,
 filled in after this entry was first written): PAI watch threshold is
-**15%** (`"asymmetry": { "peakPct": 15, ... }`). The contract's alert rule
+**15%** (`"asymmetry": { "peakPct": 15, ... }`). That is the team's agreed
+figure, not a value validated against measurement — same caveat as item 4
+below applies here too; treat it as a starting point, not a settled number.
+The contract's alert rule
 for it, `ASYMMETRY_PEAK`, additionally requires PAI > 15% to hold for "≥ 20
 ก้าว" (≥20 steps) before firing — the same rolling-window substitution this
 whole item is built around applies there too: there is no step count yet,
@@ -115,24 +118,40 @@ given device would fetch. Needs trimming to the subsets actually used
 
 ---
 
-## 4. `PRESSURE_WATCH_KPA = 75` / `PRESSURE_ALERT_KPA = 200` — confirmed by contract, but hardcoded where the contract says they must not be
+## 4. `PRESSURE_WATCH_KPA = 75` / `PRESSURE_ALERT_KPA = 200` are provisional — still open
 
-**Update, now that Data Contract v1.1 is in the repo (`docs/DATA-CONTRACT.md`
-§8.3):** these are contract-fixed values (`"pressure": { "watchKpa": 75,
-"alertKpa": 200 }`), not this codebase's own estimate — they are no longer
-"provisional" in the sense of being guessed. The under-reading concern this
-item used to raise is the contract's own concern too: §8.3 notes the 200 kPa
-figure comes from a dense research pressure mat, while this build has six
-discrete FSRs per foot, so measured values will tend to read low relative to
-the literature — and states that the §8.2 asymmetry metrics (PAI, PTI
-asymmetry, load concentration) exist specifically to compensate for that gap,
-not that 75/200 need re-deriving. **Do not re-litigate these two numbers
-against the literature** — if they need to change, that's a contract
-revision, not a code fix.
+Both values are documented in comments at their declarations in
+`constants.ts`, repeating here so it isn't missed: published peak plantar
+pressures for normal barefoot gait routinely exceed 75 kPa, so taken at face
+value this threshold would flag healthy walking as a concern. Simultaneously,
+this build's six discrete FSRs per foot (vs. a full pressure mat) will
+systematically under-read the true peak, since a sensor rarely sits exactly
+on it. Those two errors push in opposite directions and neither is
+quantified. `PRESSURE_ALERT_KPA` (200 kPa) carries the same caveat — it's
+sourced from Owings et al. (2009), measured with high-density pressure
+mapping, so the same discrete-sensor under-reading problem applies to it as
+much as to the watch tier. **Do not tune either value against the mock
+`PRESETS`** — both need recalibration against real hardware data once the
+ESP32 simulator or real insoles are feeding the pipeline.
 
-**What's still actually wrong:** the contract requires ALL threshold values
-to live in a runtime-loadable `thresholds.json`, explicitly so they can be
-retuned after real-hardware testing without a rebuild (§8.3):
+**Now that Data Contract v1.1 is in the repo (`docs/DATA-CONTRACT.md` §8.3),
+one distinction is worth stating precisely, because it's easy to blur:**
+75/200 appear there as the team's agreed values
+(`"pressure": { "watchKpa": 75, "alertKpa": 200 }`) — that means they're
+*settled as a decision*, not that they're *validated against measurement*.
+The contract is a document this project's team drafted; it records what was
+agreed, not what's been checked against real device data. §8.3's own note —
+that 200 kPa comes from a dense research pressure mat while this system has
+six discrete FSRs per foot and will under-read true peaks — says the
+validation gap explicitly, in the contract's own words. Nothing about that
+gap has closed by the contract existing. Treat these two numbers exactly as
+provisional as before; the contract changes where they're recorded, not
+their evidentiary status.
+
+**Separately, an architectural gap found while reconciling against the
+contract:** it requires ALL threshold values to live in a runtime-loadable
+`thresholds.json`, explicitly so they can be retuned after real-hardware
+testing without a rebuild (§8.3):
 
 ```json
 {
