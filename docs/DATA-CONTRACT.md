@@ -1,21 +1,27 @@
-**STATUS: FILLED IN AND RECONCILED.** The placeholder that previously lived
-at the top of this file is gone — the real contract below was pasted in
-during the git-init/BLE-interface-doc session (see `docs/PROGRESS.md`) and
-has since been checked against `src/ts/constants.ts`, `src/ts/data/types.ts`,
-and `docs/BLE-INTERFACE.md`. Reconciliation findings live in
-`docs/BACKLOG.md`, not here — this file stays a straight copy of the
-contract text, not an annotated one. This document is still authoritative
-over the code if the two ever disagree in the future.
+**STATUS: FILLED IN AND RECONCILED — MERGED TO v1.2.** This file merges the
+contract owner's authoritative `DATA-CONTRACT-v1.2-new.md` (Model A's classes
+changed from risk levels to gait patterns, §7.2) with one local correction
+the owner's copy does not yet include: the §5.1 FSR formula's `offset_adc`
+subtraction and Pa→kPa `/1000` step, fixed in this repo during earlier
+sessions (see `docs/reports/006-*.md` and `docs/reports/008-*.md`) and
+confirmed still missing from the incoming v1.2 draft. That correction has
+not been sent back upstream to the contract owner as of this merge — §5.1 in
+this file is the corrected version; the owner's canonical copy is not. If
+the owner's document is ever re-pulled, re-check §5.1 against those two
+reports before overwriting it again. Reconciliation findings otherwise live
+in `docs/BACKLOG.md`, not here — this file stays a straight copy of the
+contract text, not an annotated one, except where explicitly marked (§8.3
+carries one such flag, added during this merge).
 
 ---
 
-# SmartInsole — Data Contract v1.0
+# SmartInsole — Data Contract v1.2
 
 **เอกสารสัญญาข้อมูลกลาง** สำหรับทีมฮาร์ดแวร์ (ESP32), ทีมแอปพลิเคชัน (React Native) และทีมปัญญาประดิษฐ์
 
 | | |
 |---|---|
-| เวอร์ชัน | 1.1 |
+| เวอร์ชัน | 1.2 |
 | สถานะ | ร่างเพื่อพิจารณา — ต้องได้รับการยืนยันจากทั้ง 3 ทีมก่อนเริ่มพัฒนา |
 | ขอบเขต | นิยาม BLE protocol, หน่วยวัด, โครงสร้างข้อมูล, และ interface ของโมเดล |
 
@@ -198,6 +204,11 @@ over the code if the two ever disagree in the future.
 
 การออกแบบนี้แก้ปัญหาสำคัญ — หากผู้ป่วยมีแผ่นรองเท้าหลายคู่ หรือเปลี่ยนคู่ใหม่ แอปจะอ่านค่า calibration ที่ถูกต้องได้เองอัตโนมัติจาก characteristic `...b45905` ตอนเชื่อมต่อ ไม่ต้องให้ผู้ใช้ตั้งค่าเอง
 
+> **หมายเหตุการ merge v1.2:** สูตรด้านล่างเป็นเวอร์ชันที่แก้ไขแล้วในรีโปนี้ (offset_adc
+> subtraction + หาร 1000 แปลง Pa→kPa — ดู `docs/reports/006-*.md` และ
+> `docs/reports/008-*.md`) ไม่ใช่ต้นฉบับจากเจ้าของสัญญา ซึ่งยังไม่มีการแก้ไขนี้ใน
+> `DATA-CONTRACT-v1.2-new.md` ที่ได้รับมา
+
 ```
 adc_corrected = max(0, adc − offset_adc)   // offset_adc = ค่า ADC ที่จุดศูนย์ (ไม่มีแรงกด) — ผลลัพธ์ของ TARE (opcode 0x05)
 V_out = (adc_corrected / 4095) × 3.3
@@ -293,11 +304,11 @@ interface RiskZone {
 }
 
 type GaitClass =
-  | 'normal'
-  | 'minor_asymmetry'
-  | 'high_pressure'
-  | 'abnormal_gait'
-  | 'critical';
+  | 'normal'          // เดินปกติ
+  | 'antalgic'        // เดินกะเผลก
+  | 'toe_walking'     // เดินเขย่งปลายเท้า
+  | 'heel_walking'    // เดินลงส้น
+  | 'rotated_foot';   // เดินบิดเท้าเข้า/ออก
 ```
 
 **หลักการออกแบบสำคัญ** — UI ต้องอ่านค่าจาก interface เหล่านี้เท่านั้น ห้ามอ่านจาก BLE โดยตรง เพื่อให้สลับระหว่าง Mock / Simulator / Real ได้โดยไม่แก้ UI
@@ -364,13 +375,19 @@ interface IDataSource {
 | Shape | `[1, 32]` (embedding) — ชื่อ output: `gait_embedding` |
 | การตีความ | `argmax` = คลาส, `max` = confidence |
 
-| Index | คลาส | Status Level |
+| Index | คลาส | คำอธิบาย |
 |---|---|---|
-| 0 | `normal` | 1 |
-| 1 | `minor_asymmetry` | 2 |
-| 2 | `high_pressure` | 3 |
-| 3 | `abnormal_gait` | 4 |
-| 4 | `critical` | 5 |
+| 0 | `normal` | เดินตามธรรมชาติ |
+| 1 | `antalgic` | เดินกะเผลก ลงน้ำหนักข้างหนึ่งสั้นลง |
+| 2 | `toe_walking` | เดินเขย่งปลายเท้า ส้นเท้าแตะพื้นน้อยหรือไม่แตะ |
+| 3 | `heel_walking` | เดินลงส้นหนัก ปลายเท้าแตะพื้นน้อย |
+| 4 | `rotated_foot` | เดินบิดปลายเท้าเข้าใน (in-toeing) หรือออกนอก (out-toeing) |
+
+> **เปลี่ยนจากเวอร์ชัน 1.1:** คลาสเดิม (`minor_asymmetry`, `high_pressure`, `abnormal_gait`, `critical`) เป็นระดับความเสี่ยง ซึ่งไม่สามารถใช้เป็นป้ายกำกับ (label) ในการเก็บข้อมูลกับอาสาสมัครสุขภาพดีได้ เพราะไม่มีทางสั่งให้คนเดิน "แบบ critical" — ระดับความเสี่ยงเป็น**ผลลัพธ์ของการประเมิน** ไม่ใช่ท่าทางที่จำลองได้ คลาสใหม่จึงเปลี่ยนเป็น**รูปแบบการเดิน**ที่อาสาสมัครทำตามคำสั่งได้จริงตามโปรโตคอลการทดสอบ (ดู `SmartInsole_TestProtocol_v1.md`)
+>
+> **Output shape ไม่เปลี่ยน** — ยังเป็น 5 คลาสเท่าเดิม เปลี่ยนเฉพาะความหมายของแต่ละ index
+>
+> **โมเดลไม่ได้ตัดสินความเสี่ยงโดยตรง** — `gaitClass` กับ `statusLevel` ใน `RiskAssessment` (ข้อ 6) เป็นคนละค่ากัน `statusLevel` มาจากกฎเกณฑ์ทางคลินิกที่คำนวณจากตัวชี้วัด (PTI, peak, PAI, load concentration — ข้อ 8) ไม่ใช่จาก `argmax` ของโมเดลนี้ ความสัมพันธ์ระหว่างรูปแบบการเดินกับความเสี่ยงเป็นสิ่งที่ต้องพิสูจน์ด้วยข้อมูลจากการทดลอง ไม่ใช่ข้อสมมติที่ฝังไว้ในโมเดล
 
 > โมเดลต้องส่งออก **สอง output** — ทั้ง probability และ embedding ขนาด 32 มิติจากชั้นก่อน softmax เพราะ Model B ใช้ embedding เป็น input ไม่ใช่ใช้ผลคลาสสุดท้าย (embedding เก็บข้อมูลได้ละเอียดกว่ามาก)
 
@@ -452,6 +469,11 @@ Model A ต้องเสร็จก่อน Model B เสมอ เนื�
 | `GAIT_ABNORMAL` | Model A จำแนกคลาส 3 หรือ 4 และ confidence ≥ 0.60 | 4 | โมเดลของโครงงาน |
 | `DEVICE_LOST` | ขาดการเชื่อมต่อ > 5 นาที | 1 | — |
 | `BATTERY_LOW` | แบตเตอรี่ < 15% | 1 | — |
+
+> **[ยังไม่แก้ — เป็นช่องโหว่ที่พบระหว่าง merge v1.2]** เกณฑ์ `GAIT_ABNORMAL` ข้างต้นอ้างอิง
+> index 3/4 ซึ่งเดิมคือ `abnormal_gait`/`critical` (v1.1) แต่ v1.2 เปลี่ยนความหมายเป็น
+> `heel_walking`/`rotated_foot` — รูปแบบการเดินที่ไม่มีนัยความเสี่ยงในตัวเอง กฎนี้จะยิงเตือนผิดถ้าไม่แก้ก่อนเชื่อมกับ
+> AlertStore จริง ต้องตัดสินใจใหม่ทั้งเกณฑ์ก่อนใช้งาน
 
 **ข้อตกลงเรื่องเกณฑ์แรงกดสองระดับ**
 
@@ -565,3 +587,4 @@ users/{uid}
 |---|---|---|---|
 | 1.0 | — | — | ฉบับร่างแรก |
 | 1.1 | — | — | เก็บ calibration ใน NVS ของ ESP32 (ข้อ 5.1), แยกโมเดลเป็น 2 ตัวแบบ multi-timescale พร้อม dual-branch fusion (ข้อ 7), เปลี่ยนจาก baseline ส่วนบุคคลมาใช้ตัวชี้วัดเชิงสมมาตร (ข้อ 8.1–8.2), กำหนดเกณฑ์แรงกดสองระดับและย้ายค่าเกณฑ์ไป `thresholds.json` (ข้อ 8.3) |
+| 1.2 | — | — | เปลี่ยนคลาสของ Model A จากระดับความเสี่ยง (`minor_asymmetry`/`high_pressure`/`abnormal_gait`/`critical`) เป็นรูปแบบการเดิน (`antalgic`/`toe_walking`/`heel_walking`/`rotated_foot`) เพื่อให้สอดคล้องกับสิ่งที่อาสาสมัครสุขภาพดีจำลองได้จริงในโปรโตคอลการทดสอบ (ข้อ 7.2) — output shape `[1,5]` ไม่เปลี่ยน ระบุชัดเจนว่า `statusLevel` มาจากกฎเกณฑ์ทางคลินิก ไม่ใช่จากผลของโมเดลโดยตรง |
