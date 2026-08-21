@@ -32,18 +32,29 @@ import type { ZoneInfo, RiskStatus, StatusMeta, PresetName } from './types.js';
 // to live in a runtime `thresholds.json`, not be hardcoded in source (§8.3 —
 // they will definitely need tuning after real-hardware testing, without a
 // rebuild). This file still hardcodes them as TS constants; not fixed here,
-// see `docs/BACKLOG.md` item 4.
+// see `docs/BACKLOG.md` item 11.
 export const PRESSURE_WATCH_KPA     = 75;
 export const PRESSURE_ALERT_KPA     = 200;
 // Top of the display scale — the heatmap legend and the gait bar chart both map
 // values onto 0..this, so it is not merely cosmetic.
 export const PRESSURE_SCALE_MAX_KPA = 250;
 
-// °C between L/R same zone. Sourced from Lavery et al. (2004) and recorded
-// as the team's agreed value in Data Contract v1.1 §8.3 — that means agreed,
-// not validated against this system's own measurements; same distinction as
-// PRESSURE_WATCH_KPA above. One additional gap vs. the contract's own
-// condition: the contract requires this to fire only after ≥2 consecutive
+// °C between L/R same zone. Clinically validated threshold from Lavery et
+// al. (2004) — a randomised controlled trial that validated 2.2°C against
+// patient outcomes. That is external clinical validation, not a value this
+// project agreed on internally, and it puts this constant in a different
+// category from PRESSURE_WATCH_KPA/PRESSURE_ALERT_KPA above: the six-FSR
+// absolute-magnitude under-reading caveat that applies to those two does NOT
+// transfer here. ΔT is a differential between two feet measured by the same
+// system, so absolute sensor error largely cancels out — the same reasoning
+// that justifies using left-vs-right comparison for pressure asymmetry too.
+//
+// The limitation that IS ours: this system samples two points per foot
+// (forefoot, heel) rather than the measurement protocol Lavery et al. used,
+// so site selection — not the threshold value — is the open question here.
+//
+// One additional gap vs. the contract's own condition (Data Contract v1.1
+// §8.3): the contract requires this to fire only after ≥2 consecutive
 // over-threshold readings ("ต่อเนื่อง ≥ 2 ครั้งวัด"); `AlertStore.evaluate()`
 // currently fires on a single reading. Not changed here — see
 // `docs/BACKLOG.md` item 10.

@@ -50,7 +50,7 @@ see item 9).
   contract metric, not a decorative chart.
 - The PAI watch threshold (15%, per above) goes in `constants.ts`, named,
   not inlined — follow the pattern of `PRESSURE_WATCH_KPA` /
-  `PRESSURE_ALERT_KPA`. Same caveat as item 4: the contract wants this in
+  `PRESSURE_ALERT_KPA`. Same caveat as item 11: the contract wants this in
   `thresholds.json` eventually, not hardcoded — match whatever that item
   lands on, don't solve it independently here.
 - PAI is computed only when both feet are usable (`isUsable(left) &&
@@ -148,26 +148,12 @@ gap has closed by the contract existing. Treat these two numbers exactly as
 provisional as before; the contract changes where they're recorded, not
 their evidentiary status.
 
-**Separately, an architectural gap found while reconciling against the
-contract:** it requires ALL threshold values to live in a runtime-loadable
-`thresholds.json`, explicitly so they can be retuned after real-hardware
-testing without a rebuild (§8.3):
-
-```json
-{
-  "version": 1,
-  "pressure": { "watchKpa": 75, "alertKpa": 200, "ptiKpaS": 80 },
-  "temperature": { "deltaC": 2.2, "consecutiveReadings": 2 },
-  "asymmetry": { "peakPct": 15, "ptiPct": 20, "concentrationPct": 40 },
-  "model": { "minConfidence": 0.60 }
-}
-```
-
-`constants.ts` currently hardcodes these as TS constants instead. Not fixed
-in this pass — introducing runtime config loading (where the file lives,
-how/when it's fetched, what happens on a missing or malformed file, whether
-`MockDataSource` needs its own copy) is an architectural decision, not a
-threshold correction, and needs to be scoped on its own.
+The architectural question of *how* these get recalibrated without a
+rebuild — the contract requires a runtime-loadable `thresholds.json`, which
+doesn't exist yet — is its own item now: see item 11. That item is a
+dependency of this one; recalibrating 75/200 against real hardware
+repeatedly, as expected, is exactly the scenario `thresholds.json` exists
+to avoid rebuilding for.
 
 ---
 
@@ -175,12 +161,25 @@ threshold correction, and needs to be scoped on its own.
 
 `settings.ts`'s "Alert sensitivity" slider writes to in-memory `state` and
 drives nothing. Proposed mapping, not implemented: it should scale
-`PRESSURE_WATCH_KPA` and the ΔT alert margin within clinician-set bounds, so a
-patient can make the app more or less talkative — but it must not be able to
-move the contract-fixed values themselves (`PRESSURE_ALERT_KPA` / 200 kPa,
-`TEMP_DELTA_THRESHOLD` / 2.2 °C). Those are clinical thresholds from the Data
-Contract, not user preferences, and the slider must not be able to disable
-them.
+`PRESSURE_WATCH_KPA` and the ΔT alert margin within clinician-set bounds, so
+a patient can make the app more or less talkative.
+
+**Design constraint (already agreed, recorded here as a requirement, not a
+suggestion): the slider must never be able to disable or move
+`PRESSURE_ALERT_KPA` (200 kPa) or `TEMP_DELTA_THRESHOLD` (2.2 °C).** Both are
+fixed floors, not user preferences — but for different reasons, worth
+keeping straight: `TEMP_DELTA_THRESHOLD` is externally clinically validated
+(Lavery et al. 2004, an RCT validated against patient outcomes) and a
+patient-side slider has no business softening a threshold that's already
+been tested against real outcomes. `PRESSURE_ALERT_KPA` is a
+project-internal, contract-recorded value still pending its own real-hardware
+validation (see item 4) — it stays fixed here not because it's proven, but
+because it's the hard notification-worthy tier and loosening it is a
+clinical decision, not a comfort setting.
+
+**Blocked on item 11:** this mapping can't actually be implemented until
+thresholds are runtime-adjustable rather than hardcoded `constants.ts`
+exports — see item 11, which this item depends on.
 
 ---
 
@@ -269,3 +268,55 @@ temperature readings or a simple "was over threshold last time" flag) that
 it currently doesn't carry. Small in scope, but it's a behavior change to
 alert firing, worth its own pass rather than folding into a docs
 reconciliation.
+
+---
+
+## 11. Thresholds are hardcoded; the contract requires them runtime-loadable **(found reconciling against Data Contract v1.1, §8.3)**
+
+Data Contract v1.1 §8.3 requires every threshold value to live in a
+runtime-loadable `thresholds.json`, not be hardcoded in source, explicitly
+because they "จะต้องปรับหลังการทดสอบกับฮาร์ดแวร์จริงอย่างแน่นอน" — will
+definitely need tuning after real-hardware testing, without a rebuild for
+each adjustment:
+
+```json
+{
+  "version": 1,
+  "pressure": { "watchKpa": 75, "alertKpa": 200, "ptiKpaS": 80 },
+  "temperature": { "deltaC": 2.2, "consecutiveReadings": 2 },
+  "asymmetry": { "peakPct": 15, "ptiPct": 20, "concentrationPct": 40 },
+  "model": { "minConfidence": 0.60 }
+}
+```
+
+`constants.ts` currently exports every one of these as a hardcoded TS
+constant instead — `PRESSURE_WATCH_KPA`, `PRESSURE_ALERT_KPA`,
+`TEMP_DELTA_THRESHOLD`, and (once item 1 lands) the PAI watch threshold.
+Changing any of them today means editing source and shipping a rebuild.
+
+**This is not just a contract-compliance nicety — it blocks two other items
+already in this backlog:**
+- **Item 5** (sensitivity slider): the proposed mapping scales
+  `PRESSURE_WATCH_KPA` and the ΔT margin per-patient within clinician-set
+  bounds. That cannot work against a compile-time constant — there is
+  nothing for the slider to write to at runtime.
+- **Item 4** (75/200 kPa recalibration): once real hardware or the ESP32
+  simulator is feeding data, tuning `PRESSURE_WATCH_KPA` is expected to
+  happen repeatedly during that calibration phase. Doing that via source
+  edits and rebuilds, over and over, is exactly the friction the contract's
+  `thresholds.json` requirement exists to eliminate.
+
+**Design constraint carried over from item 5, restated here since it
+constrains the implementation:** whatever runtime-loading mechanism gets
+built, patient-facing adjustment (the sensitivity slider) must be able to
+scale `PRESSURE_WATCH_KPA` and the ΔT alert margin within clinician-set
+bounds, but must never be able to move or disable `PRESSURE_ALERT_KPA` (200
+kPa) or `TEMP_DELTA_THRESHOLD` (2.2 °C) — those stay fixed regardless of who
+or what is writing to the runtime config. A `thresholds.json` design that
+lets any writer touch every field equally would violate this the moment the
+slider ships.
+
+Not scoped further here — where the file lives, how/when it's fetched, what
+happens on a missing or malformed file, and whether `MockDataSource` needs
+its own copy are all open questions for whoever picks this up. This is an
+architectural decision, not a threshold correction.
