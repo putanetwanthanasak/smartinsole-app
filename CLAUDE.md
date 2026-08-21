@@ -56,6 +56,19 @@ not chat — chat output has been observed to truncate mid-pass, silently
 dropping content (including, once, a real defect finding), and a committed
 file cannot be truncated that way.
 
+## Git workflow
+
+- **Never push directly to `main`.**
+- Each pass of work happens on its own branch, named `work/<short-topic>`
+  (e.g. `work/research-capture-mode`).
+- Before starting a new pass: `git checkout main`, `git pull`, then
+  `git checkout -b work/<topic>` from there.
+- Push the branch, do not merge it yourself — the user merges via a Pull
+  Request on GitHub after reviewing.
+- Commit messages and report files (`docs/reports/NNN-*.md`) stay exactly as
+  already established in the "Reporting" section above — only the
+  branch/push step changes.
+
 ## Architecture
 
 This is a **single-page vanilla TS app** — Thai-language Smart Insole
