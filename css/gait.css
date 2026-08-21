@@ -2,43 +2,6 @@
 
 .gait-page { padding: 14px 16px 24px; display: flex; flex-direction: column; gap: 14px; }
 
-.gait-classify {
-  background: #fff;
-  border-radius: 20px;
-  padding: 16px;
-  border: 1px solid var(--border-color);
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-.gait-classify .ic {
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.gait-classify.tone-warn   .ic { background: var(--status-caution-soft); color: var(--status-caution); }
-.gait-classify.tone-safe   .ic { background: var(--status-safe-soft);    color: var(--status-safe); }
-.gait-classify.tone-danger .ic { background: var(--status-danger-soft);  color: var(--status-danger); }
-
-.gait-classify .text-th { font-size: 16px; font-weight: 700; color: var(--text-primary); }
-.gait-classify .text-en { font-size: 11.5px; color: var(--text-tertiary); margin-top: 2px; font-family: var(--font-en); }
-.gait-classify .conf {
-  font-family: var(--font-en);
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--text-primary);
-  text-align: right;
-}
-.gait-classify .conf-sub {
-  font-family: var(--font-en);
-  font-size: 10px;
-  color: var(--text-tertiary);
-  text-align: right;
-}
-
 /* Section card */
 .gait-card {
   background: #fff;
@@ -64,8 +27,79 @@
   font-family: var(--font-en);
   letter-spacing: 0.4px;
 }
+.gait-card .head .pill.watch {
+  background: var(--status-caution-soft);
+  color: var(--status-caution);
+}
 
-/* Symmetry bar chart (left vs right) */
+/* Unavailable-section pattern — same tone as Home's ΔT-tile / Temperature's
+   dt-hero nodata treatment: muted icon box, em-dash placeholder, TH/EN
+   caption pair. Reused by every static section on this screen AND by the
+   PAI section itself when it has no data, so the whole screen reads as one
+   consistent pattern rather than several. */
+.gait-card.nodata .head .pill {
+  background: var(--bg-secondary);
+  color: var(--text-tertiary);
+}
+.section-empty {
+  text-align: center;
+  padding: 18px 8px 6px;
+}
+.section-empty .ic {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: var(--bg-secondary);
+  color: var(--text-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 10px;
+}
+.section-empty .big {
+  font-family: var(--font-en);
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  line-height: 1;
+}
+.section-empty .label-th {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-top: 8px;
+}
+.section-empty .label-en {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-family: var(--font-en);
+  margin-top: 2px;
+}
+
+/* PAI hero row (live state) */
+.pai-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.pai-big {
+  font-family: var(--font-en);
+  font-size: 40px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+}
+.pai-big .unit {
+  font-size: 18px;
+  color: var(--text-tertiary);
+  margin-left: 2px;
+}
+.pai-sub { text-align: right; }
+.pai-sub .label-th { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+.pai-sub .label-en { font-size: 10.5px; color: var(--text-tertiary); font-family: var(--font-en); margin-top: 2px; }
+
+/* Peak-per-window bar chart (left vs right) */
 .symmetry-grid {
   display: flex;
   align-items: flex-end;
@@ -120,81 +154,3 @@
 }
 .legend-row .swatch.l { background: var(--brand-primary); }
 .legend-row .swatch.r { background: var(--brand-accent); }
-
-/* Center of pressure trace */
-.cop-wrap { display: flex; justify-content: center; padding: 4px 0 8px; }
-.cop-wrap svg { width: 100%; max-width: 200px; height: 220px; }
-.cop-trace {
-  fill: none;
-  stroke: var(--brand-primary);
-  stroke-width: 2.5;
-  stroke-dasharray: 240;
-  stroke-dashoffset: 240;
-  animation: cop-draw 2.6s ease-in-out forwards;
-}
-@keyframes cop-draw {
-  to { stroke-dashoffset: 0; }
-}
-.cop-dot {
-  fill: var(--brand-primary);
-}
-.cop-dot.start { fill: var(--status-safe); }
-.cop-dot.end   { fill: var(--status-danger); }
-.cop-label {
-  font-family: var(--font-en);
-  font-size: 9px;
-  fill: var(--text-tertiary);
-}
-
-/* 7-day sparkline + score */
-.trend-row {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-.trend-row .score {
-  font-family: var(--font-en);
-  font-size: 38px;
-  font-weight: 700;
-  color: var(--text-primary);
-  line-height: 1;
-}
-.trend-row .score-sub {
-  font-size: 11px;
-  color: var(--text-tertiary);
-  font-family: var(--font-en);
-  margin-top: 2px;
-}
-.trend-row .score .delta {
-  font-size: 13px;
-  color: var(--status-danger);
-  font-weight: 600;
-  margin-left: 4px;
-}
-.trend-row .sparkline { flex: 1; }
-.trend-row .sparkline svg { width: 100%; height: 64px; }
-
-.spark-line {
-  fill: none;
-  stroke: var(--brand-primary);
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-.spark-area {
-  fill: var(--brand-primary);
-  opacity: 0.10;
-}
-.spark-dot {
-  fill: var(--brand-primary);
-}
-.spark-dot.last { fill: var(--status-caution); r: 4; }
-
-.day-row {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 4px;
-  font-size: 9.5px;
-  color: var(--text-tertiary);
-  font-family: var(--font-en);
-}

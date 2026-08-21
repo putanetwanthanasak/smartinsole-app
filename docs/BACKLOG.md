@@ -7,9 +7,14 @@ worth knowing which is which when prioritizing.
 
 ---
 
-## 1. Gait screen pass — DECIDED, ready to implement
+## 1. Gait screen pass — IMPLEMENTED
 
-The gait screen currently shows nothing real: the classification card's
+**Done.** See `docs/reports/003-gait-pai.md` for the full pass report,
+including where this entry's own reasoning turned out to be slightly
+wrong once in the code (flagged inline below rather than silently fixed).
+The rest of this entry is kept as the historical record of the decision.
+
+The gait screen used to show nothing real: the classification card's
 "87% confidence" and "status 2/5" are literal template text, the 8-stride bar
 chart array has no data source, and the CoP trajectory is a fixed decorative
 SVG path. There is no gait classifier and none is in scope for this pass.
@@ -26,10 +31,19 @@ segmentation. With six discrete sensors per foot rather than a full pressure
 mat, absolute peak pressure under-reads badly (see item 4 below) — but the
 left-vs-right *ratio* stays meaningful even when both sides under-read
 together. PAI = `|L-R| / ((L+R)/2) × 100` needs only a peak per foot per
-window, which `DeviceManager` already computes per side. So this is not a
-stand-in awaiting IMU work — it is the metric. When stride segmentation
-eventually lands, the window definition changes from "2 s wall-clock" to "1
-stride" and the metric formula survives unchanged.
+window. So this is not a stand-in awaiting IMU work — it is the metric. When
+stride segmentation eventually lands, the window definition changes from "2 s
+wall-clock" to "1 stride" and the metric formula survives unchanged.
+
+**Correction found while implementing:** this paragraph originally said the
+per-window peak was something "`DeviceManager` already computes per side" —
+it wasn't. `DeviceManager`'s snapshot only ever carries the latest single
+sample's pressure per side; nothing upstream of the screen accumulates a
+peak over a window. The rolling-window accumulation (fold each 10 Hz
+snapshot's per-zone max into a running window peak, roll the window every
+`WINDOW_MS`) is implemented in `gait.ts` itself, not in `DeviceManager` — see
+the report for why that's the right layer for it (screen-local state, not
+shared data-layer state, since nothing else needs it yet).
 
 **Now recorded in Data Contract v1.1 §8.2–8.3** (`docs/DATA-CONTRACT.md`,
 filled in after this entry was first written): PAI watch threshold is
@@ -305,15 +319,35 @@ opposed to not being implemented at all — that's item 9's scope):
 | `PRESSURE_PEAK` (→ `pressure.alert` in code) | Peak > 200 kPa **ขณะเดิน** ("while walking") | fires on 1 reading, with **no walking/gait-state check at all** | **Yes — found while checking this table.** The app has no walking-detection state anywhere (`walkingMinutes` on Home is a display-only mock summary stat, not a live signal `AlertStore` can read); a foot resting on something heavy while seated could raise a false `PRESSURE_PEAK`-equivalent alert exactly as easily as if the patient were actually walking. Not scoped further here — recording it so it doesn't get missed again. |
 | `PRESSURE_PTI`, `ASYMMETRY_PEAK`, `LOAD_CONCENTRATION`, `GAIT_ABNORMAL`, `DEVICE_LOST`, `BATTERY_LOW` | — | not implemented at all | Out of scope for this item — already tracked as missing rules in item 9, not a partial-condition gap on an existing rule |
 
+**The `PRESSURE_PEAK` walking gate is cheaper than it looks — not blocked on
+IMU work.** `SensorSample` already carries `accelG` and `gyroDps` per
+sample; a walking/not-walking signal can be derived from acceleration
+magnitude sustained over a short window, which needs none of stride
+segmentation or any IMU processing this codebase hasn't built. This is the
+same shape of reasoning as item 1's PAI: the useful signal is available
+without the hard part. Whoever picks this up should not assume it's
+blocked on the gait/IMU pipeline landing first.
+
+**Why the gate matters clinically — worth restating, since "fires early"
+understates it:** static loading while seated can exceed 200 kPa with no
+tissue risk at all — sitting with a foot propped under load is not the
+hazard this alert exists to catch. Diabetic foot ulceration is driven by
+*repetitive* loading during ambulation, not by transient static pressure.
+An ungated `PRESSURE_PEAK` doesn't just fire a little early or a little
+often — it fires on a condition that isn't the hazard the code is supposed
+to represent, which is a different and worse kind of wrong than a timing
+gap.
+
 **Not fixed in this pass**, as instructed — recorded and scoped only. A
 comment at `TEMP_DELTA_THRESHOLD`'s declaration in `constants.ts` already
 points here. Implementing the 2-reading requirement means `AlertStore`
 needs to start tracking a small amount of state per side (e.g. the last N
 temperature readings, or a simple "was over threshold last time" flag) that
 it currently doesn't carry — small in scope, but a behavior change to
-alert firing, and (per the `PRESSURE_PEAK` finding above) worth
-re-examining alongside the walking-state gap rather than fixing in
-isolation, since both are the same category of defect on adjacent rules.
+alert firing, and (per the `PRESSURE_PEAK` finding above, now known to be
+similarly cheap) worth re-examining alongside the walking-state gap rather
+than fixing in isolation, since both are the same category of defect on
+adjacent rules.
 
 ---
 

@@ -147,8 +147,12 @@ native plugin.
   (`ConnectionState`, `SideSnapshot`, `CombinedSnapshot`, `isUsable()`).
 
 **Wiring status:** Home, Temperature, Alerts, and Settings are wired to this
-seam. **Gait is not** — see `docs/BACKLOG.md` for the pending pass. Do not
-assume every screen reads live data; check before editing.
+seam. **Gait is partially wired**: PAI (Peak Asymmetry Index) is a real
+rolling-window metric computed from live snapshots; the classification card,
+CoP trajectory, and 7-day trend have no data source yet and render an
+explicit unavailable state rather than reading anything live — see
+`docs/reports/003-gait-pai.md` and `docs/BACKLOG.md` item 1. Do not assume
+every section of every screen reads live data; check before editing.
 
 ## Conventions that are easy to violate
 
@@ -317,10 +321,10 @@ the app is deliberately dependency-light and must stay offline-capable.
 
 In order:
 
-1. **Gait pass.** A prompt for this exists and was deliberately not
-   implemented before this handoff was written — see `docs/BACKLOG.md` item
-   1 for the agreed direction and the one open decision that needs
-   confirming before writing code.
+1. ~~**Gait pass.**~~ Done — PAI is wired as a real rolling-window metric;
+   see `docs/reports/003-gait-pai.md` and `docs/BACKLOG.md` item 1. What's
+   NOT done, deliberately: the classifier, CoP, and 7-day trend all still
+   have no data source and show an explicit unavailable state.
 2. **`WebBleDataSource`** — a real `IDataSource` implementation using Web
    Bluetooth, built against the already-working ESP32 simulator (see
    "Sibling projects" above). The simulator and the standalone test page are

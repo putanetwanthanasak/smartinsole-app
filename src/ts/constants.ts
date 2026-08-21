@@ -60,6 +60,15 @@ export const PRESSURE_SCALE_MAX_KPA = 250;
 // `docs/BACKLOG.md` item 10.
 export const TEMP_DELTA_THRESHOLD   = 2.2;
 
+// PAI (Peak Asymmetry Index) watch threshold, as a percent: |L-R| / avg(L,R)
+// x 100 above this is worth surfacing. Recorded in Data Contract v1.1 §8.2 as
+// the team's agreed figure — same evidentiary status as PRESSURE_WATCH_KPA
+// above (agreed, not yet validated against measurement), see
+// `docs/BACKLOG.md` item 4 for that distinction and item 11 for why this
+// still lives here as a TS constant instead of in a runtime thresholds.json.
+// See `docs/BACKLOG.md` item 1 for how gait.ts computes PAI itself.
+export const PAI_WATCH_PCT = 15;
+
 // Six-stop colour ramp, expressed in kPa and derived from the two contract
 // thresholds so the ramp can never drift away from the tiers it depicts.
 // `watch` and `alert` are the tier boundaries themselves; `low`/`mid` subdivide
