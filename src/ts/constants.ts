@@ -3,25 +3,39 @@
 import type { ZoneInfo, RiskStatus, StatusMeta, PresetName } from './types.js';
 
 // ─── Clinical thresholds ────────────────────────────────────
-// Plantar pressure is in kPa. The Data Contract fixes two tiers:
+// Plantar pressure is in kPa. Confirmed against Data Contract v1.1 §8.3
+// (`docs/DATA-CONTRACT.md`), which fixes the same two tiers:
 //   75 kPa  — watch  (surfaced on the heatmap, not notification-worthy)
 //   200 kPa — alert  (notification-worthy)
 // Both are inclusive lower bounds: a zone at exactly 200 kPa is in the alert tier.
-// PROVISIONAL, expect to recalibrate against real hardware. Two reasons to
-// distrust 75 as a watch level: published peak plantar pressures for normal
-// barefoot gait routinely exceed it, so taken literally this threshold would
-// flag healthy walking; and this build has six discrete FSRs per foot rather
-// than a full pressure mat, so a sensor rarely sits exactly on the true peak and
-// measured values will under-read relative to the literature. Those two errors
-// push in opposite directions and neither is quantified yet. Revisit once real
-// device data exists — do not tune this against the mock presets.
+// The contract's own §8.3 note raises exactly the under-reading concern this
+// comment used to describe as an open worry: six discrete FSRs per foot (vs.
+// a full pressure mat) will systematically under-read the true peak, since a
+// sensor rarely sits exactly on it — the contract's answer is that the
+// asymmetry metrics in §8.2 (PAI, PTI asymmetry, load concentration) exist
+// specifically to compensate for that, not that 75/200 themselves are wrong.
+// Do not re-litigate these two numbers against the literature; they are
+// contract-fixed values, not this codebase's estimate.
+//
+// Unresolved architectural gap, not a value problem: the contract requires
+// ALL threshold values to live in a runtime `thresholds.json`, not be
+// hardcoded in source (§8.3 — "จะต้องปรับหลังการทดสอบกับฮาร์ดแวร์จริงอย่างแน่นอน",
+// i.e. these will definitely need tuning after real-hardware testing, without
+// a rebuild). This file still hardcodes them as TS constants. See
+// `docs/BACKLOG.md` — not fixed in this pass; introducing config loading is
+// a bigger decision than a threshold correction.
 export const PRESSURE_WATCH_KPA     = 75;
 export const PRESSURE_ALERT_KPA     = 200;
 // Top of the display scale — the heatmap legend and the gait bar chart both map
 // values onto 0..this, so it is not merely cosmetic.
 export const PRESSURE_SCALE_MAX_KPA = 250;
 
-export const TEMP_DELTA_THRESHOLD   = 2.2;            // °C between L/R same zone
+// °C between L/R same zone. Confirmed against contract §8.3 (Lavery et al.
+// 2004). One gap vs. the contract's own condition: the contract requires
+// this to fire only after ≥2 consecutive over-threshold readings
+// ("ต่อเนื่อง ≥ 2 ครั้งวัด"); `AlertStore.evaluate()` currently fires on a
+// single reading. Not changed here — see `docs/BACKLOG.md`.
+export const TEMP_DELTA_THRESHOLD   = 2.2;
 
 // Six-stop colour ramp, expressed in kPa and derived from the two contract
 // thresholds so the ramp can never drift away from the tiers it depicts.
@@ -50,7 +64,9 @@ export const PRESSURE_LABEL_INVERT_MAX_KPA = PRESSURE_RAMP_KPA.mid;
 // name-keyed FootPressure object. This is the one authoritative mapping between
 // the two, and the order is fixed by the Data Contract. Nothing consumes it yet —
 // it exists so that when the BLE adapter lands there is no second opinion about
-// which array slot is which zone.
+// which array slot is which zone. Confirmed against Data Contract v1.1 §3.1 —
+// index 0..5 = hallux, 1st MTH, 3rd MTH, 5th MTH, midfoot/lateral arch, heel.
+// See docs/BLE-INTERFACE.md for the full packet-offset table this maps into.
 export const FSR_CHANNEL_ORDER = ['hallux', 'meta1', 'meta3', 'meta5', 'midfoot', 'heel'] as const;
 
 // ─── Zone definitions for a LEFT foot (plantar / sole view) ──

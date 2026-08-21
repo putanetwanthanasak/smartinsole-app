@@ -31,11 +31,25 @@ stand-in awaiting IMU work — it is the metric. When stride segmentation
 eventually lands, the window definition changes from "2 s wall-clock" to "1
 stride" and the metric formula survives unchanged.
 
+**Now confirmed against Data Contract v1.1 §8.2–8.3** (`docs/DATA-CONTRACT.md`,
+filled in after this entry was first written): PAI watch threshold is
+**15%** (`"asymmetry": { "peakPct": 15, ... }`). The contract's alert rule
+for it, `ASYMMETRY_PEAK`, additionally requires PAI > 15% to hold for "≥ 20
+ก้าว" (≥20 steps) before firing — the same rolling-window substitution this
+whole item is built around applies there too: there is no step count yet,
+so the alert-firing condition (not the on-screen metric label, which stays
+under the hard constraint below) will need its own window-based stand-in
+when `AlertStore` gains an `ASYMMETRY_PEAK` rule (currently unimplemented —
+see item 9).
+
 **Requirements (not suggestions):**
 - Surface the computed PAI number on screen, not just the bars — it is a
   contract metric, not a decorative chart.
-- The PAI watch threshold goes in `constants.ts`, named, not inlined —
-  follow the pattern of `PRESSURE_WATCH_KPA` / `PRESSURE_ALERT_KPA`.
+- The PAI watch threshold (15%, per above) goes in `constants.ts`, named,
+  not inlined — follow the pattern of `PRESSURE_WATCH_KPA` /
+  `PRESSURE_ALERT_KPA`. Same caveat as item 4: the contract wants this in
+  `thresholds.json` eventually, not hardcoded — match whatever that item
+  lands on, don't solve it independently here.
 - PAI is computed only when both feet are usable (`isUsable(left) &&
   isUsable(right)`, same guard as `DeviceManager.deltaForefootC`). One-footed
   asymmetry is not a degraded reading, it's meaningless — same no-data state
@@ -101,17 +115,40 @@ given device would fetch. Needs trimming to the subsets actually used
 
 ---
 
-## 4. `PRESSURE_WATCH_KPA = 75` is provisional
+## 4. `PRESSURE_WATCH_KPA = 75` / `PRESSURE_ALERT_KPA = 200` — confirmed by contract, but hardcoded where the contract says they must not be
 
-Documented in a comment at its declaration in `constants.ts`, repeating here
-so it's not missed: published peak plantar pressures for normal barefoot gait
-routinely exceed 75 kPa, so taken at face value this threshold would flag
-healthy walking as a concern. Simultaneously, this build's six discrete FSRs
-per foot (vs. a full pressure mat) will systematically under-read the true
-peak, since a sensor rarely sits exactly on it. Those two errors push in
-opposite directions and neither is quantified. **Do not tune this value
-against the mock `PRESETS`** — it needs recalibration against real hardware
-data once the ESP32 simulator or real insoles are feeding the pipeline.
+**Update, now that Data Contract v1.1 is in the repo (`docs/DATA-CONTRACT.md`
+§8.3):** these are contract-fixed values (`"pressure": { "watchKpa": 75,
+"alertKpa": 200 }`), not this codebase's own estimate — they are no longer
+"provisional" in the sense of being guessed. The under-reading concern this
+item used to raise is the contract's own concern too: §8.3 notes the 200 kPa
+figure comes from a dense research pressure mat, while this build has six
+discrete FSRs per foot, so measured values will tend to read low relative to
+the literature — and states that the §8.2 asymmetry metrics (PAI, PTI
+asymmetry, load concentration) exist specifically to compensate for that gap,
+not that 75/200 need re-deriving. **Do not re-litigate these two numbers
+against the literature** — if they need to change, that's a contract
+revision, not a code fix.
+
+**What's still actually wrong:** the contract requires ALL threshold values
+to live in a runtime-loadable `thresholds.json`, explicitly so they can be
+retuned after real-hardware testing without a rebuild (§8.3):
+
+```json
+{
+  "version": 1,
+  "pressure": { "watchKpa": 75, "alertKpa": 200, "ptiKpaS": 80 },
+  "temperature": { "deltaC": 2.2, "consecutiveReadings": 2 },
+  "asymmetry": { "peakPct": 15, "ptiPct": 20, "concentrationPct": 40 },
+  "model": { "minConfidence": 0.60 }
+}
+```
+
+`constants.ts` currently hardcodes these as TS constants instead. Not fixed
+in this pass — introducing runtime config loading (where the file lives,
+how/when it's fetched, what happens on a missing or malformed file, whether
+`MockDataSource` needs its own copy) is an architectural decision, not a
+threshold correction, and needs to be scoped on its own.
 
 ---
 
@@ -172,3 +209,44 @@ fires) but should be deleted or corrected next time that file is touched.
   reload (the whole `AlertStore` is an in-memory singleton). Fine for a
   prototype; will matter once this needs to survive an app restart on
   Android.
+
+---
+
+## 9. `AlertStore` implements 2 of the contract's 9 alert codes **(found reconciling against Data Contract v1.1, §8.3)**
+
+`AlertStore.evaluate()` currently raises two families of alert:
+`pressure.watch`/`pressure.alert` (→ contract's `PRESSURE_WATCH` /
+`PRESSURE_PEAK`) and `temp.delta` (→ `TEMP_DELTA`). The contract specifies
+seven more, none implemented yet:
+
+| Code | Condition | Level | Depends on |
+| --- | --- | --- | --- |
+| `PRESSURE_PTI` | PTI > 80 kPa·s cumulative, 1 hr window | 3 | a cumulative pressure-time integral, not currently computed anywhere |
+| `ASYMMETRY_PEAK` | PAI > 15%, continuous ≥ 20 steps | 2 | the gait pass (item 1) — and step counting, which doesn't exist |
+| `LOAD_CONCENTRATION` | one zone > 40% of the foot's total load | 3 | a new per-sample computation, not currently done |
+| `GAIT_ABNORMAL` | Model A classifies class 3 or 4, confidence ≥ 0.60 | 4 | a gait classifier model — explicitly out of scope per item 1 |
+| `DEVICE_LOST` | disconnected > 5 minutes | 1 | `DeviceManager`'s existing per-side state already has what this needs; just no rule raises it yet |
+| `BATTERY_LOW` | battery < 15% | 1 | `DeviceStatus.batteryPct` already exists on the wire type; same situation |
+
+`DEVICE_LOST` and `BATTERY_LOW` are the cheapest of these — both read off
+data `DeviceManager`/`DeviceStatus` already carries, no new computation
+needed, just a new rule in `evaluate()`. The other four all depend on
+work scoped elsewhere in this file (PTI integral, item 1's PAI, load
+concentration, and the explicitly-out-of-scope classifier) and shouldn't be
+attempted ahead of that work landing.
+
+---
+
+## 10. `TEMP_DELTA` alert fires on one reading; contract requires two consecutive **(found reconciling against Data Contract v1.1, §8.3)**
+
+The contract's condition is "ΔT > 2.2°C ต่อเนื่อง ≥ 2 ครั้งวัด" — continuous
+across **at least 2 consecutive measurements**, not a single crossing.
+`AlertStore.evaluate()` currently raises `temp.delta` the instant one
+`CombinedSnapshot` crosses `TEMP_DELTA_THRESHOLD`. Not fixed in this pass —
+noted in a comment at `TEMP_DELTA_THRESHOLD`'s declaration in `constants.ts`
+so it isn't missed, but implementing the 2-reading requirement means
+`AlertStore` needs to start tracking a tiny bit of state per side (last N
+temperature readings or a simple "was over threshold last time" flag) that
+it currently doesn't carry. Small in scope, but it's a behavior change to
+alert firing, worth its own pass rather than folding into a docs
+reconciliation.

@@ -6,6 +6,12 @@
 // `fsrKpa` is an INDEXED array in FSR_CHANNEL_ORDER, while the UI renders a
 // name-keyed FootPressure — converting between the two is DeviceManager's job,
 // not the renderers'.
+//
+// Re-checked field-for-field against Data Contract v1.1 §6 (docs/DATA-CONTRACT.md)
+// once the placeholder was filled in — SensorSample, TempReading, and
+// DeviceStatus below match the contract's TypeScript block exactly, no changes
+// needed. The contract also specifies a RiskAssessment/RiskZone/GaitClass shape
+// (§6) that does not exist in this codebase yet — see docs/BACKLOG.md item 8.
 
 import type { FootSide, FootPressure } from '../types.js';
 

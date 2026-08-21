@@ -1,84 +1,235 @@
 # BLE Interface — working summary
 
-**STATUS: WORKING SUMMARY, NOT AUTHORITATIVE.** `docs/DATA-CONTRACT.md` is
-the source of truth for all of this once it is filled in — see the banner at
-the top of that file. Until then, this document exists so that whoever
-starts `WebBleDataSource` (see "Next phase" in `CLAUDE.md`) isn't blocked on
-having the sibling test-page project at hand. Every UUID, offset, opcode, and
-scaling factor below is a **placeholder**, marked `TODO`. Nothing in this
-file has been invented or reconstructed from memory — where a value isn't
-known, it is left blank rather than guessed. Fill these in from the Data
-Contract, not from re-deriving them off the simulator or test page.
+**STATUS: FILLED IN FROM DATA CONTRACT v1.1.** `docs/DATA-CONTRACT.md` is the
+source of truth — this file is a convenience extract of the BLE-relevant
+sections (2, 3, 4, 5.1, part of 8) for whoever implements
+`WebBleDataSource`, so they don't have to keep the full contract open. If the
+two ever disagree, the contract wins and this file is what's wrong; re-check
+this file against it, not the other way around.
 
 Two sibling projects (outside this repo, see `CLAUDE.md`) already implement
-this interface end to end and are verified working: an ESP32 BLE simulator
-(NimBLE-Arduino 2.x, advertises as `SMARTINSOLE-L`) and a standalone Web
-Bluetooth test page. Neither is checked into this repo.
+this interface end to end and are verified working against real hardware: an
+ESP32 BLE simulator (NimBLE-Arduino 2.x, advertises as `SMARTINSOLE-L`) and a
+standalone Web Bluetooth test page. Neither is checked into this repo.
 
 ---
 
-## GATT service
+## Advertising
 
 | Field | Value |
 | --- | --- |
-| Device name (advertised) | `SMARTINSOLE-L` (left insole — confirm right-side naming convention) |
-| Service UUID | `TODO` |
+| Device name (left) | `SMARTINSOLE-L` |
+| Device name (right) | `SMARTINSOLE-R` |
+| Advertising interval | 100 ms (while unconnected) |
+| TX power | 0 dBm |
+
+**Scan/filter by Service UUID, not device name** — the OS can cache a
+device's advertised name incorrectly; the name is not reliable for
+filtering.
+
+## GATT service
+
+**Service UUID:** `f0a5c000-9b4d-4e8a-a3c1-72d6e1b45900`
 
 ## Characteristics
 
-| Characteristic | UUID | Properties | Notes |
+All characteristic UUIDs share the service's prefix; only the last two hex
+digits differ.
+
+| Characteristic | UUID | Properties | Frequency | Size |
+| --- | --- | --- | --- | --- |
+| Sensor Stream | `f0a5c000-9b4d-4e8a-a3c1-72d6e1b45901` | Notify | 6.25 Hz (8 samples/packet → 50 Hz effective sample rate) | 200 bytes |
+| Temperature | `f0a5c000-9b4d-4e8a-a3c1-72d6e1b45902` | Notify | 1/30 Hz | 12 bytes |
+| Device Status | `f0a5c000-9b4d-4e8a-a3c1-72d6e1b45903` | Read, Notify | on change | 8 bytes |
+| Control | `f0a5c000-9b4d-4e8a-a3c1-72d6e1b45904` | Write | on demand | 1–16 bytes |
+| Calibration | `f0a5c000-9b4d-4e8a-a3c1-72d6e1b45905` | Read | once, at connect | up to 512 bytes |
+
+That's five characteristics. The first version of this file (written before
+the contract landed) guessed there might be a sixth, unidentified one — there
+isn't; five is the full set per the contract.
+
+## Connection parameters
+
+| Parameter | Target | Fallback |
+| --- | --- | --- |
+| MTU | 247 bytes | if negotiation fails → drop to 4 samples/packet |
+| Connection interval | 15–30 ms | — |
+| Slave latency | 0 | — |
+| Supervision timeout | 4000 ms | — |
+
+**Android must call `requestMTU(247)` after connecting and *before* enabling
+notifications.** iOS negotiates MTU automatically. This is the same fact
+already verified against real hardware — see "Behavioural facts" below.
+
+---
+
+## Sensor Stream packet (200 bytes, little-endian)
+
+One packet carries **8 samples**, sent at 6.25 Hz → 50 Hz effective sample
+rate. Samples are 20 ms apart, fixed: sample `i`'s time is `t0_ms + (i × 20)`.
+
+### Header (8 bytes)
+
+| Offset | Length | Type | Field | Description |
+| --- | --- | --- | --- | --- |
+| 0 | 2 | uint16 | `seq` | Packet sequence number, wraps at 65535 — used to detect dropped packets |
+| 2 | 4 | uint32 | `t0_ms` | Time of the first sample in this packet, ms since device boot (NOT unix time — see SYNC_TIME below) |
+| 6 | 1 | uint8 | `count` | Sample count in this packet (normally 8) |
+| 7 | 1 | uint8 | `flags` | bit0 = saturated reading, bit1 = calibration in progress |
+
+### Sample block (24 bytes × 8, immediately following the header)
+
+| Offset (within block) | Length | Type | Field | Unit / scaling |
+| --- | --- | --- | --- | --- |
+| +0 | 12 | uint16 × 6 | `fsr[0..5]` | raw ADC, 0–4095 (see FSR scaling below — device sends raw, app computes kPa) |
+| +12 | 6 | int16 × 3 | `accel[x,y,z]` | 4096 LSB/g |
+| +18 | 6 | int16 × 3 | `gyro[x,y,z]` | 32.8 LSB/(°/s) |
+
+### FSR channel order (index must match on both feet)
+
+| Index | Zone (TH) | Zone (EN) | `constants.ts` key |
 | --- | --- | --- | --- |
-| Sensor data (pressure + IMU) | `TODO` | `TODO` (expected: Notify) | 200-byte packet, see layout below |
-| Temperature | `TODO` | `TODO` (expected: Notify) | see layout below |
-| Device status | `TODO` | `TODO` (expected: Notify) | notifies regardless of streaming state — see behavioural facts below |
-| Control | `TODO` | `TODO` (expected: Write) | opcodes below |
-| Calibration blob | `TODO` | `TODO` | confirmed present and parsed by the test page; shape not yet recorded here |
-| (6th characteristic — CLAUDE.md's data seam notes lists six total) | `TODO` | `TODO` | identify and fill in |
+| 0 | นิ้วหัวแม่เท้า | Hallux | `hallux` |
+| 1 | เนินปลายเท้าที่ 1 | 1st Metatarsal Head | `meta1` |
+| 2 | เนินปลายเท้าที่ 3 | 3rd Metatarsal Head | `meta3` |
+| 3 | เนินปลายเท้าที่ 5 | 5th Metatarsal Head | `meta5` |
+| 4 | กลางเท้า | Midfoot / Lateral Arch | `midfoot` |
+| 5 | ส้นเท้า | Heel | `heel` |
+
+Confirmed matching `FSR_CHANNEL_ORDER` in `src/ts/constants.ts` — no change
+needed there.
 
 ---
 
-## Sensor packet layout (200 bytes, little-endian)
+## Temperature packet (12 bytes, little-endian)
 
-`TODO` — byte offsets for every field below. The test page parses this
-packet correctly; port its offset table here field by field, don't
-re-derive it from scratch.
+| Offset | Length | Type | Field | Unit |
+| --- | --- | --- | --- | --- |
+| 0 | 2 | uint16 | `seq` | — |
+| 2 | 4 | uint32 | `t_ms` | ms since device boot |
+| 6 | 2 | int16 | `temp_forefoot` | 0.01 °C (e.g. 3180 = 31.80 °C) |
+| 8 | 2 | int16 | `temp_heel` | 0.01 °C |
+| 10 | 1 | uint8 | `quality` | 0 = normal, 1 = poor contact, 2 = sensor fault |
+| 11 | 1 | uint8 | `reserved` | reserved, = 0 |
 
-| Offset | Length | Field | Type | Scaling factor | Notes |
-| --- | --- | --- | --- | --- | --- |
-| `TODO` | `TODO` | `tUnixMs` (device clock, unsynced until `SYNC_TIME`) | `TODO` | — | see Conventions #5 in `CLAUDE.md` — never trust this for staleness |
-| `TODO` | `TODO` | `fsrKpa[6]` (pressure, 6 channels) | `TODO` | `TODO` | channel order below |
-| `TODO` | `TODO` | IMU fields | `TODO` | `TODO` | axes / units not yet recorded |
-| `TODO` | `TODO` | (remaining fields to fill from the 200-byte layout) | | | |
-
-### FSR channel order
-
-`TODO` — confirm this matches `FSR_CHANNEL_ORDER` in `src/ts/constants.ts`
-(`['hallux', 'meta1', 'meta3', 'meta5', 'midfoot', 'heel']`) before
-`DeviceManager` maps indexed `fsrKpa[6]` to the name-keyed `FootPressure`
-object. If the wire order differs from that array, one of the two must
-change — don't let them silently disagree.
+**`-32768` means "could not read"** — the app must render that as a
+no-data state, never as a number. This is the wire-level source of the
+`null` in `TempReading.forefootC` / `heelC` in `src/ts/data/types.ts`.
 
 ---
 
-## Temperature packet layout
+## Device Status packet (8 bytes, little-endian)
 
-`TODO` — byte offsets, little-endian, scaling factor(s), units.
+| Offset | Length | Type | Field | Description |
+| --- | --- | --- | --- | --- |
+| 0 | 1 | uint8 | `battery_pct` | 0–100 |
+| 1 | 2 | uint16 | `battery_mv` | actual voltage, mV |
+| 3 | 1 | uint8 | `foot_side` | 0 = left, 1 = right |
+| 4 | 1 | uint8 | `fw_major` | firmware version |
+| 5 | 1 | uint8 | `fw_minor` | — |
+| 6 | 1 | uint8 | `state` | 0 = idle, 1 = streaming, 2 = error |
+| 7 | 1 | uint8 | `error_code` | 0 = none, see error codes below |
 
-## Device status packet layout
+### Error codes (`error_code`)
 
-`TODO` — byte offsets, encoding of connection/battery/worn-state fields,
-mapping (if any) to the UI's `RiskStatus` `0`–`5` scale.
+| Code | Meaning |
+| --- | --- |
+| 0 | Normal |
+| 1 | IMU not responding |
+| 2 | NTC (thermistor) read failure |
+| 3 | ADC saturated (suspected short circuit) |
+| 4 | Battery voltage critically low |
+| 5 | Internal storage full |
 
 ---
 
-## Control opcodes
+## Control opcodes (App → Insole, write to Control characteristic)
 
-| Opcode | Value | Direction | Effect |
+| Opcode | Name | Payload | Effect |
 | --- | --- | --- | --- |
-| `START_STREAM` | `0x01` | App → device, write to Control characteristic | Device begins sending sensor + temperature notifications. See behavioural fact below — required after every connect. |
-| `STOP_STREAM` | `TODO` | | |
-| `SYNC_TIME` | `TODO` | | Synchronizes the device's onboard clock — see Conventions #5 in `CLAUDE.md` for why this matters and why the app must never trust `tUnixMs` before this has happened. |
-| (other opcodes) | `TODO` | | |
+| `0x01` | `START_STREAM` | — | Begin sending sensor + temperature data |
+| `0x02` | `STOP_STREAM` | — | Stop sending (enters power-save mode) |
+| `0x03` | `SYNC_TIME` | uint64 (unix ms) | Set the device's time reference from the phone — see clock sync below |
+| `0x04` | `SET_RATE` | uint8 (Hz) | Change sample rate (for testing) |
+| `0x05` | `TARE` | — | Zero the FSR baseline |
+| `0x06` | `REBOOT` | — | Restart the device |
+
+---
+
+## Clock synchronization between the two feet
+
+The two ESP32s free-run independent clocks — `t_ms`/`t0_ms` in every packet
+is milliseconds since that device's own boot, not unix time, and the two
+feet's boots don't align. Comparing raw `t_ms` across feet directly breaks
+symmetry and CoP calculations.
+
+**Procedure:**
+1. On successful connect, write `SYNC_TIME` with the current unix timestamp
+   to **both** feet.
+2. Store `offset = unix_time_at_send − most_recently_received_t_ms`,
+   per side, independently.
+3. Convert every sample to unix time as `t_unix = t_ms + offset`.
+4. Repeat every 5 minutes to correct for clock drift.
+
+**Acceptance criterion:** cross-foot timing error must stay within **±10 ms**
+(half a sample interval).
+
+This is the wire-level justification for Convention #5 in `CLAUDE.md`
+("`lastSampleAt` is arrival time, never the device's own `tUnixMs`") — until
+`SYNC_TIME` has actually been exchanged for a given connection, that device's
+`t_ms` has no known relationship to unix time at all, let alone a
+drift-corrected one.
+
+---
+
+## FSR scaling — raw ADC → kPa
+
+**Device sends raw ADC; the app computes kPa.** The calibration table
+(per-channel curve-fit coefficients) lives on the insole itself (ESP32 NVS),
+read once at connect via the Calibration characteristic
+(`...b45905`) — this is what lets a patient swap insoles or phones without
+re-entering calibration data.
+
+```
+V_out     = (adc / 4095) × 3.3
+R_fsr     = R_pulldown × (3.3 − V_out) / V_out
+F_newton  = a × R_fsr^b        // a, b are per-channel, from the calibration blob
+P_kPa     = F_newton / A_sensor
+```
+
+Calibration blob shape (JSON, read from the Calibration characteristic):
+
+```json
+{
+  "device_id": "INSOLE-L-001",
+  "r_pulldown_ohm": 10000,
+  "sensor_area_m2": 0.000113,
+  "channels": [
+    { "index": 0, "a": 1.23e5, "b": -1.05, "offset_adc": 12 }
+  ]
+}
+```
+
+`channels[i].index` corresponds to the FSR channel index table above, so it
+must also come out to `FSR_CHANNEL_ORDER` order once mapped by
+`DeviceManager`.
+
+### IMU scaling
+
+```
+accel_g  = raw / 4096.0
+gyro_dps = raw / 32.8
+```
+
+### Temperature scaling
+
+```
+temp_c = raw / 100.0
+```
+
+(The ESP32 has already applied the Steinhart-Hart conversion from the NTC's
+raw reading — no per-unit calibration needed on the app side for
+temperature.)
 
 ---
 
@@ -89,20 +240,33 @@ mapping (if any) to the UI's `RiskStatus` `0`–`5` scale.
   regardless of this write; sensor and temperature notifications do not
   start until `START_STREAM` is sent. `WebBleDataSource.connect()` must
   perform this write as part of its connect sequence, not treat it as
-  optional or implicit.
+  optional or implicit. Confirmed by the contract's own packet cadence table
+  (Sensor Stream / Temperature are Notify-only, Device Status is Read +
+  Notify) — status is readable/notifying independent of streaming state,
+  the other two are not.
 - **MTU must be negotiated to 247 before enabling notifications**, or
-  packets arrive truncated. This has been verified working end-to-end with
-  the actual hardware and a BLE dongle via the standalone test page. Request
-  the MTU negotiation before calling
+  packets arrive truncated (the contract's own fallback path, "4
+  samples/packet," is what happens if this negotiation fails — a smaller
+  sensor packet, not a crash). Verified working end-to-end with real
+  hardware and a BLE dongle via the standalone test page. Request the MTU
+  negotiation before calling
   `BluetoothRemoteGATTCharacteristic.startNotifications()` on any of the
-  three notifying characteristics.
+  three notifying characteristics; on Android this means calling
+  `requestMTU(247)` explicitly — iOS does this automatically.
 
 ---
 
-## To fill this in
+## What's still open
 
-Paste the relevant sections of the Data Contract (service/characteristic
-UUIDs, packet layouts, opcodes, scaling factors) here, replacing the `TODO`
-markers above. Once `docs/DATA-CONTRACT.md` itself is filled in, this file
-should be re-checked against it rather than treated as a second source of
-truth — the contract wins if they ever disagree.
+- The calibration blob's exact byte-level framing over BLE (it's read as
+  JSON per the contract, but confirm there's no length-prefix or chunking
+  detail the 512-byte max implies) — not spelled out further in the
+  contract text as reconciled.
+- No `SimulatorDataSource` exists in this repo yet distinct from
+  `MockDataSource` — the contract's own `IDataSource` sketch (section 6)
+  lists `MockDataSource | SimulatorDataSource | BleDataSource` as the three
+  implementations; this repo currently only has `MockDataSource` and plans
+  `WebBleDataSource`, with no separate simulator-specific source. Worth
+  confirming whether `WebBleDataSource` pointed at the ESP32 simulator is
+  meant to *be* the contract's `SimulatorDataSource`, or whether a fourth,
+  simulator-only implementation was intended.
