@@ -1,0 +1,15 @@
+# Build output — Vite writes here; never commit it.
+dist/
+
+# Dependencies
+node_modules/
+
+# Vite cache
+.vite/
+
+# OS / editor cruft
+Thumbs.db
+.DS_Store
+
+# Personal Claude Code permission overrides — machine-specific, not project config.
+.claude/settings.local.json

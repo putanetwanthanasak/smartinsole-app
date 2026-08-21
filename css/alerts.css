@@ -1,0 +1,171 @@
+/* alerts.css — Alert timeline + recommendations + emergency */
+
+.alerts-page { padding: 14px 16px 24px; display: flex; flex-direction: column; gap: 14px; }
+
+/* Filter tabs */
+.filter-row {
+  display: flex;
+  gap: 6px;
+  padding: 4px;
+  background: var(--bg-secondary);
+  border-radius: 14px;
+}
+.filter-row .chip {
+  flex: 1;
+  text-align: center;
+  padding: 9px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-family: var(--font-en);
+  transition: all 0.18s;
+}
+.filter-row .chip.active {
+  background: #fff;
+  color: var(--text-primary);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+.filter-row .chip .th { display: block; font-family: var(--font-th); font-size: 12.5px; }
+.filter-row .chip .en { display: block; font-size: 9.5px; opacity: 0.7; margin-top: 1px; }
+
+/* Timeline */
+.timeline {
+  background: #fff;
+  border-radius: 20px;
+  padding: 4px 16px;
+  border: 1px solid var(--border-color);
+}
+.timeline-day {
+  padding: 12px 0 6px;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-family: var(--font-en);
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  border-bottom: 1px dashed var(--border-color);
+}
+.alert-card {
+  display: grid;
+  grid-template-columns: 36px 1fr auto;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+.alert-card:last-child { border-bottom: none; }
+
+.alert-card .ic {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.alert-card.tone-danger .ic { background: var(--status-danger-soft);  color: var(--status-danger); }
+.alert-card.tone-warn   .ic { background: var(--status-caution-soft); color: var(--status-caution); }
+.alert-card.tone-safe   .ic { background: var(--status-safe-soft);    color: var(--status-safe); }
+
+.alert-card .body { min-width: 0; }
+.alert-card .title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+.alert-card .title-th { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+.alert-card .time { font-size: 11px; color: var(--text-tertiary); font-family: var(--font-en); }
+.alert-card .recco {
+  margin-top: 6px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--bg-secondary);
+  font-size: 12px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.alert-card .recco .arrow { color: var(--brand-primary); flex-shrink: 0; }
+.alert-card .ack-state {
+  align-self: start;
+  margin-top: 4px;
+}
+.alert-card .ack-pill {
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-family: var(--font-en);
+  letter-spacing: 0.5px;
+}
+.alert-card .ack-pill.new { background: var(--status-danger); color: #fff; }
+.alert-card .ack-pill.done {
+  background: var(--bg-secondary);
+  color: var(--text-tertiary);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Emergency contact */
+.emergency {
+  background: linear-gradient(135deg, #B43A33, #E24B4A);
+  border-radius: 22px;
+  padding: 18px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  box-shadow: 0 4px 20px rgba(180, 58, 51, 0.25);
+}
+.emergency .pulse {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.16);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.emergency .pulse::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 20px;
+  border: 2px solid rgba(255,255,255,0.5);
+  animation: emergency-pulse 1.6s ease-out infinite;
+}
+@keyframes emergency-pulse {
+  0%   { transform: scale(0.95); opacity: 0.9; }
+  100% { transform: scale(1.18); opacity: 0; }
+}
+.emergency .label { flex: 1; }
+.emergency .title-th { font-size: 16px; font-weight: 700; }
+.emergency .title-en { font-size: 11.5px; opacity: 0.85; margin-top: 2px; font-family: var(--font-en); }
+.emergency .num { font-family: var(--font-en); font-size: 13px; opacity: 0.9; margin-top: 4px; }
+.emergency .call-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: #fff;
+  color: var(--status-danger);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Section label reused */
+.alerts-page .section-label .l-th { font-size: 13px; font-weight: 700; color: var(--text-primary); }
+.alerts-page .section-label .l-en { font-size: 11px; color: var(--text-tertiary); margin-top: 1px; font-family: var(--font-en); }
+
+/* The NEW pill is now a real button (acknowledge). Reset the UA button box so it
+   matches the span it replaced pixel for pixel. */
+.alert-card button.ack-pill {
+  border: none;
+  font: inherit;
+  cursor: pointer;
+}

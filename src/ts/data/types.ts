@@ -1,0 +1,110 @@
+// data/types.ts — wire-level shapes from the external Data Contract, plus the
+// snapshot vocabulary DeviceManager exposes to the UI.
+//
+// The three contract types (SensorSample / TempReading / DeviceStatus) match the
+// contract exactly and must not be reshaped to suit the UI. In particular
+// `fsrKpa` is an INDEXED array in FSR_CHANNEL_ORDER, while the UI renders a
+// name-keyed FootPressure — converting between the two is DeviceManager's job,
+// not the renderers'.
+
+import type { FootSide, FootPressure } from '../types.js';
+
+/** Per-side link state. 'stale' = connected but no sample for STALE_AFTER_MS. */
+export type ConnectionState =
+  | 'disconnected'
+  | 'connecting'
+  | 'connected'
+  | 'stale'
+  | 'error';
+
+/** Every subscribe call returns one of these. Call it in unmount(). */
+export type Unsubscribe = () => void;
+
+// ─── Contract types ───────────────────────────────────────────
+
+export interface SensorSample {
+  tUnixMs: number;
+  side: FootSide;
+  /** 6 values, in FSR_CHANNEL_ORDER (hallux, meta1, meta3, meta5, midfoot, heel). */
+  fsrKpa: number[];
+  accelG: [number, number, number];
+  gyroDps: [number, number, number];
+}
+
+export interface TempReading {
+  tUnixMs: number;
+  side: FootSide;
+  forefootC: number | null;
+  heelC: number | null;
+  /** 0 = unusable, 1 = degraded, 2 = good. */
+  quality: 0 | 1 | 2;
+}
+
+export interface DeviceStatus {
+  side: FootSide;
+  batteryPct: number;
+  connected: boolean;
+  firmware: string;
+  errorCode: number;
+}
+
+// ─── Snapshot vocabulary ──────────────────────────────────────
+
+/**
+ * Everything known about one foot at one instant.
+ *
+ * `state` is always present — a side that is connecting, errored or disconnected
+ * still needs to say so on screen. The DATA fields are what go null when there
+ * is nothing to show; never infer "no device" from `pressure === null` alone,
+ * because a connected-but-stale side also has usable-looking state with old data.
+ */
+export interface SideSnapshot {
+  side: FootSide;
+  state: ConnectionState;
+  /** Latest sample converted to the UI's name-keyed shape. */
+  pressure: FootPressure | null;
+  sample: SensorSample | null;
+  temp: TempReading | null;
+  status: DeviceStatus | null;
+  lastSampleMs: number | null;
+}
+
+/** True when this side is connected and its data is fresh enough to render. */
+export function isUsable(s: SideSnapshot | null): s is SideSnapshot {
+  return !!s && s.state === 'connected';
+}
+
+export interface CombinedSnapshot {
+  tUnixMs: number;
+  left: SideSnapshot | null;
+  right: SideSnapshot | null;
+  /**
+   * Forefoot ΔT, in °C — non-null ONLY when both sides are usable and both
+   * report a forefoot temperature. A ΔT derived from one foot is not a rounded
+   * number, it is a fabricated clinical reading, so this stays null instead.
+   */
+  deltaForefootC: number | null;
+}
+
+// ─── Temperature history ──────────────────────────────────────
+
+/**
+ * One bucketed temperature point for ONE foot.
+ *
+ * Replaces the old UI-side TempHistoryPoint, which put both feet in a single row
+ * (`leftForefoot` / `rightForefoot`) and dropped the heel channel entirely. That
+ * shape could not express "left present, right absent" — a row had to invent a
+ * value for the missing side or be discarded whole, losing the side that was
+ * fine. Per-side series make absence representable, and a null channel here is
+ * what the chart draws as a gap rather than interpolating across.
+ */
+export interface TempHistoryPoint {
+  tUnixMs: number;
+  forefootC: number | null;
+  heelC: number | null;
+}
+
+export interface TempHistory {
+  left: TempHistoryPoint[];
+  right: TempHistoryPoint[];
+}

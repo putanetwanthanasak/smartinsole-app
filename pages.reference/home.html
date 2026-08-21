@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Insole — หน้าหลัก</title>
+
+  <!-- Shared CSS -->
+  <link rel="stylesheet" href="../css/global.css" />
+  <link rel="stylesheet" href="../css/components.css" />
+
+  <!-- Page-specific CSS -->
+  <link rel="stylesheet" href="../css/heatmap.css" />
+  <link rel="stylesheet" href="../css/home.css" />
+</head>
+<body>
+  <div class="device-frame">
+    <div class="status-bar"></div>
+
+    <main class="app-scroll home-page">
+      <header id="app-header" class="app-header"></header>
+
+      <section id="alert-banner"></section>
+      <section id="connection-strip" class="connection-strip"></section>
+      <section id="status-badge"></section>
+
+      <section id="heatmap-host" class="heatmap-host"></section>
+
+      <section class="tail-stack">
+        <button id="temp-compact" type="button"></button>
+        <section id="today-summary"></section>
+      </section>
+    </main>
+
+    <nav class="tab-bar"></nav>
+  </div>
+
+  <!-- Vendors -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Compiled TS modules -->
+  <script type="module" src="../dist/js/home.js"></script>
+</body>
+</html>

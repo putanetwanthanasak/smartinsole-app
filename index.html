@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Insole</title>
+
+  <!-- Shared CSS -->
+  <link rel="stylesheet" href="css/global.css" />
+  <link rel="stylesheet" href="css/components.css" />
+
+  <!-- Screen CSS — every screen now shares one document, so all of these load
+       up front. Verified collision-free: each stylesheet's unscoped selectors
+       are unique to its own screen. -->
+  <link rel="stylesheet" href="css/heatmap.css" />
+  <link rel="stylesheet" href="css/home.css" />
+  <link rel="stylesheet" href="css/gait.css" />
+  <link rel="stylesheet" href="css/temperature.css" />
+  <link rel="stylesheet" href="css/alerts.css" />
+  <link rel="stylesheet" href="css/settings.css" />
+</head>
+<body>
+  <div class="device-frame">
+    <!-- Faux iOS status bar host — filled by renderStatusBar() -->
+    <div class="status-bar"></div>
+
+    <!-- `.app-scroll` is position:absolute/inset:0 and is the scroll container.
+         The header lives INSIDE it so it scrolls with the content, exactly as it
+         did in pages.reference/*.html; #view is the part the router swaps. -->
+    <main class="app-scroll">
+      <header id="app-header" class="app-header"></header>
+      <div id="view"></div>
+    </main>
+
+    <!-- Bottom tab bar host — filled by initNavigation(); left empty on Settings -->
+    <nav class="tab-bar"></nav>
+  </div>
+
+  <!-- Single entry module. Vite serves this TypeScript directly in dev and
+       bundles it on build; icons and fonts are imported from npm inside it,
+       so the page makes no external requests. -->
+  <script type="module" src="/src/ts/main.ts"></script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Insole — การเดิน</title>
+  <link rel="stylesheet" href="../css/global.css" />
+  <link rel="stylesheet" href="../css/components.css" />
+  <link rel="stylesheet" href="../css/gait.css" />
+</head>
+<body>
+  <div class="device-frame">
+    <div class="status-bar"></div>
+    <main class="app-scroll">
+      <header id="app-header" class="app-header"></header>
+      <div class="gait-page">
+        <section id="classification"></section>
+        <section id="symmetry" class="gait-card"></section>
+        <section id="cop" class="gait-card"></section>
+        <section id="trend" class="gait-card"></section>
+      </div>
+    </main>
+    <nav class="tab-bar"></nav>
+  </div>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script type="module" src="../dist/js/gait.js"></script>
+</body>
+</html>

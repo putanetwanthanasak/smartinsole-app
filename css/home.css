@@ -1,0 +1,89 @@
+/* ─────────────────────────────────────────────────────────────
+   home.css — Home/dashboard-specific styles
+   ───────────────────────────────────────────────────────────── */
+
+.heatmap-host { padding: 14px 16px 0; }
+
+.tail-stack {
+  padding: 14px 16px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Temperature compact panel */
+.temp-compact {
+  width: 100%;
+  text-align: left;
+}
+.temp-compact .row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.temp-compact .ic {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.temp-compact.nodata .ic { background: var(--bg-secondary); color: var(--text-tertiary); }
+.temp-compact.nodata .delta { color: var(--text-tertiary); }
+.temp-compact.alert .ic { background: var(--status-danger-soft); color: var(--status-danger); }
+.temp-compact.safe  .ic { background: var(--status-safe-soft);   color: var(--status-safe); }
+.temp-compact .label-th {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.temp-compact .label-en {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-family: var(--font-en);
+  margin-top: 1px;
+}
+.temp-compact .delta {
+  font-family: var(--font-en);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.temp-compact.alert .delta { color: var(--status-danger); }
+.temp-compact .delta-sub {
+  font-family: var(--font-en);
+  font-size: 10px;
+  color: var(--text-tertiary);
+}
+
+/* Today summary tiles */
+.summary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+}
+.summary-grid .tile { padding: 12px; }
+.summary-grid .tile .ic { margin-bottom: 6px; }
+.summary-grid .tile.brand .ic { color: var(--brand-primary); }
+.summary-grid .tile.warn  .ic { color: var(--status-caution); }
+.summary-grid .tile.muted .ic { color: #475058; }
+.summary-grid .tile .val {
+  font-family: var(--font-en);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+}
+.summary-grid .tile .val .unit {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-weight: 500;
+  margin-left: 2px;
+}
+.summary-grid .tile .label {
+  font-size: 10.5px;
+  color: var(--text-tertiary);
+  font-family: var(--font-en);
+  margin-top: 4px;
+}

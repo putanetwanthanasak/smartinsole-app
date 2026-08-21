@@ -1,0 +1,446 @@
+/* ─────────────────────────────────────────────────────────────
+   heatmap.css — Foot pressure heatmap + pulse animations
+   ───────────────────────────────────────────────────────────── */
+
+.heatmap-card {
+  background: var(--bg-primary);
+  border-radius: var(--radius-xl);
+  padding: 18px 16px 16px;
+  border: 1px solid var(--border-color);
+}
+
+.heatmap-card .card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.heatmap-card .card-head .th-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.heatmap-card .card-head .en-title {
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+  font-family: var(--font-en);
+  margin-top: 1px;
+}
+
+/* Two-foot grid */
+.feet-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-top: 8px;
+}
+.foot-cell { display: flex; flex-direction: column; }
+.foot-cell .svg-wrap {
+  height: 280px;
+  width: 100%;
+  position: relative;   /* hosts the .na-note overlay */
+}
+
+/* Unavailable foot: the silhouette stays (so the grid never reflows) but the
+   zones go neutral grey and the numbers are replaced by an em dash, with an
+   explicit caption over the top. Greying rather than freezing the last values
+   is the point — a stale reading rendered in ramp colours is indistinguishable
+   from a live one. */
+.foot-cell .na-note {
+  display: none;
+  position: absolute;
+  inset: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  pointer-events: none;
+}
+.foot-cell.unavailable .na-note { display: flex; }
+.foot-cell.unavailable .foot-svg { opacity: 0.55; }
+.foot-cell .na-note .th {
+  font-size: 12px;
+  font-weight: 700;
+  color: #6B7280;
+  background: rgba(255, 255, 255, 0.88);
+  padding: 2px 10px;
+  border-radius: 999px;
+}
+.foot-cell .na-note .en {
+  font-size: 10px;
+  font-family: var(--font-en);
+  color: var(--text-tertiary);
+  background: rgba(255, 255, 255, 0.88);
+  padding: 0 8px;
+  border-radius: 999px;
+}
+.foot-cell .svg-wrap svg { overflow: visible; }
+.foot-cell .foot-label {
+  text-align: center;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #475058;
+  margin-top: 4px;
+}
+.foot-cell .foot-label .side-en {
+  color: var(--text-tertiary);
+  font-weight: 500;
+  font-family: var(--font-en);
+  margin-left: 4px;
+}
+
+/* SVG zones */
+.foot-svg .foot-body,
+.foot-svg .toe-shape {
+  fill: url(#shade);
+  stroke: var(--border-strong);
+  stroke-width: 1.4;
+}
+.foot-svg .arch-crease {
+  stroke: var(--border-strong);
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+  fill: none;
+  opacity: 0.6;
+}
+.foot-svg .foot-shadow { fill: #000; opacity: 0.06; }
+
+.zone-group { cursor: pointer; }
+.zone-fill {
+  transition: fill 0.6s ease, stroke 0.6s ease;
+  stroke: rgba(0, 0, 0, 0.12);
+  stroke-width: 0.8;
+}
+.zone-group.danger .zone-fill {
+  stroke: #B43A33;
+  stroke-width: 2;
+}
+.zone-group.selected .zone-fill {
+  stroke: var(--text-primary);
+  stroke-width: 1.6;
+}
+.zone-value {
+  font-family: var(--font-en);
+  font-weight: 600;
+  font-size: 10.5px;
+  pointer-events: none;
+}
+.zone-group.danger .zone-value {
+  font-weight: 700;
+  /* 12px, not the 14px this was while values were a 2-digit 0-100 index.
+     Alert-tier values are 3 digits in kPa, and at 14px "220" measured 28.3px
+     against a 27px-wide zone ellipse, so adjacent metatarsal labels collided on
+     the diabetic and forefoot presets. At 12px a 3-digit label fits inside its
+     ellipse and neighbours clear each other, while staying clearly larger and
+     heavier than the 10.5px non-alert labels. */
+  font-size: 12px;
+  fill: #fff;
+}
+.zone-group.invert-text .zone-value { fill: #fff; }
+
+/* Pulse rings are present on every zone and gated by class, so that toggling a
+   zone into or out of the alert tier does not recreate the node and restart the
+   animation mid-flight. */
+.zone-group:not(.danger) .pulse-ring,
+.zone-group:not(.danger) .pulse-ring-2 { display: none; }
+
+/* Pulse rings — only shown on danger zones */
+.pulse-ring {
+  fill: none;
+  stroke: var(--pressure-danger);
+  stroke-width: 2;
+  transform-origin: center;
+  animation: danger-pulse 1.6s ease-out infinite;
+}
+.pulse-ring-2 {
+  fill: none;
+  stroke: var(--pressure-danger);
+  stroke-width: 1.5;
+  transform-origin: center;
+  animation: danger-pulse-2 1.6s ease-out infinite;
+  animation-delay: 0.4s;
+}
+
+/* ─── Legend bar ────────────────────────────────────────────── */
+.legend {
+  margin-top: 26px;
+  padding: 0 4px;
+}
+/* The ramp stops and both tier markers are positioned from --stop-* custom
+   properties set by Heatmap.renderLegend() in src/ts/heatmap.ts, which derives
+   them from PRESSURE_RAMP_KPA in src/ts/constants.ts. Deliberately no
+   percentages are hardcoded here: the old 25/40/55/70% gradient and the old
+   `left: 75%` markers were a second copy of the TS ramp and could drift from it
+   silently. Only the colours live in CSS. */
+.legend .bar {
+  position: relative;
+  height: 14px;
+  border-radius: 8px;
+  background: linear-gradient(to right,
+    var(--pressure-safe)     0%,
+    var(--pressure-normal)   var(--stop-low),
+    var(--pressure-mild)     var(--stop-mid),
+    var(--pressure-elevated) var(--stop-watch),
+    var(--pressure-high)     var(--stop-watch-high),
+    var(--pressure-danger)   var(--stop-alert),
+    var(--pressure-danger)   100%);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04);
+}
+.legend .marker {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 2px;
+  background: var(--text-primary);
+  transform: translateX(-50%);
+}
+.legend .marker.watch { left: var(--stop-watch); }
+.legend .marker.alert { left: var(--stop-alert); }
+.legend .marker-label {
+  position: absolute;
+  top: -22px;
+  transform: translateX(-50%);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: #fff;
+  padding: 2px 6px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  white-space: nowrap;
+}
+.legend .marker-label.watch { left: var(--stop-watch); }
+.legend .marker-label.alert { left: var(--stop-alert); }
+.legend .scale {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-weight: 500;
+}
+
+/* ─── Zone detail (tooltip card shown when a zone is tapped) ── */
+.zone-detail {
+  background: #fff;
+  border-radius: 20px;
+  padding: 16px;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 6px 24px rgba(40, 30, 10, 0.08);
+}
+.zone-detail .head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+.zone-detail .titles { flex: 1; min-width: 0; }
+.zone-detail .titles .side {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  font-weight: 500;
+  letter-spacing: 0.2px;
+}
+.zone-detail .titles .th {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-top: 2px;
+}
+.zone-detail .titles .en {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-top: 1px;
+  font-family: var(--font-en);
+}
+.zone-detail .close-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: var(--bg-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #475058;
+  flex-shrink: 0;
+}
+
+.zone-detail .severity {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 14px;
+}
+.zone-detail .severity.tone-safe   { background: var(--status-safe-soft); }
+.zone-detail .severity.tone-warn   { background: var(--status-caution-soft); }
+.zone-detail .severity.tone-danger { background: var(--status-danger-soft); }
+.zone-detail .severity .value {
+  font-family: var(--font-en);
+  font-size: 38px;
+  font-weight: 700;
+  line-height: 1;
+}
+.zone-detail .severity.tone-safe   .value,
+.zone-detail .severity.tone-safe   .label { color: var(--status-safe); }
+.zone-detail .severity.tone-warn   .value,
+.zone-detail .severity.tone-warn   .label { color: var(--status-caution); }
+.zone-detail .severity.tone-danger .value,
+.zone-detail .severity.tone-danger .label { color: var(--status-danger); }
+.zone-detail .severity .label { font-size: 14px; font-weight: 600; }
+.zone-detail .severity .sub-en {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-family: var(--font-en);
+  margin-top: 2px;
+}
+.zone-detail .advice {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #475058;
+}
+
+/* ─── Preset switcher ──────────────────────────────────────── */
+.preset-section .preset-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 4px 8px;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.preset-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.preset-btn {
+  padding: 11px 12px;
+  border-radius: 14px;
+  background: #fff;
+  border: 1px solid var(--border-color);
+  text-align: left;
+  transition: all 0.2s;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+.preset-btn .th { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.preset-btn .en {
+  font-size: 10.5px;
+  opacity: 0.55;
+  margin-top: 1px;
+  font-family: var(--font-en);
+  color: var(--text-primary);
+}
+.preset-btn.active {
+  background: var(--text-primary);
+  border-color: var(--text-primary);
+  box-shadow: 0 2px 8px rgba(27, 31, 35, 0.18);
+}
+.preset-btn.active .th,
+.preset-btn.active .en { color: #fff; opacity: 1; }
+.preset-btn.active .en { opacity: 0.7; }
+
+/* ─── Risk summary ─────────────────────────────────────────── */
+.risk-summary {
+  background: #fff;
+  border-radius: 20px;
+  padding: 16px;
+  border: 1px solid var(--border-color);
+}
+.risk-summary .summary-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.risk-summary .summary-head .ic {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.risk-summary.tone-none   .summary-head .ic { background: var(--bg-secondary);        color: var(--text-secondary); }
+.risk-summary.tone-safe   .summary-head .ic { background: var(--status-safe-soft);    color: var(--status-safe); }
+.risk-summary.tone-warn   .summary-head .ic { background: var(--status-caution-soft); color: var(--status-caution); }
+.risk-summary.tone-danger .summary-head .ic { background: var(--status-danger-soft);  color: var(--status-danger); }
+
+.risk-summary .summary-head .text-th {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+.risk-summary .summary-head .text-en {
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+  margin-top: 2px;
+  font-family: var(--font-en);
+  letter-spacing: 0.1px;
+}
+
+.danger-zone-list {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.danger-zone-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: var(--bg-secondary);
+  border-radius: 10px;
+}
+.danger-zone-row .chip {
+  font-family: var(--font-en);
+  width: 36px;
+  height: 28px;
+  border-radius: 7px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 13px;
+}
+.danger-zone-row .name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.danger-zone-row .name-en {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-family: var(--font-en);
+}
+
+.advice-block {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  border-left: 3px solid;
+}
+.risk-summary.tone-safe   .advice-block { background: var(--status-safe-soft);    border-color: var(--status-safe); }
+.risk-summary.tone-warn   .advice-block { background: var(--status-caution-soft); border-color: var(--status-caution); }
+.risk-summary.tone-danger .advice-block { background: var(--status-danger-soft);  border-color: var(--status-danger); }
+
+/* Heatmap section spacing */
+.heatmap-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}

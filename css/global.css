@@ -1,0 +1,196 @@
+/* ─────────────────────────────────────────────────────────────
+   global.css — design tokens, reset, typography, layout, animations
+   ───────────────────────────────────────────────────────────── */
+
+/* Web fonts are bundled from npm (@fontsource/*) and imported in src/ts/main.ts,
+   so this file makes no network request. Family names and weights are unchanged. */
+
+:root {
+  /* Pressure color scale */
+  --pressure-safe: #85B7EB;
+  --pressure-normal: #97C459;
+  --pressure-mild: #C0DD97;
+  --pressure-elevated: #FAC775;
+  --pressure-high: #F09595;
+  --pressure-danger: #E24B4A;
+
+  /* Brand */
+  --brand-primary: #1D9E75;
+  --brand-dark: #0F6E56;
+  --brand-light: #E1F5EE;
+  /* Right-foot series colour, paired with --brand-primary for the left foot on
+     every bilateral chart (gait symmetry bars, 24h temperature lines).
+     Chosen as a magenta-leaning purple rather than by eye:
+       · vs left foot #1D9E75 — CIEDE2000 51.9 normal vision, and 58.4 / 44.6 /
+         55.7 under simulated protanopia / deuteranopia / tritanopia, so the pair
+         never collapses. Under red-green deficiency this reads blue against the
+         green's olive-grey; under blue-yellow deficiency it reads olive against
+         the green's blue-violet. Blue-yellow matters here specifically because
+         acquired tritan-like deficiency is common in diabetes, this app's
+         population — which is also why a blue-violet accent (e.g. #7C3AED,
+         tritan ΔE 15) was rejected despite scoring well on red-green.
+       · vs the --status-* and pressure-ramp colours — nearest is #E24B4A at
+         ΔE 39.9, far enough that a right-foot bar cannot be read as a severity
+         signal.
+       · contrast 6.98:1 on white cards and 6.47:1 on the #FAF6EC cream, so it
+         also carries a strong luminance cue independent of hue. */
+  --brand-accent: #7E22CE;
+
+  /* Status semantic */
+  --status-safe: #22C55E;
+  --status-safe-soft: #DCFCE7;
+  --status-caution: #F59E0B;
+  --status-caution-soft: #FEF3C7;
+  --status-danger: #EF4444;
+  --status-danger-soft: #FEE2E2;
+
+  /* UI surface */
+  --bg-page: #E9E4DA;
+  --bg-app: #FAF7F2;
+  --bg-primary: #FFFFFF;
+  --bg-secondary: #F4EFE6;
+  --bg-soft: #F8FAF9;
+
+  /* Ink */
+  --text-primary: #1A1A1A;
+  --text-secondary: #6B7280;
+  --text-tertiary: #9CA3AF;
+
+  /* Lines */
+  --border-color: #ECE6DA;
+  --border-strong: #DED6C5;
+
+  /* Radii */
+  --radius-sm: 8px;
+  --radius: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --radius-pill: 999px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 12px rgba(20, 18, 12, 0.04);
+  --shadow-lg: 0 10px 30px rgba(20, 18, 12, 0.10);
+
+  /* Spacing scale */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+
+  /* Type */
+  --font-th: 'Noto Sans Thai', 'Inter', -apple-system, system-ui, sans-serif;
+  --font-en: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+/* ─── Reset ─────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+button { font-family: inherit; cursor: pointer; border: none; background: none; padding: 0; color: inherit; }
+button:focus-visible { outline: 2px solid var(--brand-primary); outline-offset: 2px; border-radius: var(--radius-sm); }
+a { color: inherit; text-decoration: none; }
+img, svg { display: block; max-width: 100%; }
+input, select, textarea { font: inherit; color: inherit; }
+
+/* ─── Body / app shell ──────────────────────────────────────── */
+body {
+  font-family: var(--font-th);
+  background: var(--bg-page);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+}
+
+/* iPhone-style device frame so the multi-page app stays mobile-shaped */
+.device-frame {
+  width: 402px;
+  height: 874px;
+  border-radius: 48px;
+  background: var(--bg-app);
+  box-shadow: 0 40px 80px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.12);
+  position: relative;
+  overflow: hidden;
+}
+.device-frame::before {
+  content: '';
+  position: absolute;
+  top: 11px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 126px;
+  height: 37px;
+  border-radius: 24px;
+  background: #000;
+  z-index: 50;
+}
+.device-frame::after {
+  content: '';
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 139px;
+  height: 5px;
+  border-radius: 100px;
+  background: rgba(0, 0, 0, 0.25);
+  z-index: 60;
+  pointer-events: none;
+}
+
+.app-scroll {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-bottom: 92px;
+  scrollbar-width: none;
+}
+.app-scroll::-webkit-scrollbar { display: none; }
+
+/* ─── Typography ────────────────────────────────────────────── */
+.num { font-family: var(--font-en); font-variant-numeric: tabular-nums; }
+.mono { font-family: var(--font-mono); }
+.eyebrow {
+  font-family: var(--font-en);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+/* ─── Animations ────────────────────────────────────────────── */
+@keyframes danger-pulse {
+  0%   { transform: scale(0.8); opacity: 0.7; }
+  80%  { transform: scale(1.9); opacity: 0; }
+  100% { transform: scale(1.9); opacity: 0; }
+}
+@keyframes danger-pulse-2 {
+  0%   { transform: scale(0.8); opacity: 0.5; }
+  80%  { transform: scale(2.2); opacity: 0; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+@keyframes status-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+@keyframes slide-up {
+  from { transform: translateY(8px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.live-dot { animation: status-dot 1.4s ease-in-out infinite; }
+.slide-up { animation: slide-up 0.28s ease-out both; }
+.fade-in  { animation: fade-in 0.22s ease-out both; }

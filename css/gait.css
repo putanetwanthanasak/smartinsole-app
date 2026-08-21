@@ -1,0 +1,200 @@
+/* gait.css — Gait analysis page */
+
+.gait-page { padding: 14px 16px 24px; display: flex; flex-direction: column; gap: 14px; }
+
+.gait-classify {
+  background: #fff;
+  border-radius: 20px;
+  padding: 16px;
+  border: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.gait-classify .ic {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.gait-classify.tone-warn   .ic { background: var(--status-caution-soft); color: var(--status-caution); }
+.gait-classify.tone-safe   .ic { background: var(--status-safe-soft);    color: var(--status-safe); }
+.gait-classify.tone-danger .ic { background: var(--status-danger-soft);  color: var(--status-danger); }
+
+.gait-classify .text-th { font-size: 16px; font-weight: 700; color: var(--text-primary); }
+.gait-classify .text-en { font-size: 11.5px; color: var(--text-tertiary); margin-top: 2px; font-family: var(--font-en); }
+.gait-classify .conf {
+  font-family: var(--font-en);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-align: right;
+}
+.gait-classify .conf-sub {
+  font-family: var(--font-en);
+  font-size: 10px;
+  color: var(--text-tertiary);
+  text-align: right;
+}
+
+/* Section card */
+.gait-card {
+  background: #fff;
+  border-radius: 20px;
+  padding: 16px;
+  border: 1px solid var(--border-color);
+}
+.gait-card .head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+.gait-card .head .th { font-size: 15px; font-weight: 700; color: var(--text-primary); }
+.gait-card .head .en { font-size: 11.5px; color: var(--text-tertiary); margin-top: 1px; font-family: var(--font-en); }
+.gait-card .head .pill {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-family: var(--font-en);
+  letter-spacing: 0.4px;
+}
+
+/* Symmetry bar chart (left vs right) */
+.symmetry-grid {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  height: 140px;
+  padding-bottom: 22px;
+  border-bottom: 1px dashed var(--border-color);
+  position: relative;
+}
+.symmetry-grid .step {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  position: relative;
+  height: 100%;
+}
+.symmetry-grid .bars {
+  display: flex;
+  gap: 3px;
+  align-items: flex-end;
+  height: 100%;
+}
+.symmetry-grid .bar {
+  width: 9px;
+  border-radius: 3px 3px 0 0;
+  transition: height 0.3s;
+}
+.symmetry-grid .bar.l { background: var(--brand-primary); }
+.symmetry-grid .bar.r { background: var(--brand-accent); }
+.symmetry-grid .step-label {
+  position: absolute;
+  bottom: -20px;
+  font-size: 10px;
+  color: var(--text-tertiary);
+  font-family: var(--font-en);
+}
+.legend-row {
+  display: flex;
+  gap: 14px;
+  margin-top: 12px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-family: var(--font-en);
+}
+.legend-row .key {
+  display: flex; align-items: center; gap: 5px;
+}
+.legend-row .swatch {
+  width: 10px; height: 10px; border-radius: 3px;
+}
+.legend-row .swatch.l { background: var(--brand-primary); }
+.legend-row .swatch.r { background: var(--brand-accent); }
+
+/* Center of pressure trace */
+.cop-wrap { display: flex; justify-content: center; padding: 4px 0 8px; }
+.cop-wrap svg { width: 100%; max-width: 200px; height: 220px; }
+.cop-trace {
+  fill: none;
+  stroke: var(--brand-primary);
+  stroke-width: 2.5;
+  stroke-dasharray: 240;
+  stroke-dashoffset: 240;
+  animation: cop-draw 2.6s ease-in-out forwards;
+}
+@keyframes cop-draw {
+  to { stroke-dashoffset: 0; }
+}
+.cop-dot {
+  fill: var(--brand-primary);
+}
+.cop-dot.start { fill: var(--status-safe); }
+.cop-dot.end   { fill: var(--status-danger); }
+.cop-label {
+  font-family: var(--font-en);
+  font-size: 9px;
+  fill: var(--text-tertiary);
+}
+
+/* 7-day sparkline + score */
+.trend-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.trend-row .score {
+  font-family: var(--font-en);
+  font-size: 38px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+}
+.trend-row .score-sub {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-family: var(--font-en);
+  margin-top: 2px;
+}
+.trend-row .score .delta {
+  font-size: 13px;
+  color: var(--status-danger);
+  font-weight: 600;
+  margin-left: 4px;
+}
+.trend-row .sparkline { flex: 1; }
+.trend-row .sparkline svg { width: 100%; height: 64px; }
+
+.spark-line {
+  fill: none;
+  stroke: var(--brand-primary);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.spark-area {
+  fill: var(--brand-primary);
+  opacity: 0.10;
+}
+.spark-dot {
+  fill: var(--brand-primary);
+}
+.spark-dot.last { fill: var(--status-caution); r: 4; }
+
+.day-row {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+  font-size: 9.5px;
+  color: var(--text-tertiary);
+  font-family: var(--font-en);
+}
