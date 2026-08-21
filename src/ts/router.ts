@@ -12,9 +12,10 @@ import * as gait from './gait.js';
 import * as temperature from './temperature.js';
 import * as alerts from './alerts.js';
 import * as settings from './settings.js';
+import * as capture from './capture.js';
 import { refreshIcons } from './icons.js';
 
-export type RouteId = 'home' | 'gait' | 'temp' | 'alerts' | 'settings';
+export type RouteId = 'home' | 'gait' | 'temp' | 'alerts' | 'settings' | 'capture';
 
 /** Every screen module exposes exactly this pair. */
 export interface Screen {
@@ -81,12 +82,22 @@ const SETTINGS_TEMPLATE = `
         <section id="export"></section>
 `;
 
+// capture.ts owns everything inside this single host — an operator flow with
+// several steps (subject entry / calibration / recording / export), not a
+// fixed set of named sections like the patient screens above. Not a tab —
+// reached only by navigating to #/capture directly, never linked from the
+// patient-facing UI (docs/reports/010-*.md).
+const CAPTURE_TEMPLATE = `
+        <div id="capture-body" class="capture-body"></div>
+`;
+
 const ROUTES: Record<RouteId, Route> = {
   home:     { id: 'home',     title: 'Smart Insole — หน้าหลัก',      viewClass: 'home-page',     template: HOME_TEMPLATE,     screen: home },
   gait:     { id: 'gait',     title: 'Smart Insole — การเดิน',        viewClass: 'gait-page',     template: GAIT_TEMPLATE,     screen: gait },
   temp:     { id: 'temp',     title: 'Smart Insole — อุณหภูมิ',        viewClass: 'temp-page',     template: TEMP_TEMPLATE,     screen: temperature },
   alerts:   { id: 'alerts',   title: 'Smart Insole — การแจ้งเตือน',   viewClass: 'alerts-page',   template: ALERTS_TEMPLATE,   screen: alerts },
   settings: { id: 'settings', title: 'Smart Insole — ตั้งค่า',         viewClass: 'settings-page', template: SETTINGS_TEMPLATE, screen: settings },
+  capture:  { id: 'capture',  title: 'Smart Insole — Research Capture', viewClass: 'capture-page', template: CAPTURE_TEMPLATE, screen: capture },
 };
 
 // ─── Route resolution ─────────────────────────────────────────

@@ -91,7 +91,10 @@ export class DeviceManager {
         this.dirty = true;
         // Unthrottled, fires before this handler returns - see onRawSample.
         if (b.pressure && this.rawListeners.size > 0) {
-          const raw: RawPressureSample = { side: source.side, tUnixMs: arrivedAt, pressure: b.pressure };
+          const raw: RawPressureSample = {
+            side: source.side, tUnixMs: arrivedAt, pressure: b.pressure,
+            accelG: s.accelG, gyroDps: s.gyroDps,
+          };
           for (const cb of this.rawListeners) cb(raw);
         }
       }),
@@ -190,9 +193,9 @@ export class DeviceManager {
    * throttled `onSnapshot` (10 Hz) would silently discard 80% of the
    * samples in any window before a peak could be taken from them — see
    * docs/BACKLOG.md item 1's correction and docs/reports/004-*.md. The
-   * eventual Model A input (Data Contract v1.1 §7.1, [1, 100, 24] @ 50 Hz)
-   * and any raw data-collection export both need this same rate, not
-   * `onSnapshot`'s.
+   * Model A input (Data Contract §7.1, [1, 100, 24] @ 50 Hz) fixes the rate
+   * this needs to match, which is why capture.ts's research-data export
+   * (docs/reports/010-*.md) also reads from here, not `onSnapshot`.
    *
    * Cost/safety note for whoever adds a second subscriber here: this fires
    * synchronously, on the same thread as everything else in the app,

@@ -12,7 +12,9 @@
 // alert-triangle), alerts.ts (gauge / thermometer / footprints), and
 // gait.ts (bluetooth / construction, chosen per-section — see the comment
 // at unavailableCardHTML in gait.ts for why they're not interchangeable),
-// which a search for `data-lucide="..."` alone does not reveal.
+// and capture.ts (play / square for the record Start/Stop button, whose
+// icon swaps with recording state), which a search for
+// `data-lucide="..."` alone does not reveal.
 //
 // If you add a new `data-lucide` name, add it here too — `warnMissingIcons()`
 // below will flag it in dev if you forget.
@@ -39,9 +41,11 @@ import {
   Lightbulb,
   Phone,
   PhoneCall,
+  Play,
   RefreshCcw,
   Settings,
   Shield,
+  Square,
   Stethoscope,
   Thermometer,
   UserPlus,
@@ -71,9 +75,11 @@ const USED_ICONS = {
   Lightbulb,
   Phone,
   PhoneCall,
+  Play,
   RefreshCcw,
   Settings,
   Shield,
+  Square,
   Stethoscope,
   Thermometer,
   UserPlus,

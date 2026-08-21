@@ -100,12 +100,20 @@ export interface CombinedSnapshot {
  * not just display it. `pressure` is pre-converted (never raw `fsrKpa`) for
  * the same reason `SideSnapshot.pressure` is: nothing outside DeviceManager
  * may touch the wire-indexed array directly.
+ *
+ * `accelG`/`gyroDps` were added alongside `pressure` for capture.ts (see
+ * docs/reports/010-*.md) — the research-capture CSV schema needs both per
+ * the Data Contract's Model A input (§7.1), and gait.ts's PAI (the only
+ * other onRawSample consumer at the time these were added) only ever read
+ * `.pressure`, so this is additive: existing consumers are unaffected.
  */
 export interface RawPressureSample {
   side: FootSide;
   /** Arrival time (Date.now() when DeviceManager received it), matching every other timestamp in this file — never the device's own clock. */
   tUnixMs: number;
   pressure: FootPressure;
+  accelG: [number, number, number];
+  gyroDps: [number, number, number];
 }
 
 // ─── Temperature history ──────────────────────────────────────
