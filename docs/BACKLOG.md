@@ -416,3 +416,73 @@ Not scoped further here — where the file lives, how/when it's fetched, what
 happens on a missing or malformed file, and whether `MockDataSource` needs
 its own copy are all open questions for whoever picks this up. This is an
 architectural decision, not a threshold correction.
+
+---
+
+## 12. FSR calibration curve validation near ADC saturation — blocked on PCB arrival **(found in docs/reports/008-*.md, stopgapped in docs/reports/009-*.md)**
+
+Illustrative (not measured) values while investigating the Pa/kPa bug in
+report 008 showed the FSR curve's `F_newton = a × R_fsr^b` term is steeply
+non-linear near the top of the 0–4095 ADC range: a 33% increase in
+adc_corrected (3000→4000) produced a **15x** increase in computed kPa
+(195→3067). That's either a real, correctly-fitted property of the curve
+near saturation, or a sign the calibration curve fit is poor at the high
+end — and the high end is exactly where `PRESSURE_ALERT_KPA` (200 kPa)
+matters most: a poor fit there could mean the alert tier fires on curve
+artifacts rather than real load, or conversely stays silent when it
+shouldn't.
+
+**Cannot be resolved with real data yet — there is no PCB to generate a
+real heel-strike-range sample from.** `docs/BLE-TEST-CHECKLIST.md` and the
+reports through 008 only have real data in the 200–350 raw-ADC range
+(light/resting touch); nothing near saturation has been captured from
+actual hardware.
+
+**Stopgap shipped in report 009, not a fix:** `isSuspiciousKpaJump()`
+(`src/ts/data/blePacketParser.ts`) and `WebBleDataSource.checkSaturationCurve()`
+log a dev-only console warning when a channel's kPa reading jumps more than
+5x for less than a 50% increase in adc_corrected between two consecutive
+samples. It does not clamp, reject, or correct the value — only makes a
+suspicious jump visible rather than silently trusting a possibly-bad curve
+fit. The 5x/50% thresholds are a cheap heuristic chosen to catch exactly
+the pattern already observed, not a validated boundary — they may need
+retuning once real saturation-range data exists.
+
+**When a PCB is available:** capture raw ADC values across the full range,
+especially 3000+, during a genuine heel strike; compare against the
+standalone test page (already verified correct) the same way report 006's
+checklist compares light-touch values; and use that to either confirm the
+curve fit is sound at the high end or get a corrected calibration blob from
+whoever owns that part of the pipeline. This item is closed only once real
+data exists there, not once the warning heuristic exists.
+
+---
+
+## 13. Bundle tree-shaking of the BLE stack is non-deterministic — resolve before Capacitor packaging, not before **(found in docs/reports/007-*.md, reconfirmed in docs/reports/008-*.md)**
+
+`WebBleDataSource` and everything it pulls in (`bleProtocol.ts`,
+`blePacketParser.ts`, `webBluetooth.d.ts`) are gated behind
+`usingWebBle`/`import.meta.env.DEV` in `data/DeviceManager.ts`, with the
+intent that a production build never ships any of it. Whether that
+actually happens depends on the minifier fully constant-folding
+`usingWebBle` through to `bleSources = null` and eliminating everything
+only reachable from there — which is NOT guaranteed by this gating
+pattern. Observed directly: report 007's build included the whole
+`WebBleDataSource` class (~70 kB → ~81 kB); report 008's build, with no
+intentional change to the gating logic, excluded it again. Runtime
+behavior is unaffected either way — `bleSources` genuinely is `null` in
+production, `new WebBleDataSource()` never executes — this is a bundle-size
+question, not a correctness one.
+
+**Not a current problem:** testing right now targets a laptop + USB
+dongle, not a packaged app, so shipped bundle size doesn't block anything.
+**Must be resolved before Capacitor packaging begins** (see CLAUDE.md
+"Next phase" and `docs/BACKLOG.md` item 3, which already tracks font
+subsetting for the same class of reason — everything in `dist/` ships
+inside the APK regardless of whether a given device would ever fetch it).
+
+**Proposed direction, not implemented:** a dynamic `import()` for the BLE
+module instead of a static one, which forces bundlers to put it in its own
+chunk rather than relying on dead-code elimination to strip it from the
+main one — a structural guarantee instead of a minifier heuristic. Not
+scoped further here.

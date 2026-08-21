@@ -14,6 +14,7 @@
 // blePacketParser.ts for why that split exists.
 
 import type { FootSide } from '../types.js';
+import { FSR_CHANNEL_ORDER } from '../constants.js';
 import type { IDataSource } from './IDataSource.js';
 import type {
   ConnectionState, Unsubscribe, SensorSample, TempReading, DeviceStatus,
@@ -25,7 +26,7 @@ import {
 } from './bleProtocol.js';
 import {
   parseSensorPacket, parseTempPacket, parseStatusPacket, parseCalibrationJSON, adcToKpa,
-  accelRawToG, gyroRawToDps,
+  correctAdc, isSuspiciousKpaJump, accelRawToG, gyroRawToDps,
 } from './blePacketParser.js';
 import type { Calibration, CalibrationChannel, ParsedStatusPacket } from './blePacketParser.js';
 
@@ -83,6 +84,17 @@ export class WebBleDataSource implements IDataSource {
 
   private calibration: Calibration | null = null;
   private calibByIndex = new Map<number, CalibrationChannel>();
+
+  /**
+   * Previous {adcCorrected, kpa} per FSR channel, for the saturation-curve
+   * sanity check (see isSuspiciousKpaJump in blePacketParser.ts and
+   * docs/reports/009-*.md) — a stopgap until real calibration curve
+   * validation across the full ADC range is possible (blocked on PCB
+   * arrival, see docs/BACKLOG.md). Indexed like FSR_CHANNEL_ORDER; null
+   * until that channel's first sample on this connection.
+   */
+  private prevChannelReading: ({ adcCorrected: number; kpa: number } | null)[] =
+    new Array(FSR_CHANNEL_ORDER.length).fill(null);
 
   /** unix_ms - device_ms for THIS connection. Null until the first estimate lands — see toUnixMs(). */
   private timeOffsetMs: number | null = null;
@@ -273,6 +285,7 @@ export class WebBleDataSource implements IDataSource {
     this.consecutiveTruncations = 0;
     this.calibration = null;
     this.calibByIndex.clear();
+    this.prevChannelReading.fill(null);
   }
 
   private async teardownGatt(): Promise<void> {
@@ -404,7 +417,9 @@ export class WebBleDataSource implements IDataSource {
       const fsrKpa = raw.fsrAdc.map((adc, ch) => {
         const channel = this.calibByIndex.get(ch);
         if (!channel) throw new Error(`No calibration channel for FSR index ${ch}`);
-        return adcToKpa(adc, channel, calibration);
+        const kpa = adcToKpa(adc, channel, calibration);
+        this.checkSaturationCurve(ch, correctAdc(adc, channel.offsetAdc), kpa);
+        return kpa;
       });
       const sample: SensorSample = {
         tUnixMs: this.toUnixMs(deviceMs),
@@ -476,6 +491,32 @@ export class WebBleDataSource implements IDataSource {
       }
     }
     this.lastSeq = seq;
+  }
+
+  /**
+   * Dev-only stopgap sanity check — see isSuspiciousKpaJump in
+   * blePacketParser.ts and docs/reports/009-*.md. Deliberately does
+   * nothing to the value itself (no clamp, no rejection); only makes a
+   * suspicious jump visible instead of silently trusting a possibly-poor
+   * curve fit right at the alert threshold. Not throttled — a sustained
+   * bad region firing on every sample IS the signal, not noise to hide.
+   */
+  private checkSaturationCurve(channelIndex: number, adcCorrected: number, kpa: number): void {
+    if (!import.meta.env.DEV) return;
+    const prev = this.prevChannelReading[channelIndex];
+    if (prev && isSuspiciousKpaJump(prev.adcCorrected, prev.kpa, adcCorrected, kpa)) {
+      const zoneName = FSR_CHANNEL_ORDER[channelIndex] ?? `index ${channelIndex}`;
+      console.warn(
+        `[WebBleDataSource:${this.side}] suspicious kPa jump on ${zoneName}: `
+        + `adc_corrected ${prev.adcCorrected} -> ${adcCorrected} `
+        + `(${(adcCorrected / prev.adcCorrected).toFixed(2)}x) produced `
+        + `${prev.kpa.toFixed(1)} -> ${kpa.toFixed(1)} kPa `
+        + `(${(kpa / prev.kpa).toFixed(1)}x) — likely the FSR curve's known `
+        + 'steep non-linearity near saturation, not necessarily a bug. '
+        + 'See docs/BACKLOG.md: real calibration curve validation is blocked on PCB arrival.',
+      );
+    }
+    this.prevChannelReading[channelIndex] = { adcCorrected, kpa };
   }
 }
 

@@ -220,11 +220,56 @@ const ADC_MAX = 4095;
  * makes R_fsr=0, and a negative `b` makes 0^b = Infinity) — not a
  * calibration decision.
  */
+/**
+ * The zero-point-corrected ADC value — `max(0, adc_raw - offset_adc)`,
+ * exported on its own so callers that need to reason about this
+ * intermediate (not just the final kPa) don't have to duplicate the clamp.
+ * Currently one caller: WebBleDataSource.ts's saturation-curve sanity
+ * check (see docs/reports/009-*.md) tracks this value across consecutive
+ * samples per channel — it needs the corrected ADC, not the raw one, since
+ * that's the quantity the FSR formula actually responds to.
+ */
+export function correctAdc(rawAdc: number, offsetAdc: number): number {
+  return Math.max(0, rawAdc - offsetAdc);
+}
+
 export function adcToKpa(rawAdc: number, channel: CalibrationChannel, cal: Calibration): number {
-  const corrected = Math.max(0, rawAdc - channel.offsetAdc);
+  const corrected = correctAdc(rawAdc, channel.offsetAdc);
   const adc = Math.min(ADC_MAX, Math.max(1, corrected));
   const vOut = (adc / ADC_MAX) * SUPPLY_VOLTAGE;
   const rFsr = Math.max(1e-6, (cal.rPulldownOhm * (SUPPLY_VOLTAGE - vOut)) / vOut);
   const fNewton = channel.a * Math.pow(rFsr, channel.b);
   return fNewton / cal.sensorAreaM2 / 1000;
+}
+
+/**
+ * Heuristic-only sanity check for the FSR curve's known steep non-linearity
+ * near ADC saturation (see docs/reports/008-*.md: illustrative — not
+ * measured — values showed a 33% adc_corrected increase, 3000->4000,
+ * producing a 15x kPa increase, 195->3067). Not a validity check on any
+ * single reading, and NOT a claim about what a "correct" ceiling is — real
+ * calibration curve validation across the full ADC range is blocked on PCB
+ * arrival (see docs/BACKLOG.md). This only flags a SUSPICIOUS JUMP between
+ * two consecutive readings of the SAME channel: a small increase in
+ * adc_corrected producing a disproportionately large jump in computed kPa
+ * — exactly the pattern already observed, cheap to detect, and worth
+ * surfacing rather than silently trusting a possibly-poor curve fit right
+ * at the alert threshold (PRESSURE_ALERT_KPA) where it matters most.
+ *
+ * Deliberately does not clamp or reject the value — only reports whether
+ * it looks suspicious. The caller decides what to do with that (currently:
+ * log a dev-only console warning, see WebBleDataSource.ts).
+ */
+export function isSuspiciousKpaJump(
+  prevAdcCorrected: number,
+  prevKpa: number,
+  nextAdcCorrected: number,
+  nextKpa: number,
+  adcRatioThreshold = 1.5,
+  kpaRatioThreshold = 5,
+): boolean {
+  if (prevAdcCorrected <= 0 || prevKpa <= 0) return false;
+  const adcRatio = nextAdcCorrected / prevAdcCorrected;
+  const kpaRatio = nextKpa / prevKpa;
+  return adcRatio < adcRatioThreshold && kpaRatio > kpaRatioThreshold;
 }
