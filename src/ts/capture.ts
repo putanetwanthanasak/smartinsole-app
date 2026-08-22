@@ -338,7 +338,7 @@ async function runCalibrationCountdown(): Promise<void> {
       if (!isUsable(s) || !s.pressure) continue;
       for (const zone of FSR_CHANNEL_ORDER) calibAccum.pressureSum[side][zone] += s.pressure[zone];
       calibAccum.pressureN[side]++;
-      if (s.temp && s.temp.quality !== 0) {
+      if (s.temp && s.temp.quality === 0) {   // quality 0 = normal reading (see docs/reports/011-*.md); was inverted
         if (s.temp.forefootC !== null) { calibAccum.foreSum[side] += s.temp.forefootC; calibAccum.foreN[side]++; }
         if (s.temp.heelC !== null) { calibAccum.heelSum[side] += s.temp.heelC; calibAccum.heelN[side]++; }
       }

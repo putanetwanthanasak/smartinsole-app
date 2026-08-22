@@ -216,7 +216,7 @@ export class MockDataSource implements IDataSource {
         side: this.side,
         forefootC: foreC + rand(-0.05, 0.05),
         heelC: heelBase + rand(-0.05, 0.05),
-        quality: 2,
+        quality: 0,   // 0 = normal, per contract (see docs/reports/011-*.md) — was 2, which masked the quality-check inversion in every consumer
       });
     }
   }
@@ -228,7 +228,7 @@ export class MockDataSource implements IDataSource {
       side: this.side,
       forefootC: base.forefoot + rand(-TEMP_JITTER_C, TEMP_JITTER_C),
       heelC: base.heel + rand(-TEMP_JITTER_C, TEMP_JITTER_C),
-      quality: 2,
+      quality: 0,   // 0 = normal, per contract (see docs/reports/011-*.md) — was 2, which masked the quality-check inversion in every consumer
     });
   }
 
