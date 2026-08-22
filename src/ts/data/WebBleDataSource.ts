@@ -102,6 +102,15 @@ export class WebBleDataSource implements IDataSource {
   private lastKnownDeviceMs: number | null = null;
   private resyncTimer: ReturnType<typeof setInterval> | null = null;
   private intentionalDisconnect = false;
+  /**
+   * TEMPORARY — docs/reports/014-*.md. Counts sensor packets since the current connection so
+   * the first few can be logged (dev-only, see handleSensorValue). Tests the "stale/buffered
+   * first notification" hypothesis: if the peripheral flushes a backlog on reconnect, the
+   * first packets after connect would show raw t0_ms jumping in big steps while arriving in a
+   * tight real-time burst, instead of one packet ~160ms apart with t0_ms advancing normally.
+   * Remove this field and its two call sites once report 014 has an answer.
+   */
+  private debugPacketsSinceConnect = 0;
 
   private lastSeq: number | null = null;
   private totalPackets = 0;
@@ -277,6 +286,7 @@ export class WebBleDataSource implements IDataSource {
   private resetPerConnectionState(): void {
     this.timeOffsetMs = null;
     this.lastKnownDeviceMs = null;
+    this.debugPacketsSinceConnect = 0;   // TEMPORARY — docs/reports/014-*.md
     this.lastSeq = null;
     this.totalPackets = 0;
     this.droppedPackets = 0;
@@ -339,7 +349,21 @@ export class WebBleDataSource implements IDataSource {
     }
     // Contract's own formula: offset = unix_time_at_send - most_recently_received_t_ms.
     if (this.lastKnownDeviceMs !== null) {
-      this.timeOffsetMs = sendUnixMs - this.lastKnownDeviceMs;
+      const newOffset = sendUnixMs - this.lastKnownDeviceMs;
+      // TEMPORARY instrumentation — docs/reports/014-*.md — remove once answered.
+      if (import.meta.env.DEV) {
+        console.log(
+          `[014-INSTRUMENT:${this.side}] SYNC_TIME resync: lastKnownDeviceMs=${this.lastKnownDeviceMs}, `
+          + `Date.now()=${sendUnixMs}, previousOffset=${this.timeOffsetMs}, newOffset=${newOffset}`,
+        );
+      }
+      this.timeOffsetMs = newOffset;
+    } else if (import.meta.env.DEV) {
+      // TEMPORARY instrumentation — docs/reports/014-*.md — remove once answered.
+      console.log(
+        `[014-INSTRUMENT:${this.side}] SYNC_TIME called but lastKnownDeviceMs is null — `
+        + 'no-op (expected for the connect-time call made before any packet has arrived).',
+      );
     }
   }
 
@@ -406,7 +430,32 @@ export class WebBleDataSource implements IDataSource {
     const calibration = this.calibration;
 
     this.lastKnownDeviceMs = parsed.header.t0Ms + (parsed.header.count - 1) * SENSOR_SAMPLE_SPACING_MS;
-    if (this.timeOffsetMs === null) this.timeOffsetMs = Date.now() - this.lastKnownDeviceMs;
+
+    // TEMPORARY instrumentation — docs/reports/014-*.md. Logs the first few packets' arrival
+    // cadence regardless of anchor status: a genuine live 50Hz stream shows raw t0_ms
+    // advancing by ~160ms per packet, arriving ~160ms apart in real time. A backlog flush
+    // would instead show several packets arriving in a tight real-time burst while t0_ms
+    // jumps by much more than 160ms between them — remove this whole block once answered.
+    if (import.meta.env.DEV && this.debugPacketsSinceConnect < 5) {
+      console.log(
+        `[014-INSTRUMENT:${this.side}] packet #${this.debugPacketsSinceConnect}: `
+        + `raw t0_ms=${parsed.header.t0Ms}, arrival Date.now()=${Date.now()}`,
+      );
+      this.debugPacketsSinceConnect++;
+    }
+
+    if (this.timeOffsetMs === null) {
+      const anchorNow = Date.now();
+      this.timeOffsetMs = anchorNow - this.lastKnownDeviceMs;
+      // TEMPORARY instrumentation — docs/reports/014-*.md — remove once answered.
+      if (import.meta.env.DEV) {
+        console.log(
+          `[014-INSTRUMENT:${this.side}] SENSOR anchor established: raw t0_ms=${parsed.header.t0Ms}, `
+          + `lastKnownDeviceMs=${this.lastKnownDeviceMs}, Date.now()=${anchorNow}, `
+          + `timeOffsetMs=${this.timeOffsetMs}`,
+        );
+      }
+    }
 
     // Unpack every sample in the packet individually — hard requirement #3.
     // Feeding one SensorSample per PACKET would silently produce a 6.25 Hz
@@ -439,7 +488,17 @@ export class WebBleDataSource implements IDataSource {
       return;
     }
     this.lastKnownDeviceMs = parsed.tMs;
-    if (this.timeOffsetMs === null) this.timeOffsetMs = Date.now() - parsed.tMs;
+    if (this.timeOffsetMs === null) {
+      const anchorNow = Date.now();
+      this.timeOffsetMs = anchorNow - parsed.tMs;
+      // TEMPORARY instrumentation — docs/reports/014-*.md — remove once answered.
+      if (import.meta.env.DEV) {
+        console.log(
+          `[014-INSTRUMENT:${this.side}] TEMP anchor established: raw t_ms=${parsed.tMs}, `
+          + `Date.now()=${anchorNow}, timeOffsetMs=${this.timeOffsetMs}`,
+        );
+      }
+    }
     const reading: TempReading = {
       tUnixMs: this.toUnixMs(parsed.tMs),
       side: this.side,
