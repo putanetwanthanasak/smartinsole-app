@@ -28,7 +28,7 @@ import {
   parseSensorPacket, parseTempPacket, parseStatusPacket, parseCalibrationJSON, adcToKpa,
   correctAdc, isSuspiciousKpaJump, accelRawToG, gyroRawToDps,
 } from './blePacketParser.js';
-import type { Calibration, CalibrationChannel, ParsedStatusPacket } from './blePacketParser.js';
+import type { Calibration, CalibrationChannel, ParsedStatusPacket, ParsedSensorPacket } from './blePacketParser.js';
 
 type Listener<T> = (v: T) => void;
 function emitter<T>() {
@@ -102,6 +102,29 @@ export class WebBleDataSource implements IDataSource {
   private lastKnownDeviceMs: number | null = null;
   private resyncTimer: ReturnType<typeof setInterval> | null = null;
   private intentionalDisconnect = false;
+  /**
+   * Raw header t0_ms of the last COMMITTED (converted-and-emitted) sensor packet — used only
+   * to detect a rollback (see handleSensorValue), which means the stream's timeline just
+   * (re)started and any anchor established before it is invalid. Distinct from
+   * lastKnownDeviceMs (which mixes sensor's last-sample time and temp's t_ms for the resync
+   * formula) — this is sensor-only and raw (not last-sample-adjusted), matching exactly what a
+   * rollback in the packet header itself looks like. See docs/reports/015-*.md.
+   */
+  private lastCommittedSensorT0Ms: number | null = null;
+  /** Same idea as lastCommittedSensorT0Ms, for the temperature stream's independent t_ms counter. */
+  private lastTempTMs: number | null = null;
+  /**
+   * Holds the FIRST sensor packet of a connection until the SECOND one arrives, so a stale
+   * buffered notification delivered on subscribe (from a previous, uncleanly-ended stream —
+   * see docs/reports/015-*.md) can be detected and dropped before it's ever converted into a
+   * SensorSample or allowed to anchor timeOffsetMs. Null once the first-packet decision has
+   * been made (either committed or dropped) — never touched again for the rest of the
+   * connection; a later rollback is handled by the ongoing regression check instead, which
+   * re-anchors but does not retroactively un-emit an already-committed packet (not possible
+   * without buffering every packet indefinitely, which 50Hz sustained streaming does not
+   * afford — see report 015 §2 for why this trade-off is scoped to connect-time only).
+   */
+  private pendingFirstSensorPacket: { parsed: ParsedSensorPacket; arrivedAt: number } | null = null;
 
   private lastSeq: number | null = null;
   private totalPackets = 0;
@@ -277,6 +300,9 @@ export class WebBleDataSource implements IDataSource {
   private resetPerConnectionState(): void {
     this.timeOffsetMs = null;
     this.lastKnownDeviceMs = null;
+    this.lastCommittedSensorT0Ms = null;
+    this.lastTempTMs = null;
+    this.pendingFirstSensorPacket = null;
     this.lastSeq = null;
     this.totalPackets = 0;
     this.droppedPackets = 0;
@@ -403,10 +429,89 @@ export class WebBleDataSource implements IDataSource {
       console.error(`[WebBleDataSource:${this.side}] sensor packet arrived before calibration was loaded — dropped`);
       return;
     }
-    const calibration = this.calibration;
+    // Captured NOW, at actual arrival — not later, when a buffered packet gets committed
+    // (see below). Anchoring must use the arrival time of the packet being anchored FROM, or
+    // a one-packet-buffered anchor would be ~160ms late relative to what it should be.
+    const arrivedAt = Date.now();
+
+    // ─── Stale-first-packet / mid-stream rollback handling — docs/reports/015-*.md ───
+    //
+    // The firmware resets its stream-relative t0 timeline on START_STREAM (confirmed against
+    // esp32-ble-simulator's main.cpp via report 014's own instrumentation log — contradicts
+    // docs/BLE-INTERFACE.md's "ms since device boot" description of this field; flagged for
+    // the contract owner, not resolved here). A notification already in flight from a
+    // PREVIOUS, uncleanly-ended stream can be delivered right after this connection
+    // subscribes, carrying a t0_ms from that old epoch — arriving before this connection's own
+    // START_STREAM has taken effect on the firmware side. Trusting whichever packet arrives
+    // first to anchor timeOffsetMs, with no check that it belongs to the CURRENT stream epoch,
+    // was the root cause of report 013/014's multi-minute L/R gap: the stale packet's own
+    // samples happen to self-anchor near "now" (see report 015 §1's timeOffsetMs math), but
+    // that same anchor then silently poisons every later, correctly-timelined packet until the
+    // next 5-minute resync.
+    //
+    // Fix, two parts:
+    //  1. The very first sensor packet of a connection is held (not committed/emitted) until
+    //     the second one arrives. If the second's t0_ms is LOWER than the held packet's — a
+    //     rollback, which a genuine sensor stream's t0 never does within one epoch — the held
+    //     packet is dropped outright (it doesn't belong to this session, and its pressure/IMU
+    //     values are themselves stale readings, not just mislabeled) and the second packet
+    //     becomes the true first packet, anchoring timeOffsetMs itself. Otherwise (no
+    //     rollback), the held packet really was the legitimate first packet and is committed
+    //     normally, in order, before the second.
+    //  2. Every packet after that first decision is still checked for a rollback relative to
+    //     the last COMMITTED packet's t0_ms, as an ongoing defense-in-depth measure — if one
+    //     is seen, timeOffsetMs is invalidated so the packet that revealed it re-anchors fresh.
+    //     This cannot retroactively un-emit whatever packet immediately preceded it (already
+    //     committed by the time the rollback is visible), which is why part 1's one-packet
+    //     buffer exists specifically for the connect-time case the evidence points at — see
+    //     report 015 §2 for why this trade-off is scoped to connect-time only, not every
+    //     packet indefinitely.
+    if (this.lastCommittedSensorT0Ms === null && this.pendingFirstSensorPacket === null) {
+      this.pendingFirstSensorPacket = { parsed, arrivedAt };
+      return;
+    }
+    if (this.pendingFirstSensorPacket !== null) {
+      const pending = this.pendingFirstSensorPacket;
+      this.pendingFirstSensorPacket = null;
+      if (parsed.header.t0Ms < pending.parsed.header.t0Ms) {
+        console.warn(
+          `[WebBleDataSource:${this.side}] dropped stale first sensor packet `
+          + `(seq=${pending.parsed.header.seq}, t0_ms=${pending.parsed.header.t0Ms}) — this `
+          + `connection's second packet's t0_ms=${parsed.header.t0Ms} rolled back, meaning the `
+          + 'held packet belonged to a previous stream epoch, not this connection. '
+          + 'See docs/reports/015-*.md.',
+        );
+      } else {
+        this.commitSensorPacket(pending.parsed, pending.arrivedAt);
+      }
+    }
+    if (this.lastCommittedSensorT0Ms !== null && parsed.header.t0Ms < this.lastCommittedSensorT0Ms) {
+      console.warn(
+        `[WebBleDataSource:${this.side}] sensor t0_ms rolled back mid-stream `
+        + `(seq=${parsed.header.seq}: ${this.lastCommittedSensorT0Ms} -> ${parsed.header.t0Ms}) — `
+        + 're-anchoring timeOffsetMs from this packet. See docs/reports/015-*.md.',
+      );
+      this.timeOffsetMs = null;
+    }
+    this.commitSensorPacket(parsed, arrivedAt);
+  }
+
+  /**
+   * Converts and emits one sensor packet's samples — the part of handleSensorValue that only
+   * ever runs for a packet already decided to belong to the current stream epoch (see the
+   * buffering/rollback handling above it). `arrivedAt` is that specific packet's own real
+   * arrival time (Date.now() captured in handleSensorValue when it was received), NOT
+   * necessarily "now" relative to when this method runs — the one-packet buffer means a held
+   * packet can be committed slightly after another packet's notification triggered the
+   * decision to commit it; using its own original arrival time keeps the anchor (when this is
+   * the packet establishing one) correctly aligned to when its data was actually captured.
+   */
+  private commitSensorPacket(parsed: ParsedSensorPacket, arrivedAt: number): void {
+    const calibration = this.calibration!;   // caller (handleSensorValue) already checked this
 
     this.lastKnownDeviceMs = parsed.header.t0Ms + (parsed.header.count - 1) * SENSOR_SAMPLE_SPACING_MS;
-    if (this.timeOffsetMs === null) this.timeOffsetMs = Date.now() - this.lastKnownDeviceMs;
+    this.lastCommittedSensorT0Ms = parsed.header.t0Ms;
+    if (this.timeOffsetMs === null) this.timeOffsetMs = arrivedAt - this.lastKnownDeviceMs;
 
     // Unpack every sample in the packet individually — hard requirement #3.
     // Feeding one SensorSample per PACKET would silently produce a 6.25 Hz
@@ -438,6 +543,21 @@ export class WebBleDataSource implements IDataSource {
       console.error(`[WebBleDataSource:${this.side}] temperature packet too short (${dv.byteLength} bytes)`);
       return;
     }
+    // Same rollback defense as the sensor path (docs/reports/015-*.md), applied to temp's own
+    // independent t_ms counter — no one-packet buffering here (unlike sensor): temp packets
+    // arrive far less often, there's no direct evidence this stream sees the same stale-
+    // notification-on-subscribe issue, and the sensor path's own re-anchor already corrects
+    // the SHARED timeOffsetMs field long before a low-rate temp packet would matter.
+    if (this.lastTempTMs !== null && parsed.tMs < this.lastTempTMs) {
+      console.warn(
+        `[WebBleDataSource:${this.side}] temp t_ms rolled back `
+        + `(seq=${parsed.seq}: ${this.lastTempTMs} -> ${parsed.tMs}) — re-anchoring `
+        + 'timeOffsetMs from this packet. See docs/reports/015-*.md.',
+      );
+      this.timeOffsetMs = null;
+    }
+    this.lastTempTMs = parsed.tMs;
+
     this.lastKnownDeviceMs = parsed.tMs;
     if (this.timeOffsetMs === null) this.timeOffsetMs = Date.now() - parsed.tMs;
     const reading: TempReading = {

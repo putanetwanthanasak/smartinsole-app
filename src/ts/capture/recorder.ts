@@ -118,7 +118,12 @@ export class Recorder {
     const row: SampleRow = {
       subjectId: this.session.subject.subjectId,
       sessionId: this.session.sessionId,
-      tUnixMs: s.tUnixMs,
+      // CSV column stays named tUnixMs (fixed schema — see capture/types.ts's CSV_COLUMNS
+      // comment), but is sourced from RawPressureSample.deviceTUnixMs, NOT .tUnixMs: the
+      // training pipeline's merge_asof needs true ~20ms intra-packet spacing, which only
+      // the device-timeline field carries — .tUnixMs is arrival time, near-duplicate within
+      // a packet (see docs/reports/012-*.md).
+      tUnixMs: s.deviceTUnixMs,
       side: toCsvSide(s.side),
       gaitLabel: this.currentLabel,
       isValid: !this.invalidActive,
