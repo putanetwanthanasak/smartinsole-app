@@ -43,6 +43,22 @@ function emitter<T>() {
 const EXPECTED_FOOT_SIDE: Record<FootSide, 0 | 1> = { left: 0, right: 1 };
 
 /**
+ * Dev-only sanity check (see checkSaturationCurve below for the same pattern): a resync
+ * recomputing timeOffsetMs by more than this many ms from its immediately previous value is
+ * not explainable by ordinary crystal drift, which is ppm-level (a bad 100ppm crystal drifts
+ * ~8.6s/day, nowhere near this over one RESYNC_INTERVAL_MS). A jump this size means something
+ * discontinuous happened — a device-side clock reset, a stuck/failing resync that finally
+ * recovered after tracking a wrong value for a while, or similar — worth surfacing immediately
+ * rather than only discoverable later by comparing exported timestamps by hand. Investigated,
+ * not confirmed to have an app-level cause: docs/reports/013-*.md traced the reconnect/offset
+ * lifecycle itself (connect(), resetPerConnectionState(), both the app-initiated and
+ * unexpected-disconnect paths) and found it re-anchors correctly in every case reproduced —
+ * this warning exists for whatever mechanism (real BLE-specific) that investigation could not
+ * rule out without hardware access.
+ */
+const OFFSET_JUMP_WARN_MS = 1000;
+
+/**
  * Thrown when a connected device's own `foot_side` doesn't match the slot
  * it was connected into (hard requirement: "detect the mismatch and say so
  * rather than accepting it — silently mislabelled sides would corrupt
@@ -365,7 +381,18 @@ export class WebBleDataSource implements IDataSource {
     }
     // Contract's own formula: offset = unix_time_at_send - most_recently_received_t_ms.
     if (this.lastKnownDeviceMs !== null) {
-      this.timeOffsetMs = sendUnixMs - this.lastKnownDeviceMs;
+      const newOffset = sendUnixMs - this.lastKnownDeviceMs;
+      if (import.meta.env.DEV && this.timeOffsetMs !== null) {
+        const jump = Math.abs(newOffset - this.timeOffsetMs);
+        if (jump > OFFSET_JUMP_WARN_MS) {
+          console.warn(
+            `[WebBleDataSource:${this.side}] clock offset jumped ${jump}ms on resync `
+            + `(${this.timeOffsetMs} -> ${newOffset}) — not explainable by normal clock drift. `
+            + 'See docs/reports/013-*.md.',
+          );
+        }
+      }
+      this.timeOffsetMs = newOffset;
     }
   }
 
