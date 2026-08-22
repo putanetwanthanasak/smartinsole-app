@@ -230,3 +230,78 @@ verification pass. Report 014's log lines are unchanged by this fix except
 where noted (the anchor line now logs whichever packet actually
 establishes the offset, which may be the second packet rather than the
 first if the first was dropped).
+
+## 6. Closing addendum — real hardware confirmed, one log question resolved, instrumentation removed
+
+**Real hardware result:** L/R gap dropped from 644,578 ms to 186 ms
+(start) / 26 ms (end), intra-packet 20 ms spacing intact on both sides,
+50.0 Hz both sides. The fix works end-to-end against real hardware, not
+just the fake-GATT harness.
+
+**The log discrepancy — confirmed cosmetic, and here's exactly why.**
+Right side's console showed `dropped stale first sensor packet` followed
+immediately by `packet #2`, with no `SENSOR anchor established` line for
+right anywhere. Reproduced the exact mechanism rather than assuming it:
+fired a stale sensor packet, then a **temperature** packet, then the real
+(rollback) sensor packet, on the same fake-GATT harness used throughout
+this investigation.
+
+```
+[014-INSTRUMENT:right] packet #0: raw t0_ms=1163077, arrival Date.now()=1787421307830
+[014-INSTRUMENT:right] TEMP anchor established: raw t_ms=500, Date.now()=1787421307830, timeOffsetMs=1787421307330
+[014-INSTRUMENT:right] packet #1: raw t0_ms=160, arrival Date.now()=1787421307830
+[WebBleDataSource:right] dropped stale first sensor packet (seq=1, t0_ms=1163077) — ...
+
+last emitted sample tUnixMs=1787421307630, vs now: 201ms (expect small)
+total samples emitted: 8 (packet #0 dropped, temp packet doesn't emit a SensorSample)
+```
+
+This reproduces the reported pattern exactly: a **temperature** packet
+(on its own, independent, lower-rate characteristic — arrival timing
+relative to sensor packets isn't synchronized) happened to arrive in the
+narrow window between the stale packet's drop and the real sensor packet's
+commit, and `handleTempValue`'s own `if (timeOffsetMs === null)` claimed
+the anchor first. `commitSensorPacket()` then correctly finds
+`timeOffsetMs` already set and skips its *own* anchor-log block — not a
+bug, exactly what that code is supposed to do, since re-establishing an
+already-correct offset would be wrong. The log line that fires is
+`TEMP anchor established` instead of `SENSOR anchor established` — a
+different, equally-valid message the user's search for the specific
+sensor-side phrase wouldn't match. The emitted sample timestamps are
+unaffected either way, confirmed above (201 ms from "now", not stale) —
+this is a log *label* choice (which packet type happened to win the race
+to establish one shared value), not a gap in when or whether the anchor
+gets set.
+
+**Is there a code path where the anchor could be skipped while never
+actually being set — the real failure mode worth ruling out, not just
+the label question?** No. `commitSensorPacket()`'s `if (timeOffsetMs ===
+null)` and `handleTempValue()`'s equivalent are the only two places
+`timeOffsetMs` is ever assigned from a fresh computation (`syncTime()`
+only *re*computes an already-established one). Every sensor packet always
+reaches one of these two assignment sites or finds the value already set
+by the other — there's no branch that returns or falls through without
+either setting it or confirming it's already set. And even in a
+hypothetical case where neither ever ran, `toUnixMs()`'s own existing
+fallback (`if (this.timeOffsetMs === null) return Date.now();`, predating
+this pass) means samples would degrade to individually-arrival-timed
+values rather than silently produce nonsense — not the same as "stale,"
+and not a new risk introduced here. So: confirmed cosmetic, and confirmed
+there's no adjacent "anchor silently never set" failure mode hiding behind
+this one.
+
+**Report 014's temporary instrumentation removed**, per its own §3 plan
+and this pass's confirmation: all `[014-INSTRUMENT:...]` log lines and the
+`debugPacketsSinceConnect` field are gone from `WebBleDataSource.ts`. Kept,
+untouched: the permanent fix's own `[WebBleDataSource:...]` warnings
+(`dropped stale first sensor packet`, `sensor t0_ms rolled back
+mid-stream`, `temp t_ms rolled back`) — those aren't diagnostics for
+finding this bug, they're the fix's own reporting of what it did.
+Re-verified all four of §4's scenarios (single-side stale packet, two-side
+distinct stale values, no-stale-packet sanity, mid-stream rollback) against
+the post-removal code — identical results, no regression from stripping
+the logging. `npm run build` clean.
+
+**Merge readiness:** this branch (`work/ble-timeoffset-instrumentation`,
+carrying reports 014 and 015 together) is ready for its PR now that
+instrumentation is stripped and the log question is answered.

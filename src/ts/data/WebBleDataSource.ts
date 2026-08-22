@@ -103,15 +103,6 @@ export class WebBleDataSource implements IDataSource {
   private resyncTimer: ReturnType<typeof setInterval> | null = null;
   private intentionalDisconnect = false;
   /**
-   * TEMPORARY — docs/reports/014-*.md. Counts sensor packets since the current connection so
-   * the first few can be logged (dev-only, see handleSensorValue). This is how report 015's
-   * fix was found: the pattern this was built to catch (raw t0_ms jumping in big steps while
-   * arriving in a real-time burst) is exactly what showed up in the console. Kept through
-   * report 015's real-hardware fix verification — remove this field and its call sites once
-   * that's confirmed.
-   */
-  private debugPacketsSinceConnect = 0;
-  /**
    * Raw header t0_ms of the last COMMITTED (converted-and-emitted) sensor packet — used only
    * to detect a rollback (see handleSensorValue), which means the stream's timeline just
    * (re)started and any anchor established before it is invalid. Distinct from
@@ -309,7 +300,6 @@ export class WebBleDataSource implements IDataSource {
   private resetPerConnectionState(): void {
     this.timeOffsetMs = null;
     this.lastKnownDeviceMs = null;
-    this.debugPacketsSinceConnect = 0;   // TEMPORARY — docs/reports/014-*.md
     this.lastCommittedSensorT0Ms = null;
     this.lastTempTMs = null;
     this.pendingFirstSensorPacket = null;
@@ -375,21 +365,7 @@ export class WebBleDataSource implements IDataSource {
     }
     // Contract's own formula: offset = unix_time_at_send - most_recently_received_t_ms.
     if (this.lastKnownDeviceMs !== null) {
-      const newOffset = sendUnixMs - this.lastKnownDeviceMs;
-      // TEMPORARY instrumentation — docs/reports/014-*.md — remove once answered.
-      if (import.meta.env.DEV) {
-        console.log(
-          `[014-INSTRUMENT:${this.side}] SYNC_TIME resync: lastKnownDeviceMs=${this.lastKnownDeviceMs}, `
-          + `Date.now()=${sendUnixMs}, previousOffset=${this.timeOffsetMs}, newOffset=${newOffset}`,
-        );
-      }
-      this.timeOffsetMs = newOffset;
-    } else if (import.meta.env.DEV) {
-      // TEMPORARY instrumentation — docs/reports/014-*.md — remove once answered.
-      console.log(
-        `[014-INSTRUMENT:${this.side}] SYNC_TIME called but lastKnownDeviceMs is null — `
-        + 'no-op (expected for the connect-time call made before any packet has arrived).',
-      );
+      this.timeOffsetMs = sendUnixMs - this.lastKnownDeviceMs;
     }
   }
 
@@ -457,21 +433,6 @@ export class WebBleDataSource implements IDataSource {
     // (see below). Anchoring must use the arrival time of the packet being anchored FROM, or
     // a one-packet-buffered anchor would be ~160ms late relative to what it should be.
     const arrivedAt = Date.now();
-
-    // TEMPORARY instrumentation — docs/reports/014-*.md, kept through report 015's fix
-    // verification (still useful to watch during the real-hardware re-test — remove once
-    // that's confirmed, per report 015 §4). Logs the first few packets' arrival cadence
-    // regardless of commit/drop status: a genuine live 50Hz stream shows raw t0_ms advancing
-    // by ~160ms per packet, arriving ~160ms apart in real time. A backlog flush instead shows
-    // several packets arriving in a tight real-time burst while t0_ms jumps by much more than
-    // 160ms between them — this is exactly the pattern report 014 caught (docs/reports/015-*.md §1).
-    if (import.meta.env.DEV && this.debugPacketsSinceConnect < 5) {
-      console.log(
-        `[014-INSTRUMENT:${this.side}] packet #${this.debugPacketsSinceConnect}: `
-        + `raw t0_ms=${parsed.header.t0Ms}, arrival Date.now()=${arrivedAt}`,
-      );
-      this.debugPacketsSinceConnect++;
-    }
 
     // ─── Stale-first-packet / mid-stream rollback handling — docs/reports/015-*.md ───
     //
@@ -550,18 +511,7 @@ export class WebBleDataSource implements IDataSource {
 
     this.lastKnownDeviceMs = parsed.header.t0Ms + (parsed.header.count - 1) * SENSOR_SAMPLE_SPACING_MS;
     this.lastCommittedSensorT0Ms = parsed.header.t0Ms;
-    if (this.timeOffsetMs === null) {
-      this.timeOffsetMs = arrivedAt - this.lastKnownDeviceMs;
-      // TEMPORARY instrumentation — docs/reports/014-*.md, kept through report 015's fix
-      // verification — remove once that's confirmed against real hardware.
-      if (import.meta.env.DEV) {
-        console.log(
-          `[014-INSTRUMENT:${this.side}] SENSOR anchor established: raw t0_ms=${parsed.header.t0Ms}, `
-          + `lastKnownDeviceMs=${this.lastKnownDeviceMs}, Date.now()=${arrivedAt}, `
-          + `timeOffsetMs=${this.timeOffsetMs}`,
-        );
-      }
-    }
+    if (this.timeOffsetMs === null) this.timeOffsetMs = arrivedAt - this.lastKnownDeviceMs;
 
     // Unpack every sample in the packet individually — hard requirement #3.
     // Feeding one SensorSample per PACKET would silently produce a 6.25 Hz
@@ -609,18 +559,7 @@ export class WebBleDataSource implements IDataSource {
     this.lastTempTMs = parsed.tMs;
 
     this.lastKnownDeviceMs = parsed.tMs;
-    if (this.timeOffsetMs === null) {
-      const anchorNow = Date.now();
-      this.timeOffsetMs = anchorNow - parsed.tMs;
-      // TEMPORARY instrumentation — docs/reports/014-*.md, kept through report 015's fix
-      // verification — remove once that's confirmed against real hardware.
-      if (import.meta.env.DEV) {
-        console.log(
-          `[014-INSTRUMENT:${this.side}] TEMP anchor established: raw t_ms=${parsed.tMs}, `
-          + `Date.now()=${anchorNow}, timeOffsetMs=${this.timeOffsetMs}`,
-        );
-      }
-    }
+    if (this.timeOffsetMs === null) this.timeOffsetMs = Date.now() - parsed.tMs;
     const reading: TempReading = {
       tUnixMs: this.toUnixMs(parsed.tMs),
       side: this.side,
