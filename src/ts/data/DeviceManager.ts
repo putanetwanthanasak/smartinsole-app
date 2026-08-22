@@ -92,7 +92,7 @@ export class DeviceManager {
         // Unthrottled, fires before this handler returns - see onRawSample.
         if (b.pressure && this.rawListeners.size > 0) {
           const raw: RawPressureSample = {
-            side: source.side, tUnixMs: arrivedAt, pressure: b.pressure,
+            side: source.side, tUnixMs: arrivedAt, deviceTUnixMs: s.tUnixMs, pressure: b.pressure,
             accelG: s.accelG, gyroDps: s.gyroDps,
           };
           for (const cb of this.rawListeners) cb(raw);

@@ -109,8 +109,24 @@ export interface CombinedSnapshot {
  */
 export interface RawPressureSample {
   side: FootSide;
-  /** Arrival time (Date.now() when DeviceManager received it), matching every other timestamp in this file — never the device's own clock. */
+  /**
+   * Arrival time (Date.now() when DeviceManager received this sample), matching every
+   * other timestamp in this file — never the device's own clock. Use for
+   * staleness/freshness checks (this is what gait.ts's PAI windowing keys off of).
+   * NOT evenly spaced within a packet — WebBleDataSource emits all 8 samples of one BLE
+   * notification synchronously, so consecutive samples in the same packet can carry
+   * near-identical values here. See deviceTUnixMs for the field that IS evenly spaced.
+   */
   tUnixMs: number;
+  /**
+   * Device-timeline time: t0_ms + i×20 from the packet header, corrected for this
+   * connection's clock offset (WebBleDataSource.handleSensorValue's `deviceMs`, carried
+   * through unchanged as SensorSample.tUnixMs). Evenly spaced within a packet, unlike
+   * tUnixMs above. Use for anything needing true intra-packet sample spacing — currently
+   * only CSV export / cross-stream (L/R) alignment (capture/recorder.ts). See
+   * docs/reports/012-*.md for why this field exists separately from tUnixMs.
+   */
+  deviceTUnixMs: number;
   pressure: FootPressure;
   accelG: [number, number, number];
   gyroDps: [number, number, number];
