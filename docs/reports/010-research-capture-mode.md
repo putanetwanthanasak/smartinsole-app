@@ -259,3 +259,33 @@ everything in the spec mapped cleanly onto the existing architecture except
 §2's `RawPressureSample` gap (§2 above) — flagged, not asked about, because
 the fix was unambiguous once the CSV schema was taken as fixed (per your
 own instruction not to touch that).
+
+## 11. Addendum (2026-08-22): §1 and §9 omitted the per-pattern notes fields
+
+Caught during a follow-up review, not by re-reading this report myself: the
+spec's two per-take metadata requirements —
+
+- **`antalgicAffectedSide`** — which side was instructed to "limp" for the
+  `antalgic` pattern, alternated per subject per protocol specifically to
+  stop the model learning "limp = always left."
+- **`rotatedFootNote`** — in-toeing vs out-toeing for `rotated_foot`, a note
+  only, since both share one class label.
+
+— were implemented in this same pass but never listed. They exist as
+`PatternNotes` in `capture/types.ts` (`antalgicAffectedSide: FootSide |
+null`, `rotatedFootNote: RotationNote | null`), are surfaced as a required
+segmented control in `capture.ts`'s `renderExtraField()` whenever the
+`antalgic` or `rotated_foot` pattern is selected, gate the Start button via
+`extraFieldSatisfied()` until set, persist on `SessionRecord.notes` across
+reload, and are written into the exported metadata JSON by
+`buildSessionMetadataJson()` in `capture/csv.ts`. Session-level (set once per
+subject), not per-row — matching how the protocol actually uses them.
+
+§1's file list should have named `PatternNotes`/`RotationNote` alongside the
+other `capture/types.ts` exports, and §9's checklist should have had a line
+verifying the Start-button gate for both patterns. Neither omission reflects
+a code gap — both fields were real and working at the time this report was
+first written — only a reporting gap: this report is supposed to be the
+thing a later reader trusts instead of re-reading the diff, and here it
+would have sent them looking for something that already existed. Recorded
+so the next reader doesn't repeat the same miss.
