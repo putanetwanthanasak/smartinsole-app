@@ -42,7 +42,7 @@ export interface TempReading {
   side: FootSide;
   forefootC: number | null;
   heelC: number | null;
-  /** 0 = unusable, 1 = degraded, 2 = good. */
+  /** 0 = ปกติ (normal), 1 = สัมผัสไม่ดี (poor contact), 2 = เซนเซอร์ผิดพลาด (sensor error). Per Data Contract §temperature packet / BLE-INTERFACE.md — 0 is GOOD, not unusable. See docs/reports/011-*.md: this comment was previously inverted and every consumer trusted it. */
   quality: 0 | 1 | 2;
 }
 

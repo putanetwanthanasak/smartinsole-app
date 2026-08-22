@@ -148,7 +148,7 @@ export class DeviceManager {
   /** Bucketed per side; the latest reading inside a bucket replaces the earlier
    *  one, so the newest point tracks live while older buckets stay fixed. */
   private pushHistory(b: SideBox, t: TempReading): void {
-    if (t.quality === 0) return;
+    if (t.quality !== 0) return;   // quality 0 = normal reading (see docs/reports/011-*.md); was inverted — kept bad readings, discarded good ones
     const bucket = Math.floor(t.tUnixMs / TEMP_BUCKET_MS) * TEMP_BUCKET_MS;
     const point: TempHistoryPoint = {
       tUnixMs: bucket, forefootC: t.forefootC, heelC: t.heelC,
@@ -279,13 +279,17 @@ export class DeviceManager {
   }
 }
 
-/** ΔT only when BOTH sides are usable and both actually report a forefoot value. */
+/** ΔT only when BOTH sides are usable, both actually report a forefoot value, AND both
+ *  readings are quality 0 (normal) — a poor-contact or sensor-fault reading on either side
+ *  must not feed a clinical bilateral figure. quality 0 = normal (see docs/reports/011-*.md);
+ *  this check was previously inverted, computing ΔT from bad readings and nulling it on good
+ *  ones — the exact opposite of "no fabricated bilateral readings." */
 function deltaT(left: SideSnapshot, right: SideSnapshot): number | null {
   if (!isUsable(left) || !isUsable(right)) return null;
   const l = left.temp?.forefootC;
   const r = right.temp?.forefootC;
   if (l === null || l === undefined || r === null || r === undefined) return null;
-  if (left.temp!.quality === 0 || right.temp!.quality === 0) return null;
+  if (left.temp!.quality !== 0 || right.temp!.quality !== 0) return null;
   return Math.abs(l - r);
 }
 
