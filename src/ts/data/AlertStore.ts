@@ -8,11 +8,13 @@
 import { MOCK_DATA } from '../mockData.js';
 import {
   PRESSURE_WATCH_KPA, PRESSURE_ALERT_KPA, TEMP_DELTA_THRESHOLD, ZONES,
+  MIN_CONFIDENCE, GAIT_ADVISORY,
 } from '../constants.js';
-import type { AlertEntry, FootSide } from '../types.js';
+import type { AlertEntry, FootSide, FootPressure } from '../types.js';
 import { deviceManager } from './DeviceManager.js';
 import { isUsable } from './types.js';
 import type { CombinedSnapshot, Unsubscribe } from './types.js';
+import { getGaitPrediction } from './gaitPrediction.js';
 
 /** Data Contract: the same code may not re-fire inside this window. */
 const REPEAT_SUPPRESSION_MS = 30 * 60 * 1000;
@@ -102,6 +104,23 @@ class AlertStore {
     for (const cb of [...this.listeners]) cb(snapshot);
   }
 
+  /**
+   * Data Contract §8.3.1 — the gait-pattern advisory layer. NOT an alert
+   * rule: only appends explanatory text to a message from a rule that
+   * already fired, at the zone that triggered it. Never raises an alert on
+   * its own, never touches severity/statusLevel. Returns `message`
+   * unchanged if no prediction is available, confidence is below
+   * MIN_CONFIDENCE, or the predicted pattern isn't relevant to `zoneId`.
+   */
+  private withGaitAdvisory(message: string, zoneId: keyof FootPressure): string {
+    const pred = getGaitPrediction();
+    if (!pred || pred.confidence < MIN_CONFIDENCE) return message;
+    const advisory = GAIT_ADVISORY[pred.pattern];
+    if (!advisory) return message;
+    if (advisory.zones !== 'any' && !advisory.zones.includes(zoneId)) return message;
+    return `${message} ${advisory.th}`;
+  }
+
   private raise(code: string, entry: Omit<AlertEntry, 'id' | 'acknowledged'>): void {
     const now = Date.now();
     const last = this.lastFiredAt.get(code);
@@ -132,12 +151,18 @@ class AlertStore {
       if (worst >= PRESSURE_ALERT_KPA) {
         this.raise(`pressure.alert.${side}`, {
           tUnixMs: Date.now(), type: 'pressure', severity: 'danger',
-          message: `แรงกดเกินเกณฑ์อันตรายที่${worstZone.labelTH}เท้า${SIDE_TH[side]} ${Math.round(worst)} kPa — ควรพักเท้าทันทีและตรวจรองเท้า`,
+          message: this.withGaitAdvisory(
+            `แรงกดเกินเกณฑ์อันตรายที่${worstZone.labelTH}เท้า${SIDE_TH[side]} ${Math.round(worst)} kPa — ควรพักเท้าทันทีและตรวจรองเท้า`,
+            worstZone.id,
+          ),
         });
       } else if (worst >= PRESSURE_WATCH_KPA) {
         this.raise(`pressure.watch.${side}`, {
           tUnixMs: Date.now(), type: 'pressure', severity: 'warning',
-          message: `แรงกดเริ่มสูงที่${worstZone.labelTH}เท้า${SIDE_TH[side]} ${Math.round(worst)} kPa — ระวังอย่ายืนนานในท่าเดียว`,
+          message: this.withGaitAdvisory(
+            `แรงกดเริ่มสูงที่${worstZone.labelTH}เท้า${SIDE_TH[side]} ${Math.round(worst)} kPa — ระวังอย่ายืนนานในท่าเดียว`,
+            worstZone.id,
+          ),
         });
       }
     }

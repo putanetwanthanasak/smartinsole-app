@@ -23,9 +23,30 @@ import '@fontsource/jetbrains-mono/600.css';
 import { startRouter } from './router.js';
 import { deviceManager, usingWebBle, bleSources } from './data/DeviceManager.js';
 import { mountDevBlePanel } from './devBlePanel.js';
+import { setMockGaitPrediction } from './data/gaitPrediction.js';
+import { alertStore } from './data/AlertStore.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   startRouter();
+
+  // Dev-only console hooks. Same status as DeviceManager.ts's `window.__insole`
+  // (which this deliberately doesn't touch — see this pass's brief):
+  //   window.mockGait.set('heel_walking', 0.75) / .clear()
+  //     — drives the Data Contract §8.3.1 gait-pattern advisory layer
+  //       (AlertStore). No real Model A integration exists yet, so this is
+  //       the only way to exercise it before that lands.
+  //   window.__alertStore
+  //     — the AlertStore singleton, so a rule's 30-min repeat-suppression
+  //       can be cleared for retesting: __alertStore.lastFiredAt.clear()
+  //       (TS `private` is compile-time only; the field is a plain Map at
+  //       runtime, reachable from an untyped console).
+  if (import.meta.env.DEV) {
+    (window as unknown as { mockGait: unknown }).mockGait = {
+      set: setMockGaitPrediction,
+      clear: () => setMockGaitPrediction(null),
+    };
+    (window as unknown as { __alertStore: unknown }).__alertStore = alertStore;
+  }
 
   if (usingWebBle && bleSources) {
     // Web Bluetooth's requestDevice() requires a real user gesture per

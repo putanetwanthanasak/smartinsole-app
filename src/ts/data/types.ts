@@ -10,8 +10,10 @@
 // Re-checked field-for-field against Data Contract v1.1 §6 (docs/DATA-CONTRACT.md)
 // once the placeholder was filled in — SensorSample, TempReading, and
 // DeviceStatus below match the contract's TypeScript block exactly, no changes
-// needed. The contract also specifies a RiskAssessment/RiskZone/GaitClass shape
-// (§6) that does not exist in this codebase yet — see docs/BACKLOG.md item 8.
+// needed. The contract also specifies a RiskAssessment/RiskZone shape (§6) that
+// does not exist in this codebase yet — see docs/BACKLOG.md item 8. `GaitClass`
+// below is the one piece of that shape needed so far, added for the §8.3.1
+// gait-pattern advisory layer (docs/reports/016-*.md) — see gaitPrediction.ts.
 
 import type { FootSide, FootPressure } from '../types.js';
 
@@ -52,6 +54,26 @@ export interface DeviceStatus {
   connected: boolean;
   firmware: string;
   errorCode: number;
+}
+
+/**
+ * Model A's 5-class output (Data Contract §6/§7.2). Index order per the
+ * contract's `argmax` table: 0 normal, 1 antalgic, 2 toe_walking,
+ * 3 heel_walking, 4 rotated_foot — not restated here since nothing in this
+ * codebase consumes the numeric index, only the string label.
+ */
+export type GaitClass = 'normal' | 'antalgic' | 'toe_walking' | 'heel_walking' | 'rotated_foot';
+
+/**
+ * One Model A inference result. Not per-side — Model A's input is both feet's
+ * channels combined (§7.1), so a prediction describes the gait cycle as a
+ * whole, not one insole.
+ */
+export interface GaitPrediction {
+  tUnixMs: number;
+  pattern: GaitClass;
+  /** 0.0-1.0. Below Data Contract §8.3.1's MIN_CONFIDENCE (constants.ts), treat as unusable. */
+  confidence: number;
 }
 
 // ─── Snapshot vocabulary ──────────────────────────────────────
