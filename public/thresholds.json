@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "pressure": { "watchKpa": 75, "alertKpa": 200, "ptiKpaS": 80 },
+  "temperature": { "deltaC": 2.2, "consecutiveReadings": 2 },
+  "asymmetry": { "peakPct": 15, "ptiPct": 20, "concentrationPct": 40 },
+  "model": { "minConfidence": 0.60 },
+  "motion": { "walkingAccelG": 0.15, "walkingWindowMs": 800 }
+}

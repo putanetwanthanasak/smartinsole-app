@@ -25,9 +25,17 @@ import { deviceManager, usingWebBle, bleSources } from './data/DeviceManager.js'
 import { mountDevBlePanel } from './devBlePanel.js';
 import { setMockGaitPrediction } from './data/gaitPrediction.js';
 import { alertStore } from './data/AlertStore.js';
+import { loadThresholds } from './data/thresholds.js';
+import { setPatientSensitivity } from './constants.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   startRouter();
+
+  // Fire-and-forget: constants.ts's DEFAULT_THRESHOLDS already makes every
+  // threshold usable synchronously (see constants.ts), so nothing here
+  // blocks boot on this fetch. loadThresholds() never throws — it logs and
+  // falls back to defaults itself on any failure (see data/thresholds.ts).
+  void loadThresholds();
 
   // Dev-only console hooks. Same status as DeviceManager.ts's `window.__insole`
   // (which this deliberately doesn't touch — see this pass's brief):
@@ -40,12 +48,20 @@ document.addEventListener('DOMContentLoaded', () => {
   //       can be cleared for retesting: __alertStore.lastFiredAt.clear()
   //       (TS `private` is compile-time only; the field is a plain Map at
   //       runtime, reachable from an untyped console).
+  //   window.__thresholds.load(url) / .setPatientSensitivity(pct)
+  //     — re-run the thresholds.json loader against an arbitrary URL (for
+  //       testing the malformed/missing-file path), or exercise the
+  //       not-yet-UI'd patient sensitivity mutator directly.
   if (import.meta.env.DEV) {
     (window as unknown as { mockGait: unknown }).mockGait = {
       set: setMockGaitPrediction,
       clear: () => setMockGaitPrediction(null),
     };
     (window as unknown as { __alertStore: unknown }).__alertStore = alertStore;
+    (window as unknown as { __thresholds: unknown }).__thresholds = {
+      load: loadThresholds,
+      setPatientSensitivity,
+    };
   }
 
   if (usingWebBle && bleSources) {
