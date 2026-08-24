@@ -1,6 +1,7 @@
 // constants.ts — Thresholds, zone definitions, status meta, preset labels
 
-import type { ZoneInfo, RiskStatus, StatusMeta, PresetName } from './types.js';
+import type { ZoneInfo, RiskStatus, StatusMeta, PresetName, FootPressure } from './types.js';
+import type { GaitClass } from './data/types.js';
 
 // ─── Clinical thresholds ────────────────────────────────────
 // Plantar pressure is in kPa. The Data Contract fixes two tiers:
@@ -90,6 +91,52 @@ export const PRESSURE_RAMP_KPA = {
 // one — it tracks the colour ramp (the blue and green bands), so it moves if the
 // ramp's colours change and has no meaning in the Data Contract.
 export const PRESSURE_LABEL_INVERT_MAX_KPA = PRESSURE_RAMP_KPA.mid;
+
+// Model A's minimum acceptable confidence, per Data Contract §7.5 / §8.3.1
+// (`thresholds.json`'s `model.minConfidence`). Used only by the §8.3.1
+// gait-pattern advisory layer today (AlertStore) — nothing in this codebase
+// acts on Model A's argmax class directly (see docs/BACKLOG.md items 8/9).
+export const MIN_CONFIDENCE = 0.60;
+
+// ─── Gait-pattern advisory text (Data Contract §8.3.1) ───────
+// NOT an alert rule — AlertStore only appends this sentence to an alert that
+// already fired from an existing pressure rule (PRESSURE_WATCH/PRESSURE_PEAK
+// today; PRESSURE_PTI/LOAD_CONCENTRATION once those exist, see
+// docs/BACKLOG.md item 9), when Model A's most recent prediction at that
+// zone meets MIN_CONFIDENCE. It never fires an alert on its own and never
+// changes statusLevel/severity — see docs/DATA-CONTRACT.md §8.3.1.
+//
+// `zones: 'any'` means the sentence is appended regardless of which zone
+// triggered (matches the contract's treatment of `antalgic`, whose evidence
+// doesn't support a specific site). `rotated_foot` is ALSO treated as
+// `zones: 'any'` here, with a direction-neutral sentence that departs from
+// the contract's table: the contract's in-toeing/out-toeing wording needs a
+// direction Model A's output alone doesn't carry (that's only captured as
+// research-capture session metadata, PatternNotes.rotatedFootNote — not
+// available to live AlertStore). Confirmed with the user rather than
+// guessing a direction from pressure asymmetry, which would violate this
+// app's no-fabricated-bilateral-readings rule the same way inferring an
+// unmeasured value would. Revisit if Model A ever adds direction as a
+// separate output.
+export const GAIT_ADVISORY: Record<GaitClass, { zones: (keyof FootPressure)[] | 'any'; th: string } | null> = {
+  normal: null,
+  heel_walking: {
+    zones: ['heel'],
+    th: 'ตรวจพบรูปแบบเดินลงส้น ซึ่งอาจเพิ่มแรงกดบริเวณส้นเท้า',
+  },
+  toe_walking: {
+    zones: ['hallux', 'meta1'],
+    th: 'ตรวจพบรูปแบบเดินเขย่งปลายเท้า ซึ่งอาจเพิ่มแรงกดบริเวณปลายเท้า',
+  },
+  rotated_foot: {
+    zones: 'any',
+    th: 'ตรวจพบรูปแบบเดินบิดเท้า ทิศทางอาจมีผลต่อจุดรับน้ำหนัก — ยังไม่มีข้อมูลยืนยันตำแหน่งแน่ชัด',
+  },
+  antalgic: {
+    zones: 'any',
+    th: 'ตรวจพบรูปแบบเดินไม่สมมาตร ควรตรวจสอบแรงกดทั้งสองข้างเทียบกัน',
+  },
+};
 
 // ─── FSR channel order ──────────────────────────────────────
 // The BLE payload carries pressure as an indexed fsrKpa[6]; the UI stores a
