@@ -3,7 +3,86 @@
 import type { ZoneInfo, RiskStatus, StatusMeta, PresetName, FootPressure } from './types.js';
 import type { GaitClass } from './data/types.js';
 
-// ─── Clinical thresholds ────────────────────────────────────
+// ─── Runtime-loadable thresholds (Data Contract §8.3) ────────
+//
+// Every value in this section was a hardcoded TS constant until this pass
+// (docs/reports/017-*.md) — §8.3 requires them to live in a runtime-loadable
+// `thresholds.json` instead, specifically because they will need retuning
+// after real-hardware testing, without a rebuild for each adjustment
+// (docs/BACKLOG.md item 11).
+//
+// How this works, and why NOT ONE call site outside this file and
+// data/thresholds.ts needed to change for this pass (grepped exhaustively —
+// see the report): `DEFAULT_THRESHOLDS` below is the compiled-in fallback,
+// always valid and present with zero network dependency, so the app is
+// immediately usable even fully offline. Every threshold constant this file
+// exports is declared `let`, not `const`, initialized from
+// `DEFAULT_THRESHOLDS` at module load. `data/thresholds.ts` (invoked once at
+// boot from main.ts, fire-and-forget) fetches `public/thresholds.json` — the
+// same default values, but as an independently editable static file an
+// ops/clinician can replace in a deployed build without a JS rebuild —
+// validates it, and calls `applyThresholds()` below to overwrite these `let`
+// bindings in place. ES modules give `let` exports LIVE bindings: every
+// import of e.g. `PRESSURE_WATCH_KPA` anywhere in the app always sees the
+// current value, because none of the existing consumers (heatmap.ts,
+// gait.ts, pressureColor.ts, temperature.ts, home.ts, MockDataSource.ts,
+// AlertStore.ts) copy a threshold into their own module-top-level variable —
+// they all read the imported name at call time, inside a function invoked
+// after boot. This is exactly what CLAUDE.md convention #6 ("thresholds live
+// in constants.ts") already set up: one indirection point for the whole app,
+// which is what makes swapping its backing store possible without touching
+// a single screen.
+//
+// Two fields are the hard clinical floor and must never move except through
+// `applyThresholds()` — see the comments at `PRESSURE_ALERT_KPA` and
+// `TEMP_DELTA_THRESHOLD` below, and `setPatientSensitivity()` at the end of
+// this section for the structural (not conventional) guarantee that a
+// future patient-facing control can never reach them.
+
+export interface ThresholdsConfig {
+  version: number;
+  pressure: { watchKpa: number; alertKpa: number; ptiKpaS: number };
+  temperature: { deltaC: number; consecutiveReadings: number };
+  asymmetry: { peakPct: number; ptiPct: number; concentrationPct: number };
+  model: { minConfidence: number };
+  /**
+   * ADDITIVE — not part of Data Contract v1.4 §8.3's JSON shape. Needed for
+   * the `PRESSURE_PEAK` walking-gate (docs/BACKLOG.md item 10's finding;
+   * implemented this pass, docs/reports/017-*.md). Same status as the §5.1
+   * `offset_adc`/`÷1000` fix from earlier passes: a local addition not yet
+   * sent upstream to the contract owner. Revisit/remove this block if a
+   * future contract version defines its own walking-gate shape instead.
+   */
+  motion: { walkingAccelG: number; walkingWindowMs: number };
+}
+
+/**
+ * The compiled-in fallback. Every field matches Data Contract v1.4 §8.3's
+ * JSON exactly (plus the additive `motion` block above). Used at boot before
+ * the runtime file has loaded, and again any time that file is missing,
+ * unreachable, or fails validation — `data/thresholds.ts` logs loudly when
+ * that happens (see there); this object is what keeps the app running on
+ * known-good values instead of silently ending up with `undefined`.
+ *
+ * Keep `public/thresholds.json` (the runtime-editable copy) in sync with
+ * this by hand — there is no build step that generates one from the other.
+ * Same accepted duplication as `css/heatmap.css` restating `PRESSURE_RAMP_KPA`
+ * as gradient percentages (see `recomputeDerivedRamp()` below).
+ */
+export const DEFAULT_THRESHOLDS: Readonly<ThresholdsConfig> = Object.freeze({
+  version: 1,
+  pressure: Object.freeze({ watchKpa: 75, alertKpa: 200, ptiKpaS: 80 }),
+  temperature: Object.freeze({ deltaC: 2.2, consecutiveReadings: 2 }),
+  asymmetry: Object.freeze({ peakPct: 15, ptiPct: 20, concentrationPct: 40 }),
+  model: Object.freeze({ minConfidence: 0.60 }),
+  // PROVISIONAL, same status as the pressure tiers below — no real hardware
+  // data exists yet to tune these against. 0.15g mean sustained deviation
+  // from 1g over an 800ms window was chosen as a conservative gap between
+  // typical quiet-stance sensor noise and typical gait acceleration, not
+  // measured. See docs/reports/017-*.md and AlertStore.ts's isWalking().
+  motion: Object.freeze({ walkingAccelG: 0.15, walkingWindowMs: 800 }),
+});
+
 // Plantar pressure is in kPa. The Data Contract fixes two tiers:
 //   75 kPa  — watch  (surfaced on the heatmap, not notification-worthy)
 //   200 kPa — alert  (notification-worthy, sourced from Owings et al. 2009,
@@ -19,25 +98,24 @@ import type { GaitClass } from './data/types.js';
 // tier carries the identical under-reading problem, for the identical reason —
 // Owings' figure also comes from a dense research mat, not six discrete points.
 // Revisit both once real device data exists — do not tune this against the
-// mock presets.
-//
-// Both values also appear in Data Contract v1.1 §8.3 (`docs/DATA-CONTRACT.md`)
-// as the team's agreed figures. That is not the same claim as "validated
-// against measurement" — the contract records what was agreed, not what has
-// been checked against real device data, and its own §8.3 note states this
-// exact under-reading gap in the contract's own words. Being in the contract
-// changes where these numbers are recorded, not their evidentiary status;
-// keep treating them as provisional. See `docs/BACKLOG.md` item 4.
-//
-// Separate, architectural point: the contract requires ALL threshold values
-// to live in a runtime `thresholds.json`, not be hardcoded in source (§8.3 —
-// they will definitely need tuning after real-hardware testing, without a
-// rebuild). This file still hardcodes them as TS constants; not fixed here,
-// see `docs/BACKLOG.md` item 11.
-export const PRESSURE_WATCH_KPA     = 75;
-export const PRESSURE_ALERT_KPA     = 200;
+// mock presets. See `docs/BACKLOG.md` item 4.
+export let PRESSURE_WATCH_KPA = DEFAULT_THRESHOLDS.pressure.watchKpa;
+/**
+ * HARD CLINICAL FLOOR. Only `applyThresholds()` below may ever reassign this
+ * — called exactly once per config load, only from `data/thresholds.ts`'s
+ * loader (the trusted, ops/clinician-controlled `thresholds.json` channel,
+ * NOT anything reachable from in-app UI). A future patient sensitivity
+ * slider must call `setPatientSensitivity()` instead, whose parameter type
+ * has no way to name this field at all — see that function's comment for
+ * why this is structural, not conventional. Do not add a second writer.
+ */
+export let PRESSURE_ALERT_KPA = DEFAULT_THRESHOLDS.pressure.alertKpa;
+/** Not consumed by any rule yet — `PRESSURE_PTI` isn't implemented (docs/BACKLOG.md item 9). Exists for shape parity with the contract's `thresholds.json`. */
+export let PRESSURE_PTI_KPA_S = DEFAULT_THRESHOLDS.pressure.ptiKpaS;
 // Top of the display scale — the heatmap legend and the gait bar chart both map
-// values onto 0..this, so it is not merely cosmetic.
+// values onto 0..this, so it is not merely cosmetic. Not part of the contract's
+// thresholds.json (a display constant, not an alert threshold) — stays a plain
+// const.
 export const PRESSURE_SCALE_MAX_KPA = 250;
 
 // °C between L/R same zone. Clinically validated threshold from Lavery et
@@ -53,50 +131,137 @@ export const PRESSURE_SCALE_MAX_KPA = 250;
 // The limitation that IS ours: this system samples two points per foot
 // (forefoot, heel) rather than the measurement protocol Lavery et al. used,
 // so site selection — not the threshold value — is the open question here.
-//
-// One additional gap vs. the contract's own condition (Data Contract v1.1
-// §8.3): the contract requires this to fire only after ≥2 consecutive
-// over-threshold readings ("ต่อเนื่อง ≥ 2 ครั้งวัด"); `AlertStore.evaluate()`
-// currently fires on a single reading. Not changed here — see
-// `docs/BACKLOG.md` item 10.
-export const TEMP_DELTA_THRESHOLD   = 2.2;
+/**
+ * HARD CLINICAL FLOOR, same status/enforcement as `PRESSURE_ALERT_KPA`
+ * above — externally validated against patient outcomes (Lavery et al.
+ * 2004), so a patient-side control has no business softening it. Only
+ * `applyThresholds()` may reassign this.
+ */
+export let TEMP_DELTA_THRESHOLD = DEFAULT_THRESHOLDS.temperature.deltaC;
+/**
+ * Consecutive over-threshold ΔT readings required before `temp.delta`
+ * fires (Data Contract §8.3: "ต่อเนื่อง ≥ 2 ครั้งวัด"). Was hardcoded as a
+ * missing check entirely until this pass — see docs/BACKLOG.md item 10 and
+ * `AlertStore.ts`'s `tempDeltaState`.
+ */
+export let TEMP_DELTA_CONSECUTIVE_READINGS = DEFAULT_THRESHOLDS.temperature.consecutiveReadings;
 
 // PAI (Peak Asymmetry Index) watch threshold, as a percent: |L-R| / avg(L,R)
-// x 100 above this is worth surfacing. Recorded in Data Contract v1.1 §8.2 as
-// the team's agreed figure — same evidentiary status as PRESSURE_WATCH_KPA
-// above (agreed, not yet validated against measurement), see
-// `docs/BACKLOG.md` item 4 for that distinction and item 11 for why this
-// still lives here as a TS constant instead of in a runtime thresholds.json.
-// See `docs/BACKLOG.md` item 1 for how gait.ts computes PAI itself.
-export const PAI_WATCH_PCT = 15;
+// x 100 above this is worth surfacing. Recorded in Data Contract §8.2 as the
+// team's agreed figure — same evidentiary status as PRESSURE_WATCH_KPA above
+// (agreed, not yet validated against measurement). See `docs/BACKLOG.md`
+// item 1 for how gait.ts computes PAI itself.
+export let PAI_WATCH_PCT = DEFAULT_THRESHOLDS.asymmetry.peakPct;
+/** Not consumed by any rule yet — `ASYMMETRY_PEAK` isn't implemented (docs/BACKLOG.md item 9). Exists for shape parity with the contract's `thresholds.json`. */
+export let PTI_ASYMMETRY_WATCH_PCT = DEFAULT_THRESHOLDS.asymmetry.ptiPct;
+/** Not consumed by any rule yet — `LOAD_CONCENTRATION` isn't implemented (docs/BACKLOG.md item 9). Exists for shape parity with the contract's `thresholds.json`. */
+export let LOAD_CONCENTRATION_ALERT_PCT = DEFAULT_THRESHOLDS.asymmetry.concentrationPct;
+
+/**
+ * Sustained mean deviation from 1g, over `WALKING_WINDOW_MS`, required to
+ * count as "walking" for the `PRESSURE_PEAK` walking-gate. ADDITIVE, not in
+ * the Data Contract yet — see `ThresholdsConfig.motion` above.
+ */
+export let WALKING_ACCEL_G = DEFAULT_THRESHOLDS.motion.walkingAccelG;
+export let WALKING_WINDOW_MS = DEFAULT_THRESHOLDS.motion.walkingWindowMs;
 
 // Six-stop colour ramp, expressed in kPa and derived from the two contract
 // thresholds so the ramp can never drift away from the tiers it depicts.
 // `watch` and `alert` are the tier boundaries themselves; `low`/`mid` subdivide
 // the safe tier and `watchHigh` splits the (wide) watch tier in half.
 //
+// A plain mutable object (NOT `as const`, NOT frozen) so `recomputeDerivedRamp()`
+// can update its properties in place after a threshold reload — object identity
+// stays the same, so every existing reader (pressureColor.ts, heatmap.ts,
+// MockDataSource.ts) sees the update without re-importing anything.
+//
 // css/heatmap.css draws the same ramp as a gradient. It does NOT restate these
 // numbers: Heatmap.renderLegend() converts each stop to a percentage of
 // PRESSURE_SCALE_MAX_KPA and feeds them in as --stop-* custom properties.
 export const PRESSURE_RAMP_KPA = {
-  low:       PRESSURE_WATCH_KPA / 3,                          //  25
-  mid:       (PRESSURE_WATCH_KPA * 2) / 3,                    //  50
-  watch:     PRESSURE_WATCH_KPA,                              //  75
-  watchHigh: (PRESSURE_WATCH_KPA + PRESSURE_ALERT_KPA) / 2,   // 137.5
-  alert:     PRESSURE_ALERT_KPA,                              // 200
-} as const;
+  low:       PRESSURE_WATCH_KPA / 3,
+  mid:       (PRESSURE_WATCH_KPA * 2) / 3,
+  watch:     PRESSURE_WATCH_KPA,
+  watchHigh: (PRESSURE_WATCH_KPA + PRESSURE_ALERT_KPA) / 2,
+  alert:     PRESSURE_ALERT_KPA,
+};
 
 // Zone fills below this value are dark enough that the numeric label on top of
 // them needs to flip to white. This is a TEXT-CONTRAST boundary, not a clinical
 // one — it tracks the colour ramp (the blue and green bands), so it moves if the
 // ramp's colours change and has no meaning in the Data Contract.
-export const PRESSURE_LABEL_INVERT_MAX_KPA = PRESSURE_RAMP_KPA.mid;
+export let PRESSURE_LABEL_INVERT_MAX_KPA = PRESSURE_RAMP_KPA.mid;
+
+function recomputeDerivedRamp(): void {
+  PRESSURE_RAMP_KPA.low       = PRESSURE_WATCH_KPA / 3;
+  PRESSURE_RAMP_KPA.mid       = (PRESSURE_WATCH_KPA * 2) / 3;
+  PRESSURE_RAMP_KPA.watch     = PRESSURE_WATCH_KPA;
+  PRESSURE_RAMP_KPA.watchHigh = (PRESSURE_WATCH_KPA + PRESSURE_ALERT_KPA) / 2;
+  PRESSURE_RAMP_KPA.alert     = PRESSURE_ALERT_KPA;
+  PRESSURE_LABEL_INVERT_MAX_KPA = PRESSURE_RAMP_KPA.mid;
+}
 
 // Model A's minimum acceptable confidence, per Data Contract §7.5 / §8.3.1
 // (`thresholds.json`'s `model.minConfidence`). Used only by the §8.3.1
 // gait-pattern advisory layer today (AlertStore) — nothing in this codebase
 // acts on Model A's argmax class directly (see docs/BACKLOG.md items 8/9).
-export const MIN_CONFIDENCE = 0.60;
+export let MIN_CONFIDENCE = DEFAULT_THRESHOLDS.model.minConfidence;
+
+/**
+ * The ONE function allowed to write the hard-floor fields
+ * (`PRESSURE_ALERT_KPA`, `TEMP_DELTA_THRESHOLD`) — called only by
+ * `data/thresholds.ts`'s loader, after it has fetched and validated a
+ * `thresholds.json`. Not for UI code. See `setPatientSensitivity()` below
+ * for the function UI code should call instead.
+ */
+export function applyThresholds(cfg: ThresholdsConfig): void {
+  PRESSURE_WATCH_KPA = cfg.pressure.watchKpa;
+  PRESSURE_ALERT_KPA = cfg.pressure.alertKpa;
+  PRESSURE_PTI_KPA_S = cfg.pressure.ptiKpaS;
+  TEMP_DELTA_THRESHOLD = cfg.temperature.deltaC;
+  TEMP_DELTA_CONSECUTIVE_READINGS = cfg.temperature.consecutiveReadings;
+  PAI_WATCH_PCT = cfg.asymmetry.peakPct;
+  PTI_ASYMMETRY_WATCH_PCT = cfg.asymmetry.ptiPct;
+  LOAD_CONCENTRATION_ALERT_PCT = cfg.asymmetry.concentrationPct;
+  MIN_CONFIDENCE = cfg.model.minConfidence;
+  WALKING_ACCEL_G = cfg.motion.walkingAccelG;
+  WALKING_WINDOW_MS = cfg.motion.walkingWindowMs;
+  recomputeDerivedRamp();
+}
+
+/**
+ * The ONLY threshold mutator meant to ever be reachable from a UI control
+ * (the not-yet-built patient sensitivity slider, docs/BACKLOG.md item 5).
+ * This is where "the slider must never touch the hard floor" is enforced
+ * STRUCTURALLY, not by convention: this function's parameter is a bare
+ * percent — there is no field in its signature that could name
+ * `PRESSURE_ALERT_KPA` or `TEMP_DELTA_THRESHOLD`, so no caller, however
+ * malicious or buggy, can reach them through this entry point. The
+ * implementation below only ever assigns `PRESSURE_WATCH_KPA`.
+ *
+ * `pct`: 0 = least sensitive (watch tier at its max bound), 100 = most
+ * sensitive (watch tier at its min bound). The bounds themselves
+ * (`WATCH_KPA_MIN`/`MAX` below) are a placeholder pending real clinician
+ * input — same "provisional, needs a real decision" status as every other
+ * unvalidated number in this file, flagged so it isn't mistaken for a
+ * clinically-set figure. Never built into a slider UI this pass (out of
+ * scope, see docs/reports/017-*.md) — this exists so that pass has
+ * something correct to wire up to, per this pass's brief.
+ *
+ * Item 5's older note also mentions scaling "the ΔT alert margin" — not
+ * implemented here: the contract's `thresholds.json` shape has no separate
+ * soft ΔT tier to scale (only the hard-floor `deltaC`), so there is nothing
+ * for this function to adjust on the temperature side yet. If the contract
+ * ever grows one, extend this function the same narrow-parameter way, never
+ * by giving it access to `TEMP_DELTA_THRESHOLD`.
+ */
+const WATCH_KPA_MIN = 50;
+const WATCH_KPA_MAX = 100;
+export function setPatientSensitivity(pct: number): void {
+  const p = Math.max(0, Math.min(100, pct));
+  PRESSURE_WATCH_KPA = WATCH_KPA_MAX - (p / 100) * (WATCH_KPA_MAX - WATCH_KPA_MIN);
+  recomputeDerivedRamp();
+}
 
 // ─── Gait-pattern advisory text (Data Contract §8.3.1) ───────
 // NOT an alert rule — AlertStore only appends this sentence to an alert that

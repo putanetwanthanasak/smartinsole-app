@@ -70,6 +70,9 @@ export class MockDataSource implements IDataSource {
   /** Per-zone random-walk offset, so values drift rather than flicker. */
   private drift: Record<string, number> = {};
 
+  /** Mock-only: see setWalking() below. */
+  private walking = false;
+
   private samples = emitter<SensorSample>();
   private temps = emitter<TempReading>();
   private statuses = emitter<DeviceStatus>();
@@ -122,6 +125,19 @@ export class MockDataSource implements IDataSource {
 
   getPreset(): PresetName { return this.preset; }
 
+  /**
+   * Mock-only, same status as setPreset() above. A real insole's IMU needs
+   * no such switch — this exists purely so AlertStore's PRESSURE_PEAK
+   * walking-gate (docs/BACKLOG.md item 10, docs/reports/017-*.md) has
+   * something to test against: the default (false) accelG is uncorrelated
+   * per-tick noise that averages out near zero over any window (quiet
+   * stance); true generates a sustained ~2 Hz oscillation with amplitude
+   * clearly above any reasonable gate threshold (ambulation-like motion),
+   * not a physically accurate gait waveform.
+   */
+  setWalking(w: boolean): void { this.walking = w; }
+  getWalking(): boolean { return this.walking; }
+
   /** Test/diagnostic helper: total live subscribers across all four channels. */
   subscriberCount(): number {
     return this.samples.size + this.temps.size + this.statuses.size + this.states.size;
@@ -166,11 +182,24 @@ export class MockDataSource implements IDataSource {
     });
 
     const t = Date.now();
+    let accelG: [number, number, number];
+    if (this.walking) {
+      // ~2 Hz stride-rate oscillation on top of gravity, amplitude well
+      // above any reasonable walking-gate threshold — see setWalking().
+      const phase = (t / 1000) * 2 * Math.PI * 2;
+      accelG = [
+        rand(-0.1, 0.1) + 0.30 * Math.sin(phase),
+        rand(-0.1, 0.1) + 0.20 * Math.sin(phase + 1),
+        1 + 0.40 * Math.sin(phase) + rand(-0.05, 0.05),
+      ];
+    } else {
+      accelG = [rand(-0.2, 0.2), rand(-0.2, 0.2), rand(0.85, 1.15)];
+    }
     this.samples.emit({
       tUnixMs: t,
       side: this.side,
       fsrKpa,
-      accelG: [rand(-0.2, 0.2), rand(-0.2, 0.2), rand(0.85, 1.15)],
+      accelG,
       gyroDps: [rand(-25, 25), rand(-25, 25), rand(-25, 25)],
     });
   }
