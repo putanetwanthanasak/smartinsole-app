@@ -14,13 +14,16 @@ and none of the numbers below come from that.
 2. Chrome or Edge (Web Bluetooth doesn't exist in Firefox/Safari). Open
    `http://localhost:5173/?ds=ble#/home` — the `?ds=ble` is required, it's
    the dev-only switch away from the mock data source.
-3. Confirm a black bar with green monospace text appears fixed to the
-   bottom of the page: **"BLE DEV PANEL (?ds=ble) — not part of the app
+3. Confirm a small black **"BLE L● R●"** button with green monospace text
+   appears in the top-left corner (the dots are grey while disconnected,
+   green once that side is connected). Tap it: a black panel opens across
+   the top of the page — **"BLE DEV PANEL (?ds=ble) — not part of the app
    UI"**, with a `left` row and a `right` row, each showing Connect /
-   Disconnect / Forget device buttons, `state=disconnected`, and a
-   diagnostics line (`pkts=0 dropped=0 truncated=0 unparseable=0 seq=—
-   offset=—ms cal=—`).
-   - **If this bar doesn't appear:** the `?ds=ble` query param didn't take
+   Disconnect / Forget buttons, `state=disconnected`, and a diagnostics
+   line (`pkts=0 dropped=0 truncated=0 unparseable=0 seq=— offset=—ms
+   cal=—`). The same button or the **×** closes it again; open/closed is
+   remembered across reloads.
+   - **If this button doesn't appear:** the `?ds=ble` query param didn't take
      — check the URL bar still has it after the page loads (the app doesn't
      drop it, but confirm), and that you're running `npm run dev`, not
      `npm run preview`/a production build (the BLE code doesn't exist in a
@@ -260,7 +263,7 @@ zero dropped-seq gaps means packets ARE all arriving, just short.
 ## Check 7 — Disconnect, reconnect, confirm no second device picker
 
 **Do:** With `left` connected, click **Disconnect**. Then click **Connect**
-again (same button, same row — do NOT click "Forget device" in between).
+again (same button, same row — do NOT click "Forget" in between).
 
 **Correct looks like:** No device picker appears the second time —
 `state` goes straight from `disconnected` → `connecting` → `connected`
@@ -268,7 +271,7 @@ without Chrome asking you to choose a device again.
 
 **If a picker appears anyway:** that means the previously-granted device
 reference wasn't retained across the disconnect — capture whether you
-clicked "Forget device" at any point before this (which correctly WOULD
+clicked "Forget" at any point before this (which correctly WOULD
 cause a picker to reappear — that's not a bug, that's what the button is
 for) versus a plain Disconnect → Connect cycle with no Forget in between
 (which would be a real bug in the reconnect path).
