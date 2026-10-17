@@ -7,6 +7,29 @@ the code got this way. For the pass-by-pass history and reasoning, see
 `docs/BACKLOG.md`. For the wire format and clinical thresholds everything here
 derives from, see `docs/DATA-CONTRACT.md`.
 
+## Flutter app (Oct 2026)
+
+Active development has moved to a native Android app written in Flutter.
+**The web app in this repo is frozen**: do not edit `index.html`, `src/`,
+`css/`, `public/` or the web build config unless the user explicitly asks
+for a fix to a bug that affects data collection. Everything below this
+section still describes the web app accurately — it is kept as reference,
+not as the plan of record. The Flutter app replaces the Capacitor step in
+"Next phase" at the bottom of this file.
+
+- **Plan:** `docs/FLUTTER-PLAN.md` (goals, repo layout, tooling, the 16
+  non-negotiable rules in section 6).
+- **Sessions:** `docs/SESSIONS.md` — section 0 is the per-session workflow
+  (Plan → Do → Verify → Report, plan approval before code); section 3 is
+  each session's scope, prerequisites and pass criteria.
+- **Design:** `docs/design/DESIGN-SPEC.md`.
+- **New work lives in:** `mobile/` (the Flutter app, with its own
+  `mobile/CLAUDE.md` once created), `shared/` (`thresholds.json` and other
+  files shared with the simulator — see `shared/README.md`), and
+  `firmware/simulator/` (the new PlatformIO/NimBLE simulator).
+- The planning docs are written in Thai; code, commit messages and reports
+  are written in English.
+
 ## Read this first if the contract file is still a placeholder
 
 `docs/DATA-CONTRACT.md` should contain the actual Data Contract v1.1. If it
