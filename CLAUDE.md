@@ -27,8 +27,8 @@ not as the plan of record. The Flutter app replaces the Capacitor step in
   `mobile/CLAUDE.md` once created), `shared/` (`thresholds.json` and other
   files shared with the simulator — see `shared/README.md`), and
   `firmware/simulator/` (the new PlatformIO/NimBLE simulator).
-- The planning docs are written in Thai; code, commit messages and reports
-  are written in English.
+- Everything written in this repo — code, comments, commits, reports and
+  docs — is in English. Thai appears only in quoted UI strings.
 
 ## Read this first if the contract file is still a placeholder
 
