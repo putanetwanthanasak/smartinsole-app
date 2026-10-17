@@ -1,189 +1,193 @@
-# แผนพัฒนาแอป SmartInsole บน Android ด้วย Flutter (ฉบับที่ 2)
+# SmartInsole Android App (Flutter) — Main Plan (v2)
 
-> ปรับปรุง 17 ต.ค. 2569 · ผู้พัฒนา: ภูธเนศ วรรธนะศักดิ์ (+ Claude Code) · มือถือทดสอบ: Samsung Galaxy Note 10 · เครื่องพัฒนา: Ubuntu (ThinkPad P14s)
-> อ้างอิงหลัก: `docs/DATA-CONTRACT.md` และ `docs/BLE-INTERFACE.md` (ถ้าขัดกับไฟล์นี้ ให้ยึดสองไฟล์นั้น) · ดีไซน์: `docs/design/DESIGN-SPEC.md` · ลำดับงาน: `docs/SESSIONS.md`
+> Updated 2026-10-17 · Developer: Putanet Wanthanasak (+ Claude Code) · Test phone: Samsung Galaxy Note 10 · Dev machine: Ubuntu (ThinkPad P14s) · Repo: `~/smartinsole-app`
+> Source of truth for wire format and thresholds: `docs/DATA-CONTRACT.md` and `docs/BLE-INTERFACE.md` (if this file disagrees with them, they win) · Design: `docs/design/DESIGN-SPEC.md` · Work order: `docs/SESSIONS.md`
+> Language rule: every document, prompt, code comment, commit message and report is in **English**. The only Thai text allowed is user-facing UI copy, always quoted as string literals.
 
 ---
 
-## 1. เป้าหมายและขอบเขต
+## 1. Goal and scope
 
-**เป้าหมาย:** แอป Android ที่แสดงผลข้อมูลจริงจากแผ่นรองเท้า 2 ข้าง ใช้ทดสอบการแสดงผลระหว่างการทดลอง ส่วนการเก็บข้อมูลวิจัยใช้เว็บเดิมบนแล็ปท็อป
+**Goal:** an Android app that shows live data from both insoles. It is used to test the display during the volunteer study. Research data capture stays on the existing web app running on a laptop.
 
-| อยู่ในเวอร์ชันแรก | ไม่อยู่ในเวอร์ชันแรก (แต่ออกแบบเผื่อไว้) |
+| In v1 | Not in v1 (but the architecture must allow it later) |
 |---|---|
-| หน้าหลัก, การเดิน, อุณหภูมิ, แจ้งเตือน, เชื่อมต่ออุปกรณ์, ตั้งค่า, **ตรวจเท้าประจำวัน** | โหมดเก็บข้อมูลวิจัย (ใช้เว็บเดิม) |
-| เชื่อม ESP32 2 ข้างพร้อมกัน | ทำงานเบื้องหลัง / แจ้งเตือนเด้งตอนปิดจอ |
-| กฎแจ้งเตือน 9 รหัสตาม contract | Firebase / sync ขึ้น cloud |
-| จำแนกท่าเดินด้วยกฎชั่วคราว + ช่องรอ TFLite | โมเดล AI จริง (งานอีกสาย) |
-| เก็บข้อมูลในเครื่อง (SQLite) รวมรูปเท้า | AI ตรวจรูปแผล (งานต่อยอด) |
-| อนิเมชันที่มีความหมาย | iOS |
+| Screens: Home, Gait, Temperature, Alerts, Device connection, Settings, **Daily foot check** | Research capture mode (stays in the web app) |
+| Two ESP32 insoles connected at the same time | Background operation / push notifications with screen off |
+| All 9 alert codes from the contract | Firebase / cloud sync |
+| Rule-based gait estimate + slot for a TFLite model | Real AI model (separate workstream) |
+| Local storage (SQLite), including foot photos | AI analysis of foot photos (future work) |
+| Meaningful animations | iOS |
 
 ---
 
-## 2. การตัดสินใจ
+## 2. Decisions
 
-| เรื่อง | ตัดสินใจ | สถานะ |
-|---|---|---|
-| ที่เก็บโค้ด | repo เดิม เพิ่ม `mobile/`, `shared/`, `firmware/simulator/` | ยืนยัน |
-| เว็บเดิม | **แช่แข็ง** ใช้เก็บข้อมูลบนแล็ปท็อปเท่านั้น ห้ามแก้ยกเว้นบั๊กที่กระทบการเก็บข้อมูล | ยืนยัน |
-| Simulator | **เขียนใหม่** ตาม `BLE-INTERFACE.md` | ยืนยัน |
-| ผู้ใช้หลัก | ผู้ป่วยเบาหวาน ใช้ง่าย เป็นมิตร ไม่ซับซ้อน | ยืนยัน |
-| ภาษา | ไทยที่เข้าใจง่าย ใช้อังกฤษเฉพาะคำที่ไม่มีคำไทยจริง ๆ | ยืนยัน |
-| โทนสี | ฟ้า–เขียวอมฟ้า สะอาด | ยืนยัน |
-| สถานะบนหน้าหลัก | 3 ระดับ (ปลอดภัย / ควรระวัง / ควรพักเท้า) + ไม่มีข้อมูล | ยืนยัน |
-| การแปลงระดับ 1–5 → 3 ระดับ | ดูข้อ 7 | **ระดับ 2 รอยืนยัน** (ค่าเริ่มต้น = ปลอดภัย) |
-| ที่เก็บข้อมูล | ในเครื่องเท่านั้น | ยืนยัน |
-| จำนวนเซนเซอร์ | แอปรองรับจำนวน FSR และ NTC แปรผัน ใช้ 6 FSR + 2 NTC ไปก่อน (อาจเพิ่ม NTC เป็น 6 จุด) | รอทีมฮาร์ดแวร์ |
-| ตัดสินความเสี่ยง | กฎตาม contract (RuleBasedEngine) ผลท่าเดินเป็นข้อมูลประกอบเท่านั้น | ยืนยัน |
-| ตรวจเท้าประจำวัน | ถ่ายรูป 4 ภาพ + คำถาม 3 ข้อ ไม่มี AI เก็บรูปในเครื่อง | ยืนยัน |
-| ฟีเจอร์ถ่ายรูปช่วงเก็บข้อมูล IRB | ปิดด้วย feature flag | **รอยืนยัน** (ค่าเริ่มต้น = ปิด) |
-| ทางเข้าตรวจเท้าจากหน้าหลัก | ก แจ้งเตือนอย่างเดียว / ข การ์ดบนหน้าหลัก / ค แท็บที่ 5 | **รอยืนยัน** |
-| คำสั่งจำลองสถานการณ์ใน simulator (`0x10`) | ใช้ทดสอบเท่านั้น | **รอยืนยัน** ก่อน S2C |
+| Topic | Decision |
+|---|---|
+| Code location | Same repo; add `mobile/`, `shared/`, `firmware/simulator/` |
+| Existing web app | **Frozen.** Used only for data capture on the laptop. Do not modify it unless the user asks because of a bug that affects data capture. |
+| ESP32 simulator | **Rewrite from scratch** following `docs/BLE-INTERFACE.md` |
+| Primary user | People with diabetes: simple, friendly, not complex |
+| UI language | Plain, easy Thai. English only for words with no real Thai equivalent. |
+| Colour theme | Clean blue / teal |
+| Home status | 3 levels shown to patients (Safe / Be careful / Rest your feet) + No data |
+| Risk-level mapping | See section 7 |
+| Storage | On-device only |
+| Sensor count | App must support a variable number of FSR and NTC channels. Use 6 FSR + 2 NTC per foot for now (NTC may increase to 6 per foot). |
+| Risk decision | Contract rules (RuleBasedEngine). Gait result is context only. |
+| Daily foot check | 4 photos + 3 questions, no AI, photos stored on device only |
+| Study day | The phone app runs alongside the laptop that captures data (so the dual-connection test S3B is required). The photo feature is not used with volunteers, so no feature flag is needed. |
+| Foot-check entry point | A card on Home ("today's foot check not done yet"), shown only until today's check is done + an in-app evening reminder |
+| Simulator scenario mode (`0x10 SET_SCENARIO`) | Not now; main app first (backlog) |
+| Claude Code language | English only for prompts, docs, code, commits, reports |
 
 ---
 
-## 3. โครงสร้าง repo
+## 3. Repo layout
 
 ```
 smartinsole-app/
-├── (เว็บเดิม — แช่แข็ง)
-├── mobile/                  ← แอป Flutter
+├── (existing web app — frozen)
+├── mobile/                  ← Flutter app
 │   ├── lib/
-│   │   ├── ble/             ← parser, แปลงหน่วย, การเชื่อมต่อข้างละ 1 ตัว
-│   │   ├── device/          ← DeviceManager รวม 2 ข้าง
-│   │   ├── rules/           ← กฎแจ้งเตือน 9 รหัส + ระดับ 1–5 + แปลงเป็น 3 ระดับ
-│   │   ├── gait/            ← GaitClassifier (Rule ตอนนี้ / TFLite ภายหลัง)
-│   │   ├── footcheck/       ← ตรวจเท้าประจำวัน (กล้อง, รูป, คำถาม)
+│   │   ├── ble/             ← parser, unit conversion, one connection per foot
+│   │   ├── device/          ← DeviceManager combining both feet
+│   │   ├── rules/           ← 9 alert codes + level 1–5 + mapping to 3 patient levels
+│   │   ├── gait/            ← GaitClassifier (rules now / TFLite later)
+│   │   ├── footcheck/       ← daily foot check (camera, photos, questions)
 │   │   ├── storage/         ← SQLite (drift)
-│   │   ├── notify/          ← interface แจ้งเตือน (ตอนนี้ในแอปอย่างเดียว)
-│   │   ├── config/          ← feature flags, thresholds
-│   │   └── ui/              ← ธีม, อนิเมชันกลาง, หน้าจอ
-│   ├── assets/fonts/        ← IBM Plex Sans Thai + Looped (ฝังในแอป)
+│   │   ├── notify/          ← notification interface (in-app only for now)
+│   │   ├── config/          ← thresholds loading
+│   │   └── ui/              ← theme, shared motion, screens
+│   ├── assets/fonts/        ← IBM Plex Sans Thai + Looped (bundled)
 │   └── CLAUDE.md
 ├── shared/
 │   ├── thresholds.json
 │   ├── sensor_layout.json
 │   └── test_vectors/
-├── firmware/simulator/      ← simulator ใหม่ (PlatformIO, NimBLE)
+├── firmware/simulator/      ← new simulator (PlatformIO, NimBLE)
 └── docs/
-    ├── FLUTTER-PLAN.md      ← ไฟล์นี้
+    ├── FLUTTER-PLAN.md      ← this file
     ├── SESSIONS.md
     └── design/DESIGN-SPEC.md
 ```
 
 ---
 
-## 4. เครื่องมือ
+## 4. Tooling
 
-| ส่วน | เลือก |
+| Area | Choice |
 |---|---|
 | BLE | `flutter_blue_plus` |
 | State | Riverpod |
-| ฐานข้อมูล | `drift` (SQLite) |
-| Heatmap / กราฟ | `CustomPainter` (ไม่ใช้ chart library) |
-| อนิเมชัน | อนิเมชันในตัว Flutter, `flutter_animate`, `animations` (เปลี่ยนหน้า), `lottie` (ใช้เมื่อจำเป็น) |
-| กล้อง / รูป | `camera` + เก็บไฟล์ในโฟลเดอร์ของแอป |
-| โมเดล (ภายหลัง) | `tflite_flutter` ใน isolate |
-| จอค้าง | `wakelock_plus` |
+| Database | `drift` (SQLite) |
+| Heatmap / charts | `CustomPainter` (no chart library) |
+| Animation | Built-in Flutter animation, `flutter_animate`, `animations` (page transitions), `lottie` (only if needed) |
+| Camera / photos | `camera`, files stored in the app's private directory |
+| Model (later) | `tflite_flutter` in an isolate |
+| Keep screen on | `wakelock_plus` |
 
-ตรวจเวอร์ชันล่าสุดตอนติดตั้งจริง ฟอนต์ต้องฝังในแอป (ห้ามโหลดจากเน็ต)
-
----
-
-## 5. ข้อกำหนดทางเทคนิค (ต้องตรงกับ repo)
-
-- **Packet เซนเซอร์:** 8 samples/packet ที่ 6.25 Hz (= 50 Hz), 200 bytes, little-endian, header 8 bytes (`seq`, `t0_ms`, `count`, `flags`)
-- **ขนาด sample:** `2N + 12` bytes, N = จำนวน FSR จาก calibration blob
-- **Service UUID:** `f0a5c000-9b4d-4e8a-a3c1-72d6e1b45900` (สแกนด้วย UUID)
-- **ลำดับเชื่อมต่อ:** connect → `requestMtu(247)` → อ่าน status (ตรวจ `foot_side`) → อ่าน calibration → เปิด notify → `SYNC_TIME` → `START_STREAM`
-- **FSR:** `max(0, adc − offset_adc)` → V → R → `F = a·R^b` → `P = F / A / 1000`
-- **อุณหภูมิ:** `raw / 100` °C, `-32768` = อ่านไม่ได้
+Check the latest stable version of each package when installing. Fonts must be bundled (no runtime download).
 
 ---
 
-## 6. กฎที่ห้ามละเมิด
+## 5. Technical requirements (must match the repo docs)
 
-1. เวลา sample ที่ i = `t0 + i × 20 ms`
-2. stale ตรวจจากเวลาตอนอ่าน ห้ามใช้ timer
-3. `lastSampleAt` = เวลาที่มือถือได้รับ
-4. ค่าที่ใช้สองเท้า (ΔT, PAI) เป็น "ไม่มีข้อมูล" ถ้าขาดข้างใด
-5. "ไม่มีข้อมูล" ต้องต่างจาก "ปลอดภัย" เสมอ (ห้ามสีเขียว)
-6. ΔT ต้องเกินเกณฑ์ 2 ครั้งติดกัน
-7. แรงกด 200 kPa เตือนเฉพาะขณะเดิน
-8. ต่อผิดข้าง → ปฏิเสธ
-9. ทิ้ง packet ค้างจากรอบก่อน
-10. ทาง 50 Hz แยกจากทาง 10 Hz
-11. ผลท่าเดินไม่ใช่ระดับความเสี่ยง
-12. ค่าเกณฑ์อ่านจาก `thresholds.json`
-13. ทุกการแจ้งเตือนมีคำแนะนำภาษาไทยง่าย ๆ
-14. **แอปไม่บอกว่าเท้า "ปกติ" จากรูปถ่าย** ใช้คำตอบของผู้ใช้เท่านั้น และ "ไม่แน่ใจ" นับเป็นผิดปกติ
-15. **รูปเท้าอยู่ในเครื่องเท่านั้น** ห้ามส่งออกนอกเครื่องโดยผู้ใช้ไม่ได้สั่ง
-16. **เคารพ "ลดการเคลื่อนไหว"** ของระบบ ปิดอนิเมชันเมื่อผู้ใช้เปิด
+- **Sensor packet:** 8 samples/packet at 6.25 Hz (= 50 Hz), 200 bytes, little-endian, 8-byte header (`seq`, `t0_ms`, `count`, `flags`)
+- **Sample size:** `2N + 12` bytes, N = FSR count from the calibration blob
+- **Service UUID:** `f0a5c000-9b4d-4e8a-a3c1-72d6e1b45900` (scan by UUID, not by name)
+- **Connect sequence:** connect → `requestMtu(247)` → read status (check `foot_side`) → read calibration → enable notifications → `SYNC_TIME` → `START_STREAM`
+- **FSR:** `max(0, adc − offset_adc)` → V → R → `F = a·R^b` → `P = F / A / 1000` (kPa)
+- **Temperature:** `raw / 100` °C; `-32768` = could not read
 
 ---
 
-## 7. การแปลงระดับความเสี่ยง
+## 6. Rules that must never be broken
 
-| สถานการณ์ | ผู้ป่วยเห็น |
+1. Sample i time = `t0 + i × 20 ms`
+2. Staleness is derived from timestamps at read time, never latched by a timer
+3. `lastSampleAt` = time the phone received the data
+4. Two-foot metrics (ΔT, PAI) are "no data" if either foot is missing
+5. "No data" must always look different from "Safe" (never green)
+6. ΔT must exceed the threshold on 2 consecutive readings
+7. 200 kPa peak alerts only while walking
+8. Wrong foot side → reject the connection
+9. Drop a stale packet left over from a previous connection
+10. 50 Hz processing path is separate from the 10 Hz display path
+11. Gait result is not a risk level
+12. Thresholds are read from `thresholds.json`, never hardcoded
+13. Every alert carries plain-Thai advice
+14. **The app never says a foot is "normal" from a photo.** Only the user's answers count, and "not sure" counts as abnormal.
+15. **Foot photos stay on the device.** Never send them anywhere unless the user explicitly does so.
+16. **Respect the system "reduce motion" setting** — disable animations when it is on.
+
+---
+
+## 7. Risk-level mapping (internal 1–5 → what the patient sees)
+
+| Situation | Patient sees |
 |---|---|
-| ไม่มีกฎเข้าเงื่อนไข | ปลอดภัย |
-| ระดับ 1 `DEVICE_LOST` | ไม่มีข้อมูล (เทา) |
-| ระดับ 1 `BATTERY_LOW` | สถานะไม่เปลี่ยน ป้ายแบตเป็นสีส้ม |
-| ระดับ 2 | **รอยืนยัน** — ค่าเริ่มต้น: ปลอดภัย + จุดสีส้มบนภาพเท้า |
-| ระดับ 3 | ควรระวัง |
-| ระดับ 4–5 | ควรพักเท้า |
+| No rule triggered | Safe |
+| Level 1 `DEVICE_LOST` | No data (grey) |
+| Level 1 `BATTERY_LOW` | Status unchanged; battery label turns orange |
+| Level 2 | Safe + orange dot on the foot map (no push alert) |
+| Level 3 | Be careful |
+| Level 4–5 | Rest your feet |
 
-ระดับ 1–5 ยังเก็บไว้ภายในแอปเพื่อรายงานผลและให้ผู้เชี่ยวชาญดู
+Levels 1–5 are still stored internally for reporting and for expert review.
 
 ---
 
-## 8. อนิเมชัน
+## 8. Animation
 
-**กฎกลาง:** ส่วนใหญ่ 200–400 ms · ห้ามกระพริบเร็ว · ปิดเมื่อเปิด "ลดการเคลื่อนไหว" · อัปเดต 10 Hz ต้องไม่กระตุก · ค่าเวลาและ curve อยู่ในไฟล์กลางไฟล์เดียว
+**Global rules:** most animations 200–400 ms · no fast flashing · disabled when "reduce motion" is on · 10 Hz updates must not stutter · all durations and curves live in one shared file.
 
-| เซสชัน | หน้า | อนิเมชัน |
+| Session | Screen | Animation |
 |---|---|---|
-| S1B | ทุกหน้า | การเปลี่ยนหน้าแบบ Material |
-| S5 | หน้าหลัก | สีการ์ดสถานะค่อย ๆ เปลี่ยน, สีจุดเท้าไล่ตามค่า, วงกระเพื่อมช้าที่จุด "มาก", ตัวเลขนับขึ้น-ลง, การ์ดเลื่อนขึ้นตอนเปิด |
-| S6B | อุณหภูมิ | กราฟค่อย ๆ วาดเส้น |
-| S6B | แจ้งเตือน | การ์ดเลื่อนเข้า, กระดิ่งส่ายเมื่อมีใหม่ |
-| S8A | การเดิน | แถบซ้าย-ขวาเลื่อนตามค่า |
-| S8B | เชื่อมต่อ | วงคลื่นตอนค้นหา, เครื่องหมายถูกตอนต่อสำเร็จ |
-| S8C | ตรวจเท้า | นับถอยหลังตั้งเวลา, ภาพเลื่อนเข้าเมื่อถ่ายเสร็จ |
+| S1B | All | Material page transitions |
+| S5 | Home | Status card colour cross-fade, foot-dot colour tween, slow pulse ring on "high" dots, numbers counting to new values, cards sliding up on open |
+| S6B | Temperature | Chart line draws in |
+| S6B | Alerts | Cards slide in; bell wiggles on new alert |
+| S8A | Gait | Left/right bar slides to value |
+| S8B | Connection | Scanning ripple; check mark on success |
+| S8C | Foot check | Self-timer countdown; captured photo slides in |
 
 ---
 
-## 9. ตรวจเท้าประจำวัน
+## 9. Daily foot check
 
-- **ทำไม:** แผ่นรองเท้าวัดได้แค่ใต้ฝ่าเท้า ส่วนแผลจากรองเท้าเสียดสีและอุบัติเหตุ (หลังเท้า ปลายนิ้ว) ต้องดูด้วยตา
-- **ขั้นตอน (~1 นาที):** แจ้งเตือนตอนเย็น → ถ่าย 4 ภาพมีกรอบนำ (ฝ่า/หลัง × ซ้าย/ขวา) → เทียบกับเมื่อวาน → ตอบ 3 ข้อ ("ไม่มี" / "มี หรือ ไม่แน่ใจ") → ถ้ามี แสดงคำแนะนำและบันทึกเป็นแจ้งเตือน
-- **ทางเลือก:** ตอบคำถามอย่างเดียวโดยไม่ถ่ายรูป, ตั้งเวลา 3 วินาที, ข้ามภาพได้
-- **ความเป็นส่วนตัว:** รูปอยู่ในโฟลเดอร์ของแอป ลบได้ ไม่ sync
-- **IRB:** ฟีเจอร์ถ่ายรูปปิดด้วย feature flag ระหว่างเก็บข้อมูลอาสาสมัคร (รอยืนยัน)
-- **ข้อความคำแนะนำทางการแพทย์:** ต้องให้ผู้เชี่ยวชาญด้านการแพทย์ตรวจก่อนใช้จริง
+- **Why:** the insole only measures under the sole. Ulcers from shoe friction and accidents (top of foot, toe tips) must be checked visually.
+- **Flow (~1 minute):** evening reminder → 4 guided photos (sole/top × left/right) → compare with yesterday → 3 questions ("none" / "yes or not sure") → if any "yes", show advice and log an alert
+- **Options:** answer questions only (no photos), 3-second self-timer, skip a photo
+- **Entry:** Home card shown until today's check is done + in-app evening reminder
+- **Privacy:** photos in the app's private folder, deletable, never synced
+- **IRB:** not used with study volunteers
+- **Medical advice text:** must be reviewed by a medical expert before real use
 
 ---
 
-## 10. เผื่ออนาคต
+## 10. Future work (not now, but keep the architecture ready)
 
-| ฟีเจอร์ | สิ่งที่ทำไว้ตอนนี้ |
+| Feature | What exists now |
 |---|---|
-| ทำงานเบื้องหลัง / แจ้งเตือนเด้ง | BLE, กฎ, storage ไม่ผูกหน้าจอ; มี interface `Notifier` |
-| Firebase | storage เป็น repository pattern |
-| โมเดล TFLite | interface `GaitClassifier` + `assets/models/` |
-| จำนวนเซนเซอร์ใหม่ | อ่านจาก calibration + `sensor_layout.json` |
-| AI ตรวจรูปแผล | เก็บรูปเป็นชุดมาตรฐาน 4 มุม |
-| ย้ายโหมดเก็บข้อมูลจากเว็บมาแอป | หลังเก็บข้อมูลเดือน พ.ย. เสร็จ |
-| ค่าฐานอุณหภูมิรายบุคคล | เก็บประวัติ ΔT รายจุดไว้แล้ว |
+| Background operation / push alerts | BLE, rules, storage independent of UI; `Notifier` interface |
+| Firebase | Storage behind a repository pattern |
+| TFLite model | `GaitClassifier` interface + `assets/models/` |
+| New sensor counts | Read from calibration + `sensor_layout.json` |
+| AI on foot photos | Photos stored as a standard 4-view set |
+| Move capture mode from web to app | After the November data collection |
+| Personal temperature baseline | Per-site ΔT history already stored |
+| Simulator scenario mode (`0x10 SET_SCENARIO`) | Simulator data generation kept in separate functions |
 
 ---
 
-## 11. สิ่งที่ต้องได้จากภายนอก
+## 11. External dependencies
 
-| จาก | สิ่งที่ต้องได้ | ก่อนเซสชัน |
+| From | Need | Before session |
 |---|---|---|
-| ภูมิรพี | จำนวน/ตำแหน่ง FSR และ NTC, PCB รองรับ NTC กี่ตัว | ไม่ขวาง (ใช้ค่าเดิม) |
-| ภูธเนศ | บอร์ด ESP32 2 ตัว + ติดตั้ง PlatformIO | S2B |
-| ภูธเนศ | อนุมัติดีไซน์ 5 หน้าที่เหลือ | S6B |
-| ผู้เชี่ยวชาญการแพทย์ | ตรวจข้อความคำแนะนำ | S9 |
-| ทีม AI | `model_a.tflite` + `normalization.json` | ไม่ขวาง |
+| Phumirapee (hardware) | Final FSR/NTC count and positions; how many NTC the PCB supports | Not blocking (use current values) |
+| Putanet | Two ESP32 boards + PlatformIO installed | S2B |
+| Putanet | Approval of the remaining 5 screen designs | S6B |
+| Medical expert | Review of advice text | S9 |
+| AI team | `model_a.tflite` + `normalization.json` | Not blocking |

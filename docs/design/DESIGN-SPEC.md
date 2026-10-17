@@ -1,137 +1,141 @@
-# DESIGN-SPEC — แอป SmartInsole (Flutter)
+# DESIGN-SPEC — SmartInsole App (Flutter)
 
-> ฉบับที่ 1 · 17 ต.ค. 2569 · ที่มา: mockup บนผ้าใบ "SmartInsole App Design" (claude.ai)
-> สถานะ: หน้าหลัก ✅ · ตรวจเท้าประจำวัน ✅ · การเดิน / อุณหภูมิ / แจ้งเตือน / เชื่อมต่อ / ตั้งค่า ⏳ (จะเพิ่มในฉบับถัดไป)
-> ผู้ใช้หลัก: ผู้ป่วยเบาหวาน อาจสายตาไม่ดี ไม่คุ้นเทคโนโลยี → ใหญ่ ชัด ง่าย เป็นมิตร
+> v1 · 2026-10-17 · Source: mockups on the "SmartInsole App Design" canvas (claude.ai)
+> Status: Home ✅ · Daily foot check ✅ · Gait / Temperature / Alerts / Connection / Settings ⏳ (next version)
+> Primary user: people with diabetes, possibly poor eyesight, not tech-savvy → large, clear, simple, friendly.
+> Thai text in quotes is the exact UI copy to use. Everything else in this file is English.
 
 ---
 
-## 1. สี (design tokens)
+## 1. Colour tokens
 
-| Token | Hex | ใช้ที่ |
+| Token | Hex | Use |
 |---|---|---|
-| `bg` | `#F2F7F8` | พื้นหลังทุกหน้า |
-| `surface` | `#FFFFFF` | การ์ด |
-| `ink` | `#12303A` | ตัวอักษรหลัก |
-| `inkMuted` | `#4A626B` | ตัวอักษรรอง |
-| `inkSoft` | `#33505A` | ตัวอักษรเนื้อหายาว |
-| `primary` | `#0A6A87` | ปุ่มหลัก, ลิงก์, แท็บที่เลือก |
-| `primarySoft` | `#DDF0F4` | พื้นแท็บที่เลือก, ตัวเลขลำดับ |
-| `info` | `#E6F2F5` | กล่องคำแนะนำ |
-| `border` | `#DCE6E9` | เส้นขอบ/คั่น |
-| `outlineBtn` | `#9FC3CE` | ขอบปุ่มรอง |
+| `bg` | `#F2F7F8` | Page background |
+| `surface` | `#FFFFFF` | Cards |
+| `ink` | `#12303A` | Primary text |
+| `inkMuted` | `#4A626B` | Secondary text |
+| `inkSoft` | `#33505A` | Long body text |
+| `primary` | `#0A6A87` | Primary buttons, links, selected tab |
+| `primarySoft` | `#DDF0F4` | Selected-tab pill, step numbers |
+| `info` | `#E6F2F5` | Tip boxes |
+| `border` | `#DCE6E9` | Borders / dividers |
+| `outlineBtn` | `#9FC3CE` | Secondary button outline |
 
-### สถานะ (ต้องมีไอคอน + ข้อความคู่สีเสมอ ห้ามใช้สีอย่างเดียว)
+### Status colours (always icon + text + colour; never colour alone)
 
-| สถานะ | พื้น | ตัวอักษร | ไอคอน | ไอคอน (Lucide) |
+| Status | Background | Text | Icon colour | Icon (Lucide name) |
 |---|---|---|---|---|
-| ปลอดภัย | `#E2F2E8` | `#1B5536` | `#2E7D4F` | `circle-check` |
-| ควรระวัง | `#FFF0D2` | `#5E3E00` | `#A86A00` | `triangle-alert` |
-| ควรพักเท้า | `#FBE3DF` | `#7F1D12` | `#B42318` | `octagon-alert` |
-| ไม่มีข้อมูล | `#E9EEF0` | `#33444B` | `#55666E` | `bluetooth-off` |
+| Safe | `#E2F2E8` | `#1B5536` | `#2E7D4F` | `circle-check` |
+| Be careful | `#FFF0D2` | `#5E3E00` | `#A86A00` | `triangle-alert` |
+| Rest your feet | `#FBE3DF` | `#7F1D12` | `#B42318` | `octagon-alert` |
+| No data | `#E9EEF0` | `#33444B` | `#55666E` | `bluetooth-off` |
 
-### แรงกดบนภาพเท้า (ต่างกันทั้งสีและความสว่าง)
+### Foot-map pressure dots (differ in both hue and lightness)
 
-| ระดับ | Hex |
+| Level | Hex |
 |---|---|
-| น้อย | `#BFE2EB` |
-| ปานกลาง | `#F0B340` |
-| มาก | `#C2410C` |
-| ไม่มีข้อมูล | `#D3DDE1` |
+| Low | `#BFE2EB` |
+| Medium | `#F0B340` |
+| High | `#C2410C` |
+| No data | `#D3DDE1` |
 
-ค่า kPa ที่แบ่งระดับ อ่านจาก `thresholds.json` ห้ามเขียนตัวเลขในโค้ด
+kPa boundaries come from `thresholds.json`; never hardcode them.
 
-### จอกล้อง (ตรวจเท้า)
-พื้น `#0F1D22` · ช่องกล้อง `#22353B` · กรอบนำ `#7FD3E3` เส้นประ · ตัวอักษรรอง `#C9DCE1`
+### Camera screen (foot check)
+Background `#0F1D22` · viewfinder `#22353B` · dashed guide outline `#7FD3E3` · secondary text `#C9DCE1`
 
 ---
 
-## 2. ตัวอักษร
+## 2. Typography
 
-- **เนื้อหา:** IBM Plex Sans Thai **Looped** (แบบมีหัว อ่านง่ายสำหรับผู้สูงอายุ) 400/500/600/700
-- **หัวข้อและตัวเลขใหญ่:** IBM Plex Sans Thai 500/600/700
-- **ฝังในแอป** (`assets/fonts/`) ห้ามโหลดจากเน็ต
+- **Body:** IBM Plex Sans Thai **Looped** (looped Thai letterforms read better for older users) 400/500/600/700
+- **Headings and big numbers:** IBM Plex Sans Thai 500/600/700
+- **Bundled** in `assets/fonts/`; never downloaded at runtime
 
-| ใช้ที่ | ขนาด | น้ำหนัก | ฟอนต์ |
+| Use | Size | Weight | Family |
 |---|---|---|---|
-| หัวข้อสถานะ | 28 | 700 | Plex Sans Thai |
-| ชื่อหน้า / คำทักทาย | 22–26 | 700 | Plex Sans Thai |
-| ตัวเลขในการ์ด | 24 | 700 | Plex Sans Thai |
-| หัวข้อการ์ด | 19 | 600 | Plex Sans Thai |
-| เนื้อหาหลัก | 17–18 | 400–600 | Looped |
-| ตัวรอง / ป้ายเมนู | 15–16 | 500 | Looped |
-| เล็กสุด | 14 | 400 | Looped |
+| Status title | 28 | 700 | Plex Sans Thai |
+| Screen title / greeting | 22–26 | 700 | Plex Sans Thai |
+| Card numbers | 24 | 700 | Plex Sans Thai |
+| Card title | 19 | 600 | Plex Sans Thai |
+| Main body | 17–18 | 400–600 | Looped |
+| Secondary / tab labels | 15–16 | 500 | Looped |
+| Smallest | 14 | 400 | Looped |
 
-ระยะบรรทัด 1.4–1.55 · รองรับการขยายตัวอักษรจากตั้งค่าแอปและตั้งค่าระบบ (เลย์เอาต์ต้องไม่แตก)
-
----
-
-## 3. ขนาด ระยะ มุมโค้ง
-
-- ขนาดจออ้างอิง 390 × 844
-- ระยะขอบหน้า 20 · ระยะระหว่างการ์ด 14 · padding การ์ด 16–20
-- มุมโค้ง: การ์ดใหญ่ 24 · การ์ดเล็ก 20 · กล่องคำแนะนำ 14–18 · ปุ่มเต็มความกว้าง = ครึ่งความสูง (แคปซูล)
-- **จุดกดขั้นต่ำ 48 × 48** · ปุ่มหลักสูง 56 · ปุ่มรองสูง 52 · ปุ่มเลือกคำตอบสูง 44
-- เงา: เฉพาะปุ่มลอย `0 1px 3px rgba(18,48,58,0.12)` การ์ดไม่มีเงา
+Line height 1.4–1.55 · must support larger text from app settings and system settings without breaking layout.
 
 ---
 
-## 4. โครงแอป
+## 3. Size, spacing, radius
 
-- **แถบเมนูล่าง 4 แท็บ** (สูง 80): หน้าหลัก (`house`), การเดิน (`footprints`), อุณหภูมิ (`thermometer`), แจ้งเตือน (`bell` + ป้ายตัวเลขสีแดง `#B42318`)
-  - แท็บที่เลือก: ไอคอนในแคปซูล 56×30 พื้น `primarySoft`, ตัวอักษร `primary` 700
-- **ตั้งค่า:** ปุ่มเฟือง 48×48 มุมขวาบนของหน้าหลัก
-- **เชื่อมต่ออุปกรณ์:** กดปุ่มเท้าซ้าย/ขวาบนหน้าหลัก
-- **ตรวจเท้าประจำวัน:** ทางเข้ารอยืนยัน (แจ้งเตือน / การ์ดบนหน้าหลัก / แท็บที่ 5)
-- ไม่มี status bar ปลอม
+- Reference screen 390 × 844
+- Page padding 20 · gap between cards 14 · card padding 16–20
+- Radius: large card 24 · small card 20 · tip box 14–18 · full-width buttons = pill (half height)
+- **Minimum touch target 48 × 48** · primary button height 56 · secondary 52 · answer choice 44
+- Shadow only on floating buttons: `0 1px 3px rgba(18,48,58,0.12)`; cards have no shadow
 
 ---
 
-## 5. หน้าหลัก
+## 4. App structure
 
-บนลงล่าง:
-1. **หัว:** วันที่ (16, `inkMuted`) + "สวัสดี คุณ[ชื่อ]" (26/700) + ปุ่มตั้งค่า
-2. **ปุ่มเท้าซ้าย/ขวา** (grid 2 คอลัมน์ สูง 48): จุดสถานะ (เขียว `#2E7D4F` = ต่ออยู่, เทา `#8A9AA1` = ไม่ได้ต่อ) + "เท้าซ้าย"/"เท้าขวา" + "แบต xx%" หรือ "ไม่ได้เชื่อมต่อ" · แบตต่ำ → ป้ายแบตสีส้ม
-3. **การ์ดสถานะ** (สีตามสถานะ): ไอคอนในวงกลมขาว 56 + หัวข้อ 28 + รายละเอียด 18 + กล่องคำแนะนำ (เฉพาะไม่ใช่ปลอดภัย) + ปุ่ม "เชื่อมต่อแผ่นรองเท้า" (เฉพาะไม่มีข้อมูล)
-4. **การ์ด "น้ำหนักที่เท้ารับอยู่ตอนนี้"** + ลิงก์ "ดูเพิ่ม": ภาพเท้าซ้ายและขวา (มองจากด้านบน, นิ้วโป้งอยู่ด้านใน) จุดตามตำแหน่งใน `sensor_layout.json` + คำอธิบายสี น้อย/ปานกลาง/มาก
-5. **การ์ดเล็ก 2 ใบ:** "ความอุ่นของเท้า" (ต่างกัน x.x° + คำอธิบาย) · "การลงน้ำหนัก" (ซ้าย : ขวา + คำอธิบาย) · ไม่มีข้อมูล → "—" + "ต้องเชื่อมต่อทั้งสองข้าง"
+- **Bottom bar, 4 tabs** (height 80): Home (`house`), Gait (`footprints`), Temperature (`thermometer`), Alerts (`bell` + red count badge `#B42318`). Thai labels: "หน้าหลัก", "การเดิน", "อุณหภูมิ", "แจ้งเตือน".
+  - Selected tab: icon in a 56×30 pill with `primarySoft` background; label `primary`, weight 700
+- **Settings:** 48×48 gear button, top right of Home (label for screen readers: "ตั้งค่า")
+- **Device connection:** tap the left/right foot buttons on Home
+- **Daily foot check:** Home card (section 5, item 4) + in-app evening reminder
+- No fake status bar
 
-### ข้อความตามสถานะ
+---
 
-| สถานะ | หัวข้อ | รายละเอียด (ตัวอย่าง) | คำแนะนำ |
+## 5. Home
+
+Top to bottom:
+1. **Header:** date (16, `inkMuted`) + "สวัสดี คุณ[name]" (26/700) + settings button
+2. **Left/right foot buttons** (2-column grid, height 48): status dot (green `#2E7D4F` = connected, grey `#8A9AA1` = not connected) + "เท้าซ้าย" / "เท้าขวา" + "แบต xx%" or "ไม่ได้เชื่อมต่อ" · low battery → orange battery label
+3. **Status card** (status colours): icon in a 56 white circle + title 28 + detail 18 + advice box (only when not Safe) + button "เชื่อมต่อแผ่นรองเท้า" (only when No data)
+4. **Foot-check card** (only while today's check is not done; whole card tappable): camera icon in a 44 `primarySoft` circle + "วันนี้ยังไม่ได้ดูเท้า" (17/600) + "ถ่ายรูปและตอบคำถาม ใช้เวลา 1 นาที" (15, `inkMuted`) + chevron · border `outlineBtn` 1.5, radius 20
+5. **Card "น้ำหนักที่เท้ารับอยู่ตอนนี้"** + link "ดูเพิ่ม": left and right foot (top view, big toe on the inner side), dots placed from `sensor_layout.json`, legend "น้อย" / "ปานกลาง" / "มาก"
+6. **Two small cards:** "ความอุ่นของเท้า" (difference x.x° + explanation) · "การลงน้ำหนัก" (left : right + explanation) · no data → "—" + "ต้องเชื่อมต่อทั้งสองข้าง"
+
+The page scrolls; the bottom bar stays fixed.
+
+### Copy per status
+
+| Status | Title | Detail (example) | Advice |
 |---|---|---|---|
-| ปลอดภัย | ตอนนี้เท้าปลอดภัย | น้ำหนักและความอุ่นของเท้าทั้งสองข้างอยู่ในเกณฑ์ปกติ | — |
-| ควรระวัง | ควรระวัง | ปลายเท้าซ้ายรับน้ำหนักมากต่อเนื่องนานเกินไป | ลองขยับเท้า เปลี่ยนท่ายืน หรือนั่งพักสักครู่ |
-| ควรพักเท้า | ควรพักเท้าตอนนี้ | เท้าขวาอุ่นกว่าเท้าซ้าย 2.6 องศา ติดต่อกันมาสักพัก | นั่งพักเท้า แล้วตรวจดูว่ามีรอยแดงหรือแผลไหม ถ้าพรุ่งนี้ยังเป็นอยู่ ควรไปพบแพทย์ |
-| ไม่มีข้อมูล | ยังไม่ได้รับข้อมูล | ยังไม่ได้เชื่อมต่อแผ่นรองเท้า จึงยังบอกไม่ได้ว่าเท้าปลอดภัยหรือไม่ | (ปุ่มเชื่อมต่อ) |
+| Safe | "ตอนนี้เท้าปลอดภัย" | "น้ำหนักและความอุ่นของเท้าทั้งสองข้างอยู่ในเกณฑ์ปกติ" | — |
+| Be careful | "ควรระวัง" | "ปลายเท้าซ้ายรับน้ำหนักมากต่อเนื่องนานเกินไป" | "ลองขยับเท้า เปลี่ยนท่ายืน หรือนั่งพักสักครู่" |
+| Rest your feet | "ควรพักเท้าตอนนี้" | "เท้าขวาอุ่นกว่าเท้าซ้าย 2.6 องศา ติดต่อกันมาสักพัก" | "นั่งพักเท้า แล้วตรวจดูว่ามีรอยแดงหรือแผลไหม ถ้าพรุ่งนี้ยังเป็นอยู่ ควรไปพบแพทย์" |
+| No data | "ยังไม่ได้รับข้อมูล" | "ยังไม่ได้เชื่อมต่อแผ่นรองเท้า จึงยังบอกไม่ได้ว่าเท้าปลอดภัยหรือไม่" | (connect button) |
 
-รายละเอียดจริงสร้างจากกฎที่ทำให้เกิดสถานะ (รหัสแจ้งเตือน + ข้างเท้า + ตำแหน่ง) เป็นภาษาง่าย ห้ามแสดง kPa / ΔT / PAI บนหน้านี้
+The real detail text is generated from the rule that caused the status (alert code + foot side + zone) in plain Thai. Never show kPa / ΔT / PAI on Home.
 
 ---
 
-## 6. ตรวจเท้าประจำวัน
+## 6. Daily foot check
 
-| จอ | เนื้อหา |
+| Screen | Content |
 |---|---|
-| **เริ่มต้น** | หัว "ตรวจเท้าประจำวัน" + การ์ด "ใช้เวลาประมาณ 1 นาที" + เหตุผล (แผ่นรองเท้าวัดได้เฉพาะใต้ฝ่าเท้า…) · ขั้นตอน 1–3 · กล่องคำแนะนำ (วางโทรศัพท์บนพื้น / ให้ญาติช่วย) · "รูปเก็บไว้ในโทรศัพท์เครื่องนี้เท่านั้น" · ปุ่ม "เริ่มถ่ายรูป" + ปุ่มรอง "ไม่ถ่ายรูป ตอบคำถามอย่างเดียว" |
-| **ถ่ายรูป** | พื้นมืด · "ภาพที่ n จาก 4" · ชื่อมุมใหญ่ (ฝ่าเท้าซ้าย → ฝ่าเท้าขวา → หลังเท้าซ้าย → หลังเท้าขวา) · คำแนะนำแสง · ช่องกล้องพร้อมกรอบรูปเท้าเส้นประ · จุดความคืบหน้า 4 จุด · ปุ่ม "ตั้งเวลา 3 วิ" / ชัตเตอร์ 80 / "ข้ามภาพนี้" |
-| **เทียบและตอบ** | แท็บ 4 มุม · รูปเมื่อวาน vs วันนี้ (วันนี้มีขอบ `primary`) · คำถาม 3 ข้อ: "เห็นรอยแดง หรือผิวเปลี่ยนสีไหม", "เห็นแผล รอยถลอก หรือตุ่มพองไหม", "เท้าบวม หรือผิดรูปไปจากเดิมไหม" · ตัวเลือก "ไม่มี" / "มี / ไม่แน่ใจ" (ส้มเมื่อเลือก) · "แอปไม่ได้ตรวจรูปให้…" · ปุ่ม "บันทึก" |
-| **พบสิ่งผิดปกติ** | การ์ดส้ม "พบสิ่งที่ควรให้แพทย์ดู" + สิ่งที่ตอบ · สิ่งที่ควรทำ 4 ข้อ · กล่องแดง "ไปโรงพยาบาลทันที ถ้ามีไข้ เท้าบวมแดงลาม มีหนอง หรือมีกลิ่น" · ปุ่ม "ดูรูปที่บันทึกไว้" / "เข้าใจแล้ว กลับหน้าหลัก" |
+| **Start** | Title "ตรวจเท้าประจำวัน" + card "ใช้เวลาประมาณ 1 นาที" + reason ("แผ่นรองเท้าวัดได้เฉพาะใต้ฝ่าเท้า การดูเท้าทุกวันช่วยให้เห็นแผลที่ปลายนิ้วหรือหลังเท้า ซึ่งอาจเกิดขึ้นโดยไม่รู้สึกตัว") · steps 1–3 ("ถ่ายรูปเท้า 4 ภาพ ฝ่าเท้าและหลังเท้าทั้งสองข้าง", "ดูรูปวันนี้เทียบกับเมื่อวาน", "ตอบคำถามสั้น ๆ 3 ข้อ") · tip box ("มองฝ่าเท้าไม่ถนัด วางโทรศัพท์บนพื้นแล้วใช้ปุ่มตั้งเวลา หรือให้ญาติช่วยถ่ายก็ได้") · "รูปเก็บไว้ในโทรศัพท์เครื่องนี้เท่านั้น" · primary button "เริ่มถ่ายรูป" + secondary "ไม่ถ่ายรูป ตอบคำถามอย่างเดียว" |
+| **Capture** | Dark background · "ภาพที่ n จาก 4" · large view name in order "ฝ่าเท้าซ้าย" → "ฝ่าเท้าขวา" → "หลังเท้าซ้าย" → "หลังเท้าขวา" · hint "ให้เท้าอยู่ในกรอบ และมีแสงสว่างพอ" · viewfinder with dashed foot outline · 4 progress dots · buttons "ตั้งเวลา 3 วิ" / 80 px shutter / "ข้ามภาพนี้" |
+| **Compare & answer** | Title "เทียบกับเมื่อวาน" · tabs "ฝ่าซ้าย" / "ฝ่าขวา" / "หลังซ้าย" / "หลังขวา" · yesterday vs today (today has a `primary` border) · 3 questions: "เห็นรอยแดง หรือผิวเปลี่ยนสีไหม", "เห็นแผล รอยถลอก หรือตุ่มพองไหม", "เท้าบวม หรือผิดรูปไปจากเดิมไหม" · choices "ไม่มี" / "มี / ไม่แน่ใจ" (orange when selected) · note "แอปไม่ได้ตรวจรูปให้ ถ้าเห็นอะไรผิดปกติหรือไม่แน่ใจ ให้ตอบว่า \"มี / ไม่แน่ใจ\"" · button "บันทึก" |
+| **Something found** | Orange card "พบสิ่งที่ควรให้แพทย์ดู" + what the user reported · "สิ่งที่ควรทำตอนนี้": "ล้างเท้าด้วยน้ำสะอาด แล้วซับให้แห้ง", "ถ้ามีแผล ปิดด้วยผ้าก๊อซสะอาด", "เดินให้น้อยลง และอย่าเดินเท้าเปล่า", "ไปพบแพทย์หรือพยาบาลภายใน 1–2 วัน และนำรูปที่ถ่ายไว้ไปให้ดู" · red box "ไปโรงพยาบาลทันที ถ้ามีไข้ เท้าบวมแดงลามออกไป มีหนอง หรือมีกลิ่น" · buttons "ดูรูปที่บันทึกไว้" / "เข้าใจแล้ว กลับหน้าหลัก" |
 
-ทุกคำตอบ "ไม่มี" → จอยืนยันสั้น ๆ "บันทึกแล้ว เจอกันพรุ่งนี้" (ไม่บอกว่าเท้าปกติ)
-⚠️ ข้อความคำแนะนำทางการแพทย์ต้องให้ผู้เชี่ยวชาญตรวจก่อนใช้จริง
-
----
-
-## 7. อนิเมชัน
-
-ดูแผนหลักข้อ 8 · ค่าเวลาเริ่มต้น: สั้น 200 ms, กลาง 300 ms, ยาว 400 ms · curve `easeOutCubic` (เข้า) / `easeInCubic` (ออก) · วงกระเพื่อมจุด "มาก" รอบละ ~1.6 วิ · ปิดทั้งหมดเมื่อ "ลดการเคลื่อนไหว"
+All answers "ไม่มี" → short confirmation "บันทึกแล้ว เจอกันพรุ่งนี้" (never say the foot is normal).
+⚠️ Medical advice text must be reviewed by a medical expert before real use.
 
 ---
 
-## 8. การเข้าถึง
+## 7. Motion
 
-- คอนทราสต์ตัวอักษร ≥ 4.5:1 (≥ 3:1 สำหรับ 24px ขึ้นไป)
-- ทุกปุ่มไอคอนมี label สำหรับ TalkBack (เช่น "ตั้งค่า", "กลับ", "ถ่ายรูป")
-- ภาพเท้ามีคำอธิบายสำหรับ TalkBack เช่น "เท้าซ้าย ปลายเท้ารับน้ำหนักมาก"
-- สีที่ต้องแยกกันต่างทั้งสีและความสว่าง
+See FLUTTER-PLAN section 8 · default durations: short 200 ms, medium 300 ms, long 400 ms · curves `easeOutCubic` (enter) / `easeInCubic` (exit) · "high" dot pulse ~1.6 s per cycle · all disabled under reduce motion.
+
+---
+
+## 8. Accessibility
+
+- Text contrast ≥ 4.5:1 (≥ 3:1 for 24 px and larger)
+- Every icon-only button has a TalkBack label (e.g. "ตั้งค่า", "กลับ", "ถ่ายรูป")
+- Foot maps have a TalkBack description, e.g. "เท้าซ้าย ปลายเท้ารับน้ำหนักมาก"
+- Colours that must be told apart differ in both hue and lightness

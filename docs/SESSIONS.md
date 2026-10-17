@@ -1,198 +1,199 @@
-# แผนเซสชัน Claude Code — แอป SmartInsole (Flutter) ฉบับที่ 2
+# Claude Code Session Plan — SmartInsole Flutter App (v2)
 
-> ปรับปรุง 17 ต.ค. 2569 · ใช้คู่กับ `docs/FLUTTER-PLAN.md` และ `docs/design/DESIGN-SPEC.md`
-> รัน Claude Code บนคอม Ubuntu ในโฟลเดอร์ `~/development/smartinsole-app`
+> Updated 2026-10-17 · Use together with `docs/FLUTTER-PLAN.md` and `docs/design/DESIGN-SPEC.md`
+> Run Claude Code on the Ubuntu machine in `~/smartinsole-app`
 
 ---
 
-## 0. ข้อตกลงที่ใช้ทุกเซสชัน
+## 0. Rules for every session
 
-| เรื่อง | ข้อตกลง |
+| Topic | Rule |
 |---|---|
-| ลำดับงาน | **วางแผน → ทำ → ตรวจ → สรุป** ห้ามข้าม |
-| อนุมัติแผน | ใช้ plan mode แล้ว**หยุดรอผู้ใช้อนุมัติ**ก่อนเขียนโค้ด |
-| Git | branch `work/<หัวข้อ>` จาก `main` ล่าสุด → push → เปิด PR → **ผู้ใช้ merge เอง** ห้าม push เข้า `main` |
-| สรุป | `docs/reports/NNN-<ชื่อ>.md` (เลขต่อจากเลขสูงสุดจริง) + สรุปในแชทไม่เกิน 10 บรรทัด |
-| ขนาด | งานใหญ่เกินแยกเป็นเซสชันย่อยได้ แต่ละเซสชันย่อยครบ 4 ขั้น |
-| เริ่มใหม่ | `/clear` ก่อนทุกเซสชัน |
-| เว็บเดิม | **ห้ามแก้** ยกเว้นผู้ใช้สั่งเพราะบั๊กกระทบการเก็บข้อมูล |
-| ไม่แน่ใจ | ห้ามเดา ให้ถาม |
+| Order | **Plan → Do → Verify → Report.** Never skip a step. |
+| Plan approval | Use plan mode, then **stop and wait for the user's approval** before changing anything. |
+| Git | Branch `work/<topic>` from the latest `main` → push → open a PR → **the user merges**. Never push to `main`. |
+| Report | `docs/reports/NNN-<name>.md` (next number after the highest existing one) + a chat summary of at most 10 lines |
+| Size | If a session is too big, split it into sub-sessions (A, B, …); each sub-session still does all 4 steps. |
+| New session | The user runs `/clear` before every session. |
+| Web app | **Do not modify** unless the user asks because of a bug that affects data capture. |
+| Uncertainty | Never guess. Ask. |
+| Language | English for everything you write: code, comments, commits, reports, docs. Thai only for quoted UI strings. |
 
-### ขั้นที่ 1: วางแผน
-1. อ่าน `CLAUDE.md`, `mobile/CLAUDE.md` (ถ้ามี), `docs/FLUTTER-PLAN.md`, ส่วนที่เกี่ยวของ `docs/DATA-CONTRACT.md` / `docs/design/DESIGN-SPEC.md` และรายงานล่าสุด
-2. ตรวจ "ต้องมีก่อน" ถ้าไม่ครบให้หยุดและบอก
-3. เสนอแผน: ไฟล์ที่จะสร้าง/แก้, ขั้นตอน, วิธีตรวจแต่ละข้อใน "ผ่านเมื่อ", ความเสี่ยง, คำถาม
-4. **หยุดรออนุมัติ**
+### Step 1: Plan
+1. Read `CLAUDE.md`, `mobile/CLAUDE.md` (if it exists), `docs/FLUTTER-PLAN.md`, the relevant parts of `docs/DATA-CONTRACT.md` / `docs/design/DESIGN-SPEC.md`, and the latest reports.
+2. Check the session's "Requires". If anything is missing, stop and say so.
+3. Propose a plan: files to create/change, ordered steps, how each "Done when" item will be verified, risks, open questions.
+4. **Stop and wait for approval.**
 
-### ขั้นที่ 2: ทำ
-- สร้าง branch, commit ย่อยเป็นช่วง ๆ
-- ทำเฉพาะขอบเขต เจอปัญหานอกขอบเขตให้จดใส่รายงาน
+### Step 2: Do
+- Create the branch; commit in small steps.
+- Stay within scope. Problems found outside scope go into the report, not into code.
 
-### ขั้นที่ 3: ตรวจ
-- `flutter analyze` ไม่มี error และ `flutter test` ผ่าน (ฝั่ง Flutter)
-- ตรวจ diff กับกฎ 16 ข้อ (แผนหลักข้อ 6) ทีละข้อที่เกี่ยวข้อง
-- ตรวจทุกข้อใน "ผ่านเมื่อ"
-- ข้อที่ต้องดูบนมือถือหรือ ESP32 จริง → เขียนรายการให้ผู้ใช้ทำ แล้ว**รอผล** ห้ามสรุปว่าผ่านเอง
+### Step 3: Verify
+- Flutter work: `flutter analyze` has no errors and `flutter test` passes.
+- Check your diff against the 16 rules in `docs/FLUTTER-PLAN.md` section 6, one relevant rule at a time.
+- Check every "Done when" item.
+- Anything that needs the phone or real ESP32 → write a checklist for the user and **wait for their results**. Never mark it passed yourself.
 
-### ขั้นที่ 4: สรุป
-1. เขียนรายงาน: ทำอะไร / ผลตรวจแต่ละข้อ (ผ่าน, ไม่ผ่าน, รอผู้ใช้) / ค้าง / ต้องตัดสินใจ / ข้อเสนอเซสชันถัดไป
-2. อัปเดต `docs/BACKLOG.md` ถ้ามีงานค้างใหม่
-3. commit → push → เปิด PR
-4. สรุปในแชทสั้น ๆ พร้อมชี้ไปที่รายงาน
-
----
-
-## 1. พรอมต์แม่แบบ
-
-```
-เซสชัน [รหัส]: [ชื่อ]
-อ่าน docs/SESSIONS.md หัวข้อ 0 แล้วทำตามลำดับ วางแผน → ทำ → ตรวจ → สรุป
-ใช้ plan mode และหยุดรอฉันอนุมัติแผนก่อนลงมือ
-รายละเอียดอยู่ใน docs/SESSIONS.md หัวข้อ [รหัส]
-ข้อมูลเพิ่มเติม: [ถ้ามี]
-```
+### Step 4: Report
+1. Write the report: what was done / result of each check (pass, fail, waiting on user) / leftovers / decisions needed / suggestion for next session.
+2. Update `docs/BACKLOG.md` if there is new leftover work.
+3. Commit → push → open PR.
+4. Short chat summary pointing to the report.
 
 ---
 
-## 2. ภาพรวม
+## 1. Prompt template (prompts are always in English)
 
-| วัน | เซสชัน | ใครทำ | งาน | Branch |
+```
+Session [ID]: [title]
+Read docs/SESSIONS.md section 0 and follow it in order: Plan → Do → Verify → Report.
+Use plan mode and stop for my approval before writing any code.
+Session details are in docs/SESSIONS.md, section [ID].
+Additional info: [optional]
+```
+
+---
+
+## 2. Overview
+
+| Day | Session | Who | Work | Branch |
 |---|---|---|---|---|
-| 0 | S0A ✅ | ผู้ใช้ | ติดตั้ง Flutter, SDK, Note 10, Claude Code | — |
-| 0 | S0B | Claude Code | ตั้งโครง repo + ใส่เอกสาร | `work/repo-setup` |
-| 1 | S1A ◐ | Claude แชท + ผู้ใช้ | ดีไซน์: หน้าหลัก ✅, ตรวจเท้า ✅, อีก 5 หน้า (ทำคู่ขนาน) | — |
-| 1 | S1B | Claude Code | โครง `mobile/` + ธีม + ฟอนต์ + อนิเมชันกลาง + 7 หน้าเปล่า | `work/flutter-scaffold` |
+| 0 | S0A ✅ | User | Install Flutter, SDK, Note 10, Claude Code | — |
+| 0 | S0B | Claude Code | Repo setup + docs | `work/repo-setup` |
+| 1 | S1A ◐ | Claude chat + user | Design: Home ✅, Foot check ✅, 5 more screens (in parallel) | — |
+| 1 | S1B | Claude Code | `mobile/` scaffold + theme + fonts + shared motion + 7 empty screens | `work/flutter-scaffold` |
 | 2 | S2A | Claude Code | Parser + test vectors | `work/flutter-parser` |
-| 2 | S2B | Claude Code + ผู้ใช้ | Simulator ใหม่ ส่วนหลัก | `work/sim-core` |
-| 3 | S2C | Claude Code + ผู้ใช้ | Simulator ใหม่ ส่วนคำสั่ง + 2 การเชื่อมต่อ | `work/sim-control` |
-| 3 | S3A | Claude Code + ผู้ใช้ | BLE ต่อ 2 ข้าง | `work/flutter-ble` |
-| 4 | S3B | ผู้ใช้ + Claude Code | ทดสอบแล็ปท็อป + มือถือพร้อมกัน | `work/dual-central-test` |
-| 4 | S4 | Claude Code + ผู้ใช้ | DeviceManager + ตรวจเวลา | `work/flutter-device-manager` |
-| 5 | S5 | Claude Code | Heatmap + หน้าหลัก + อนิเมชัน | `work/flutter-home` |
+| 2 | S2B | Claude Code + user | New simulator: core | `work/sim-core` |
+| 3 | S2C | Claude Code + user | New simulator: control + 2 concurrent connections | `work/sim-control` |
+| 3 | S3A | Claude Code + user | BLE, both feet | `work/flutter-ble` |
+| 4 | S3B | User + Claude Code | Laptop + phone connected at the same time | `work/dual-central-test` |
+| 4 | S4 | Claude Code + user | DeviceManager + timing checks | `work/flutter-device-manager` |
+| 5 | S5 | Claude Code | Heatmap + Home + animation | `work/flutter-home` |
 | 6 | S6A | Claude Code | SQLite | `work/flutter-storage` |
-| 6 | S6B | Claude Code | หน้าอุณหภูมิ + แจ้งเตือน | `work/flutter-temp-alerts` |
-| 7 | S7 | Claude Code | กฎ 9 รหัส + ระดับความเสี่ยง + แปลง 3 ระดับ | `work/flutter-rules` |
-| 8 | S8A | Claude Code | หน้าการเดิน + ช่องโมเดล | `work/flutter-gait` |
-| 8 | S8B | Claude Code | หน้าเชื่อมต่อ + ตั้งค่า | `work/flutter-connect-settings` |
-| 9 | S8C | Claude Code + ผู้ใช้ | ตรวจเท้าประจำวัน | `work/flutter-footcheck` |
-| 10 | S9 | ผู้ใช้ + Claude Code | ทดสอบรวม + APK | `work/flutter-integration` |
-| 11 | S10 | Claude Code | เก็บงาน + เอกสาร + รูปหน้าจอ | `work/flutter-wrapup` |
+| 6 | S6B | Claude Code | Temperature + Alerts screens | `work/flutter-temp-alerts` |
+| 7 | S7 | Claude Code | 9 alert rules + risk level + 3-level mapping | `work/flutter-rules` |
+| 8 | S8A | Claude Code | Gait screen + model slot | `work/flutter-gait` |
+| 8 | S8B | Claude Code | Connection + Settings screens | `work/flutter-connect-settings` |
+| 9 | S8C | Claude Code + user | Daily foot check | `work/flutter-footcheck` |
+| 10 | S9 | User + Claude Code | Integration test + APK | `work/flutter-integration` |
+| 11 | S10 | Claude Code | Wrap-up + docs + screenshots | `work/flutter-wrapup` |
 
 ---
 
-## 3. รายละเอียด
+## 3. Session details
 
-### S0B — ตั้งโครง repo
-- **ต้องมีก่อน:** S0A ผ่าน, repo clone ไว้ที่ `~/development/smartinsole-app`, ไฟล์ 3 ไฟล์อยู่ใน `~/Downloads/` (`SmartInsole_Flutter_Plan.md`, `SmartInsole_Flutter_Sessions.md`, `DESIGN-SPEC.md`)
-- **ทำ:**
-  1. คัดลอกไฟล์เป็น `docs/FLUTTER-PLAN.md`, `docs/SESSIONS.md`, `docs/design/DESIGN-SPEC.md`
-  2. สร้าง `shared/` ใส่ `thresholds.json` ต้นฉบับ (คัดลอกจาก `public/thresholds.json`) และ `shared/README.md` บอกว่าเว็บยังใช้ไฟล์เดิมใน `public/` (เว็บแช่แข็ง ห้ามแก้)
-  3. สร้าง `firmware/simulator/README.md` (ว่าง รอ S2B) และ `.gitignore` สำหรับ `.pio/`, `mobile/build/`, `.dart_tool/`
-  4. เพิ่มหัวข้อ "Flutter app (Oct 2026)" ใน `CLAUDE.md`: เว็บแช่แข็ง, ชี้ไป `docs/FLUTTER-PLAN.md` และ `docs/SESSIONS.md`
-- **ตรวจ:** `npm run build` ผ่าน (เว็บไม่พัง), `git status` ไม่มีไฟล์ build
-- **ผ่านเมื่อ:** PR เปิดแล้ว
+### S0B — Repo setup
+- **Requires:** S0A done; repo at `~/smartinsole-app`; the 3 plan files available.
+- **Do:**
+  1. Put the plan files at `docs/FLUTTER-PLAN.md`, `docs/SESSIONS.md`, `docs/design/DESIGN-SPEC.md`.
+  2. Create `shared/` with `thresholds.json` (copied from `public/thresholds.json`) and `shared/README.md` explaining the web app still uses `public/` (frozen).
+  3. Create `firmware/simulator/README.md` (placeholder until S2B) and `.gitignore` entries for `.pio/`, `mobile/build/`, `.dart_tool/`.
+  4. Add a "Flutter app (Oct 2026)" section to `CLAUDE.md`: web app frozen, pointers to `docs/FLUTTER-PLAN.md` and `docs/SESSIONS.md`.
+- **Verify:** `npm ci && npm run build` passes (web not broken); `git status` shows no build output.
+- **Done when:** PR is open.
 
-### S1A — ดีไซน์ (ในแชท Claude)
-- หน้าหลัก 4 สถานะ ✅ · ตรวจเท้า 4 จอ ✅ · การเดิน / อุณหภูมิ / แจ้งเตือน / เชื่อมต่อ / ตั้งค่า (กำลังทำ)
-- ผลลัพธ์ทุกหน้าอยู่ใน `docs/design/DESIGN-SPEC.md` (อัปเดตเมื่ออนุมัติ)
+### S1A — Design (in Claude chat, not Claude Code)
+- Home (4 states) ✅ · Foot check (4 screens) ✅ · Gait / Temperature / Alerts / Connection / Settings (in progress)
+- Results go into `docs/design/DESIGN-SPEC.md` once approved.
 
-### S1B — โครง `mobile/` + ธีม
-- **ต้องมีก่อน:** S0B merge แล้ว
-- **ทำ:**
-  1. `flutter create --platforms android --org th.ac.kmutt.smartinsole mobile` (ถามผู้ใช้ยืนยัน package id ก่อน)
-  2. ใส่แพ็กเกจตามแผนหลักข้อ 4 (ตรวจเวอร์ชันล่าสุด) เฉพาะที่ใช้ในเซสชันนี้: Riverpod, `flutter_animate`, `animations`
-  3. โครงโฟลเดอร์ `lib/` ตามแผนหลักข้อ 3
-  4. ธีมจาก DESIGN-SPEC: สี, ตัวอักษร, ขนาด, มุมโค้ง, ระยะห่าง
-  5. **ฝังฟอนต์** IBM Plex Sans Thai และ IBM Plex Sans Thai Looped ใน `assets/fonts/` (ดาวน์โหลดจาก Google Fonts / GitHub ของ IBM ตรวจ license OFL)
-  6. ไฟล์อนิเมชันกลาง `lib/ui/motion.dart` (ค่าเวลา, curve, ตัวเช็ก "ลดการเคลื่อนไหว")
-  7. 7 หน้าเปล่า + แถบเมนูล่าง 4 แท็บ (หน้าหลัก, การเดิน, อุณหภูมิ, แจ้งเตือน) + ปุ่มตั้งค่า + ทางไปหน้าเชื่อมต่อและตรวจเท้า
-  8. `mobile/CLAUDE.md`: กฎ 16 ข้อ, คำสั่งที่ใช้บ่อย, หลักอนิเมชัน, ห้ามแก้เว็บ
-  9. `config/feature_flags.dart` มี `footCheckPhotos` (ค่าเริ่มต้นตามแผนหลักข้อ 2)
-- **ตรวจ:** analyze/test ผ่าน · widget test ว่าทุกหน้าเปิดได้ · **ผู้ใช้:** รันบน Note 10 สลับครบ 7 หน้า ฟอนต์ไทยแสดงถูก
-- **ผ่านเมื่อ:** สลับ 7 หน้าบน Note 10 ได้ หน้าตาตรงธีม
+### S1B — `mobile/` scaffold + theme
+- **Requires:** S0B merged.
+- **Do:**
+  1. `flutter create --platforms android --org th.ac.kmutt.smartinsole mobile` (ask the user to confirm the package id first).
+  2. Add only the packages needed now (latest stable): Riverpod, `flutter_animate`, `animations`.
+  3. `lib/` folders as in FLUTTER-PLAN section 3.
+  4. Theme from DESIGN-SPEC: colours, type scale, radii, spacing.
+  5. **Bundle fonts** IBM Plex Sans Thai and IBM Plex Sans Thai Looped in `assets/fonts/` (from Google Fonts or IBM's GitHub; check the OFL licence).
+  6. Shared motion file `lib/ui/motion.dart` (durations, curves, reduce-motion check).
+  7. 7 empty screens + bottom bar with 4 tabs (Home, Gait, Temperature, Alerts) + Settings button + routes to Connection and Foot check.
+  8. Home placeholder includes the slot for the "foot check not done today" card (no logic yet).
+  9. `mobile/CLAUDE.md`: the 16 rules, common commands, motion rules, "do not touch the web app", English-only rule.
+- **Verify:** analyze/test pass · widget test that every screen opens · **User:** run on Note 10, switch through all 7 screens, Thai font renders correctly.
+- **Done when:** all 7 screens reachable on the Note 10 and the look matches the theme.
 
 ### S2A — Parser + test vectors
-- **ต้องมีก่อน:** S1B merge แล้ว
-- **ทำ:** สคริปต์ Node ใช้ parser TS เดิม (อ่านอย่างเดียว ไม่แก้เว็บ) สร้าง `shared/test_vectors/*.json` (packet ปกติ, `count`<8, ADC 0/4095, `offset_adc`, อุณหภูมิ `-32768`, quality 1/2, status ทุก state, calibration blob) → parser Dart รองรับ N → แปลงหน่วยตาม `BLE-INTERFACE.md`
-- **ตรวจ:** ผ่าน test vectors 100%, N = 4/6/8 ผ่าน, kPa ตรง TS ทศนิยม 3 ตำแหน่ง
-- **ผ่านเมื่อ:** Dart กับ TS ให้ค่าตรงกันทุกกรณี
+- **Requires:** S1B merged.
+- **Do:** a Node script that uses the existing TS parser (read-only, do not modify the web app) to generate `shared/test_vectors/*.json` (normal packet, `count` < 8, ADC 0/4095, `offset_adc`, temperature `-32768`, quality 1/2, every status state, calibration blob) → Dart parser supporting N FSR → unit conversion per `BLE-INTERFACE.md`.
+- **Verify:** 100% of test vectors pass; N = 4/6/8 pass; kPa matches TS to 3 decimal places.
+- **Done when:** Dart and TS give identical values for every case.
 
-### S2B — Simulator ใหม่ ส่วนหลัก
-- **ต้องมีก่อน:** S0B merge แล้ว, PlatformIO ติดตั้งแล้ว, บอร์ด ESP32 (รุ่นที่มี BLE) อย่างน้อย 1 ตัว
-- **ทำ:** PlatformIO + NimBLE-Arduino ตาม `BLE-INTERFACE.md`: advertise ด้วย Service UUID, GATT 5 characteristic, ส่งเซนเซอร์ 8 samples/packet ที่ 6.25 Hz (ข้อมูลการเดินสังเคราะห์), อุณหภูมิทุก 30 วิ, status, build flag `FOOT_SIDE` และ `FSR_COUNT`
-- **ตรวจ:** `pio run` ผ่านทั้ง env L/R · **ผู้ใช้:** แฟลชแล้วเปิดเว็บเดิมต่อได้ เห็นข้อมูล
-- **ผ่านเมื่อ:** เว็บเดิมแสดงข้อมูลจาก simulator ได้
+### S2B — New simulator: core
+- **Requires:** S0B merged; PlatformIO installed; at least one BLE-capable ESP32.
+- **Do:** PlatformIO + NimBLE-Arduino per `BLE-INTERFACE.md`: advertise the Service UUID, 5 GATT characteristics, sensor stream 8 samples/packet at 6.25 Hz (synthetic gait data), temperature every 30 s, status; build flags `FOOT_SIDE` and `FSR_COUNT`. Keep data generation in separate functions (future scenario mode).
+- **Verify:** `pio run` passes for both L and R envs · **User:** flash and connect with the existing web app; data appears.
+- **Done when:** the web app shows data from the simulator.
 
-### S2C — Simulator ใหม่ ส่วนคำสั่ง
-- **ต้องมีก่อน:** S2B merge แล้ว, ผู้ใช้ตอบเรื่องคำสั่ง `0x10` แล้ว
-- **ทำ:** `START/STOP/SYNC_TIME/SET_RATE/TARE/REBOOT`, calibration blob (JSON, อ่านแบบ long read), รับการเชื่อมต่อพร้อมกันอย่างน้อย 2 ตัว, (ถ้าอนุมัติ) `0x10 SET_SCENARIO` เช่น เขย่ง / ลงส้น / ΔT ขวา +2.6° / แรงกดสูง
-- **ตรวจ:** **ผู้ใช้:** ทำตาม `docs/BLE-TEST-CHECKLIST.md` กับเว็บเดิม, ต่อ 2 เครื่องพร้อมกันได้
-- **ผ่านเมื่อ:** ผ่านเช็กลิสต์ และไม่มีพฤติกรรมต่างจาก contract
+### S2C — New simulator: control
+- **Requires:** S2B merged.
+- **Do:** `START/STOP/SYNC_TIME/SET_RATE/TARE/REBOOT`, calibration blob (JSON, long read), at least 2 concurrent connections. **Do not** implement `0x10 SET_SCENARIO` now (backlog).
+- **Verify:** **User:** run `docs/BLE-TEST-CHECKLIST.md` against the web app; two centrals connect at once.
+- **Done when:** checklist passes and nothing deviates from the contract.
 
-### S3A — BLE ต่อ 2 ข้าง
-- **ต้องมีก่อน:** S2A, S2C merge แล้ว, บอร์ด L และ R แฟลชแล้ว
-- **ทำ:** `BleDataSource` ข้างละ 1 ตัวตามลำดับในแผนหลักข้อ 5, ปฏิเสธผิดข้าง, ต่อใหม่อัตโนมัติ, ขอ permission, หน้าดีบักชั่วคราว
-- **ตรวจ:** unit test ลำดับเชื่อมต่อด้วย fake BLE · **ผู้ใช้:** ต่อ 2 ข้าง, ปิด-เปิดบอร์ดแล้วต่อกลับเอง, สลับช่องแล้วถูกปฏิเสธ
-- **ผ่านเมื่อ:** ข้อมูล 2 ข้างไหลต่อเนื่อง 5 นาที
+### S3A — BLE, both feet
+- **Requires:** S2A and S2C merged; L and R boards flashed.
+- **Do:** one `BleDataSource` per foot following FLUTTER-PLAN section 5; reject wrong side; auto-reconnect; runtime permissions; temporary debug screen.
+- **Verify:** unit test of the connect sequence with a fake BLE · **User:** connect both, power-cycle a board and confirm auto-reconnect, swap slots and confirm rejection.
+- **Done when:** both feet stream continuously for 5 minutes.
 
-### S3B — แล็ปท็อป + มือถือพร้อมกัน
-- **ทำ:** ขั้นตอนทดสอบ + สคริปต์วิเคราะห์ CSV จากเว็บ (หา `seq` หาย, ระยะห่าง sample)
-- **ตรวจ (ผู้ใช้ทำแล้วส่งผล):** 10 นาที CSV ไม่มี `seq` หาย มือถือแสดงผลต่อเนื่อง
-- **ถ้าไม่ผ่าน:** ทางถอย = วันเก็บข้อมูลใช้แล็ปท็อปอย่างเดียว แอปทดสอบแยกช่วง
-- **ผ่านเมื่อ:** เก็บข้อมูลบนแล็ปท็อปครบขณะมือถือแสดงผล หรือผู้ใช้ยืนยันทางถอย
+### S3B — Laptop + phone at the same time
+- **Do:** a test procedure + a script that analyses the web app's CSV (missing `seq`, sample spacing).
+- **Verify (user runs it, sends results):** 10 minutes, no missing `seq` in the CSV, phone display continuous.
+- **If it fails:** fallback = laptop only on study days; test the phone app separately.
+- **Done when:** laptop capture is complete while the phone displays, or the user accepts the fallback.
 
-### S4 — DeviceManager + ตรวจเวลา
-- **ทำ:** 50 Hz คำนวณ / 10 Hz แสดงผล, stale ตอนอ่าน, ΔT null ถ้าขาดข้าง, ตรวจ `seq`, ทิ้ง packet ค้าง, `SYNC_TIME` ทุก 5 นาที, ประวัติอุณหภูมิ, log เวลา
-- **ตรวจ:** unit test (stale, ΔT null, packet ค้าง, seq wrap 65535) · **ผู้ใช้:** รัน 10 นาทีส่ง log
-- **ผ่านเมื่อ:** L/R ห่าง ≤ ±10 ms, ระยะ 20 ms, ไม่มี packet หาย · **ไม่ผ่านห้ามไป S5**
+### S4 — DeviceManager + timing
+- **Do:** 50 Hz processing / 10 Hz display, read-time staleness, ΔT null when a foot is missing, `seq` gap detection, stale-packet drop, `SYNC_TIME` every 5 min, temperature history, timing log.
+- **Verify:** unit tests (stale, ΔT null, stale packet, seq wrap at 65535) · **User:** run 10 minutes and send the log.
+- **Done when:** L/R offset ≤ ±10 ms, 20 ms spacing, no lost packets. **Do not start S5 if this fails.**
 
-### S5 — Heatmap + หน้าหลัก
-- **ทำ:** Heatmap ด้วย `CustomPainter` จาก `sensor_layout.json`, หน้าหลักตาม DESIGN-SPEC ครบ 4 สถานะ, อนิเมชันตามแผนหลักข้อ 8
-- **ตรวจ:** widget test 4 สถานะ (ไม่มีข้อมูลต้องไม่ใช่สีเขียว), ทดสอบปิดอนิเมชันเมื่อ "ลดการเคลื่อนไหว" · **ผู้ใช้:** กดเซนเซอร์แล้วสีเปลี่ยนตรงจุด ไม่กระตุก
-- **ผ่านเมื่อ:** ตรง mockup และลื่น
+### S5 — Heatmap + Home
+- **Do:** heatmap with `CustomPainter` from `sensor_layout.json`; Home per DESIGN-SPEC in all 4 states; animations per FLUTTER-PLAN section 8.
+- **Verify:** widget tests for the 4 states (no-data must not be green); reduce-motion disables animations · **User:** press a sensor, the right dot changes colour, no stutter.
+- **Done when:** matches the mockup and runs smoothly.
 
 ### S6A — SQLite
-- **ทำ:** ตารางแจ้งเตือน, ประวัติอุณหภูมิ, สรุปรายวัน, บันทึกตรวจเท้า (วันที่, คำตอบ, path รูป) ด้วย `drift` แบบ repository pattern
-- **ตรวจ:** unit test เขียน/อ่าน/ลบข้อมูลเกิน 30 วัน
-- **ผ่านเมื่อ:** ข้อมูลอยู่หลังปิดเปิดแอป
+- **Do:** tables for alerts, temperature history, daily summary, foot-check entries (date, answers, photo paths) with `drift`, behind a repository pattern.
+- **Verify:** unit tests for write/read/delete of data older than 30 days.
+- **Done when:** data survives an app restart.
 
-### S6B — หน้าอุณหภูมิ + แจ้งเตือน
-- **ต้องมีก่อน:** S5, S6A merge แล้ว, ดีไซน์ 2 หน้านี้อนุมัติแล้ว
-- **ทำ:** ตาม DESIGN-SPEC + อนิเมชัน
-- **ตรวจ:** widget test · **ผู้ใช้:** อุ่นเซนเซอร์ข้างหนึ่ง ΔT เปลี่ยนตาม
-- **ผ่านเมื่อ:** แสดงข้อมูลจริง
+### S6B — Temperature + Alerts
+- **Requires:** S5 and S6A merged; these two designs approved.
+- **Do:** per DESIGN-SPEC + animations.
+- **Verify:** widget tests · **User:** warm one temperature sensor, ΔT follows.
+- **Done when:** both screens show live data.
 
-### S7 — กฎแจ้งเตือน
-- **ทำ:** 9 รหัสตาม contract ข้อ 8.3, walking gate, ΔT 2 ครั้ง, กันซ้ำ 30 นาที, ระดับ 1–5 (ค่าสูงสุด), แปลง 3 ระดับตามแผนหลักข้อ 7, ข้อความภาษาไทยง่ายทุกรหัส, ค่าเกณฑ์จาก `thresholds.json`
-- **ตรวจ:** unit test ทุกรหัส (เข้า / ไม่เข้า / ขอบเกณฑ์) และทุกแถวของตารางแปลง
-- **ผ่านเมื่อ:** ทุกกฎผ่าน ไม่มีตัวเลขเกณฑ์ในโค้ด
+### S7 — Alert rules
+- **Do:** 9 codes per contract §8.3, walking gate, ΔT 2 consecutive readings, 30-minute repeat suppression, level 1–5 (max), 3-level mapping per FLUTTER-PLAN section 7, plain-Thai advice for every code, thresholds from `thresholds.json`.
+- **Verify:** unit tests for every code (trigger / no trigger / boundary) and every row of the mapping table.
+- **Done when:** every rule passes; no threshold numbers in code.
 
-### S8A — หน้าการเดิน
-- **ทำ:** PAI, CoP, จำนวนก้าว, `GaitClassifier` (Rule + โครง TFLite ใน isolate), ข้อความ "ค่าประมาณ ไม่ใช่การวินิจฉัย", อนิเมชัน
-- **ผ่านเมื่อ:** แสดงค่าจริง สลับตัวจำแนกได้โดยไม่แก้หน้าจอ
+### S8A — Gait screen
+- **Do:** PAI, CoP, step count, `GaitClassifier` (rules + TFLite skeleton in an isolate), label "estimate, not a diagnosis", animations.
+- **Done when:** live values shown; classifier swappable without touching the screen.
 
-### S8B — หน้าเชื่อมต่อ + ตั้งค่า
-- **ทำ:** ต่อซ้าย/ขวาทีละข้าง, สถานะ, แบต, firmware, อนิเมชันค้นหา/สำเร็จ · ตั้งค่า: ขนาดตัวอักษร, เสียง, TARE (ยืนยันก่อน), เวลาเตือนตรวจเท้า, ข้อมูลแอป · ซ่อนหน้าดีบัก
-- **ตรวจ:** **ผู้ใช้** ต่ออุปกรณ์เองโดยไม่มีคำแนะนำ
-- **ผ่านเมื่อ:** ผู้ใช้ต่อเองได้
+### S8B — Connection + Settings
+- **Do:** connect left/right separately, per-side status, battery, firmware, scanning/success animations · Settings: text size, sound, TARE (with confirmation), foot-check reminder time, app info · hide the debug screen.
+- **Verify:** **User** connects the devices without instructions.
+- **Done when:** the user can connect unaided.
 
-### S8C — ตรวจเท้าประจำวัน
-- **ต้องมีก่อน:** S6A merge แล้ว, ผู้ใช้ตอบเรื่องทางเข้าแล้ว
-- **ทำ:** 4 จอตาม DESIGN-SPEC, กล้องพร้อมกรอบนำ + ตั้งเวลา, เก็บรูปในโฟลเดอร์แอป, เทียบกับเมื่อวาน, คำถาม 3 ข้อ, "ไม่แน่ใจ" = ผิดปกติ, ผลผิดปกติบันทึกเป็นแจ้งเตือน, แจ้งเตือนในแอปตอนเย็น, feature flag `footCheckPhotos`, ลบรูปได้
-- **ตรวจ:** unit/widget test ตรรกะคำตอบ, flag ปิดแล้วไม่มีทางเข้ากล้อง · **ผู้ใช้:** ถ่ายจริงบน Note 10, รูปไม่หลุดไปแกลเลอรี
-- **ผ่านเมื่อ:** ทำครบ 1 รอบได้ภายใน ~1 นาที และรูปอยู่ในแอปเท่านั้น
+### S8C — Daily foot check
+- **Requires:** S6A merged.
+- **Do:** 4 screens per DESIGN-SPEC; Home card shown until today's check is done; camera with guide outline + self-timer; photos in the app's private folder; compare with yesterday; 3 questions; "not sure" = abnormal; abnormal result logged as an alert; in-app evening reminder; photos deletable.
+- **Verify:** unit/widget tests for answer logic and the Home card · **User:** real photos on the Note 10; photos do not appear in the gallery.
+- **Done when:** a full check takes about 1 minute and photos stay inside the app.
 
-### S9 — ทดสอบรวม + APK
-- **ทำ:** เช็กลิสต์ทดสอบรวม, 30 นาทีกับบอร์ด 2 ตัว + แล็ปท็อป, วัดแบตและความลื่น, ทดสอบ "ลดการเคลื่อนไหว", build APK release
-- **ผ่านเมื่อ:** APK ใช้ได้ครบ 30 นาทีไม่มีปัญหาร้ายแรง
+### S9 — Integration + APK
+- **Do:** integration checklist; 30 minutes with 2 boards + laptop; battery and smoothness; reduce-motion; release APK.
+- **Done when:** the APK works for 30 minutes with no serious issues.
 
-### S10 — เก็บงาน
-- **ทำ:** แก้บั๊กค้าง, อัปเดต `mobile/CLAUDE.md`, `docs/PROGRESS.md`, `docs/BACKLOG.md`, รูปหน้าจอทุกหน้าลง `docs/screenshots/`
-- **ผ่านเมื่อ:** เอกสารตรงกับโค้ด
+### S10 — Wrap-up
+- **Do:** fix leftover bugs; update `mobile/CLAUDE.md`, `docs/PROGRESS.md`, `docs/BACKLOG.md`; screenshots of every screen in `docs/screenshots/`.
+- **Done when:** docs match the code.
 
 ---
 
-## 4. ถ้าไม่ผ่าน
-- ห้ามไปเซสชันที่ "ต้องมีก่อน" อ้างถึง
-- เปิด `S<เลข>-fix` ทำครบ 4 ขั้น
-- ติดเกิน 1 วัน กลับมาปรึกษาในแชท Claude
+## 4. If a session fails
+- Do not start any session whose "Requires" depends on it.
+- Open `S<ID>-fix` and do all 4 steps.
+- If stuck for more than a day, the user brings it back to Claude chat to re-plan.
