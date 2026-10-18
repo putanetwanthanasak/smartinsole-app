@@ -64,7 +64,7 @@ battery floor at 50 %, both as in S2B and still tested.
 | Live, 15 s stream + 1 reconnect + opcode phase, after both fixes | **Pass**: 52/52 |
 | Two centrals (laptop + Note 10), laptop side | **Pass**: 22/22, 4 device-wide state checks reported only. Details below |
 | Two centrals, phone side, from the serial log | **Pass**. Details below |
-| Two centrals, what you saw on the phone | **Waiting on you**: see "Decisions needed" |
+| Two centrals, what you saw on the phone | **Pass** (your report): at MTU 120 the `…45901` value looked shorter (the 104-byte length itself comes from the serial log: MTU 120 → 4 samples/packet), and it kept changing after the laptop stopped |
 | FLUTTER-PLAN §6 rules | 1 ✓ the t0 step stays 160 ms through `SET_RATE 25` and after REBOOT. 8 ✓ `foot_side` checked after REBOOT. 9 ✓ no stale packets: nothing arrives before START, per-connection `seq`, BACKLOG 20 revised. 12 ✓ no thresholds in the firmware; `sim_check` reads `watchKpa` from `shared/thresholds.json`. The other rules are app-side |
 | Emulator / Note 10 checkpoint | Not applicable: no UI. The phone was a test central only |
 
@@ -153,11 +153,8 @@ works. Timeline from the serial log (laptop stream 18:57:50 → 19:02:53):
 
 ## Decisions needed
 
-1. **Phone-side confirmation.** The serial log shows the phone's session
-   kept sending after the laptop left, but not what nRF Connect displayed.
-   Please confirm: (a) the `…45901` value was 104 bytes at MTU 120, and
-   (b) it kept changing after the laptop stopped at 19:02:53. "Done when"
-   is met on the logged evidence; I'll update this line with your answer.
+1. ~~Phone-side confirmation~~ — answered: (a) the value looked shorter at
+   MTU 120, (b) it kept changing after the laptop stopped at 19:02:53.
 2. **Optional:** remove the stray ACL from the modem:
    `sudo setfacl -x u:pumon /dev/ttyUSB1`, after checking with
    `ls -l /dev/serial/by-id/` that `ttyUSB1` is still the Quectel.
