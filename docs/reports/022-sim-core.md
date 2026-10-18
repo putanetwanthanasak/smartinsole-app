@@ -36,6 +36,9 @@ Branch `work/sim-core` · 2026-10-18 · Session S2B (`docs/SESSIONS.md` §3)
    stream. It exits non-zero on any failure.
 6. README rewritten. BACKLOG **17** (two centrals) and **18** (scenario
    mode) added.
+7. **After review** (your two follow-ups, see "Review follow-ups" below):
+   normal walking scaled below `watchKpa`, and `seq`/`t0` behaviour across
+   connections documented and checked live (BACKLOG 19, 20).
 
 ### Your additional requirements
 
@@ -51,12 +54,14 @@ Branch `work/sim-core` · 2026-10-18 · Session S2B (`docs/SESSIONS.md` §3)
 | Check | Result |
 |---|---|
 | `pio run -e left -e right -e left_fsr8` | **Pass**: RAM 11.8 %, flash 47.0 % |
-| `pio test -e native` | **Pass**: 23/23 test cases |
+| `pio test -e native` | **Pass**: 24/24 test cases (23 + the `watchKpa` test added after review) |
 | Encoders vs `shared/test_vectors/` | **Pass**: 33/33 encodable cases byte-for-byte (sensor N = 6: 15, N = 4: 3, N = 8: 3; temperature 9; status 13). The 7 parser-reject cases are excluded and listed in the test |
 | The tests catch real encoder bugs | **Pass**: a wrong reserved byte and a wrong `t0` high half both failed the vector tests, then were reverted |
 | `sim_check.py --selftest` | **Pass**: 69/69 cases, including kPa against the TS values |
 | **Live, left, 600 s** | **Pass**, 0 failures. Details below |
 | Live, right, 120 s | **Pass**: `foot_side` 1, name `SMARTINSOLE-R` |
+| Live, left, 60 s, scaled walk (after review) | **Pass**: peaks hallux 39.7, meta1 49.8, meta3 44.8, meta5 31.8, midfoot 17.9, heel 59.6 kPa |
+| Reconnect × 2 (after review) | **Pass**: each new connection got 0 packets before START, first `seq` 0, `t0` continued from boot (488 285 → 495 765 → 505 345 ms), no gaps |
 | Wrong side is caught | **Pass**: `--side R` against the left board fails on `foot_side` |
 | Serial log | Clean boot. MTU 247 → 8 samples/packet; interval 30 ms, latency 0, timeout 4000 ms; 0 notify failures; heap steady at 218 512 B |
 | Web app, `mobile/`, `shared/` untouched | **Pass**: `git diff main` over those paths is empty |
@@ -93,21 +98,46 @@ encoder tests match every test vector. **Met.**
   float. That only affects test parsing, not the served text, so the test
   checks the text.
 
-## Decision needed
+## Review follow-ups
 
-1. **The synthetic heel peaks at about 125 kPa** (ADC 2630). The other
-   zones peak at 19–75 kPa. That puts the heel above the app's
-   `watchKpa` 75 on every step, though below `alertKpa` 200. Realistic
-   heel pressure in walking is often higher still, but it means the
-   simulator never shows an all-"Safe" Home. Keep it, or scale the normal
-   walk to stay under 75 kPa and leave higher pressure to scenario mode
-   (BACKLOG 18)? Either is one constant in `synth.cpp`.
+1. **Normal walk scaled below the watch level (your decision).** The
+   heel used to peak at about 125 kPa, above `watchKpa` 75. Peaks were
+   rechosen against `pressure.watchKpa` in `shared/thresholds.json`,
+   using the served calibration: hallux 40, meta1 50, meta3 45, meta5 32,
+   midfoot 18, heel 60 kPa (N ≠ 6: 45 kPa). These include the baseline and
+   noise. The firmware does not read the file. A host test
+   (`test_normal_walk_stays_below_watch_kpa`) reads it and fails if any
+   zone reaches 85 % of `watchKpa` (63.75 kPa) over 10 minutes, for N =
+   4/6/8 and both feet. With the old heel value it fails at 124.4 kPa.
+   Higher pressure belongs to scenario mode (BACKLOG 18). The 60 s live run
+   matched the targets.
+2. **`seq` across connections (your question).** `seq` is per connection
+   and restarts at 0 on every `START_STREAM`. This is what the approved
+   plan said, though the earlier report didn't spell it out. `t0_ms` is ms
+   since boot and never restarts. The contract only says `seq` wraps at
+   65535, so both readings comply. Recorded as a contract gap in BACKLOG
+   **19** and noted in `docs/BLE-INTERFACE.md` and the README.
+   - The stale packet from report 015 can't come from this simulator. It
+     came from the old simulator's global stream still running after a
+     disconnect. Here the session closes on disconnect, and notifications
+     are per connection. Checked live by the new reconnect checks.
+   - Rule 9 stays an app job: BACKLOG **20** has the S3A/S4 design (drop
+     anything before START is acknowledged; the first real packet is
+     `seq` 0, so a non-zero packet followed by 0 is stale; `t0` never goes
+     backwards).
+   - A `seq` that ran for the whole boot would hide a stale packet:
+     `seq` k followed by k+1 looks continuous.
+   - The web app's report-015 check looks only at `t0` going backwards, so
+     it never fires against the new simulator. That's harmless, since no
+     stale packets come from it, but worth knowing in S3B.
 
 ## Leftovers
 
 - BACKLOG **17**: what S2C still needs for two centrals: advertise while
   connected, and decide what device-wide opcodes mean with two centrals.
 - BACKLOG **18**: scenario mode, now also the source of low battery.
+- BACKLOG **19**: contract owner to define `seq`/`t0_ms` across
+  connections. BACKLOG **20**: rule 9 design for S3A/S4.
 - BACKLOG **15** still applies: `FSR_COUNT` ≠ 6 builds, but the
   contract doesn't define it yet.
 - The 4-sample MTU fallback is tested only on the host. BlueZ always
