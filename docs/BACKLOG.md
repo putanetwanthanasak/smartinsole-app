@@ -509,3 +509,23 @@ that builds each screen:
 - The English "Placeholder — built in S…" developer line goes away as each
   screen's session builds it.
 - Reduce motion re-checked on the emulator — S5, where real animations arrive.
+
+## 15. Variable FSR count is not in the Data Contract yet **(found in S2A)**
+
+FLUTTER-PLAN §5 says a sample is `2N + 12` bytes, with N taken from the
+calibration blob, and the Flutter parser supports that (N = 4/6/8 are
+tested; see `docs/reports/021-flutter-parser.md`). The Data Contract §3.1
+still fixes a 6-FSR, 24-byte sample block and a 200-byte packet. N = 8 makes
+a packet 232 bytes, which still fits MTU 247 (244-byte payload), but nothing
+in the contract says so. Before any hardware with N ≠ 6 exists, the
+contract owner needs to add this to §3.1: the sample size, where N comes
+from, and the FSR index → position table for other N (`sensor_layout.json`,
+S5). The S2B simulator's `FSR_COUNT` build flag depends on the same
+change.
+
+## 16. Variable NTC count has no wire format **(found in S2A)**
+
+FLUTTER-PLAN §2 says NTC may increase to 6 per foot. The temperature packet
+(contract §3.2) is a fixed 12 bytes carrying exactly two values (forefoot,
+heel), with no count field. The parser handles only that format. A
+different NTC count needs a new packet layout in the contract first.

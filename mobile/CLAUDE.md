@@ -49,13 +49,16 @@ From `docs/FLUTTER-PLAN.md` section 6:
 | `flutter run -d <emulator-id> -t test_driver/main_mcp.dart --print-dtd` | Run on the emulator with the Flutter Driver extension, for Dart MCP UI checks |
 | `flutter run -d <device-id>` | Plain debug run (e.g. the Note 10) |
 | `dart format lib test test_driver` | Formatting |
+| `node shared/test_vectors/generate.mjs [--check]` (repo root, after `npm ci`) | Regenerate / check the BLE test vectors from the web app's TS parser |
 
 ## Layout
 
 ```
 lib/
   main.dart            ProviderScope → SmartInsoleApp
-  ble/ device/ rules/ gait/ footcheck/ storage/ notify/ config/
+  ble/                 wire format: parser (N FSR channels), ParseResult /
+                       RejectReason, calibration, ADC → kPa (S2A)
+  device/ rules/ gait/ footcheck/ storage/ notify/ config/
                        empty until their session (see each README.md)
   ui/
     app.dart           MaterialApp, named routes
@@ -68,8 +71,23 @@ lib/
     widgets/           shared widgets
 assets/fonts/          IBM Plex Sans Thai + Looped (OFL, bundled)
 test/                  flutter_test_config.dart loads the real fonts
+  ble/                 parser tests; test_vectors_test.dart reads
+                       ../shared/test_vectors/*.json
 test_driver/           main_mcp.dart — driver-enabled entrypoint
 ```
+
+## BLE parsing rules
+
+- Every parser returns `ParseResult` (`Parsed` or `Rejected` with a
+  `RejectReason`). Never turn a rejection into a silent drop; count/log it
+  per foot.
+- The Dart parser is stricter than the web app's TS parser in two places:
+  out-of-range foot side / state / quality bytes are rejected (not masked),
+  and a sensor packet longer than its `count` accounts for is rejected
+  (`lengthMismatch`, catches a wrong FSR count).
+- Any change to parsing or unit conversion must keep
+  `test/ble/test_vectors_test.dart` passing. The vectors come from the TS
+  code and are never hand-edited.
 
 ## Theme rules
 
