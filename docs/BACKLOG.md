@@ -530,27 +530,27 @@ FLUTTER-PLAN §2 says NTC may increase to 6 per foot. The temperature packet
 heel), with no count field. The parser handles only that format. A
 different NTC count needs a new packet layout in the contract first.
 
-## 17. Simulator: two concurrent centrals (S2C) **(set up in S2B)**
+## 17. Simulator: two concurrent centrals (S2C) — RESOLVED
 
-S2B keeps streaming state per connection (`StreamSession` in
-`firmware/simulator/lib/insole_core/src/stream_session.h`), not globally.
-Rules S2C must keep, with native tests already covering them
-(`test_sessions_are_independent`):
+Done in S2C (`docs/reports/023-sim-control.md`). The simulator keeps
+advertising while connected, up to 3 centrals (`SessionTable::kMaxSessions`
+= NimBLE's default `CONFIG_BT_NIMBLE_MAX_CONNECTIONS`, checked by a
+`static_assert`). Verified live with the laptop (bleak) and a Note 10 (nRF
+Connect) at the same time: the phone's START, STOP, disconnect and
+reconnect left the laptop's 1 896-packet stream without a `seq` gap, and
+the phone kept streaming after the laptop's STOP and disconnect. The
+phone ran at MTU 120 (4 samples per packet) while the laptop ran at 247 (8):
+packets are cut per connection.
 
-- One central's `STOP_STREAM` stops only that central's stream.
-- One central disconnecting closes only its own session; the other keeps
-  streaming without a gap in its `seq`.
-- Each connection has its own `seq` (restarts at 0 on its `START_STREAM`),
-  its own MTU and so its own samples per packet, and its own subscriptions.
-  Notifications are sent per connection, never to all peers at once.
-- Device Status `state` is 1 while any connection is streaming.
+What the opcodes mean with several centrals (decided at S2C plan approval):
 
-What S2C still has to do: keep advertising while one central is connected
-(S2B stops advertising on connect, which is what limits it to one central),
-check that NimBLE's `CONFIG_BT_NIMBLE_MAX_CONNECTIONS` (default 3) is at
-least 2, and decide what the per-connection `SYNC_TIME`, `SET_RATE` and
-`TARE` mean when two centrals disagree. `TARE` and `SET_RATE` change the
-whole device, not one connection.
+| Opcode | Scope |
+|---|---|
+| `START_STREAM`, `STOP_STREAM`, `SYNC_TIME` | The connection that wrote it |
+| `SET_RATE`, `TARE`, `REBOOT` | The whole device (every central sees the effect) |
+
+Device Status `state` is 1 while any connection streams. What the app
+must do about the device-wide ones is item 21.
 
 ## 18. Simulator scenario mode (`0x10 SET_SCENARIO`) **(FLUTTER-PLAN §2, not before the main app)**
 
@@ -572,7 +572,9 @@ restarts on `START_STREAM` or runs for the whole boot. The S2B simulator
 does this, verified live by `sim_check.py`'s reconnect checks:
 
 - `seq` is per connection and restarts at 0 on every `START_STREAM`
-  (each new connection, and each STOP → START on one connection).
+  (each new connection, and each STOP → START on one connection). Since
+  S2C, a `START_STREAM` while that connection is already streaming is
+  ignored, so a repeated write can't send `seq` back to 0 mid-stream.
 - `t0_ms` is ms since boot and never restarts.
 - A connection receives no sensor or temperature notification before its
   own `START_STREAM`.
@@ -584,22 +586,84 @@ behaves the same. The old sibling-repo simulator restarted `t0_ms` on
 ## 20. Rule 9 (drop stale packets): design for S3A/S4 **(found in S2B)**
 
 Given item 19's behaviour, the app should drop a stale packet left over
-from an earlier connection with three checks, per foot:
+from an earlier connection with two checks, per foot:
 
-1. Drop any sensor or temperature packet that arrives before this
-   connection's `START_STREAM` write is acknowledged.
-2. The first real packet has `seq` 0. If a packet with `seq` ≠ 0 is
-   followed by `seq` 0, the first one was stale: drop it (hold the first
-   packet until the second arrives, as report 015 did with `t0`).
-3. As a second layer, `t0_ms` must never go backwards within a connection.
+1. **Drop any sensor or temperature packet that arrives before this
+   connection's `START_STREAM` write is acknowledged.**
+2. **`t0_ms` must never go backwards within a connection.** Only within a
+   connection: across a `REBOOT` (or a power cycle) `t0_ms` legitimately
+   restarts near 0 (S2C verified `t0` 163 106 → 1 536 ms across a REBOOT),
+   so comparing against an earlier connection's `t0` would drop real data.
+
+**Optional idea, for S3A to evaluate, not part of the design:** a `seq`
+look-ahead. The first real packet has `seq` 0, so a packet with `seq` ≠ 0
+followed by `seq` 0 would be stale. This needs look-ahead (hold the first
+packet until the second arrives, as report 015 did with `t0`), and it is
+fragile if the `seq` 0 packet itself is lost: then the stream starts at
+`seq` 1 and the check either drops a real packet or never fires.
 
 Why `seq` must restart rather than run for the whole boot: with a
 boot-wide `seq` and `t0`, a stale packet (`seq` k) followed by the new
 stream (`seq` k+1) looks continuous, so nothing marks it as stale. A single
-counter also can't be shared by two centrals with different MTUs (BACKLOG
-17), because their packets are cut differently.
+counter also can't be shared by two centrals with different MTUs (item 17),
+because their packets are cut differently.
 
 The web app's report-015 check only looks for `t0` going backwards. Against
-the new simulator, `t0` never goes backwards, so that check never fires.
-That's harmless, because the new simulator sends no stale packets, but
-worth knowing in S3B.
+the new simulator, `t0` never goes backwards within a connection, so that
+check never fires. That's harmless, because the new simulator sends no
+stale packets, but worth knowing in S3B.
+
+## 21. App: guard REBOOT and TARE (S8B Connection/Settings) **(found in S2C)**
+
+`REBOOT` and `TARE` act on the whole insole, not on one connection
+(item 17). A `REBOOT` sent from the phone also disconnects the laptop's
+research capture. A `TARE` puts calibrating-flag (bit1) packets into the
+laptop's stream for one stride and changes `offset_adc` under it (item 23).
+The phone app must:
+
+- put both commands behind a confirmation dialog that warns about this;
+- make sure no research capture is running before sending either command,
+  or hide both commands during the study;
+- for `TARE` on real hardware, tell the user to lift the foot off the
+  insole first. The simulator's tare takes the minimum over one stride,
+  relying on the swing phase. Real firmware cannot rely on that: it
+  measures whatever load is on the insole when TARE arrives.
+
+## 22. `SET_RATE` conflicts with rule 1 **(found in S2C, contract owner)**
+
+Contract §3.4 `0x04 SET_RATE` (uint8 Hz, "for testing") changes the sample
+rate. The packet has no field for sample spacing, and §3.1 / rule 1 fix
+sample i at `t0 + i × 20 ms`. An app reading a 25 Hz stream would put every
+sample at the wrong time. The simulator therefore accepts only 50 (a no-op)
+and logs and ignores other rates (decided at S2C plan approval). The contract owner
+should either drop `SET_RATE`, limit it to 50, or add the spacing to the
+packet header.
+
+## 23. No "calibration changed" signal after TARE **(found in S2C, contract owner)**
+
+The Calibration characteristic is Read-only and read once at connect (§5.1).
+After a `TARE` from one central, any other connected central keeps the old
+`offset_adc` until it reads again. Nothing tells it to. Options: make
+Calibration notify, or have the app re-read calibration whenever it sees
+flags bit1 go from 1 to 0. Until then, item 21's guard is what keeps a
+research capture consistent.
+
+## 24. Malformed control writes can't be reported **(found in S2C, contract owner)**
+
+Contract §3.4 gives each opcode a payload but says nothing about a write
+with the wrong length or an unknown opcode. The simulator requires the
+exact length, logs and ignores anything else, and changes no state (a
+2-byte `02 02` does *not* stop the stream). The write itself still
+succeeds at the ATT level, so the app can't tell its command was ignored.
+The contract could add an ATT error response or a status `error_code`.
+
+## 25. Android connection interval is slower than requested **(found in S2C, for S3A)**
+
+The simulator requests a 15–30 ms interval (contract §2.3). The laptop
+(BlueZ) got 30 ms. The Note 10 in nRF Connect stayed at 48.75 ms (after a
+brief 7.5 ms), with a 5000 ms supervision timeout instead of 4000. The
+6.25 Hz stream still arrived in full at 48.75 ms. The Flutter app should
+request high connection priority after connecting (Android
+`requestConnectionPriority(HIGH)`, which gives 11.25–15 ms) and S3A should
+log the interval it actually gets. This matters most for S4's ±10 ms
+cross-foot timing check.

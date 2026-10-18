@@ -339,8 +339,11 @@ async def live(args) -> bool:
         await client.write_gatt_char(CONTROL, START_STREAM, response=True)
         print(f"START_STREAM sent; streaming {args.duration} s ...")
         end = run.start_at + args.duration
-        while now() < end:
-            await asyncio.sleep(min(30, end - now()))
+        stop_file = Path(args.stop_file) if args.stop_file else None
+        while now() < end and not (stop_file and stop_file.exists()):
+            await asyncio.sleep(min(1 if stop_file else 30, end - now()))
+            if stop_file and int(now() - run.start_at) % 30:
+                continue
             print(f"  t+{now() - run.start_at:5.0f} s: {len(run.sensor)} sensor, "
                   f"{len(run.temp)} temp, {len(run.status)} status packets")
 
@@ -675,6 +678,8 @@ def main() -> int:
                     help="skip the opcode checks (they end with TARE and REBOOT)")
     ap.add_argument("--two-central", action="store_true",
                     help="another central may be streaming: don't judge device-wide state")
+    ap.add_argument("--stop-file", help="end the stream early once this file exists "
+                    "(for tests coordinated with another central)")
     ap.add_argument("--selftest", action="store_true", help="only check the parsers")
     args = ap.parse_args()
 

@@ -17,7 +17,13 @@ pio run -e left -e right            # build both feet (FOOT_SIDE = 0 / 1)
 pio test -e native                  # host tests, no board needed
 pio run -e left -t upload           # flash the left foot
 pio device monitor                  # serial log, 115200
+pio run -e left -t erase            # wipe flash, incl. the NVS offset_adc
 ```
+
+On this Linux laptop, opening the serial port resets the board
+(`POWERON_RESET` in the log), even from pyserial with DTR/RTS set low
+before opening. That drops every central, so start the serial log before
+connecting centrals, not during a test.
 
 `upload_port`/`monitor_port` point at the CP2102 bridge's
 `/dev/serial/by-id/usb-Silicon_Labs_CP2102_…` path. On the dev laptop the
@@ -48,13 +54,32 @@ then runs the connect sequence: scan by service UUID, read status (checks
 `t0` step, the 6.25 Hz rate, temperature every 30 s, status, and that the
 stream stops. Then it reconnects twice (`--reconnects`) and checks that
 each new connection gets nothing before START, starts at `seq` 0, and that
-`t0` keeps counting from boot. It exits non-zero on any failure.
+`t0` keeps counting from boot. Then it exercises every control opcode on
+a fresh connection (skip with `--no-control`): `SYNC_TIME`, malformed
+writes, `SET_RATE` 50 and 25, unknown opcodes `0x10`/`0x7f`, a repeated
+`START_STREAM`, `TARE` (the bit1 window and the new `offset_adc`), and
+last `REBOOT` (clean disconnect, advertising again, `offset_adc` kept in
+NVS, `t0` restarted, `seq` 0). It exits non-zero on any failure.
+
+Two centrals: with another central (e.g. a phone in nRF Connect) connected,
+run with `--two-central`. Device Status `state` is device-wide, so the
+idle/streaming state checks are then reported, not judged. `--stop-file
+PATH` ends the stream early when that file appears, for tests coordinated
+with the other central:
+
+```
+tools/.venv/bin/python tools/sim_check.py --two-central --duration 1800 \
+    --reconnects 0 --no-control --stop-file /tmp/stop
+```
 
 ## Behaviour
 
 - **Advertising:** service UUID in the advertisement, `SMARTINSOLE-L`/`-R`
-  in the scan response (both don't fit in 31 bytes). 100 ms, 0 dBm. One
-  central at a time until S2C.
+  in the scan response (both don't fit in 31 bytes). 100 ms, 0 dBm. Keeps
+  advertising while connected, up to 3 centrals at once (NimBLE's default
+  `CONFIG_BT_NIMBLE_MAX_CONNECTIONS`; a `static_assert` checks it).
+  Each connection has its own stream session: one central's STOP or
+  disconnect never touches another's stream.
 - **Sensor stream** (`…01`): 50 Hz samples, 8 per packet at 6.25 Hz. Every
   notification is exactly `8 + count × (2N + 12)` bytes (200 for N = 6),
   never padded or truncated. If the link MTU can't fit 8 samples it sends 4
@@ -69,20 +94,33 @@ each new connection gets nothing before START, starts at `seq` 0, and that
 - **Status** (`…03`): read + notify on a state or battery change. Battery
   drains 1 % every 6 min and stops at 50 %, so `BATTERY_LOW` never fires on
   its own.
-- **Control** (`…04`): only `0x01 START_STREAM` and `0x02 STOP_STREAM` so
-  far, each applying to the connection that wrote it. Other opcodes are
-  logged and ignored until S2C.
-- **Calibration** (`…05`): static JSON for N channels using the contract
-  §5.1 example coefficients (381 bytes for N = 6, so it is a long read).
-  TARE and NVS storage come in S2C.
+- **Control** (`…04`): every write must have its opcode's exact length;
+  a wrong length or an opcode outside the contract (incl. `0x10
+  SET_SCENARIO`, BACKLOG 18) is logged and ignored, with no state change.
+  The contract has no way to report the error back.
+
+  | Opcode | Scope | Simulator behaviour |
+  |---|---|---|
+  | `0x01 START_STREAM` | connection | `seq` 0, temperature at once. Ignored while already streaming (no `seq` reset) |
+  | `0x02 STOP_STREAM` | connection | Stops this connection's stream only |
+  | `0x03 SYNC_TIME` | connection | 8-byte unix ms, logged. `t0`/`t_ms` stay ms since boot (contract §4: the app computes the offset) |
+  | `0x04 SET_RATE` | device | Only 50 Hz accepted (no-op). Other rates are logged and ignored: rule 1 fixes 20 ms spacing (BACKLOG 22) |
+  | `0x05 TARE` | device | Each channel's minimum over one stride (55 samples); packets in that window carry flags bit1. Result stored in NVS and served as `offset_adc` |
+  | `0x06 REBOOT` | device | 300 ms later: stop advertising, disconnect every central, restart |
+- **Calibration** (`…05`): JSON for N channels using the contract §5.1
+  example coefficients (381 bytes for N = 6, so it is a long read).
+  `offset_adc` is 12 until a TARE, then the tared value from NVS (survives
+  REBOOT and power cycles). Centrals already connected see a new value
+  only when they read again (BACKLOG 23).
 
 ## Layout
 
 - `lib/insole_core/`: plain C++, no Arduino or NimBLE, built for the board
   and the host. `packets` (encoders), `stream_session` (per-connection
   streaming state), `synth` (pure synthetic walking, temperature, battery),
-  `calibration`, `protocol` (UUIDs, sizes).
+  `calibration`, `control` (opcode parsing), `tare`, `protocol` (UUIDs,
+  sizes).
 - `src/`: `ble_server` (NimBLE glue) and `main` (50 Hz tick).
 - Data generation is reached only through a `DataSource`
   (`data_source.h`), so a scenario mode can swap it out (BACKLOG 18).
-  Streaming state is per connection, ready for two centrals (BACKLOG 17).
+  Streaming state is per connection (BACKLOG 17, done in S2C).
