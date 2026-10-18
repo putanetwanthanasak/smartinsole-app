@@ -529,3 +529,77 @@ FLUTTER-PLAN §2 says NTC may increase to 6 per foot. The temperature packet
 (contract §3.2) is a fixed 12 bytes carrying exactly two values (forefoot,
 heel), with no count field. The parser handles only that format. A
 different NTC count needs a new packet layout in the contract first.
+
+## 17. Simulator: two concurrent centrals (S2C) **(set up in S2B)**
+
+S2B keeps streaming state per connection (`StreamSession` in
+`firmware/simulator/lib/insole_core/src/stream_session.h`), not globally.
+Rules S2C must keep, with native tests already covering them
+(`test_sessions_are_independent`):
+
+- One central's `STOP_STREAM` stops only that central's stream.
+- One central disconnecting closes only its own session; the other keeps
+  streaming without a gap in its `seq`.
+- Each connection has its own `seq` (restarts at 0 on its `START_STREAM`),
+  its own MTU and so its own samples per packet, and its own subscriptions.
+  Notifications are sent per connection, never to all peers at once.
+- Device Status `state` is 1 while any connection is streaming.
+
+What S2C still has to do: keep advertising while one central is connected
+(S2B stops advertising on connect, which is what limits it to one central),
+check that NimBLE's `CONFIG_BT_NIMBLE_MAX_CONNECTIONS` (default 3) is at
+least 2, and decide what the per-connection `SYNC_TIME`, `SET_RATE` and
+`TARE` mean when two centrals disagree. `TARE` and `SET_RATE` change the
+whole device, not one connection.
+
+## 18. Simulator scenario mode (`0x10 SET_SCENARIO`) **(FLUTTER-PLAN §2, not before the main app)**
+
+The simulator's data comes only from a `DataSource`
+(`firmware/simulator/lib/insole_core/src/data_source.h`): pure functions
+for the sample, temperature and battery. The default is
+`insole::synth::walking()`, chosen in one line in `src/main.cpp`. A scenario
+mode adds more `DataSource`s (for example a high-pressure step, ΔT above
+threshold, a sensor fault, or `-32768` temperatures) and an opcode to switch
+between them. **Low battery comes from here**: `walking()` never drops
+below 50 %, so `BATTERY_LOW` (< 15 %) never fires during long test runs.
+The opcode isn't in the Data Contract §3.4 yet.
+
+## 19. `seq` / `t0_ms` behaviour across connections is not in the Data Contract **(found in S2B)**
+
+Contract §3.1 only says `seq` "wraps at 65535, used to detect dropped
+packets", and that `t0_ms` is ms since boot. It doesn't say whether `seq`
+restarts on `START_STREAM` or runs for the whole boot. The S2B simulator
+does this, verified live by `sim_check.py`'s reconnect checks:
+
+- `seq` is per connection and restarts at 0 on every `START_STREAM`
+  (each new connection, and each STOP → START on one connection).
+- `t0_ms` is ms since boot and never restarts.
+- A connection receives no sensor or temperature notification before its
+  own `START_STREAM`.
+
+The contract owner should add these three lines to §3.1 so real firmware
+behaves the same. The old sibling-repo simulator restarted `t0_ms` on
+`START_STREAM` instead (report 015), which contradicts "ms since boot".
+
+## 20. Rule 9 (drop stale packets): design for S3A/S4 **(found in S2B)**
+
+Given item 19's behaviour, the app should drop a stale packet left over
+from an earlier connection with three checks, per foot:
+
+1. Drop any sensor or temperature packet that arrives before this
+   connection's `START_STREAM` write is acknowledged.
+2. The first real packet has `seq` 0. If a packet with `seq` ≠ 0 is
+   followed by `seq` 0, the first one was stale: drop it (hold the first
+   packet until the second arrives, as report 015 did with `t0`).
+3. As a second layer, `t0_ms` must never go backwards within a connection.
+
+Why `seq` must restart rather than run for the whole boot: with a
+boot-wide `seq` and `t0`, a stale packet (`seq` k) followed by the new
+stream (`seq` k+1) looks continuous, so nothing marks it as stale. A single
+counter also can't be shared by two centrals with different MTUs (BACKLOG
+17), because their packets are cut differently.
+
+The web app's report-015 check only looks for `t0` going backwards. Against
+the new simulator, `t0` never goes backwards, so that check never fires.
+That's harmless, because the new simulator sends no stale packets, but
+worth knowing in S3B.

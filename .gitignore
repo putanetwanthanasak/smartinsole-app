@@ -18,3 +18,7 @@ Thumbs.db
 .pio/
 mobile/build/
 .dart_tool/
+
+# Simulator check script's Python virtualenv
+firmware/simulator/tools/.venv/
+__pycache__/

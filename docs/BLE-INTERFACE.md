@@ -77,6 +77,15 @@ rate. Samples are 20 ms apart, fixed: sample `i`'s time is `t0_ms + (i × 20)`.
 | 6 | 1 | uint8 | `count` | Sample count in this packet (normally 8) |
 | 7 | 1 | uint8 | `flags` | bit0 = saturated reading, bit1 = calibration in progress |
 
+**`seq` and `t0_ms` across connections: not in the contract yet** (BACKLOG
+19). The contract only says `seq` wraps at 65535. The new simulator
+(`firmware/simulator/`, S2B) does this: `seq` is per connection and
+restarts at 0 on every `START_STREAM`; `t0_ms` is ms since boot and never
+restarts. A new connection receives nothing before its own `START_STREAM`.
+The old sibling-repo simulator instead restarted `t0_ms` on each
+`START_STREAM` (report 015). How the app uses this to drop stale packets
+(rule 9) is BACKLOG 20.
+
 ### Sample block (24 bytes × 8, immediately following the header)
 
 | Offset (within block) | Length | Type | Field | Unit / scaling |
