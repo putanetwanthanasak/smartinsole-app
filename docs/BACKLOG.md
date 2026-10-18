@@ -489,23 +489,23 @@ scoped further here.
 
 ---
 
-## 14. Flutter scaffold leftovers (S1B) **(assistant-flagged)**
+## 14. Flutter scaffold leftovers (S1B) — RESOLVED
 
-Found in `docs/reports/020-flutter-scaffold.md`. None blocks S2A.
+Found in `docs/reports/020-flutter-scaffold.md`. The two items that needed a
+decision were decided by the user during S2A and are recorded in
+`docs/FLUTTER-PLAN.md` section 2:
 
-- **AppBar titles cap text scaling at 1.34×.** That's Flutter's own `AppBar`
-  behaviour (seen in the widget tree on the emulator:
-  `SystemTextScaler clamped [0.0, 1.34]`). DESIGN-SPEC §2 asks for larger
-  text "without breaking layout", and `mobile/CLAUDE.md` says never clamp.
-  Decide before S5/S8B whether screen titles should be in-body headings
-  (unclamped) instead of `AppBar` titles.
-- **No large-text golden yet.** Add a golden at text scale 2.0 for Home once
-  S5 builds the real layout. The two-column foot buttons are the most likely
-  thing to break.
-- **Home greeting has no name.** DESIGN-SPEC §5 says "สวัสดี คุณ[name]", but
-  there is no name setting yet. Needs a decision on where the name comes from
-  (Settings in S8B?).
-- **Placeholder cards show an English developer line** ("Placeholder — built
-  in S…"). Each one goes away when its screen's session builds it.
-- **Reduce motion was verified only in widget tests**, not on the emulator.
-  Re-check on the emulator in S5, where real animations arrive.
+- **Screen titles** move from the `AppBar` into the page body, so they scale
+  with large text (`AppBar` caps text scaling at 1.34×). Applied when each
+  screen is built for real (S5, S6B, S8A, S8B, S8C), not before.
+- **Home greeting name** is set in Settings (S8B). When no name is set, Home
+  shows just "สวัสดี".
+
+The remaining bullets were never decisions; they are carried by the session
+that builds each screen:
+
+- A golden at text scale 2.0 for Home — S5 (the two-column foot buttons are
+  the most likely thing to break).
+- The English "Placeholder — built in S…" developer line goes away as each
+  screen's session builds it.
+- Reduce motion re-checked on the emulator — S5, where real animations arrive.
