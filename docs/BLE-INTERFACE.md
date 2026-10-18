@@ -84,7 +84,8 @@ restarts at 0 on every `START_STREAM`; `t0_ms` is ms since boot and never
 restarts. A new connection receives nothing before its own `START_STREAM`.
 The old sibling-repo simulator instead restarted `t0_ms` on each
 `START_STREAM` (report 015). How the app uses this to drop stale packets
-(rule 9) is BACKLOG 20.
+(rule 9) is BACKLOG 20. A `REBOOT` restarts `t0_ms` near 0, so "`t0` never
+goes backwards" holds only within one connection.
 
 ### Sample block (24 bytes × 8, immediately following the header)
 
@@ -162,6 +163,14 @@ no-data state, never as a number. This is the wire-level source of the
 | `0x04` | `SET_RATE` | uint8 (Hz) | Change sample rate (for testing) |
 | `0x05` | `TARE` | — | Zero the FSR baseline |
 | `0x06` | `REBOOT` | — | Restart the device |
+
+**Simulator behaviour (S2C, not in the contract):** `START`/`STOP`/`SYNC_TIME`
+act on the connection that wrote them; `SET_RATE`/`TARE`/`REBOOT` act on
+the whole device, so with two centrals both see them (BACKLOG 17, 21).
+Every write must be its opcode's exact length (`SYNC_TIME` 9 bytes,
+`SET_RATE` 2, others 1); anything else is ignored (BACKLOG 24).
+`SET_RATE` accepts only 50 Hz (BACKLOG 22). See
+`firmware/simulator/README.md`.
 
 ---
 
