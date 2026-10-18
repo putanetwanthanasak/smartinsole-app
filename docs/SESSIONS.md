@@ -128,14 +128,14 @@ Additional info: [optional]
 ### S2B — New simulator: core
 - **Requires:** S0B merged; PlatformIO installed; at least one BLE-capable ESP32.
 - **Do:** PlatformIO + NimBLE-Arduino per `BLE-INTERFACE.md`: advertise the Service UUID, 5 GATT characteristics, sensor stream 8 samples/packet at 6.25 Hz (synthetic gait data), temperature every 30 s, status; build flags `FOOT_SIDE` and `FSR_COUNT`. Keep data generation in separate functions (future scenario mode).
-- **Verify:** `pio run` passes for both L and R envs · **User:** flash and connect with the existing web app; data appears.
-- **Done when:** the web app shows data from the simulator.
+- **Verify:** `pio run` passes for both L and R envs · packet encoders reproduce `shared/test_vectors/` byte-for-byte (`pio test -e native`) · flash and check the live stream with the laptop bleak script (`firmware/simulator/tools/sim_check.py`): exact packet sizes, no `seq` gaps, 6.25 Hz, temperature every 30 s, status. The web app is not used here; its first connection to the new simulator is in S3B.
+- **Done when:** the bleak script passes a 10-minute live run and the encoder tests match every test vector.
 
 ### S2C — New simulator: control
 - **Requires:** S2B merged.
 - **Do:** `START/STOP/SYNC_TIME/SET_RATE/TARE/REBOOT`, calibration blob (JSON, long read), at least 2 concurrent connections. **Do not** implement `0x10 SET_SCENARIO` now (backlog).
-- **Verify:** **User:** run `docs/BLE-TEST-CHECKLIST.md` against the web app; two centrals connect at once.
-- **Done when:** checklist passes and nothing deviates from the contract.
+- **Verify:** the laptop bleak script covers the `docs/BLE-TEST-CHECKLIST.md` items that apply to the simulator (every opcode, calibration long read), and two centrals connect at once; one disconnecting or sending `STOP_STREAM` does not stop the other's stream. Packet bytes still match `shared/test_vectors/`. The web app is not used here; its first connection to the new simulator is in S3B.
+- **Done when:** the bleak checks pass and nothing deviates from the contract.
 
 ### S3A — BLE, both feet
 - **Requires:** S2A and S2C merged; L and R boards flashed.
