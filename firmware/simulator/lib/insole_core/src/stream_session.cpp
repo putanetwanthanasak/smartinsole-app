@@ -18,12 +18,14 @@ void StreamSession::open(uint16_t conn) {
 
 void StreamSession::close() { *this = StreamSession(); }
 
-void StreamSession::start(uint32_t nowMs) {
+bool StreamSession::start(uint32_t nowMs) {
+  if (streaming_) return false;
   streaming_ = true;
   seq_ = 0;
   tempSeq_ = 0;
   nextTempMs_ = nowMs;
   fill_ = 0;
+  return true;
 }
 
 void StreamSession::stop() {
@@ -32,7 +34,7 @@ void StreamSession::stop() {
 }
 
 bool StreamSession::addSample(const Sample& s, uint32_t tMs, uint8_t fsrCount,
-                              OutPacket& out) {
+                              OutPacket& out, bool calibrating) {
   if (!streaming_) return false;
   if (fill_ == 0) {
     // The packet size is fixed when its first sample arrives, from the MTU
@@ -43,11 +45,13 @@ bool StreamSession::addSample(const Sample& s, uint32_t tMs, uint8_t fsrCount,
       return false;
     }
     t0_ = tMs;
+    calibrating_ = false;
   }
+  calibrating_ |= calibrating;
   buf_[fill_++] = s;
   if (fill_ < target_) return false;
 
-  uint8_t flags = 0;
+  uint8_t flags = calibrating_ ? kFlagCalibrating : 0;
   for (uint8_t i = 0; i < fill_; ++i)
     for (uint8_t c = 0; c < fsrCount; ++c)
       if (buf_[i].fsr[c] >= 4095) flags |= kFlagSaturated;

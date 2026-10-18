@@ -186,6 +186,34 @@ void test_saturated_flag() {
   TEST_ASSERT_EQUAL(kFlagSaturated, out.bytes[7]);
 }
 
+void test_repeated_start_keeps_seq() {
+  StreamSession s;
+  s.open(1);
+  s.mtu = 247;
+  TEST_ASSERT_TRUE(s.start(0));
+  uint32_t t = 0;
+  OutPacket out;
+  feed(s, t, 8 * 3 + 2, 6, &out);  // seq 0..2 sent, 2 samples buffered
+  TEST_ASSERT_FALSE(s.start(t));   // second START: no change
+  TEST_ASSERT_EQUAL(1, feed(s, t, 6, 6, &out));
+  TEST_ASSERT_EQUAL(3, u16(out.bytes));  // continues, not back to 0
+  TEST_ASSERT_EQUAL(t - 8 * kSamplePeriodMs, u32(out.bytes + 2));
+}
+
+void test_calibrating_flag() {
+  StreamSession s;
+  s.open(1);
+  s.mtu = 247;
+  s.start(0);
+  OutPacket out;
+  // One calibrating sample anywhere in a packet sets bit1 on that packet.
+  for (int i = 0; i < 8; ++i) s.addSample(synth::gaitSample(i * 20, 0, 6), i * 20, 6, out, i == 7);
+  TEST_ASSERT_EQUAL(kFlagCalibrating, out.bytes[7]);
+  // The next packet without one is clear again.
+  for (int i = 8; i < 16; ++i) s.addSample(synth::gaitSample(i * 20, 0, 6), i * 20, 6, out, false);
+  TEST_ASSERT_EQUAL(0, out.bytes[7]);
+}
+
 }  // namespace
 
 void setUp() {}
@@ -203,5 +231,7 @@ int main() {
   RUN_TEST(test_sessions_are_independent);
   RUN_TEST(test_table_full_and_reuse);
   RUN_TEST(test_saturated_flag);
+  RUN_TEST(test_repeated_start_keeps_seq);
+  RUN_TEST(test_calibrating_flag);
   return UNITY_END();
 }

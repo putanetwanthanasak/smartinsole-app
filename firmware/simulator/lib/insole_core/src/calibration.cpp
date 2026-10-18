@@ -6,8 +6,10 @@
 
 namespace insole {
 
-size_t buildCalibrationJson(char* out, size_t cap, const char* deviceId, uint8_t fsrCount) {
+size_t buildCalibrationJson(char* out, size_t cap, const char* deviceId, uint8_t fsrCount,
+                            const uint16_t* offsets) {
   // Coefficients are the contract §5.1 example, the same for every channel.
+  // offset_adc is per channel.
   size_t len = 0;
   auto put = [&](int n) {
     if (n < 0 || len + static_cast<size_t>(n) >= cap) return false;
@@ -20,8 +22,8 @@ size_t buildCalibrationJson(char* out, size_t cap, const char* deviceId, uint8_t
     return 0;
   for (uint8_t c = 0; c < fsrCount; ++c) {
     if (!put(snprintf(out + len, cap - len,
-                      "%s{\"index\":%u,\"a\":123000,\"b\":-1.05,\"offset_adc\":12}",
-                      c ? "," : "", c)))
+                      "%s{\"index\":%u,\"a\":123000,\"b\":-1.05,\"offset_adc\":%u}",
+                      c ? "," : "", c, offsets[c])))
       return 0;
   }
   if (!put(snprintf(out + len, cap - len, "]}"))) return 0;

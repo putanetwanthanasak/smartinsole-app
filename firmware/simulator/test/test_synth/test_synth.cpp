@@ -132,9 +132,11 @@ void test_battery_never_below_50() {
 }
 
 void test_calibration_json() {
+  uint16_t defaults[kMaxFsrCount];
+  for (auto& o : defaults) o = kDefaultOffsetAdc;
   for (uint8_t n : {1, 4, 6, 8}) {
     char buf[600] = {};
-    size_t len = buildCalibrationJson(buf, sizeof buf, "SIM-L-001", n);
+    size_t len = buildCalibrationJson(buf, sizeof buf, "SIM-L-001", n, defaults);
     TEST_ASSERT_TRUE(len > 0 && len <= kMaxCalibrationBytes);
     JsonDocument doc;
     TEST_ASSERT_FALSE(deserializeJson(doc, buf, len));
@@ -153,7 +155,23 @@ void test_calibration_json() {
     if (n == 6) TEST_ASSERT_TRUE(len > kTargetMtu - kAttHeaderBytes);  // a long read
   }
   char small[64];
-  TEST_ASSERT_EQUAL(0, buildCalibrationJson(small, sizeof small, "SIM-L-001", 6));
+  TEST_ASSERT_EQUAL(0, buildCalibrationJson(small, sizeof small, "SIM-L-001", 6, defaults));
+}
+
+void test_calibration_json_tared_offsets() {
+  // Per-channel offsets are served as given; the widest case (N = 8,
+  // four-digit offsets) still fits the 512-byte characteristic.
+  uint16_t offsets[kMaxFsrCount] = {0, 18, 19, 20, 21, 22, 4095, 4095};
+  for (uint8_t n : {6, 8}) {
+    char buf[600] = {};
+    size_t len = buildCalibrationJson(buf, sizeof buf, "SIM-R-001", n, offsets);
+    TEST_ASSERT_TRUE(len > 0 && len <= kMaxCalibrationBytes);
+    JsonDocument doc;
+    TEST_ASSERT_FALSE(deserializeJson(doc, buf, len));
+    JsonArray ch = doc["channels"];
+    TEST_ASSERT_EQUAL(n, ch.size());
+    for (uint8_t i = 0; i < n; ++i) TEST_ASSERT_EQUAL(offsets[i], ch[i]["offset_adc"].as<int>());
+  }
 }
 
 }  // namespace
@@ -171,5 +189,6 @@ int main() {
   RUN_TEST(test_temperature_plausible_and_below_delta_threshold);
   RUN_TEST(test_battery_never_below_50);
   RUN_TEST(test_calibration_json);
+  RUN_TEST(test_calibration_json_tared_offsets);
   return UNITY_END();
 }
