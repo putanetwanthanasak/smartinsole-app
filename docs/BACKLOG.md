@@ -486,3 +486,26 @@ module instead of a static one, which forces bundlers to put it in its own
 chunk rather than relying on dead-code elimination to strip it from the
 main one — a structural guarantee instead of a minifier heuristic. Not
 scoped further here.
+
+---
+
+## 14. Flutter scaffold leftovers (S1B) **(assistant-flagged)**
+
+Found in `docs/reports/020-flutter-scaffold.md`. None blocks S2A.
+
+- **AppBar titles cap text scaling at 1.34×.** That's Flutter's own `AppBar`
+  behaviour (seen in the widget tree on the emulator:
+  `SystemTextScaler clamped [0.0, 1.34]`). DESIGN-SPEC §2 asks for larger
+  text "without breaking layout", and `mobile/CLAUDE.md` says never clamp.
+  Decide before S5/S8B whether screen titles should be in-body headings
+  (unclamped) instead of `AppBar` titles.
+- **No large-text golden yet.** Add a golden at text scale 2.0 for Home once
+  S5 builds the real layout. The two-column foot buttons are the most likely
+  thing to break.
+- **Home greeting has no name.** DESIGN-SPEC §5 says "สวัสดี คุณ[name]", but
+  there is no name setting yet. Needs a decision on where the name comes from
+  (Settings in S8B?).
+- **Placeholder cards show an English developer line** ("Placeholder — built
+  in S…"). Each one goes away when its screen's session builds it.
+- **Reduce motion was verified only in widget tests**, not on the emulator.
+  Re-check on the emulator in S5, where real animations arrive.
