@@ -529,3 +529,37 @@ FLUTTER-PLAN §2 says NTC may increase to 6 per foot. The temperature packet
 (contract §3.2) is a fixed 12 bytes carrying exactly two values (forefoot,
 heel), with no count field. The parser handles only that format. A
 different NTC count needs a new packet layout in the contract first.
+
+## 17. Simulator: two concurrent centrals (S2C) **(set up in S2B)**
+
+S2B keeps streaming state per connection (`StreamSession` in
+`firmware/simulator/lib/insole_core/src/stream_session.h`), not globally.
+Rules S2C must keep, with native tests already covering them
+(`test_sessions_are_independent`):
+
+- One central's `STOP_STREAM` stops only that central's stream.
+- One central disconnecting closes only its own session; the other keeps
+  streaming without a gap in its `seq`.
+- Each connection has its own `seq` (restarts at 0 on its `START_STREAM`),
+  its own MTU and so its own samples per packet, and its own subscriptions.
+  Notifications are sent per connection, never to all peers at once.
+- Device Status `state` is 1 while any connection is streaming.
+
+What S2C still has to do: keep advertising while one central is connected
+(S2B stops advertising on connect, which is what limits it to one central),
+check that NimBLE's `CONFIG_BT_NIMBLE_MAX_CONNECTIONS` (default 3) is at
+least 2, and decide what the per-connection `SYNC_TIME`, `SET_RATE` and
+`TARE` mean when two centrals disagree. `TARE` and `SET_RATE` change the
+whole device, not one connection.
+
+## 18. Simulator scenario mode (`0x10 SET_SCENARIO`) **(FLUTTER-PLAN §2, not before the main app)**
+
+The simulator's data comes only from a `DataSource`
+(`firmware/simulator/lib/insole_core/src/data_source.h`): pure functions
+for the sample, temperature and battery. The default is
+`insole::synth::walking()`, chosen in one line in `src/main.cpp`. A scenario
+mode adds more `DataSource`s (for example a high-pressure step, ΔT above
+threshold, a sensor fault, or `-32768` temperatures) and an opcode to switch
+between them. **Low battery comes from here**: `walking()` never drops
+below 50 %, so `BATTERY_LOW` (< 15 %) never fires during long test runs.
+The opcode isn't in the Data Contract §3.4 yet.

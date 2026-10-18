@@ -260,11 +260,18 @@ async def live(args) -> bool:
             await asyncio.sleep(0.2)
     names = {addr: (a.local_name or d.name) for addr, (d, a) in found.items()}
     print(f"  found by service UUID: {names or 'nothing'}")
-    match = [found[a][0] for a, nm in names.items() if nm == want_name]
-    c.check(bool(match), f"advertises service UUID with name {want_name} (scan response)")
-    if not match:
+    c.check(bool(found), "advertises the service UUID")
+    if not found:
         return False
-    dev = match[0]
+    # The OS can cache a device's name (contract section 2.1): BlueZ keeps
+    # showing the old name after the same board is reflashed as the other
+    # foot. So the name only picks among several candidates and is reported;
+    # status foot_side below is the real check, as in the app.
+    match = [found[a][0] for a, nm in names.items() if nm == want_name]
+    dev = match[0] if match else next(iter(found.values()))[0]
+    if not match:
+        print(f"  note: no device named {want_name} (cached name?); using {dev.address}, "
+              f"foot_side decides")
 
     async with BleakClient(dev) as client:
         # On BlueZ, bleak reports 23 until the negotiated MTU is fetched.
