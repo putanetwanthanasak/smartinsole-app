@@ -13,3 +13,8 @@ Thumbs.db
 
 # Personal Claude Code permission overrides — machine-specific, not project config.
 .claude/settings.local.json
+
+# Flutter / PlatformIO build output
+.pio/
+mobile/build/
+.dart_tool/
