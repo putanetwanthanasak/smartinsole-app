@@ -3,7 +3,6 @@
 #include <Arduino.h>
 #include <NimBLEDevice.h>
 #include <Preferences.h>
-#include <esp_timer.h>
 
 #include "calibration.h"
 #include "config.h"
@@ -31,7 +30,11 @@ constexpr uint16_t kConnIntervalMax = 24;  // 30 ms
 constexpr uint16_t kSlaveLatency = 0;
 constexpr uint16_t kSupervisionTimeout = 400;  // x 10 ms = 4000 ms
 constexpr uint16_t kAdvInterval = 160;         // x 0.625 ms = 100 ms
-constexpr uint64_t kRebootDelayUs = 300 * 1000;  // lets the write response go out first
+// REBOOT waits for the write response to go out, then disconnects every
+// central cleanly (so they see the drop at once instead of after the 4 s
+// supervision timeout), then restarts.
+constexpr uint32_t kRebootResponseMs = 300;
+constexpr uint32_t kRebootDisconnectMs = 200;
 
 constexpr const char* kNvsNamespace = "insole";
 constexpr const char* kNvsOffsetsKey = "offsets";
@@ -55,7 +58,6 @@ uint32_t gNotifyFailures = 0;
 insole::Tare gTare;
 uint16_t gOffsets[insole::kMaxFsrCount];
 bool gRebootPending = false;
-esp_timer_handle_t gRebootTimer = nullptr;
 
 struct Lock {
   Lock() { xSemaphoreTake(gLock, portMAX_DELAY); }
@@ -124,7 +126,23 @@ void publishCalibration(const uint16_t* offsets) {
   Serial.printf("\n");
 }
 
-void rebootNow(void*) { esp_restart(); }
+void rebootTask(void*) {
+  vTaskDelay(pdMS_TO_TICKS(kRebootResponseMs));
+  uint16_t conns[SessionTable::kMaxSessions];
+  int n = 0;
+  {
+    Lock l;
+    for (StreamSession& s : gSessions)
+      if (s.inUse()) conns[n++] = s.connHandle;
+  }
+  // No advertising until the restart: a central must not find the old boot.
+  gServer->advertiseOnDisconnect(false);
+  NimBLEDevice::stopAdvertising();
+  for (int i = 0; i < n; ++i) gServer->disconnect(conns[i]);
+  Serial.printf("[ctl] REBOOT: disconnected %d central(s), restarting\n", n);
+  vTaskDelay(pdMS_TO_TICKS(kRebootDisconnectMs));
+  esp_restart();
+}
 
 int connectedSessions() {
   int n = 0;
@@ -272,7 +290,7 @@ class ControlCallbacks : public NimBLECharacteristicCallbacks {
         break;
       case insole::CommandKind::Reboot:
         Serial.printf("[ctl] conn %u: REBOOT%s\n", conn, applied ? " in 300 ms" : " (pending)");
-        if (applied) esp_timer_start_once(gRebootTimer, kRebootDelayUs);
+        if (applied) xTaskCreate(rebootTask, "reboot", 3072, nullptr, 1, nullptr);
         break;
       case insole::CommandKind::Malformed:
         Serial.printf("[ctl] conn %u: opcode 0x%02x with %u bytes: wrong length, ignored\n", conn,
@@ -318,10 +336,6 @@ void begin(uint8_t fsrCount) {
   gCalibration = svc->createCharacteristic(insole::kCalibrationUuid, NIMBLE_PROPERTY::READ,
                                            insole::kMaxCalibrationBytes);
 
-  esp_timer_create_args_t reboot = {};
-  reboot.callback = rebootNow;
-  reboot.name = "reboot";
-  esp_timer_create(&reboot, &gRebootTimer);
   gSensor->setCallbacks(&gSubscribeCallbacks);
   gTemperature->setCallbacks(&gSubscribeCallbacks);
   gStatus->setCallbacks(&gSubscribeCallbacks);

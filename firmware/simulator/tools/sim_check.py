@@ -1,12 +1,18 @@
 #!/usr/bin/env python3
 """Live check of the SmartInsole simulator over BLE, from a laptop (bleak).
 
-Runs the app's connect sequence (docs/FLUTTER-PLAN.md section 5, minus
-SYNC_TIME, which is S2C), streams for --duration seconds, then sends
-STOP_STREAM and checks that the stream ends. Then it reconnects
---reconnects times and checks that each new connection gets nothing before
-its START_STREAM, starts at seq 0, and that t0 keeps counting from boot. It
-exits non-zero if any check fails.
+Runs the app's connect sequence (docs/FLUTTER-PLAN.md section 5), streams
+for --duration seconds, then sends STOP_STREAM and checks that the stream
+ends. Then it reconnects --reconnects times and checks that each new
+connection gets nothing before its START_STREAM, starts at seq 0, and that
+t0 keeps counting from boot. Then (unless --no-control) it exercises every
+control opcode on a fresh connection, TARE and REBOOT last. It exits
+non-zero if any check fails.
+
+With --two-central another central (a phone) may be connected and
+streaming at the same time. Device Status `state` is device-wide (1 while
+any connection streams), so the idle/streaming state checks are reported
+but not judged; everything about this connection's own stream still is.
 
 Before going live, the script's own parsers are checked against
 shared/test_vectors/ (the same vectors the Flutter parser and the
@@ -15,6 +21,8 @@ on the air match the contract, not just this script's reading of it.
 
     tools/.venv/bin/python tools/sim_check.py --selftest
     tools/.venv/bin/python tools/sim_check.py --side L --duration 600
+    tools/.venv/bin/python tools/sim_check.py --two-central --duration 300 \
+        --reconnects 0 --no-control
 """
 
 from __future__ import annotations
@@ -38,14 +46,23 @@ CALIBRATION = "f0a5c000-9b4d-4e8a-a3c1-72d6e1b45905"
 
 START_STREAM = b"\x01"
 STOP_STREAM = b"\x02"
+SYNC_TIME = 0x03
+SET_RATE = 0x04
+TARE = b"\x05"
+REBOOT = b"\x06"
 
 SAMPLE_PERIOD_MS = 20
 SAMPLES_PER_PACKET = 8
 PACKET_RATE_HZ = 1000 / (SAMPLE_PERIOD_MS * SAMPLES_PER_PACKET)  # 6.25
 TEMP_PERIOD_MS = 30000
 BATTERY_FLOOR_PCT = 50  # the simulator never goes below this
+# TARE measures one stride (55 samples) of the walking model; its minimum is
+# the unloaded reading, synth baseline 30 ADC +- noise 12.
+TARE_WINDOW_SAMPLES = 55
+TARE_MAX_OFFSET_ADC = 42
 
 VECTORS = Path(__file__).resolve().parents[3] / "shared" / "test_vectors"
+THRESHOLDS = Path(__file__).resolve().parents[3] / "shared" / "thresholds.json"
 
 
 class Reject(Exception):
@@ -238,6 +255,15 @@ class Checks:
             self.failed += 1
         print(f"  [{'PASS' if ok else 'FAIL'}] {what}{(' - ' + detail) if detail else ''}")
 
+    def state_check(self, args, ok: bool, what: str, detail: str = ""):
+        """Device Status state is device-wide: with another central streaming
+        it legitimately stays 1, so it is only reported then."""
+        if args.two_central:
+            print(f"  [INFO] {what} (not judged, --two-central): {'yes' if ok else 'no'}"
+                  f"{(' - ' + detail) if detail else ''}")
+        else:
+            self.check(ok, what, detail)
+
 
 async def live(args) -> bool:
     from bleak import BleakClient, BleakScanner
@@ -287,7 +313,7 @@ async def live(args) -> bool:
         st = parse_status(bytes(await client.read_gatt_char(STATUS)))
         print(f"  status: {st}")
         c.check(st["foot_side"] == want_side, "status foot_side matches", str(st["foot_side"]))
-        c.check(st["state"] == 0, "idle before START_STREAM", f"state {st['state']}")
+        c.state_check(args, st["state"] == 0, "idle before START_STREAM", f"state {st['state']}")
 
         raw_cal = bytes(await client.read_gatt_char(CALIBRATION))
         cal = parse_calibration(raw_cal.decode("utf-8"))
@@ -306,6 +332,9 @@ async def live(args) -> bool:
         c.check(not run.sensor and not run.temp, "nothing streams before START_STREAM",
                 f"{len(run.sensor)} sensor, {len(run.temp)} temp")
 
+        # Connect sequence: ... enable notifications -> SYNC_TIME -> START_STREAM.
+        sync = bytes([SYNC_TIME]) + struct.pack("<Q", int(time.time() * 1000))
+        await client.write_gatt_char(CONTROL, sync, response=True)
         run.start_at = now()
         await client.write_gatt_char(CONTROL, START_STREAM, response=True)
         print(f"START_STREAM sent; streaming {args.duration} s ...")
@@ -320,7 +349,7 @@ async def live(args) -> bool:
         await asyncio.sleep(2.0)
         st_after = parse_status(bytes(await client.read_gatt_char(STATUS)))
 
-    evaluate(run, cal, st_after, c)
+    evaluate(run, cal, st_after, c, args)
     last_t0 = None
     for _, b in reversed(run.sensor):
         try:
@@ -330,6 +359,8 @@ async def live(args) -> bool:
             pass
     for i in range(args.reconnects):
         last_t0 = await reconnect_check(dev, run.n, last_t0, i + 1, c)
+    if args.control:
+        await control_check(dev, run.n, want_side, c, args)
     print(f"\n{'PASS' if c.failed == 0 else 'FAIL'}: {c.failed} check(s) failed")
     return c.failed == 0
 
@@ -373,7 +404,7 @@ async def reconnect_check(dev, n: int, prev_t0, cycle: int, c: Checks):
     return pkts[-1]["t0_ms"]
 
 
-def evaluate(run: Run, cal: dict, st_after: dict, c: Checks):
+def evaluate(run: Run, cal: dict, st_after: dict, c: Checks, args):
     print("\nresults")
     grace = 0.5  # packets already in flight when STOP was written
     streamed = [(t, b) for t, b in run.sensor if t <= run.stop_at + grace]
@@ -456,12 +487,180 @@ def evaluate(run: Run, cal: dict, st_after: dict, c: Checks):
         except Reject as e:
             c.check(False, "status notification is 8 bytes", f"{len(b)} bytes ({e.reason})")
     streaming = [s for t, s in sts if run.start_at < t <= run.stop_at]
-    c.check(any(s["state"] == 1 for s in streaming), "status notifies state 1 after START")
+    c.state_check(args, any(s["state"] == 1 for s in streaming) or
+                  (args.two_central and not streaming), "status notifies state 1 after START")
     c.check(all(s["battery_pct"] >= BATTERY_FLOOR_PCT for _, s in sts) and
             st_after["battery_pct"] >= BATTERY_FLOOR_PCT, "battery >= 50 %",
             f"last {st_after['battery_pct']} % / {st_after['battery_mv']} mV")
-    c.check(st_after["state"] == 0, "state 0 after STOP_STREAM", f"state {st_after['state']}")
-    c.check(any(s["state"] == 0 for t, s in sts if t > run.stop_at), "status notifies state 0 after STOP")
+    c.state_check(args, st_after["state"] == 0, "state 0 after STOP_STREAM",
+                  f"state {st_after['state']}")
+    c.state_check(args, any(s["state"] == 0 for t, s in sts if t > run.stop_at),
+                  "status notifies state 0 after STOP")
+
+
+def sensor_seq_checks(pkts: list, label: str, c: Checks):
+    """seq starts at 0, has no gaps or resets, t0 steps 160 ms throughout."""
+    c.check(pkts[0]["seq"] == 0, f"{label}: first seq is 0", str(pkts[0]["seq"]))
+    gaps = [(a["seq"], b["seq"]) for a, b in zip(pkts, pkts[1:])
+            if (a["seq"] + 1) & 0xFFFF != b["seq"]]
+    c.check(not gaps, f"{label}: no seq gaps or resets", f"{len(pkts)} packets, gaps {gaps[:3]}")
+    steps = {b["t0_ms"] - a["t0_ms"] for a, b in zip(pkts, pkts[1:])}
+    c.check(steps == {SAMPLES_PER_PACKET * SAMPLE_PERIOD_MS},
+            f"{label}: t0 step 160 ms (50 Hz, rule 1)", str(sorted(steps)[:5]))
+
+
+def offsets_of(cal: dict) -> list:
+    return [ch["offset_adc"] for ch in cal["channels"]]
+
+
+async def read_cal(client) -> dict:
+    return parse_calibration(bytes(await client.read_gatt_char(CALIBRATION)).decode("utf-8"))
+
+
+async def control_check(dev, n: int, want_side: int, c: Checks, args):
+    """Every control opcode (contract section 3.4) on one connection, then
+    REBOOT and a reconnect to check what survives it."""
+    from bleak import BleakClient
+
+    print("\ncontrol opcodes: connecting ...")
+    await asyncio.sleep(1.0)
+    got = []  # (arrival_s, raw sensor packet)
+    marks = {}  # event name -> time.monotonic() right after its write completed
+    now = time.monotonic
+    disconnected = asyncio.Event()
+    disconnected_at = []
+
+    def on_disconnect(_):
+        disconnected_at.append(time.monotonic())
+        disconnected.set()
+
+    async with BleakClient(dev, disconnected_callback=on_disconnect) as client:
+        acquire = getattr(getattr(client, "_backend", None), "_acquire_mtu", None)
+        if acquire:
+            await acquire()
+        cal_before = await read_cal(client)
+        await client.start_notify(SENSOR, lambda _, d: got.append((now(), bytes(d))))
+
+        async def write(name: str, data: bytes, gap: float = 1.0):
+            await client.write_gatt_char(CONTROL, data, response=True)
+            marks[name] = now()
+            await asyncio.sleep(gap)
+
+        unix_ms = int(time.time() * 1000)
+        await write("start", START_STREAM)
+        await write("sync", bytes([SYNC_TIME]) + struct.pack("<Q", unix_ms))
+        await write("sync_malformed", bytes([SYNC_TIME]) + struct.pack("<Q", unix_ms)[:7])
+        await write("rate_50", bytes([SET_RATE, 50]))
+        await write("rate_25", bytes([SET_RATE, 25]), gap=2.0)
+        await write("scenario_0x10", b"\x10\x01")
+        await write("unknown_0x7f", b"\x7f")
+        await write("stop_malformed", b"\x02\x02")
+        await write("start_again", START_STREAM)
+        await write("tare", TARE, gap=3.0)
+        cal_after = await read_cal(client)
+        await write("stop", STOP_STREAM, gap=0.5)
+
+        pkts = []
+        for t, b in got:
+            try:
+                pkts.append((t, parse_sensor(b, n)))
+            except Reject as e:
+                c.check(False, "control: sensor packet parses", e.reason)
+        print(f"  {len(pkts)} sensor packets over the opcode sequence")
+        if not pkts:
+            c.check(False, "control: received sensor packets")
+            return
+        only = [p for _, p in pkts]
+        sensor_seq_checks(only, "control", c)
+        c.check(all(p["count"] == SAMPLES_PER_PACKET for p in only), "control: count = 8 throughout")
+
+        # Malformed STOP, unknown opcodes, SET_RATE 25 and a second START
+        # changed nothing: the stream ran on without a break until STOP.
+        span = [t for t, _ in pkts if marks["start"] < t <= marks["stop"]]
+        rate = (len(span) - 1) / (span[-1] - span[0]) if len(span) > 1 else 0
+        c.check(abs(rate - PACKET_RATE_HZ) / PACKET_RATE_HZ < 0.05,
+                "control: 6.25 Hz across SET_RATE 25 / malformed / unknown writes",
+                f"{rate:.3f} Hz")
+        after_stop = [t for t, _ in pkts if t > marks["stop"] + 0.5]
+        c.check(not after_stop, "control: real STOP_STREAM still stops", f"{len(after_stop)} after")
+
+        # TARE: flags bit1 on a contiguous run of packets covering one stride,
+        # only after the TARE write, and clear again afterwards.
+        cal_idx = [i for i, (_, p) in enumerate(pkts) if p["calibrating"]]
+        c.check(bool(cal_idx), "TARE: packets flagged calibrating (flags bit1)")
+        if cal_idx:
+            contiguous = cal_idx == list(range(cal_idx[0], cal_idx[-1] + 1))
+            first_t = pkts[cal_idx[0]][0]
+            win = cal_idx[-1] - cal_idx[0] + 1
+            lo = TARE_WINDOW_SAMPLES // SAMPLES_PER_PACKET
+            c.check(contiguous and lo <= win <= lo + 2,
+                    "TARE: one contiguous calibrating run of about one stride",
+                    f"{win} packets (expected {lo}..{lo + 2})")
+            c.check(first_t > marks["start_again"], "TARE: no calibrating flag before the TARE write")
+            c.check(cal_idx[-1] < len(pkts) - 1, "TARE: flag clears after the window")
+            c.check(not any(p["flags"] & ~0x02 for _, p in pkts), "control: no other flag bits")
+
+        before, after = offsets_of(cal_before), offsets_of(cal_after)
+        print(f"  offset_adc before TARE {before}, after {after}")
+        c.check(len(after) == n and all(0 <= o <= TARE_MAX_OFFSET_ADC for o in after),
+                f"TARE: offset_adc is an unloaded reading (0..{TARE_MAX_OFFSET_ADC})", str(after))
+        watch = json.loads(THRESHOLDS.read_text())["pressure"]["watchKpa"]
+        peaks = [max(s["fsr_adc"][i] for p in only for s in p["samples"]) for i in range(n)]
+        kpa = [adc_to_kpa(a, cal_after["channels"][i], cal_after) for i, a in enumerate(peaks)]
+        c.check(max(kpa) < watch, "TARE: walking peak still below watchKpa with the new offsets",
+                f"max {max(kpa):.1f} kPa < {watch}")
+        last_t0 = only[-1]["t0_ms"]
+
+        # REBOOT: the device drops every connection shortly after the write.
+        print("REBOOT ...")
+        rebooted_at = now()
+        try:
+            await client.write_gatt_char(CONTROL, REBOOT, response=True)
+            print(f"  REBOOT write acknowledged after {now() - rebooted_at:.3f} s")
+        except Exception as e:  # the response can lose the race with the restart
+            print(f"  REBOOT write raised {type(e).__name__}: {e} (ok if a disconnect follows)")
+        try:
+            await asyncio.wait_for(disconnected.wait(), 6.0)
+        except asyncio.TimeoutError:
+            pass
+        # The simulator disconnects cleanly before restarting; without that
+        # the central only notices after the 4 s supervision timeout.
+        c.check(bool(disconnected_at) and disconnected_at[0] - rebooted_at < 2.0,
+                "REBOOT: device disconnects cleanly (< 2 s, not the 4 s timeout)",
+                f"{disconnected_at[0] - rebooted_at:.2f} s after the write" if disconnected_at
+                else "no disconnect in 6 s")
+
+    # After the restart: advertising again, idle, offsets kept, clock restarted.
+    from bleak import BleakScanner
+    dev2 = await BleakScanner.find_device_by_filter(
+        lambda d, a: SERVICE in [u.lower() for u in a.service_uuids] and d.address == dev.address,
+        timeout=args.scan_timeout)
+    c.check(dev2 is not None, "REBOOT: advertising again", f"after {now() - rebooted_at:.1f} s")
+    if dev2 is None:
+        return
+    got.clear()
+    async with BleakClient(dev2) as client:
+        acquire = getattr(getattr(client, "_backend", None), "_acquire_mtu", None)
+        if acquire:
+            await acquire()
+        st = parse_status(bytes(await client.read_gatt_char(STATUS)))
+        c.check(st["foot_side"] == want_side, "REBOOT: same foot_side after restart")
+        c.state_check(args, st["state"] == 0, "REBOOT: idle after restart", f"state {st['state']}")
+        cal_reboot = await read_cal(client)
+        c.check(offsets_of(cal_reboot) == after, "REBOOT: offset_adc kept in NVS",
+                f"{offsets_of(cal_reboot)} vs {after}")
+        await client.start_notify(SENSOR, lambda _, d: got.append((now(), bytes(d))))
+        await client.write_gatt_char(CONTROL, START_STREAM, response=True)
+        await asyncio.sleep(3.0)
+        await client.write_gatt_char(CONTROL, STOP_STREAM, response=True)
+        await asyncio.sleep(0.5)
+    pkts = [parse_sensor(b, n) for _, b in got]
+    if not pkts:
+        c.check(False, "REBOOT: streams after restart")
+        return
+    sensor_seq_checks(pkts, "after REBOOT", c)
+    c.check(pkts[0]["t0_ms"] < last_t0, "REBOOT: t0 restarted (ms since the new boot)",
+            f"{last_t0} -> {pkts[0]['t0_ms']}")
 
 
 def main() -> int:
@@ -472,6 +671,10 @@ def main() -> int:
     ap.add_argument("--scan-timeout", type=float, default=20)
     ap.add_argument("--reconnects", type=int, default=2,
                     help="disconnect/reconnect cycles after the main run")
+    ap.add_argument("--no-control", dest="control", action="store_false",
+                    help="skip the opcode checks (they end with TARE and REBOOT)")
+    ap.add_argument("--two-central", action="store_true",
+                    help="another central may be streaming: don't judge device-wide state")
     ap.add_argument("--selftest", action="store_true", help="only check the parsers")
     args = ap.parse_args()
 
