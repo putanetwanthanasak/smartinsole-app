@@ -11,6 +11,7 @@ class SettingsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         leading: const AppBackButton(),
+        titleSpacing: 0,
         title: const Text('ตั้งค่า'),
       ),
       body: const PageBody(children: [PlaceholderBody(session: 'S8B')]),

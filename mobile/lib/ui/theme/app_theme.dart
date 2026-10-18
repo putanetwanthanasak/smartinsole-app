@@ -48,6 +48,8 @@ abstract final class AppTheme {
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: false,
+        // Aligns titles with the page padding used by card content.
+        titleSpacing: Dimens.pagePadding,
         titleTextStyle: AppText.screenTitle,
       ),
       cardTheme: const CardThemeData(

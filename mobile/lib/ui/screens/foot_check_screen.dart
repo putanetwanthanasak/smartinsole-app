@@ -11,6 +11,7 @@ class FootCheckScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         leading: const AppBackButton(),
+        titleSpacing: 0,
         title: const Text('ตรวจเท้าประจำวัน'),
       ),
       body: const PageBody(children: [PlaceholderBody(session: 'S8C')]),

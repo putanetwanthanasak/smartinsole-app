@@ -11,6 +11,7 @@ class ConnectionScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         leading: const AppBackButton(),
+        titleSpacing: 0,
         title: const Text('เชื่อมต่อแผ่นรองเท้า'),
       ),
       body: const PageBody(children: [PlaceholderBody(session: 'S8B')]),
