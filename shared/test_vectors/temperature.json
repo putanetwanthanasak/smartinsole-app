@@ -1,0 +1,130 @@
+{
+  "description": "Temperature packets (12 bytes). Expected values are the output of the TS parser. null temperature = wire value -32768 (\"could not read\").",
+  "cases": [
+    {
+      "name": "normal",
+      "reference": "ts-parser",
+      "hex": "0100307500006c0cd10b0000",
+      "expected": {
+        "rejected": null,
+        "seq": 1,
+        "t_ms": 30000,
+        "forefoot_c": 31.8,
+        "heel_c": 30.25,
+        "quality": 0
+      }
+    },
+    {
+      "name": "negative_and_fractional",
+      "reference": "ts-parser",
+      "hex": "020060ea000097ff01000000",
+      "expected": {
+        "rejected": null,
+        "seq": 2,
+        "t_ms": 60000,
+        "forefoot_c": -1.05,
+        "heel_c": 0.01,
+        "quality": 0
+      }
+    },
+    {
+      "name": "int16_max",
+      "reference": "ts-parser",
+      "hex": "0300905f0100ff7f01800000",
+      "expected": {
+        "rejected": null,
+        "seq": 3,
+        "t_ms": 90000,
+        "forefoot_c": 327.67,
+        "heel_c": -327.67,
+        "quality": 0
+      }
+    },
+    {
+      "name": "unreadable_forefoot",
+      "reference": "ts-parser",
+      "hex": "0400c0d4010000801c0c0000",
+      "expected": {
+        "rejected": null,
+        "seq": 4,
+        "t_ms": 120000,
+        "forefoot_c": null,
+        "heel_c": 31,
+        "quality": 0
+      }
+    },
+    {
+      "name": "unreadable_heel",
+      "reference": "ts-parser",
+      "hex": "0500f04902001c0c00800000",
+      "expected": {
+        "rejected": null,
+        "seq": 5,
+        "t_ms": 150000,
+        "forefoot_c": 31,
+        "heel_c": null,
+        "quality": 0
+      }
+    },
+    {
+      "name": "unreadable_both",
+      "reference": "ts-parser",
+      "hex": "060020bf0200008000800200",
+      "expected": {
+        "rejected": null,
+        "seq": 6,
+        "t_ms": 180000,
+        "forefoot_c": null,
+        "heel_c": null,
+        "quality": 2
+      }
+    },
+    {
+      "name": "quality_1_poor_contact",
+      "reference": "ts-parser",
+      "hex": "070050340300ea0bae0b0100",
+      "expected": {
+        "rejected": null,
+        "seq": 7,
+        "t_ms": 210000,
+        "forefoot_c": 30.5,
+        "heel_c": 29.9,
+        "quality": 1
+      }
+    },
+    {
+      "name": "quality_2_sensor_fault",
+      "reference": "ts-parser",
+      "hex": "080080a90300ea0bae0b0200",
+      "expected": {
+        "rejected": null,
+        "seq": 8,
+        "t_ms": 240000,
+        "forefoot_c": 30.5,
+        "heel_c": 29.9,
+        "quality": 2
+      }
+    },
+    {
+      "name": "seq_and_t_max",
+      "reference": "ts-parser",
+      "hex": "ffffffffffffe40ce40c0000",
+      "expected": {
+        "rejected": null,
+        "seq": 65535,
+        "t_ms": 4294967295,
+        "forefoot_c": 33,
+        "heel_c": 33,
+        "quality": 0
+      }
+    },
+    {
+      "name": "short_11_bytes",
+      "reference": "ts-parser",
+      "hex": "0900b01e0400b80bb80b00",
+      "expected": {
+        "rejected": "tooShort"
+      }
+    }
+  ]
+}

@@ -5,7 +5,11 @@ Files shared between the Flutter app (`mobile/`) and the new simulator
 
 - **`thresholds.json`** — the source-of-truth threshold file for the Flutter
   app. It started as a byte-for-byte copy of `public/thresholds.json`.
-- `sensor_layout.json`, `test_vectors/` — not yet created (planned for S2A).
+- **`test_vectors/`** — BLE wire-format test vectors generated from the web
+  app's TS parser; the Flutter parser is tested against them. See
+  `test_vectors/README.md` (regenerate with
+  `node shared/test_vectors/generate.mjs`).
+- `sensor_layout.json` — not yet created (planned with the heatmap, S5).
 
 ## The web app still uses `public/thresholds.json`
 

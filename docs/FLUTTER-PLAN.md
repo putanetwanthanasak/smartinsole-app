@@ -41,6 +41,8 @@
 | Foot-check entry point | A card on Home ("today's foot check not done yet"), shown only until today's check is done + an in-app evening reminder |
 | Simulator scenario mode (`0x10 SET_SCENARIO`) | Not now; main app first (backlog) |
 | Claude Code language | English only for prompts, docs, code, commits, reports |
+| Screen titles | In the page body, not the `AppBar`, so they scale with large text (`AppBar` caps text scaling at 1.34×). Applied when each screen is built for real (S5, S6B, S8A, S8B, S8C), not before. (BACKLOG item 14) |
+| Home greeting name | Set by the user in Settings (S8B). When no name is set, Home shows just "สวัสดี". (BACKLOG item 14) |
 
 ---
 
