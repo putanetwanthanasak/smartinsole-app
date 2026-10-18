@@ -1,0 +1,296 @@
+{
+  "description": "Calibration blobs (JSON text, read from the Calibration characteristic). Valid cases are the output of the TS parser. For malformed blobs the TS parser throws; \"rejected\" is the RejectReason the Dart parser must return and \"ts_message\" is what TS threw.",
+  "cases": [
+    {
+      "name": "contract_example_6_channels",
+      "reference": "ts-parser",
+      "text": "{\"device_id\":\"INSOLE-L-001\",\"r_pulldown_ohm\":10000,\"sensor_area_m2\":0.000113,\"channels\":[{\"index\":0,\"a\":123000,\"b\":-1.05,\"offset_adc\":12},{\"index\":1,\"a\":123000,\"b\":-1.05,\"offset_adc\":12},{\"index\":2,\"a\":123000,\"b\":-1.05,\"offset_adc\":12},{\"index\":3,\"a\":123000,\"b\":-1.05,\"offset_adc\":12},{\"index\":4,\"a\":123000,\"b\":-1.05,\"offset_adc\":12},{\"index\":5,\"a\":123000,\"b\":-1.05,\"offset_adc\":12}]}",
+      "expected": {
+        "rejected": null,
+        "device_id": "INSOLE-L-001",
+        "r_pulldown_ohm": 10000,
+        "sensor_area_m2": 0.000113,
+        "channels": [
+          {
+            "index": 0,
+            "a": 123000,
+            "b": -1.05,
+            "offset_adc": 12
+          },
+          {
+            "index": 1,
+            "a": 123000,
+            "b": -1.05,
+            "offset_adc": 12
+          },
+          {
+            "index": 2,
+            "a": 123000,
+            "b": -1.05,
+            "offset_adc": 12
+          },
+          {
+            "index": 3,
+            "a": 123000,
+            "b": -1.05,
+            "offset_adc": 12
+          },
+          {
+            "index": 4,
+            "a": 123000,
+            "b": -1.05,
+            "offset_adc": 12
+          },
+          {
+            "index": 5,
+            "a": 123000,
+            "b": -1.05,
+            "offset_adc": 12
+          }
+        ]
+      }
+    },
+    {
+      "name": "varied_6_channels",
+      "reference": "ts-parser",
+      "text": "{\"device_id\":\"INSOLE-R-002\",\"r_pulldown_ohm\":10000,\"sensor_area_m2\":0.000113,\"channels\":[{\"index\":0,\"a\":123000,\"b\":-1.05,\"offset_adc\":12},{\"index\":1,\"a\":98000,\"b\":-1.02,\"offset_adc\":0},{\"index\":2,\"a\":141000,\"b\":-1.1,\"offset_adc\":40},{\"index\":3,\"a\":105000,\"b\":-0.98,\"offset_adc\":100},{\"index\":4,\"a\":87000,\"b\":-1.07,\"offset_adc\":7},{\"index\":5,\"a\":160000,\"b\":-1.12,\"offset_adc\":250}]}",
+      "expected": {
+        "rejected": null,
+        "device_id": "INSOLE-R-002",
+        "r_pulldown_ohm": 10000,
+        "sensor_area_m2": 0.000113,
+        "channels": [
+          {
+            "index": 0,
+            "a": 123000,
+            "b": -1.05,
+            "offset_adc": 12
+          },
+          {
+            "index": 1,
+            "a": 98000,
+            "b": -1.02,
+            "offset_adc": 0
+          },
+          {
+            "index": 2,
+            "a": 141000,
+            "b": -1.1,
+            "offset_adc": 40
+          },
+          {
+            "index": 3,
+            "a": 105000,
+            "b": -0.98,
+            "offset_adc": 100
+          },
+          {
+            "index": 4,
+            "a": 87000,
+            "b": -1.07,
+            "offset_adc": 7
+          },
+          {
+            "index": 5,
+            "a": 160000,
+            "b": -1.12,
+            "offset_adc": 250
+          }
+        ]
+      }
+    },
+    {
+      "name": "pretty_printed_with_extra_field",
+      "reference": "ts-parser",
+      "text": "{\n  \"device_id\": \"INSOLE-R-002\",\n  \"r_pulldown_ohm\": 10000,\n  \"sensor_area_m2\": 0.000113,\n  \"channels\": [\n    {\n      \"index\": 0,\n      \"a\": 123000,\n      \"b\": -1.05,\n      \"offset_adc\": 12\n    },\n    {\n      \"index\": 1,\n      \"a\": 98000,\n      \"b\": -1.02,\n      \"offset_adc\": 0\n    },\n    {\n      \"index\": 2,\n      \"a\": 141000,\n      \"b\": -1.1,\n      \"offset_adc\": 40\n    },\n    {\n      \"index\": 3,\n      \"a\": 105000,\n      \"b\": -0.98,\n      \"offset_adc\": 100\n    },\n    {\n      \"index\": 4,\n      \"a\": 87000,\n      \"b\": -1.07,\n      \"offset_adc\": 7\n    },\n    {\n      \"index\": 5,\n      \"a\": 160000,\n      \"b\": -1.12,\n      \"offset_adc\": 250\n    }\n  ],\n  \"fw\": \"1.4\"\n}",
+      "expected": {
+        "rejected": null,
+        "device_id": "INSOLE-R-002",
+        "r_pulldown_ohm": 10000,
+        "sensor_area_m2": 0.000113,
+        "channels": [
+          {
+            "index": 0,
+            "a": 123000,
+            "b": -1.05,
+            "offset_adc": 12
+          },
+          {
+            "index": 1,
+            "a": 98000,
+            "b": -1.02,
+            "offset_adc": 0
+          },
+          {
+            "index": 2,
+            "a": 141000,
+            "b": -1.1,
+            "offset_adc": 40
+          },
+          {
+            "index": 3,
+            "a": 105000,
+            "b": -0.98,
+            "offset_adc": 100
+          },
+          {
+            "index": 4,
+            "a": 87000,
+            "b": -1.07,
+            "offset_adc": 7
+          },
+          {
+            "index": 5,
+            "a": 160000,
+            "b": -1.12,
+            "offset_adc": 250
+          }
+        ]
+      }
+    },
+    {
+      "name": "not_json",
+      "reference": "ts-parser",
+      "text": "{\"device_id\": \"INSOLE-L-001\",",
+      "expected": {
+        "rejected": "calibrationNotJson",
+        "ts_message": "Calibration blob is not valid JSON"
+      }
+    },
+    {
+      "name": "empty_text",
+      "reference": "ts-parser",
+      "text": "",
+      "expected": {
+        "rejected": "calibrationNotJson",
+        "ts_message": "Calibration blob is not valid JSON"
+      }
+    },
+    {
+      "name": "json_null",
+      "reference": "ts-parser",
+      "text": "null",
+      "expected": {
+        "rejected": "calibrationNotObject",
+        "ts_message": "Calibration blob is not a JSON object"
+      }
+    },
+    {
+      "name": "json_number",
+      "reference": "ts-parser",
+      "text": "42",
+      "expected": {
+        "rejected": "calibrationNotObject",
+        "ts_message": "Calibration blob is not a JSON object"
+      }
+    },
+    {
+      "name": "missing_device_id",
+      "reference": "ts-parser",
+      "text": "{\"r_pulldown_ohm\":10000,\"sensor_area_m2\":0.000113,\"channels\":[{\"index\":0,\"a\":123000,\"b\":-1.05,\"offset_adc\":12},{\"index\":1,\"a\":98000,\"b\":-1.02,\"offset_adc\":0},{\"index\":2,\"a\":141000,\"b\":-1.1,\"offset_adc\":40},{\"index\":3,\"a\":105000,\"b\":-0.98,\"offset_adc\":100},{\"index\":4,\"a\":87000,\"b\":-1.07,\"offset_adc\":7},{\"index\":5,\"a\":160000,\"b\":-1.12,\"offset_adc\":250}]}",
+      "expected": {
+        "rejected": "calibrationMissingField",
+        "ts_message": "Calibration blob missing string device_id"
+      }
+    },
+    {
+      "name": "device_id_not_string",
+      "reference": "ts-parser",
+      "text": "{\"device_id\":7,\"r_pulldown_ohm\":10000,\"sensor_area_m2\":0.000113,\"channels\":[{\"index\":0,\"a\":123000,\"b\":-1.05,\"offset_adc\":12},{\"index\":1,\"a\":98000,\"b\":-1.02,\"offset_adc\":0},{\"index\":2,\"a\":141000,\"b\":-1.1,\"offset_adc\":40},{\"index\":3,\"a\":105000,\"b\":-0.98,\"offset_adc\":100},{\"index\":4,\"a\":87000,\"b\":-1.07,\"offset_adc\":7},{\"index\":5,\"a\":160000,\"b\":-1.12,\"offset_adc\":250}]}",
+      "expected": {
+        "rejected": "calibrationMissingField",
+        "ts_message": "Calibration blob missing string device_id"
+      }
+    },
+    {
+      "name": "missing_r_pulldown_ohm",
+      "reference": "ts-parser",
+      "text": "{\"device_id\":\"INSOLE-R-002\",\"sensor_area_m2\":0.000113,\"channels\":[{\"index\":0,\"a\":123000,\"b\":-1.05,\"offset_adc\":12},{\"index\":1,\"a\":98000,\"b\":-1.02,\"offset_adc\":0},{\"index\":2,\"a\":141000,\"b\":-1.1,\"offset_adc\":40},{\"index\":3,\"a\":105000,\"b\":-0.98,\"offset_adc\":100},{\"index\":4,\"a\":87000,\"b\":-1.07,\"offset_adc\":7},{\"index\":5,\"a\":160000,\"b\":-1.12,\"offset_adc\":250}]}",
+      "expected": {
+        "rejected": "calibrationMissingField",
+        "ts_message": "Calibration blob missing numeric r_pulldown_ohm"
+      }
+    },
+    {
+      "name": "r_pulldown_ohm_string",
+      "reference": "ts-parser",
+      "text": "{\"device_id\":\"INSOLE-R-002\",\"r_pulldown_ohm\":\"10000\",\"sensor_area_m2\":0.000113,\"channels\":[{\"index\":0,\"a\":123000,\"b\":-1.05,\"offset_adc\":12},{\"index\":1,\"a\":98000,\"b\":-1.02,\"offset_adc\":0},{\"index\":2,\"a\":141000,\"b\":-1.1,\"offset_adc\":40},{\"index\":3,\"a\":105000,\"b\":-0.98,\"offset_adc\":100},{\"index\":4,\"a\":87000,\"b\":-1.07,\"offset_adc\":7},{\"index\":5,\"a\":160000,\"b\":-1.12,\"offset_adc\":250}]}",
+      "expected": {
+        "rejected": "calibrationMissingField",
+        "ts_message": "Calibration blob missing numeric r_pulldown_ohm"
+      }
+    },
+    {
+      "name": "missing_sensor_area_m2",
+      "reference": "ts-parser",
+      "text": "{\"device_id\":\"INSOLE-R-002\",\"r_pulldown_ohm\":10000,\"channels\":[{\"index\":0,\"a\":123000,\"b\":-1.05,\"offset_adc\":12},{\"index\":1,\"a\":98000,\"b\":-1.02,\"offset_adc\":0},{\"index\":2,\"a\":141000,\"b\":-1.1,\"offset_adc\":40},{\"index\":3,\"a\":105000,\"b\":-0.98,\"offset_adc\":100},{\"index\":4,\"a\":87000,\"b\":-1.07,\"offset_adc\":7},{\"index\":5,\"a\":160000,\"b\":-1.12,\"offset_adc\":250}]}",
+      "expected": {
+        "rejected": "calibrationMissingField",
+        "ts_message": "Calibration blob missing numeric sensor_area_m2"
+      }
+    },
+    {
+      "name": "missing_channels",
+      "reference": "ts-parser",
+      "text": "{\"device_id\":\"INSOLE-R-002\",\"r_pulldown_ohm\":10000,\"sensor_area_m2\":0.000113}",
+      "expected": {
+        "rejected": "calibrationMissingField",
+        "ts_message": "Calibration blob missing channels array"
+      }
+    },
+    {
+      "name": "channels_not_array",
+      "reference": "ts-parser",
+      "text": "{\"device_id\":\"INSOLE-R-002\",\"r_pulldown_ohm\":10000,\"sensor_area_m2\":0.000113,\"channels\":{}}",
+      "expected": {
+        "rejected": "calibrationMissingField",
+        "ts_message": "Calibration blob missing channels array"
+      }
+    },
+    {
+      "name": "channel_not_object",
+      "reference": "ts-parser",
+      "text": "{\"device_id\":\"INSOLE-R-002\",\"r_pulldown_ohm\":10000,\"sensor_area_m2\":0.000113,\"channels\":[{\"index\":0,\"a\":123000,\"b\":-1.05,\"offset_adc\":12},{\"index\":1,\"a\":98000,\"b\":-1.02,\"offset_adc\":0},{\"index\":2,\"a\":141000,\"b\":-1.1,\"offset_adc\":40},{\"index\":3,\"a\":105000,\"b\":-0.98,\"offset_adc\":100},{\"index\":4,\"a\":87000,\"b\":-1.07,\"offset_adc\":7},3]}",
+      "expected": {
+        "rejected": "calibrationMissingField",
+        "ts_message": "Calibration channels[5] is not an object"
+      }
+    },
+    {
+      "name": "channel_missing_a",
+      "reference": "ts-parser",
+      "text": "{\"device_id\":\"INSOLE-R-002\",\"r_pulldown_ohm\":10000,\"sensor_area_m2\":0.000113,\"channels\":[{\"index\":0,\"a\":123000,\"b\":-1.05,\"offset_adc\":12},{\"index\":1,\"a\":98000,\"b\":-1.02,\"offset_adc\":0},{\"index\":2,\"b\":-1.1,\"offset_adc\":40},{\"index\":3,\"a\":105000,\"b\":-0.98,\"offset_adc\":100},{\"index\":4,\"a\":87000,\"b\":-1.07,\"offset_adc\":7},{\"index\":5,\"a\":160000,\"b\":-1.12,\"offset_adc\":250}]}",
+      "expected": {
+        "rejected": "calibrationMissingField",
+        "ts_message": "Calibration channels[2] missing numeric index/a/b/offset_adc"
+      }
+    },
+    {
+      "name": "channel_b_null",
+      "reference": "ts-parser",
+      "text": "{\"device_id\":\"INSOLE-R-002\",\"r_pulldown_ohm\":10000,\"sensor_area_m2\":0.000113,\"channels\":[{\"index\":0,\"a\":123000,\"b\":-1.05,\"offset_adc\":12},{\"index\":1,\"a\":98000,\"b\":-1.02,\"offset_adc\":0},{\"index\":2,\"a\":141000,\"b\":null,\"offset_adc\":40},{\"index\":3,\"a\":105000,\"b\":-0.98,\"offset_adc\":100},{\"index\":4,\"a\":87000,\"b\":-1.07,\"offset_adc\":7},{\"index\":5,\"a\":160000,\"b\":-1.12,\"offset_adc\":250}]}",
+      "expected": {
+        "rejected": "calibrationMissingField",
+        "ts_message": "Calibration channels[2] missing numeric index/a/b/offset_adc"
+      }
+    },
+    {
+      "name": "channel_missing_offset_adc",
+      "reference": "ts-parser",
+      "text": "{\"device_id\":\"INSOLE-R-002\",\"r_pulldown_ohm\":10000,\"sensor_area_m2\":0.000113,\"channels\":[{\"index\":0,\"a\":123000,\"b\":-1.05,\"offset_adc\":12},{\"index\":1,\"a\":98000,\"b\":-1.02,\"offset_adc\":0},{\"index\":2,\"a\":141000,\"b\":-1.1},{\"index\":3,\"a\":105000,\"b\":-0.98,\"offset_adc\":100},{\"index\":4,\"a\":87000,\"b\":-1.07,\"offset_adc\":7},{\"index\":5,\"a\":160000,\"b\":-1.12,\"offset_adc\":250}]}",
+      "expected": {
+        "rejected": "calibrationMissingField",
+        "ts_message": "Calibration channels[2] missing numeric index/a/b/offset_adc"
+      }
+    },
+    {
+      "name": "channel_index_string",
+      "reference": "ts-parser",
+      "text": "{\"device_id\":\"INSOLE-R-002\",\"r_pulldown_ohm\":10000,\"sensor_area_m2\":0.000113,\"channels\":[{\"index\":0,\"a\":123000,\"b\":-1.05,\"offset_adc\":12},{\"index\":1,\"a\":98000,\"b\":-1.02,\"offset_adc\":0},{\"index\":\"2\",\"a\":141000,\"b\":-1.1,\"offset_adc\":40},{\"index\":3,\"a\":105000,\"b\":-0.98,\"offset_adc\":100},{\"index\":4,\"a\":87000,\"b\":-1.07,\"offset_adc\":7},{\"index\":5,\"a\":160000,\"b\":-1.12,\"offset_adc\":250}]}",
+      "expected": {
+        "rejected": "calibrationMissingField",
+        "ts_message": "Calibration channels[2] missing numeric index/a/b/offset_adc"
+      }
+    }
+  ]
+}

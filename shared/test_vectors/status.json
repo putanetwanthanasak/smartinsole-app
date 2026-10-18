@@ -1,0 +1,208 @@
+{
+  "description": "Device Status packets (8 bytes). Expected values are the output of the TS parser.",
+  "cases": [
+    {
+      "name": "left_streaming",
+      "reference": "ts-parser",
+      "hex": "57930f0001040100",
+      "expected": {
+        "rejected": null,
+        "battery_pct": 87,
+        "battery_mv": 3987,
+        "foot_side": 0,
+        "fw_major": 1,
+        "fw_minor": 4,
+        "state": 1,
+        "error_code": 0
+      }
+    },
+    {
+      "name": "right_streaming",
+      "reference": "ts-parser",
+      "hex": "57930f0101040100",
+      "expected": {
+        "rejected": null,
+        "battery_pct": 87,
+        "battery_mv": 3987,
+        "foot_side": 1,
+        "fw_major": 1,
+        "fw_minor": 4,
+        "state": 1,
+        "error_code": 0
+      }
+    },
+    {
+      "name": "state_idle",
+      "reference": "ts-parser",
+      "hex": "57930f0001040000",
+      "expected": {
+        "rejected": null,
+        "battery_pct": 87,
+        "battery_mv": 3987,
+        "foot_side": 0,
+        "fw_major": 1,
+        "fw_minor": 4,
+        "state": 0,
+        "error_code": 0
+      }
+    },
+    {
+      "name": "state_error",
+      "reference": "ts-parser",
+      "hex": "57930f0001040201",
+      "expected": {
+        "rejected": null,
+        "battery_pct": 87,
+        "battery_mv": 3987,
+        "foot_side": 0,
+        "fw_major": 1,
+        "fw_minor": 4,
+        "state": 2,
+        "error_code": 1
+      }
+    },
+    {
+      "name": "error_code_1",
+      "reference": "ts-parser",
+      "hex": "57930f0001040201",
+      "expected": {
+        "rejected": null,
+        "battery_pct": 87,
+        "battery_mv": 3987,
+        "foot_side": 0,
+        "fw_major": 1,
+        "fw_minor": 4,
+        "state": 2,
+        "error_code": 1
+      }
+    },
+    {
+      "name": "error_code_2",
+      "reference": "ts-parser",
+      "hex": "57930f0001040202",
+      "expected": {
+        "rejected": null,
+        "battery_pct": 87,
+        "battery_mv": 3987,
+        "foot_side": 0,
+        "fw_major": 1,
+        "fw_minor": 4,
+        "state": 2,
+        "error_code": 2
+      }
+    },
+    {
+      "name": "error_code_3",
+      "reference": "ts-parser",
+      "hex": "57930f0001040203",
+      "expected": {
+        "rejected": null,
+        "battery_pct": 87,
+        "battery_mv": 3987,
+        "foot_side": 0,
+        "fw_major": 1,
+        "fw_minor": 4,
+        "state": 2,
+        "error_code": 3
+      }
+    },
+    {
+      "name": "error_code_4",
+      "reference": "ts-parser",
+      "hex": "57930f0001040204",
+      "expected": {
+        "rejected": null,
+        "battery_pct": 87,
+        "battery_mv": 3987,
+        "foot_side": 0,
+        "fw_major": 1,
+        "fw_minor": 4,
+        "state": 2,
+        "error_code": 4
+      }
+    },
+    {
+      "name": "error_code_5",
+      "reference": "ts-parser",
+      "hex": "57930f0001040205",
+      "expected": {
+        "rejected": null,
+        "battery_pct": 87,
+        "battery_mv": 3987,
+        "foot_side": 0,
+        "fw_major": 1,
+        "fw_minor": 4,
+        "state": 2,
+        "error_code": 5
+      }
+    },
+    {
+      "name": "battery_bounds_low",
+      "reference": "ts-parser",
+      "hex": "0000000001040100",
+      "expected": {
+        "rejected": null,
+        "battery_pct": 0,
+        "battery_mv": 0,
+        "foot_side": 0,
+        "fw_major": 1,
+        "fw_minor": 4,
+        "state": 1,
+        "error_code": 0
+      }
+    },
+    {
+      "name": "battery_mv_little_endian",
+      "reference": "ts-parser",
+      "hex": "6434120001040100",
+      "expected": {
+        "rejected": null,
+        "battery_pct": 100,
+        "battery_mv": 4660,
+        "foot_side": 0,
+        "fw_major": 1,
+        "fw_minor": 4,
+        "state": 1,
+        "error_code": 0
+      }
+    },
+    {
+      "name": "battery_mv_max",
+      "reference": "ts-parser",
+      "hex": "64ffff0001040100",
+      "expected": {
+        "rejected": null,
+        "battery_pct": 100,
+        "battery_mv": 65535,
+        "foot_side": 0,
+        "fw_major": 1,
+        "fw_minor": 4,
+        "state": 1,
+        "error_code": 0
+      }
+    },
+    {
+      "name": "firmware_255",
+      "reference": "ts-parser",
+      "hex": "57930f00ffff0100",
+      "expected": {
+        "rejected": null,
+        "battery_pct": 87,
+        "battery_mv": 3987,
+        "foot_side": 0,
+        "fw_major": 255,
+        "fw_minor": 255,
+        "state": 1,
+        "error_code": 0
+      }
+    },
+    {
+      "name": "short_7_bytes",
+      "reference": "ts-parser",
+      "hex": "57930f00010401",
+      "expected": {
+        "rejected": "tooShort"
+      }
+    }
+  ]
+}
