@@ -15,9 +15,14 @@ struct Channel {
 
 // Contract FSR order (index 0..5): hallux, meta1, meta3, meta5, midfoot,
 // heel. Heel strike -> midfoot -> lateral (meta5) -> medial roll-off -> toe.
+// Normal walking stays below the app's watch level (shared/thresholds.json
+// pressure.watchKpa = 75) with margin. With the served calibration (contract
+// §5.1 example) the peaks are about hallux 40, meta1 50, meta3 45, meta5 32,
+// midfoot 18 and heel 60 kPa, including baseline and noise. Higher pressure
+// belongs to a scenario (BACKLOG 18).
 constexpr Channel kSixChannels[6] = {
-    {0.86f, 0.28f, 1700}, {0.70f, 0.36f, 2100}, {0.64f, 0.36f, 1900},
-    {0.55f, 0.36f, 1500}, {0.40f, 0.40f, 900},  {0.16f, 0.32f, 2600},
+    {0.86f, 0.28f, 1500}, {0.70f, 0.36f, 1710}, {0.64f, 0.36f, 1610},
+    {0.55f, 0.36f, 1300}, {0.40f, 0.40f, 860},  {0.16f, 0.32f, 1880},
 };
 
 constexpr float kBaselineAdc = 30;  // unloaded reading, just above offset_adc
@@ -28,7 +33,7 @@ Channel channelFor(uint8_t c, uint8_t fsrCount) {
   // No position table exists for N != 6 yet (BACKLOG 15): spread the
   // channels evenly from toe (index 0) to heel (last index).
   float pos = fsrCount == 1 ? 0.5f : static_cast<float>(c) / (fsrCount - 1);
-  return {0.86f - 0.70f * pos, 0.34f, 2000};
+  return {0.86f - 0.70f * pos, 0.34f, 1610};  // about 45 kPa
 }
 
 // Deterministic noise in [-1, 1] from (t, channel): no RNG state.

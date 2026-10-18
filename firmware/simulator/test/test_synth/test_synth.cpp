@@ -4,6 +4,7 @@
 
 #include <cmath>
 #include <cstring>
+#include <fstream>
 
 #include "calibration.h"
 #include "synth.h"
@@ -32,6 +33,38 @@ void test_adc_in_range_and_walking_shape() {
         TEST_ASSERT_TRUE(peak[c] < 4095); // and never saturates
         TEST_ASSERT_TRUE(low[c] < 60);    // and unloads in swing
       }
+    }
+  }
+}
+
+// Contract §5.1 conversion with the served calibration (r_pulldown 10 kOhm,
+// area 0.000113 m2, a 123000, b -1.05, offset_adc 12), in the TS/Dart order.
+double kpa(uint16_t adc) {
+  int corrected = adc > 12 ? adc - 12 : 0;
+  double v = (corrected < 1 ? 1 : corrected) / 4095.0 * 3.3;
+  double r = 10000 * (3.3 - v) / v;
+  if (r < 1e-6) r = 1e-6;
+  return 123000 * std::pow(r, -1.05) / 0.000113 / 1000;
+}
+
+void test_normal_walk_stays_below_watch_kpa() {
+  std::ifstream in(THRESHOLDS_JSON);
+  JsonDocument doc;
+  TEST_ASSERT_FALSE(deserializeJson(doc, in));
+  double watch = doc["pressure"]["watchKpa"].as<double>();
+  TEST_ASSERT_TRUE(watch > 0);
+  double limit = 0.85 * watch;  // margin: 63.75 kPa at watchKpa 75
+  for (uint8_t n : {4, 6, 8}) {
+    for (uint8_t side : {0, 1}) {
+      double peak = 0;
+      for (uint32_t t = 0; t < 600000; t += kSamplePeriodMs) {
+        Sample s = synth::gaitSample(t, side, n);
+        for (uint8_t c = 0; c < n; ++c) peak = std::fmax(peak, kpa(s.fsr[c]));
+      }
+      char msg[64];
+      snprintf(msg, sizeof msg, "N=%u side=%u peak %.1f kPa", n, side, peak);
+      TEST_ASSERT_TRUE_MESSAGE(peak < limit, msg);
+      if (n == 6) TEST_ASSERT_TRUE_MESSAGE(peak > 50, msg);  // heel still clearly loaded
     }
   }
 }
@@ -131,6 +164,7 @@ void tearDown() {}
 int main() {
   UNITY_BEGIN();
   RUN_TEST(test_adc_in_range_and_walking_shape);
+  RUN_TEST(test_normal_walk_stays_below_watch_kpa);
   RUN_TEST(test_deterministic);
   RUN_TEST(test_feet_alternate);
   RUN_TEST(test_accel_moves_enough_to_be_walking);
