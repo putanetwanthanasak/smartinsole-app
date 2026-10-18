@@ -905,7 +905,8 @@
             "gyro_dps": [-14.329268292682928, -21.646341463414636, 0.39634146341463417]
           }
         ]
-      }
+      },
+      "dart_rejected": "lengthMismatch"
     },
     {
       "name": "truncated_header_says_8",

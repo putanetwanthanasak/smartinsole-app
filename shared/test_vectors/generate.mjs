@@ -183,7 +183,10 @@ function tsSensorCase(name, calName, spec) {
       samples: parsed.samples.map((s, i) => sampleExpectation(s, i, h.t0Ms, cal, name)),
     };
   }
-  return { name, reference: 'ts-parser', fsr_count: 6, calibration: calName, hex: hex(bytes), expected };
+  const c = { name, reference: 'ts-parser', fsr_count: 6, calibration: calName, hex: hex(bytes), expected };
+  // TS ignores bytes past what `count` needs; the Dart parser rejects them (a wrong FSR count would pass otherwise).
+  if (expected.rejected === null && parsed.actualBytes > parsed.expectedBytes) c.dart_rejected = 'lengthMismatch';
+  return c;
 }
 
 /**

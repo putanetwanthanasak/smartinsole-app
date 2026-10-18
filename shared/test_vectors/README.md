@@ -47,6 +47,14 @@ decimal places, and integers exactly.
   more bytes than arrived. `expected_bytes` and `actual_bytes` are included.
 - `calibration*`: TS threw. `ts_message` is what it threw.
 
+`dart_rejected`, when present, marks a case where the Dart parser
+deliberately rejects a packet that TS accepts. `expected` still records
+what TS returned. There is one such case, `extra_trailing_bytes`, where the
+packet is longer than `count` accounts for. The Dart parser also rejects
+out-of-range foot side, state and quality bytes, which TS masks into range.
+The vectors only contain valid enum bytes, so those rejections are covered
+by Dart-only tests instead.
+
 ## Where expected values come from
 
 Each case has a `"reference"`:

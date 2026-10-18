@@ -9,6 +9,11 @@ enum RejectReason {
   /// or the wrong FSR count for this insole).
   truncated,
 
+  /// More bytes than the header's `count` accounts for. Most likely the
+  /// packet was parsed with the wrong FSR count, which would put readings on
+  /// the wrong foot zones.
+  lengthMismatch,
+
   /// Status `foot_side` is not 0 (left) or 1 (right).
   invalidFootSide,
 
@@ -54,7 +59,8 @@ final class Rejected<T> extends ParseResult<T> {
   /// Human-readable detail for logs.
   final String detail;
 
-  /// Set for [RejectReason.tooShort] and [RejectReason.truncated].
+  /// Set for [RejectReason.tooShort], [RejectReason.truncated] and
+  /// [RejectReason.lengthMismatch].
   final int? expectedBytes;
   final int? actualBytes;
 

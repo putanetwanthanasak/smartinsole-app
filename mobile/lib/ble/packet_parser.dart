@@ -7,10 +7,14 @@ import 'parse_result.dart';
 /// Pure parsers for the three notify/read packets (`docs/BLE-INTERFACE.md`).
 /// No connection state, no side effects. Behaviour matches the web app's
 /// `src/ts/data/blePacketParser.ts` on every vector in
-/// `shared/test_vectors/`, with one deliberate difference: an out-of-range
-/// enum byte (foot side, state, quality) rejects the packet, where TS masks
-/// it into range. A masked `foot_side = 2` would read as "left" and defeat
-/// rule 8.
+/// `shared/test_vectors/`, with two deliberate differences, both stricter:
+/// - an out-of-range enum byte (foot side, state, quality) rejects the
+///   packet, where TS masks it into range. A masked `foot_side = 2` would
+///   read as "left" and defeat rule 8;
+/// - a sensor packet longer than its header's `count` accounts for is
+///   rejected, where TS ignores the extra bytes. Otherwise a packet parsed
+///   with the wrong FSR count could pass and put readings on the wrong
+///   zones.
 
 /// Parses a Sensor Stream packet whose samples carry [fsrCount] FSR channels
 /// (N, from the calibration blob).
@@ -41,6 +45,16 @@ ParseResult<SensorPacket> parseSensorPacket(
       RejectReason.truncated,
       'seq $seq: count $count × $block-byte samples needs $expected bytes, '
       'got ${bytes.length}',
+      expectedBytes: expected,
+      actualBytes: bytes.length,
+    );
+  }
+
+  if (bytes.length > expected) {
+    return Rejected(
+      RejectReason.lengthMismatch,
+      'seq $seq: count $count × $block-byte samples needs $expected bytes, '
+      'got ${bytes.length} (wrong FSR count?)',
       expectedBytes: expected,
       actualBytes: bytes.length,
     );
