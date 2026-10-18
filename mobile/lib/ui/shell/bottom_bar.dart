@@ -52,6 +52,7 @@ class BottomBar extends StatelessWidget {
               for (final item in items)
                 Expanded(
                   child: _TabButton(
+                    key: ValueKey('tab-${item.tab.name}'),
                     item: item,
                     selected: item.tab == selected,
                     badge: item.tab == AppTab.alerts ? alertCount : 0,
@@ -68,6 +69,7 @@ class BottomBar extends StatelessWidget {
 
 class _TabButton extends StatelessWidget {
   const _TabButton({
+    super.key,
     required this.item,
     required this.selected,
     required this.badge,

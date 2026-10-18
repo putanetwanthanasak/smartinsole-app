@@ -8,7 +8,10 @@ import 'shell/app_shell.dart';
 import 'theme/app_theme.dart';
 
 class SmartInsoleApp extends StatelessWidget {
-  const SmartInsoleApp({super.key});
+  const SmartInsoleApp({super.key, this.initialRoute = Routes.shell});
+
+  /// Overridable so tests can open a pushed screen directly.
+  final String initialRoute;
 
   @override
   Widget build(BuildContext context) {
@@ -16,9 +19,8 @@ class SmartInsoleApp extends StatelessWidget {
       title: 'SmartInsole',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
-      locale: const Locale('th'),
-      supportedLocales: const [Locale('th')],
-      initialRoute: Routes.shell,
+      // No Thai locale yet: it needs flutter_localizations (see report 020).
+      initialRoute: initialRoute,
       routes: {
         Routes.shell: (_) => const AppShell(),
         Routes.connection: (_) => const ConnectionScreen(),

@@ -29,6 +29,7 @@ class FootCheckCard extends StatelessWidget {
         ),
       ),
       child: InkWell(
+        key: const ValueKey('foot-check-card'),
         borderRadius: _radius,
         onTap: onTap,
         child: const Padding(
@@ -52,7 +53,8 @@ class FootCheckCard extends StatelessWidget {
                   children: [
                     Text('วันนี้ยังไม่ได้ดูเท้า', style: AppText.bodyStrong),
                     Text(
-                      'ถ่ายรูปและตอบคำถาม ใช้เวลา 1 นาที',
+                      // Non-breaking space keeps "1 นาที" on one line.
+                      'ถ่ายรูปและตอบคำถาม ใช้เวลา 1\u00A0นาที',
                       style: AppText.tabLabel,
                     ),
                   ],

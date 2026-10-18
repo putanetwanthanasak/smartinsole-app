@@ -63,6 +63,7 @@ class _Header extends StatelessWidget {
             boxShadow: Dimens.floatingShadow,
           ),
           child: IconButton(
+            key: const ValueKey('settings-button'),
             icon: const Icon(LucideIcons.settings),
             tooltip: 'ตั้งค่า',
             onPressed: () => Navigator.pushNamed(context, Routes.settings),
@@ -80,9 +81,13 @@ class _FootButtons extends StatelessWidget {
   Widget build(BuildContext context) {
     return const Row(
       children: [
-        Expanded(child: _FootButton(label: 'เท้าซ้าย')),
+        Expanded(
+          child: _FootButton(key: ValueKey('foot-left'), label: 'เท้าซ้าย'),
+        ),
         SizedBox(width: 12),
-        Expanded(child: _FootButton(label: 'เท้าขวา')),
+        Expanded(
+          child: _FootButton(key: ValueKey('foot-right'), label: 'เท้าขวา'),
+        ),
       ],
     );
   }
@@ -91,7 +96,7 @@ class _FootButtons extends StatelessWidget {
 /// Left/right foot button. Always "not connected" until BLE exists (S3A);
 /// grey dot, never the connected green.
 class _FootButton extends StatelessWidget {
-  const _FootButton({required this.label});
+  const _FootButton({super.key, required this.label});
 
   final String label;
 
