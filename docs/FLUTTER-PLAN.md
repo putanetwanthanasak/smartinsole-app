@@ -87,6 +87,8 @@ smartinsole-app/
 | Camera / photos | `camera`, files stored in the app's private directory |
 | Model (later) | `tflite_flutter` in an isolate |
 | Keep screen on | `wakelock_plus` |
+| UI testing | Android emulator (Pixel 7) + Dart & Flutter MCP server (screenshots, widget tree, runtime errors) + golden tests + `MockDataSource` presets |
+| Device testing | Samsung Galaxy Note 10, only at 4 checkpoints (after S3A, S4, S8C, S9) — the emulator has no real Bluetooth |
 
 Check the latest stable version of each package when installing. Fonts must be bundled (no runtime download).
 

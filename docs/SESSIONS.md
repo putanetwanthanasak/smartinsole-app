@@ -33,7 +33,9 @@
 - Flutter work: `flutter analyze` has no errors and `flutter test` passes.
 - Check your diff against the 16 rules in `docs/FLUTTER-PLAN.md` section 6, one relevant rule at a time.
 - Check every "Done when" item.
-- Anything that needs the phone or real ESP32 → write a checklist for the user and **wait for their results**. Never mark it passed yourself.
+- **UI checks are done by you, not the user:** run the app on the Android emulator (`flutter run -d emulator-…`, with `MockDataSource` when no ESP32 is needed), use the Dart & Flutter MCP server to take screenshots, inspect the widget tree and read runtime errors, and compare against `docs/design/DESIGN-SPEC.md`. Add golden tests for every screen state you build. Put the screenshots you checked into the report.
+- **The user tests on the Note 10 only at 4 checkpoints:** after S3A, S4, S8C and S9 (anything needing real Bluetooth or the real camera). For those, write a checklist for the user and **wait for their results**. Never mark them passed yourself.
+- If the Dart MCP server is not connected or no emulator is running, stop and tell the user what to start; do not skip the check.
 
 ### Step 4: Report
 1. Write the report: what was done / result of each check (pass, fail, waiting on user) / leftovers / decisions needed / suggestion for next session.
@@ -57,12 +59,16 @@ Additional info: [optional]
 
 ## 2. Overview
 
+**Test tooling (set up by the user before S1B):** an Android emulator (Pixel 7, created in Android Studio → Virtual Device Manager) and the Dart & Flutter MCP server (`claude mcp add --transport stdio dart -- dart mcp-server`, run once in the repo root). The MCP runtime tools need `flutter run` running in a separate terminal.
+
+**Note 10 checkpoints (user):** after S3A (both ESP32 connect), S4 (left/right timing), S8C (real camera), S9 (full 30-minute run).
+
 | Day | Session | Who | Work | Branch |
 |---|---|---|---|---|
 | 0 | S0A ✅ | User | Install Flutter, SDK, Note 10, Claude Code | — |
 | 0 | S0B | Claude Code | Repo setup + docs | `work/repo-setup` |
 | 1 | S1A ◐ | Claude chat + user | Design: Home ✅, Foot check ✅, 5 more screens (in parallel) | — |
-| 1 | S1B | Claude Code | `mobile/` scaffold + theme + fonts + shared motion + 7 empty screens | `work/flutter-scaffold` |
+| 1 | S1B | Claude Code | `mobile/` scaffold + theme + fonts + shared motion + 7 empty screens + golden-test setup | `work/flutter-scaffold` |
 | 2 | S2A | Claude Code | Parser + test vectors | `work/flutter-parser` |
 | 2 | S2B | Claude Code + user | New simulator: core | `work/sim-core` |
 | 3 | S2C | Claude Code + user | New simulator: control + 2 concurrent connections | `work/sim-control` |
@@ -108,9 +114,10 @@ Additional info: [optional]
   6. Shared motion file `lib/ui/motion.dart` (durations, curves, reduce-motion check).
   7. 7 empty screens + bottom bar with 4 tabs (Home, Gait, Temperature, Alerts) + Settings button + routes to Connection and Foot check.
   8. Home placeholder includes the slot for the "foot check not done today" card (no logic yet).
-  9. `mobile/CLAUDE.md`: the 16 rules, common commands, motion rules, "do not touch the web app", English-only rule.
-- **Verify:** analyze/test pass · widget test that every screen opens · **User:** run on Note 10, switch through all 7 screens, Thai font renders correctly.
-- **Done when:** all 7 screens reachable on the Note 10 and the look matches the theme.
+  9. `mobile/CLAUDE.md`: the 16 rules, common commands, motion rules, "do not touch the web app", English-only rule, and the testing approach (emulator + Dart MCP + golden tests; Note 10 only at the 4 checkpoints).
+  10. Golden-test setup (Thai fonts loaded in tests so goldens render real glyphs) + one golden per empty screen.
+- **Verify:** analyze/test pass · widget test that every screen opens · **You:** run on the emulator, switch through all 7 screens, take screenshots via the Dart MCP server, confirm Thai text renders with the bundled fonts and the theme matches DESIGN-SPEC.
+- **Done when:** all 7 screens reachable on the emulator, screenshots in the report, goldens committed.
 
 ### S2A — Parser + test vectors
 - **Requires:** S1B merged.
@@ -143,14 +150,14 @@ Additional info: [optional]
 - **Done when:** laptop capture is complete while the phone displays, or the user accepts the fallback.
 
 ### S4 — DeviceManager + timing
-- **Do:** 50 Hz processing / 10 Hz display, read-time staleness, ΔT null when a foot is missing, `seq` gap detection, stale-packet drop, `SYNC_TIME` every 5 min, temperature history, timing log.
+- **Do:** 50 Hz processing / 10 Hz display, read-time staleness, ΔT null when a foot is missing, `seq` gap detection, stale-packet drop, `SYNC_TIME` every 5 min, temperature history, timing log. Also a `MockDataSource` (same interface as `BleDataSource`) with presets for every Home state (safe, watch, rest, no data, one foot missing, low battery) so later UI sessions can run on the emulator without ESP32. Selectable only in debug builds.
 - **Verify:** unit tests (stale, ΔT null, stale packet, seq wrap at 65535) · **User:** run 10 minutes and send the log.
 - **Done when:** L/R offset ≤ ±10 ms, 20 ms spacing, no lost packets. **Do not start S5 if this fails.**
 
 ### S5 — Heatmap + Home
 - **Do:** heatmap with `CustomPainter` from `sensor_layout.json`; Home per DESIGN-SPEC in all 4 states; animations per FLUTTER-PLAN section 8.
-- **Verify:** widget tests for the 4 states (no-data must not be green); reduce-motion disables animations · **User:** press a sensor, the right dot changes colour, no stutter.
-- **Done when:** matches the mockup and runs smoothly.
+- **Verify:** widget + golden tests for the 4 states (no-data must not be green); reduce-motion disables animations · **You:** run on the emulator with each `MockDataSource` preset, screenshot via Dart MCP, compare with DESIGN-SPEC, check for jank in the 10 Hz updates.
+- **Done when:** matches the mockup in every state and runs smoothly on the emulator. (Real-sensor check happens at the S9 checkpoint.)
 
 ### S6A — SQLite
 - **Do:** tables for alerts, temperature history, daily summary, foot-check entries (date, answers, photo paths) with `drift`, behind a repository pattern.
@@ -160,8 +167,8 @@ Additional info: [optional]
 ### S6B — Temperature + Alerts
 - **Requires:** S5 and S6A merged; these two designs approved.
 - **Do:** per DESIGN-SPEC + animations.
-- **Verify:** widget tests · **User:** warm one temperature sensor, ΔT follows.
-- **Done when:** both screens show live data.
+- **Verify:** widget + golden tests · **You:** emulator + mock presets (including ΔT above threshold and one foot missing), screenshots via Dart MCP.
+- **Done when:** both screens show mock data correctly in every state.
 
 ### S7 — Alert rules
 - **Do:** 9 codes per contract §8.3, walking gate, ΔT 2 consecutive readings, 30-minute repeat suppression, level 1–5 (max), 3-level mapping per FLUTTER-PLAN section 7, plain-Thai advice for every code, thresholds from `thresholds.json`.
@@ -170,21 +177,22 @@ Additional info: [optional]
 
 ### S8A — Gait screen
 - **Do:** PAI, CoP, step count, `GaitClassifier` (rules + TFLite skeleton in an isolate), label "estimate, not a diagnosis", animations.
-- **Done when:** live values shown; classifier swappable without touching the screen.
+- **Verify:** unit + golden tests · **You:** emulator + mock presets, screenshots via Dart MCP.
+- **Done when:** values shown from mock data; classifier swappable without touching the screen.
 
 ### S8B — Connection + Settings
 - **Do:** connect left/right separately, per-side status, battery, firmware, scanning/success animations · Settings: text size, sound, TARE (with confirmation), foot-check reminder time, app info · hide the debug screen.
-- **Verify:** **User** connects the devices without instructions.
-- **Done when:** the user can connect unaided.
+- **Verify:** golden tests for every connection state (scanning, connected, wrong side, error) · **You:** emulator with mock connection states, screenshots via Dart MCP. (Connecting real devices unaided is checked at the S9 checkpoint.)
+- **Done when:** every state renders per DESIGN-SPEC.
 
 ### S8C — Daily foot check
 - **Requires:** S6A merged.
 - **Do:** 4 screens per DESIGN-SPEC; Home card shown until today's check is done; camera with guide outline + self-timer; photos in the app's private folder; compare with yesterday; 3 questions; "not sure" = abnormal; abnormal result logged as an alert; in-app evening reminder; photos deletable.
-- **Verify:** unit/widget tests for answer logic and the Home card · **User:** real photos on the Note 10; photos do not appear in the gallery.
+- **Verify:** unit/widget/golden tests for answer logic and the Home card · **You:** emulator (its virtual camera) for the flow · **User checkpoint:** real photos on the Note 10; photos do not appear in the gallery.
 - **Done when:** a full check takes about 1 minute and photos stay inside the app.
 
 ### S9 — Integration + APK
-- **Do:** integration checklist; 30 minutes with 2 boards + laptop; battery and smoothness; reduce-motion; release APK.
+- **Do:** integration checklist; 30 minutes with 2 boards + laptop; battery and smoothness; reduce-motion; release APK. **User checkpoint** also covers: press sensors and watch the right dots change, warm one temperature sensor and watch ΔT, connect both insoles unaided.
 - **Done when:** the APK works for 30 minutes with no serious issues.
 
 ### S10 — Wrap-up
