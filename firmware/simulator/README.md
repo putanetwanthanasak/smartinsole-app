@@ -46,7 +46,9 @@ then runs the connect sequence: scan by service UUID, read status (checks
 `foot_side`), read calibration (N), subscribe, `START_STREAM`, stream,
 `STOP_STREAM`. It checks exact packet sizes, `seq` continuity, the 160 ms
 `t0` step, the 6.25 Hz rate, temperature every 30 s, status, and that the
-stream stops. It exits non-zero on any failure.
+stream stops. Then it reconnects twice (`--reconnects`) and checks that
+each new connection gets nothing before START, starts at `seq` 0, and that
+`t0` keeps counting from boot. It exits non-zero on any failure.
 
 ## Behaviour
 
@@ -57,8 +59,13 @@ stream stops. It exits non-zero on any failure.
   notification is exactly `8 + count × (2N + 12)` bytes (200 for N = 6),
   never padded or truncated. If the link MTU can't fit 8 samples it sends 4
   (contract fallback); if it can't fit 4 it sends nothing and logs it.
-  `seq` restarts at 0 on each `START_STREAM`.
+  `seq` is per connection and restarts at 0 on each `START_STREAM`;
+  `t0_ms` is ms since boot and never restarts. A new connection gets
+  nothing before its own `START_STREAM` (BACKLOG 19, 20).
 - **Temperature** (`…02`): one packet at `START_STREAM`, then every 30 s.
+- **Synthetic walking** stays below the app's watch level: zone peaks about
+  18–60 kPa (heel ~60) against `watchKpa` 75. A host test reads
+  `shared/thresholds.json` to enforce it; the firmware does not read it.
 - **Status** (`…03`): read + notify on a state or battery change. Battery
   drains 1 % every 6 min and stops at 50 %, so `BATTERY_LOW` never fires on
   its own.

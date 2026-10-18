@@ -3,8 +3,10 @@
 
 Runs the app's connect sequence (docs/FLUTTER-PLAN.md section 5, minus
 SYNC_TIME, which is S2C), streams for --duration seconds, then sends
-STOP_STREAM and checks that the stream ends. It exits non-zero if any
-check fails.
+STOP_STREAM and checks that the stream ends. Then it reconnects
+--reconnects times and checks that each new connection gets nothing before
+its START_STREAM, starts at seq 0, and that t0 keeps counting from boot. It
+exits non-zero if any check fails.
 
 Before going live, the script's own parsers are checked against
 shared/test_vectors/ (the same vectors the Flutter parser and the
@@ -319,8 +321,56 @@ async def live(args) -> bool:
         st_after = parse_status(bytes(await client.read_gatt_char(STATUS)))
 
     evaluate(run, cal, st_after, c)
+    last_t0 = None
+    for _, b in reversed(run.sensor):
+        try:
+            last_t0 = parse_sensor(b, run.n)["t0_ms"]
+            break
+        except Reject:
+            pass
+    for i in range(args.reconnects):
+        last_t0 = await reconnect_check(dev, run.n, last_t0, i + 1, c)
     print(f"\n{'PASS' if c.failed == 0 else 'FAIL'}: {c.failed} check(s) failed")
     return c.failed == 0
+
+
+async def reconnect_check(dev, n: int, prev_t0, cycle: int, c: Checks):
+    """Rule 9 groundwork: after a disconnect, the next connection gets
+    nothing before its own START_STREAM, its seq starts again at 0, and t0
+    (ms since boot) keeps going forward instead of restarting."""
+    from bleak import BleakClient
+
+    print(f"\nreconnect {cycle}: disconnected, connecting again ...")
+    await asyncio.sleep(1.0)
+    got = []
+    async with BleakClient(dev) as client:
+        await client.start_notify(SENSOR, lambda _, d: got.append(bytes(d)))
+        await client.start_notify(TEMPERATURE, lambda _, d: got.append(bytes(d)))
+        await asyncio.sleep(1.0)
+        before = len(got)
+        await client.write_gatt_char(CONTROL, START_STREAM, response=True)
+        await asyncio.sleep(3.0)
+        await client.write_gatt_char(CONTROL, STOP_STREAM, response=True)
+        await asyncio.sleep(0.5)
+    c.check(before == 0, f"reconnect {cycle}: nothing before START_STREAM", f"{before} packets")
+    pkts = []
+    for b in got[before:]:
+        if len(b) == 12:
+            continue  # temperature
+        try:
+            pkts.append(parse_sensor(b, n))
+        except Reject as e:
+            c.check(False, f"reconnect {cycle}: sensor packet parses", e.reason)
+    if not pkts:
+        c.check(False, f"reconnect {cycle}: received sensor packets")
+        return prev_t0
+    c.check(pkts[0]["seq"] == 0, f"reconnect {cycle}: first seq is 0", str(pkts[0]["seq"]))
+    c.check(prev_t0 is None or pkts[0]["t0_ms"] > prev_t0,
+            f"reconnect {cycle}: t0 continues from the last connection (ms since boot)",
+            f"{prev_t0} -> {pkts[0]['t0_ms']}")
+    gaps = [(a["seq"], b["seq"]) for a, b in zip(pkts, pkts[1:]) if (a["seq"] + 1) & 0xFFFF != b["seq"]]
+    c.check(not gaps, f"reconnect {cycle}: no seq gaps", f"{len(pkts)} packets, gaps {gaps[:3]}")
+    return pkts[-1]["t0_ms"]
 
 
 def evaluate(run: Run, cal: dict, st_after: dict, c: Checks):
@@ -420,6 +470,8 @@ def main() -> int:
     ap.add_argument("--duration", type=float, default=120, help="seconds of streaming")
     ap.add_argument("--fsr-count", type=int, default=6)
     ap.add_argument("--scan-timeout", type=float, default=20)
+    ap.add_argument("--reconnects", type=int, default=2,
+                    help="disconnect/reconnect cycles after the main run")
     ap.add_argument("--selftest", action="store_true", help="only check the parsers")
     args = ap.parse_args()
 
