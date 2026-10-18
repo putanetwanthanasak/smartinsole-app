@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'routes.dart';
 import 'screens/connection_screen.dart';
@@ -19,7 +20,9 @@ class SmartInsoleApp extends StatelessWidget {
       title: 'SmartInsole',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
-      // No Thai locale yet: it needs flutter_localizations (see report 020).
+      locale: const Locale('th', 'TH'),
+      supportedLocales: const [Locale('th', 'TH')],
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
       initialRoute: initialRoute,
       routes: {
         Routes.shell: (_) => const AppShell(),
