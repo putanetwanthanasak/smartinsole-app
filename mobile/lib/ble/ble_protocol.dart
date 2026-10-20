@@ -23,6 +23,10 @@ abstract final class BleOpcode {
   static const setRate = 0x04;
   static const tare = 0x05;
   static const reboot = 0x06;
+
+  /// `SYNC_TIME` is opcode + uint64 (9 bytes); the others are the opcode
+  /// alone. The simulator ignores any other length (BACKLOG 24).
+  static const syncTimeBytes = 9;
 }
 
 abstract final class SensorLayout {
@@ -45,6 +49,41 @@ abstract final class SensorLayout {
   /// `2N + 12` bytes, N from the calibration blob). The contract's 24-byte
   /// block is the N = 6 case.
   static int sampleBytes(int fsrCount) => 2 * fsrCount + imuBytes;
+
+  /// Bytes of one packet carrying [samples] samples of [fsrCount] channels.
+  static int packetBytes(int fsrCount, int samples) =>
+      headerBytes + samples * sampleBytes(fsrCount);
+}
+
+/// MTU negotiation (contract §2.3): target 247; if 8 samples don't fit, the
+/// device drops to 4 per packet; if 4 don't fit either, it sends nothing.
+abstract final class MtuLayout {
+  /// Requested on every connect and every reconnect.
+  static const targetMtu = 247;
+
+  /// ATT notification header (opcode + handle); payload = MTU − 3.
+  static const attOverhead = 3;
+
+  /// The contract's only fallback packet size.
+  static const fallbackSamplesPerPacket = 4;
+
+  /// Samples per packet the device will send at [mtu] with [fsrCount]
+  /// channels: 8, 4, or 0 when even the fallback packet does not fit.
+  static int samplesPerPacket(int mtu, int fsrCount) {
+    final payload = mtu - attOverhead;
+    for (final n in const [
+      SensorLayout.samplesPerPacket,
+      fallbackSamplesPerPacket,
+    ]) {
+      if (SensorLayout.packetBytes(fsrCount, n) <= payload) return n;
+    }
+    return 0;
+  }
+
+  /// Smallest MTU that fits the fallback packet.
+  static int minUsableMtu(int fsrCount) =>
+      SensorLayout.packetBytes(fsrCount, fallbackSamplesPerPacket) +
+      attOverhead;
 }
 
 abstract final class TempLayout {
