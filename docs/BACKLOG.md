@@ -613,6 +613,14 @@ the new simulator, `t0` never goes backwards within a connection, so that
 check never fires. That's harmless, because the new simulator sends no
 stale packets, but worth knowing in S3B.
 
+**S3A status:** checks 1 and 2 are implemented in
+`mobile/lib/ble/ble_data_source.dart` (each connection also gets a
+generation number, so a late notification from an older connection is
+dropped too). The t0 and temp `t_ms` comparisons are modulo 2³², so the
+49.7-day wrap is not "backwards". The `seq` look-ahead was **not**
+implemented: it needs a held packet and fails when `seq` 0 is lost (see
+report 024). `seq` gaps are only counted; gap handling is S4.
+
 ## 21. App: guard REBOOT and TARE (S8B Connection/Settings) **(found in S2C)**
 
 `REBOOT` and `TARE` act on the whole insole, not on one connection
@@ -648,6 +656,11 @@ Calibration notify, or have the app re-read calibration whenever it sees
 flags bit1 go from 1 to 0. Until then, item 21's guard is what keeps a
 research capture consistent.
 
+**S3A status:** the app side is done: the Flutter app re-reads calibration
+when flags bit1 goes from 1 to 0. Packets keep the old offsets until the
+new read returns. The contract-owner question (should Calibration notify?)
+is still open.
+
 ## 24. Malformed control writes can't be reported **(found in S2C, contract owner)**
 
 Contract §3.4 gives each opcode a payload but says nothing about a write
@@ -667,3 +680,23 @@ request high connection priority after connecting (Android
 `requestConnectionPriority(HIGH)`, which gives 11.25–15 ms) and S3A should
 log the interval it actually gets. This matters most for S4's ±10 ms
 cross-foot timing check.
+
+**S3A status — partly done.** The Flutter app calls
+`requestConnectionPriority(high)` on every connect and reconnect. Android's
+public API can't read the interval back, so the interval actually granted
+comes from the simulator's serial log (`[ble] conn N: interval …`), which
+the Note 10 checklist in report 024 captures. **HIGH priority for S4:**
+if the Note 10 still sits at 48.75 ms, the ±10 ms cross-foot timing check
+needs another plan.
+
+## 26. Android ≤ 11 location permission and the `permission_handler` pin **(found in S3A)**
+
+- The manifest declares `ACCESS_FINE_LOCATION` (maxSdk 30) for BLE scanning
+  on Android 11 and below, but the app only asks for `bluetoothScan` /
+  `bluetoothConnect` itself and leaves location to flutter_blue_plus's own
+  request. That path is untested: the Note 10 runs Android 12. Test it on
+  an Android ≤ 11 phone before release, or ask for location explicitly.
+- `permission_handler` is pinned to `^12.0.3` because 13.x
+  (`permission_handler_android` 14.1.0) needs compileSdk 37, and AGP 9.1
+  supports at most 36. Lift the pin when the Android Gradle plugin is
+  upgraded.
