@@ -233,6 +233,7 @@ class BleHub {
 
   void dispose() {
     _scanRetry?.cancel();
+    if (_scanning) unawaited(central.stopScan().then((_) {}, onError: (_) {}));
     _adapterSub?.cancel();
     if (_started) _sightingSub.cancel();
     _readinessChanges.close();

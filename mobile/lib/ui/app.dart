@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'routes.dart';
 import 'screens/connection_screen.dart';
+import 'screens/debug_ble_screen.dart';
 import 'screens/foot_check_screen.dart';
 import 'screens/settings_screen.dart';
 import 'shell/app_shell.dart';
@@ -29,6 +30,7 @@ class SmartInsoleApp extends StatelessWidget {
         Routes.connection: (_) => const ConnectionScreen(),
         Routes.settings: (_) => const SettingsScreen(),
         Routes.footCheck: (_) => const FootCheckScreen(),
+        Routes.bleDebug: (_) => const DebugBleScreen(),
       },
     );
   }
