@@ -38,7 +38,9 @@ dependencies:
   flutter_lucide: ^1.59.0
   flutter_riverpod: ^3.4.3
   intl: ^0.20.3
-  permission_handler: ^13.0.2
+  # 12.x: its Android plugin (13.x) compiles against SDK 35. 13.x needs
+  # compileSdk 37, which AGP 9.1 does not support yet (report 024).
+  permission_handler: ^12.0.3
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.

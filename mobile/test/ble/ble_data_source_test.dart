@@ -291,6 +291,27 @@ void main() {
       });
     });
 
+    test('binding another insole starts fresh counters', () {
+      fakeAsync((async) {
+        final rig = Rig(
+          async,
+          insoles: [
+            leftBoard(),
+            leftBoard(id: 'L2'),
+          ],
+        );
+        rig.connectLeft('L1');
+        rig.link('L1').sendSensor();
+        rig.settle();
+        expect(rig.left.stats.packets, 1);
+        rig.connectLeft('L2');
+        expect(rig.left.state, isA<LinkStreaming>());
+        expect(rig.left.stats.packets, 0);
+        expect(rig.left.stats.sessions, 1);
+        expect(rig.callsOn('L1').last, 'disconnect');
+      });
+    });
+
     test('an insole bound to one foot cannot be taken by the other', () {
       fakeAsync((async) {
         final rig = Rig(async, insoles: [leftBoard()]);

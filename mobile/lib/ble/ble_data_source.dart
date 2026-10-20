@@ -57,7 +57,10 @@ class BleDataSource implements InsoleDataSource {
   /// How long the user's Disconnect waits for its STOP_STREAM write.
   static const stopTimeout = Duration(seconds: 2);
 
-  final stats = LinkStats();
+  /// Counters for the insole this foot is bound to; a new binding starts
+  /// fresh ones, so one insole's numbers never show under another's id.
+  LinkStats get stats => _stats;
+  LinkStats _stats = LinkStats();
 
   BleCentral get _central => hub.central;
   BleEventLog get _log => hub.log;
@@ -108,7 +111,11 @@ class BleDataSource implements InsoleDataSource {
   /// Binds this foot to [deviceId] (picked from the scan list) and connects.
   /// The insole's side is checked from its status, never from [name].
   Future<void> connectTo(String deviceId, {String? name}) async {
-    if (_deviceId != null && _deviceId != deviceId) await disconnect();
+    if (_deviceId != deviceId) {
+      if (_deviceId != null) await disconnect();
+      _stats = LinkStats();
+      _cal = null;
+    }
     _deviceId = deviceId;
     stats.advertisedName = name;
     await connect();
