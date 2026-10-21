@@ -72,6 +72,28 @@ tools/.venv/bin/python tools/sim_check.py --two-central --duration 1800 \
     --reconnects 0 --no-control --stop-file /tmp/stop
 ```
 
+## Serial log and web-app capture check
+
+Opening the CP2102 port resets the board, so start the logs before any
+central connects. Use the `/dev/serial/by-path/` name: the script refuses
+bare `ttyUSB` names and the LTE modem. Both scripts run on
+`/usr/bin/python3` (pyserial; the check needs only the standard library):
+
+```
+/usr/bin/python3 tools/serial_log.py /dev/serial/by-path/pci-0000:00:14.0-usb-0:6:1.0-port0 left.log
+/usr/bin/python3 tools/webapp_csv_check.py --selftest
+/usr/bin/python3 tools/webapp_csv_check.py ~/Downloads/<sessionId>_samples.csv \
+    --serial-left left.log --serial-right right.log --single-take
+```
+
+`webapp_csv_check.py` checks a CSV exported by the laptop web app's
+research capture (the study fallback, `docs/STUDY-FALLBACK.md`). The CSV
+has no `seq` column, so it infers lost packets from the 20 ms `tUnixMs`
+spacing. It matches the web app's 5-minute clock steps to the logged
+`SYNC_TIME`s (BACKLOG 28). It also checks both feet and 50 Hz.
+`--assume-no-loss --write-corrected OUT` undoes those clock steps within
+each take.
+
 ## Behaviour
 
 - **Advertising:** service UUID in the advertisement, `SMARTINSOLE-L`/`-R`

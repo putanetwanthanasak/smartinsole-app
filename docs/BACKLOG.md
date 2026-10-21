@@ -733,3 +733,44 @@ For S4, either:
 
 Either way, count a first accepted `seq` k > 0 as k missing packets, so a
 lost start of stream shows up in the gap counter.
+
+## 28. Web-app CSV: resync steps of exactly 160 ms, and no `seq` **(found in S3B; user decided: no web-app change)**
+
+The fallback web app's `tUnixMs` is device time plus an offset that
+`WebBleDataSource.syncTime()` re-estimates every 5 minutes as "send time −
+device time of the last sample received". The first re-estimate after a
+connect gives a step of any size. Every later one is exactly 20 + 160·k ms:
+- Chrome's timer sends exactly 300 000 ms apart (the S3B serial log shows
+  `d_unix 300000` every time);
+- 300 000 ms is exactly 1 875 packets;
+- so k only counts how many more or fewer packets had arrived at send time
+  than 5 minutes earlier.
+
+Usually k = 0, which is invisible. S3B saw k = +1 once on the right foot in
+9 minutes: a 160 ms hole in `tUnixMs` with no data lost, and the L/R
+alignment moved from +36 to −124 ms. k = −1 would make `tUnixMs` go
+backwards by 140 ms. The CSV has no `seq` column (fixed schema), so a
+k ≠ 0 step looks exactly like a lost packet. The dev panel settles it: no
+loss when `pkts = seq + 1` and `dropped=0`.
+
+Decided in S3B: no web-app change (fallback only).
+- `docs/STUDY-FALLBACK.md` reconnects both feet before each 3-minute trial,
+  so no resync falls inside a trial.
+- `firmware/simulator/tools/webapp_csv_check.py --assume-no-loss
+  --write-corrected` undoes the steps within each take afterwards.
+
+**For S4:** the phone app's 5-minute `SYNC_TIME` must not copy this offset
+formula. Anything that anchors "now" to the last packet received is
+quantised to the 160 ms packet period. Anchor to each packet's own arrival
+time (e.g. a minimum-latency filter), and write `seq` into the S4C CSV.
+
+## 29. Chrome on Linux can't reconnect a remembered insole after about 30 s **(found in S3B)**
+
+The web app's Connect reuses the remembered `BluetoothDevice` without a
+new scan. BlueZ deletes an unpaired device `TemporaryTimeout` (30 s) after
+it disconnects. After that, `gatt.connect()` fails at once with
+"NetworkError: Bluetooth Device is no longer in range", and nothing reaches
+the board. **Forget device → Connect → pick the insole** works every time.
+That is the step in `docs/STUDY-FALLBACK.md`, so there is no code change.
+A one-line web-app fix exists if ever wanted: call `forgetDevice()` when
+`gatt.connect()` throws, so the next click opens the picker.

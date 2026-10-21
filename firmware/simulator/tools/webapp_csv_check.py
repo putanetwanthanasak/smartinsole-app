@@ -9,13 +9,25 @@ foot are exactly 20 ms apart, and a lost 8-sample packet shows up as a
 20 + 160 ms step.
 
 The web app also re-estimates its offset with SYNC_TIME every 5 minutes
-(RESYNC_INTERVAL_MS in src/ts/data/bleProtocol.ts). Each re-estimate puts
-one step of arbitrary size into `tUnixMs`. The simulator logs each
-SYNC_TIME it receives as `unix <ms>`, so with --serial-left/--serial-right
-every non-20 ms step is matched against a logged SYNC_TIME instead of
-being guessed at. A matched step that happens to be exactly 20 + 160 k ms
-is reported AMBIGUOUS: settle it with the web app dev panel's seq-based
-`dropped=` counter.
+(RESYNC_INTERVAL_MS in src/ts/data/bleProtocol.ts) as "send time - device
+time of the last sample received". The first re-estimate of a connection
+puts a step of any size into `tUnixMs`. Every later one is exactly
+20 + 160 k ms: Chrome's timer sends exactly 300 000 ms apart, which is
+exactly 1 875 packets, so the step only counts how many more (k > 0) or
+fewer (k < 0, time goes backwards) packets had arrived at send time than
+5 minutes earlier (docs/reports/025-*.md). No data is lost by such a step,
+but it looks exactly like a lost packet. The simulator logs each SYNC_TIME
+it receives as `unix <ms>`, so with --serial-left/--serial-right every
+non-20 ms step is matched against a logged SYNC_TIME instead of being
+guessed at. A matched step of 20 + 160 k ms is reported AMBIGUOUS: settle
+it with the web app dev panel (no loss on the connection when
+`pkts` = `seq` + 1 and `dropped=0`).
+
+--write-corrected OUT writes the same CSV with those steps undone within
+each take, so each foot keeps the offset it had at the start of the take
+and every step inside a take is 20 ms. Breaks are not touched, and a
+resync that fell between two takes can't be seen or undone. Steps of
+20 + 160 k ms are undone only with --assume-no-loss (dev panel checked).
 
 Verdict per foot, FAIL on any of: no rows, an inferred packet loss, a step
 <= 0 (time order broken), a non-20 ms step with no SYNC_TIME match (only
@@ -28,6 +40,8 @@ Exits non-zero on FAIL.
     /usr/bin/python3 tools/webapp_csv_check.py --selftest
     /usr/bin/python3 tools/webapp_csv_check.py ~/Downloads/TEST-S3B_....csv \
         --serial-left left.log --serial-right right.log --single-take
+    /usr/bin/python3 tools/webapp_csv_check.py IN.csv --assume-no-loss \
+        --write-corrected OUT.csv
 """
 
 from __future__ import annotations
@@ -241,7 +255,8 @@ def report(results: dict[str, FootResult], global_fails: list[str], serials: dic
             print(f"FAIL: {f_}", file=out)
         ok = ok and not r.fails
         if any(ev.verdict == "AMBIGUOUS" for ev in r.events):
-            print("AMBIGUOUS: settle with the web app dev panel's dropped= counter", file=out)
+            print("AMBIGUOUS: a later web-app resync step is always 20 + 160 k ms; no packet was lost if "
+                  "the dev panel showed pkts = seq + 1 and dropped=0 for this connection", file=out)
     if results["L"].rows and results["R"].rows:
         print(f"\nL/R start difference {results['L'].first_ms - results['R'].first_ms:+.0f} ms, "
               f"end difference {results['L'].last_ms - results['R'].last_ms:+.0f} ms (reported only)", file=out)
@@ -249,6 +264,42 @@ def report(results: dict[str, FootResult], global_fails: list[str], serials: dic
         print(f"FAIL: {f_}", file=out)
     print(f"\nRESULT: {'PASS' if ok else 'FAIL'}", file=out)
     return ok
+
+
+def correct(rows: list[dict], results: dict[str, FootResult],
+            assume_no_loss: bool) -> tuple[list[dict], dict[str, tuple[int, int]]]:
+    """Undo the web app's offset steps within each take (see the module doc).
+
+    Returns the corrected rows (same order) and, per side, (steps undone,
+    lost-sized steps left alone because --assume-no-loss was not given).
+    """
+    out = [dict(r) for r in rows]
+    summary = {}
+    for side, r in results.items():
+        idx = [i for i, row in enumerate(rows) if row["side"] == side]
+        events = {ev.row: ev for ev in r.events}
+        shift, undone, left = 0.0, 0, 0
+        for n, i in enumerate(idx):
+            ev = events.get(n)
+            if ev is not None:
+                if ev.kind == "break":
+                    shift = 0.0  # a new take keeps its own offset
+                elif ev.kind == "lost" and not assume_no_loss:
+                    left += 1
+                else:
+                    shift += ev.step_ms - SAMPLE_PERIOD_MS
+                    undone += 1
+            if shift:
+                out[i]["tUnixMs"] = f"{float(rows[i]['tUnixMs']) - shift:.0f}"
+        summary[side] = (undone, left)
+    return out, summary
+
+
+def write_csv(path: Path, rows: list[dict]) -> None:
+    with path.open("w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=CSV_COLUMNS, lineterminator="\n")
+        w.writeheader()
+        w.writerows(rows)
 
 
 def read_csv(path: Path) -> list[dict]:
@@ -338,7 +389,29 @@ def selftest() -> bool:
                 name += f" (events {got[:4]}{' ...' if len(got) > 4 else ''}, expected {kinds})"
         print(f"{'ok  ' if good else 'BAD '} {name}: {'PASS' if passed else 'FAIL'}")
         all_ok = all_ok and good
-    print(f"selftest: {'all cases as expected' if all_ok else 'SOME CASES WRONG'} ({len(cases)} cases)")
+    # --write-corrected: (name, L times, R times, assume_no_loss, expected (undone, left) for L,
+    # expected L steps after correction)
+    take2 = _stream(T0, N, {4000: 180, 6000: -140, 9000: 45_000, 9500: 20 + 63, 12000: 180})
+    corr_cases = [
+        ("undo a +160 resync step (dev panel: no loss)", lost, clean[: N - 8], True, (1, 0), {20.0: N - 9}),
+        ("leave a +160 step without --assume-no-loss", lost, clean[: N - 8], False, (0, 1), {20.0: N - 10, 180.0: 1}),
+        ("undo +160, -140 and an arbitrary step; break kept, shift reset after it", take2, take2, True, (4, 0),
+         {20.0: N - 2, 45000.0: 1}),
+    ]
+    for name, lt, rt, assume, expect_summary, expect_steps in corr_cases:
+        rows = _rows("L", lt) + _rows("R", rt)
+        results, _ = analyse(rows, {}, 8, 5.0, False, 2.0)
+        fixed, summary = correct(rows, results, assume)
+        times = [float(r["tUnixMs"]) for r in fixed if r["side"] == "L"]
+        got_steps = dict(Counter(round(b - a, 1) for a, b in zip(times, times[1:])))
+        # The break itself is never altered (a shift carried over it would change it).
+        break_kept = lt is not take2 or times[9000] - times[8999] == 45_000
+        good = summary["L"] == expect_summary and got_steps == expect_steps and break_kept
+        print(f"{'ok  ' if good else 'BAD '} corrected: {name}"
+              + ("" if good else f" (summary {summary['L']}, steps {got_steps})"))
+        all_ok = all_ok and good
+    n_cases = len(cases) + len(corr_cases)
+    print(f"selftest: {'all cases as expected' if all_ok else 'SOME CASES WRONG'} ({n_cases} cases)")
     return all_ok
 
 
@@ -353,6 +426,10 @@ def main() -> int:
     ap.add_argument("--single-take", action="store_true", help="any break is a FAIL")
     ap.add_argument("--span-tol-s", type=float, default=2.0,
                     help="max start/end difference between the feet")
+    ap.add_argument("--write-corrected", type=Path, metavar="OUT",
+                    help="write the CSV with the web app's resync steps undone within each take")
+    ap.add_argument("--assume-no-loss", action="store_true",
+                    help="the dev panel showed pkts = seq + 1 and dropped=0: undo 20 + 160 k steps too")
     ap.add_argument("--selftest", action="store_true")
     args = ap.parse_args()
 
@@ -368,7 +445,16 @@ def main() -> int:
     print(f"{args.csv}: {len(rows)} rows")
     results, gfails = analyse(rows, serials, args.samples_per_packet, args.break_s,
                               args.single_take, args.span_tol_s)
-    return 0 if report(results, gfails, serials) else 1
+    ok = report(results, gfails, serials)
+    if args.write_corrected:
+        fixed, summary = correct(rows, results, args.assume_no_loss)
+        write_csv(args.write_corrected, fixed)
+        print(f"\nwrote {args.write_corrected}")
+        for side, (undone, left) in summary.items():
+            print(f"  {SIDES[side]}: {undone} step(s) undone"
+                  + (f", {left} lost-sized step(s) left (no --assume-no-loss)" if left else ""))
+        print("  a resync between two takes is not visible in the CSV and is not undone")
+    return 0 if ok else 1
 
 
 if __name__ == "__main__":

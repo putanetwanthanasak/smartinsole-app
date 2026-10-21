@@ -17,7 +17,7 @@
 | S2B | ✅ New simulator core; 10-min bleak run: 3,750 packets, 0 gaps, 6.25 Hz; encoders match vectors 33/33 | PR #18 · report 022 |
 | S2C | ✅ All 6 opcodes; TARE → NVS; 2 concurrent centrals (laptop 1,896 packets with no gaps while the phone stopped/reconnected); MTU 120 → 4-sample packets live | PR #19 · report 023 |
 | S3A | ✅ Per-foot BLE (connect sequence, rules 8/9, reconnect), temporary debug screen, 183 tests; Note 10 checkpoint passed: both feet 6.25 Hz with 0 gaps, interval 11.25 ms | PR #20 · report 024 |
-| S3B | ⏭️ Next, reduced scope: check the laptop web app still captures from the new simulator (fallback only) | — |
+| S3B | ✅ Web app fallback works with the new simulator: 9-min capture, both feet 26 984 rows, no lost packets, 20 ms spacing; resync steps of 160 ms (BACKLOG 28) and reconnect via the picker (BACKLOG 29) handled in `docs/STUDY-FALLBACK.md` | PR #21 · report 025 |
 | S4, S4C, S5, S6A, S7, S6B, SR | ⏳ Must finish before the study starts on 2026-11-10 | — |
 | S8A, S8B, S8C, S9, S10 | ⏳ After the study starts | — |
 
@@ -73,6 +73,8 @@ If real boards are not ready by 2 Nov, SR runs on the simulator and the real-boa
 - **S3A:** opening the ESP32 serial port resets the board; start any serial log before connecting centrals.
 - **S4:** `deviceMs` uint32 wrap; L/R timing check ±10 ms. The Note 10 grants an 11.25 ms connection interval after the HIGH request (BACKLOG 25).
 - **S4:** the first packet after START can be dropped as "before START" when Android delivers it before the write ack; the gap counter misses it (BACKLOG 27).
+- **S4:** do not copy the web app's resync formula (offset = send time − last received sample): it is quantised to the 160 ms packet period and gives ±160 ms steps (BACKLOG 28). Anchor the offset to each packet's own arrival time.
+- **S4 checkpoint:** the left board's USB (laptop port 3-6, old cable) re-enumerated 4 times at plug-in and dropped once in S3B; replace that cable or use another port before the next serial log.
 - **Note 10 checkpoints:** restart adb (`adb kill-server`) if it loses the phone while USB stays attached; serial output can be garbage for the first minutes after plugging in a board, so check it reads cleanly before a test.
 - **S5 / S7:** zero load reads ≈ 0.01 kPa (display rounding); ADC 4095 ≈ 37,000 kPa (saturation; flags bit0).
 - **S8B:** REBOOT/TARE guard (BACKLOG 21).
@@ -228,7 +230,7 @@ Additional info: [optional]
 - **Verify:** unit test of the connect sequence with a fake BLE · **User:** connect both, power-cycle a board and confirm auto-reconnect, swap slots and confirm rejection.
 - **Done when:** both feet stream continuously for 5 minutes.
 
-### S3B — Web app fallback check (reduced scope, decided 2026-10-21)
+### S3B — Web app fallback check (reduced scope, decided 2026-10-21) ✅
 - **Requires:** S3A merged; Google Chrome on Ubuntu.
 - **Why:** the phone is now the capture tool (S4C). The laptop web app must still work as a fallback if phone capture fails on a study day. This is the frozen web app's first connection to the new simulator.
 - **Do:** check on paper, then live, that the web app connects to both new simulator boards on its own (no phone connected), accepts per-connection `seq` (restarts at 0 on START) and boot-based `t0_ms`, that its report-015 stale check does not misfire, and that its raw capture mode exports a usable CSV. A small script analyses that CSV (missing `seq`, sample spacing, both feet present). **Do not modify the web app**; if it cannot capture correctly, stop and report the smallest fix, and the user decides.

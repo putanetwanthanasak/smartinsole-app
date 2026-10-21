@@ -1,0 +1,31 @@
+<scratchpad>/live-corrected.csv: 53968 rows
+
+== left foot (L) ==
+rows 26984
+span 539.66 s, rate 50.000 Hz
+steps: 26983 of 26983 exactly 20 ms; others: none
+rows per full 10 s window: min 500, max 500
+gaitLabel {'normal': 26984}, isValid=false rows 0
+serial:
+  00:04:32.679 conn 0: connected 98:59:7a:62:7a:6d,
+  00:09:20.670 conn 0: disconnected, reason 0x213
+  00:57:50.124 conn 0: connected 98:59:7a:62:7a:6d,
+  last [sess] conn 0 at 01:13:23.222: streaming, sent 5823, mtu-drops 0
+  SYNC_TIME received: 5; notify failures (max seen) 0
+
+== right foot (R) ==
+rows 26984
+span 539.66 s, rate 50.000 Hz
+steps: 26983 of 26983 exactly 20 ms; others: none
+rows per full 10 s window: min 500, max 500
+gaitLabel {'normal': 26984}, isValid=false rows 0
+serial:
+  00:04:53.114 conn 0: connected 98:59:7a:62:7a:6d,
+  00:09:24.665 conn 0: disconnected, reason 0x213
+  00:57:57.419 conn 0: connected 98:59:7a:62:7a:6d,
+  last [sess] conn 0 at 01:20:34.577: streaming, sent 8473, mtu-drops 0
+  SYNC_TIME received: 6; notify failures (max seen) 0
+
+L/R start difference +36 ms, end difference +36 ms (reported only)
+
+RESULT: PASS

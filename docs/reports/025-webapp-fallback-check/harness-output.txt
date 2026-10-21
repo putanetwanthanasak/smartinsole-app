@@ -1,0 +1,46 @@
+
+== connection 1: both feet, 6-minute take with a resync at +300 s ==
+ L: device uptime at START 1051.6 s, packets sent 2249 (seq 0..2248), samples emitted 17992, dev panel: pkts=2249 dropped=0 truncated=0 seq=2248 offset-boot=143 ms
+    steps (ms: count): {"20":17990,"153":1}
+  ok   every packet emitted, packet #0 included (held then committed, not dropped)
+  ok   dropped=0 truncated=0 unparseable=0
+  ok   last seq = packets - 1 (seq restarted at 0 on this START)
+  ok   no console warnings/errors
+  ok   tUnixMs is wall time (last sample 116 ms vs the clock at the end)
+  ok   offset = boot time + latency (143 ms)
+ R: device uptime at START 1051.0 s, packets sent 2249 (seq 0..2248), samples emitted 17992, dev panel: pkts=2249 dropped=0 truncated=0 seq=2248 offset-boot=157 ms
+    steps (ms: count): {"20":17990,"167":1}
+  ok   every packet emitted, packet #0 included (held then committed, not dropped)
+  ok   dropped=0 truncated=0 unparseable=0
+  ok   last seq = packets - 1 (seq restarted at 0 on this START)
+  ok   no console warnings/errors
+  ok   tUnixMs is wall time (last sample 116 ms vs the clock at the end)
+  ok   offset = boot time + latency (157 ms)
+
+== connection 2: after disconnect -> connect (seq restarts at 0, t0 continues) ==
+ L: device uptime at START 1416.5 s, packets sent 374 (seq 0..373), samples emitted 2992, dev panel: pkts=374 dropped=0 truncated=0 seq=373 offset-boot=10 ms
+    steps (ms: count): {"20":2991}
+  ok   every packet emitted, packet #0 included (held then committed, not dropped)
+  ok   dropped=0 truncated=0 unparseable=0
+  ok   last seq = packets - 1 (seq restarted at 0 on this START)
+  ok   no console warnings/errors
+  ok   tUnixMs is wall time (last sample -30 ms vs the clock at the end)
+  ok   offset = boot time + latency (10 ms)
+ R: device uptime at START 1415.9 s, packets sent 374 (seq 0..373), samples emitted 2992, dev panel: pkts=374 dropped=0 truncated=0 seq=373 offset-boot=10 ms
+    steps (ms: count): {"20":2991}
+  ok   every packet emitted, packet #0 included (held then committed, not dropped)
+  ok   dropped=0 truncated=0 unparseable=0
+  ok   last seq = packets - 1 (seq restarted at 0 on this START)
+  ok   no console warnings/errors
+  ok   tUnixMs is wall time (last sample -24 ms vs the clock at the end)
+  ok   offset = boot time + latency (10 ms)
+
+== connection 3: both feet 6 minutes, right board loses seq 1000 ==
+ L: samples 18000, dropped=0
+  ok   dev panel dropped= counts the loss (0)
+ R: samples 17984, dropped=1
+  ok   dev panel dropped= counts the loss (1)
+
+SYNC_TIME writes seen by the boards: L 5, R 5 (9 bytes each)
+
+HARNESS: ALL CHECKS PASS
