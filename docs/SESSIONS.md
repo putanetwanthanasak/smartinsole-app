@@ -1,6 +1,6 @@
-# Claude Code Session Plan — SmartInsole Flutter App (v2.1)
+# Claude Code Session Plan — SmartInsole Flutter App (v2.2)
 
-> Updated 2026-10-18 · Use together with `docs/FLUTTER-PLAN.md` and `docs/design/DESIGN-SPEC.md`
+> Updated 2026-10-21 (v2.2: the phone app becomes the research capture tool; new sessions S4C and SR; dates fixed for the 2026-11-10 study start) · Use together with `docs/FLUTTER-PLAN.md` and `docs/design/DESIGN-SPEC.md`
 > Run Claude Code on the Ubuntu machine in `~/smartinsole-app`
 
 ---
@@ -17,10 +17,43 @@
 | S2B | ✅ New simulator core; 10-min bleak run: 3,750 packets, 0 gaps, 6.25 Hz; encoders match vectors 33/33 | PR #18 · report 022 |
 | S2C | ✅ All 6 opcodes; TARE → NVS; 2 concurrent centrals (laptop 1,896 packets with no gaps while the phone stopped/reconnected); MTU 120 → 4-sample packets live | PR #19 · report 023 |
 | S3A | ✅ Per-foot BLE (connect sequence, rules 8/9, reconnect), temporary debug screen, 183 tests; Note 10 checkpoint passed: both feet 6.25 Hz with 0 gaps, interval 11.25 ms | PR #20 · report 024 |
-| S3B | ⚠️ Must finish before the November data collection | — |
-| S4–S10 | ⏳ Not started | — |
+| S3B | ⏭️ Next, reduced scope: check the laptop web app still captures from the new simulator (fallback only) | — |
+| S4, S4C, S5, S6A, S7, S6B, SR | ⏳ Must finish before the study starts on 2026-11-10 | — |
+| S8A, S8B, S8C, S9, S10 | ⏳ After the study starts | — |
 
 **Demo state of the app:** installed on the Note 10 as a release build; all screens are placeholders ("ยังไม่พร้อมใช้งาน") until their sessions.
+
+## Study plan (decided 2026-10-21)
+
+- **Data collection starts 2026-11-10.** One researcher (the user) runs every session alone and walks beside the volunteer during the abnormal gaits.
+- **The phone app is the research capture tool** (new session S4C). Each insole has exactly one central during a study session: the phone. The researcher carries the phone, so Bluetooth range and operating two devices are not a problem.
+- **The laptop web app is a fallback only.** S3B now only checks that it can still capture from the new simulator on its own. It is never connected at the same time as the phone during a study session. The dual-central test is dropped.
+- **The user is also the AI team**, so the CSV format is designed for training (S4C), not copied from the web app.
+
+What the study protocol (proposal doc 03) needs from the app:
+
+| Protocol step | Needs | Session |
+|---|---|---|
+| 30 s standing calibration, 5 gaits × 3 min, raw 50 Hz data with labels | Research capture mode | S4 + S4C |
+| Warm-compress test: watch alerts and link continuity, alert times recorded | Alert rules + stored alert history | S6A + S7 |
+| Volunteer usability tasks: pressure map, alert list, explain an alert message | Home with heatmap, Alerts screen, plain-Thai advice | S5 + S6B + S7 |
+| Alert text shown to volunteers | Reviewed by the medical expert | before 2026-11-05 |
+
+Not needed before the study: S8A (Gait screen, no model yet), S8B (the debug screen is enough for the researcher), S8C (foot check is not used with volunteers), S9, S10.
+
+| Date | Work |
+|---|---|
+| Thu 22 Oct | S3B (reduced) · user picks the new Home design |
+| Fri 23 Oct | S4 |
+| Sat 24 – Sun 25 Oct | S4C + simulator rehearsal of one capture session · advisor slides |
+| **Mon 26 Oct** | Advisor meeting (demo: capture on the phone) |
+| Tue 27 – Thu 29 Oct | S5, S6A, S7 |
+| Fri 30 Oct – Sun 1 Nov | S6B · send alert text to the medical expert |
+| Mon 2 – Thu 5 Nov | SR: real boards from Phumirapee + full 75-minute rehearsal |
+| Fri 6 – Mon 9 Nov | Buffer, fixes, expert text changes, final install |
+| **Tue 10 Nov** | Study starts |
+
+If real boards are not ready by 2 Nov, SR runs on the simulator and the real-board check moves to the buffer days.
 
 ### Decisions made during S2A–S2C
 - Parser keeps `lengthMismatch`: every sensor notification must be exactly `8 + count × (2N + 12)` bytes; never padded.
@@ -46,8 +79,9 @@
 
 ### Waiting on others
 - **Phumirapee (hardware):** final FSR/NTC count and positions; NTC 6 per foot possible?; exact-length packets; SET_RATE must not change the real rate (or add a spacing field); contract gaps BACKLOG 15, 16, 19.
-- **Advisor (2026-10-19):** daily foot check in scope?; IRB notification needed?; medical expert to review advice text; NTC 6 per foot.
-- **User:** approve the remaining 5 screen designs before S6B.
+- **Phumirapee:** when will the real boards be ready? Needed by 2026-11-02 for SR.
+- **Advisor (2026-10-26):** daily foot check in scope?; IRB notification needed?; medical expert to review advice text; NTC 6 per foot.
+- **User:** a full-app redesign started on 2026-10-20 (three Home directions A/B/C on the design canvas). Pick one before S5; the Alerts and Temperature designs are needed before S6B. DESIGN-SPEC is updated after the choice.
 
 ---
 
@@ -80,7 +114,7 @@
 - Check your diff against the 16 rules in `docs/FLUTTER-PLAN.md` section 6, one relevant rule at a time.
 - Check every "Done when" item.
 - **UI checks are done by you, not the user:** run the app on the Android emulator (`flutter run -d emulator-…`, with `MockDataSource` when no ESP32 is needed), use the Dart & Flutter MCP server to take screenshots, inspect the widget tree and read runtime errors, and compare against `docs/design/DESIGN-SPEC.md`. Add golden tests for every screen state you build. Put the screenshots you checked into the report.
-- **The user tests on the Note 10 only at 4 checkpoints:** after S3A, S4, S8C and S9 (anything needing real Bluetooth or the real camera). For those, write a checklist for the user and **wait for their results**. Never mark them passed yourself.
+- **The user tests on the Note 10 only at the checkpoints listed in section 2** (anything needing real Bluetooth or the real camera). For those, write a checklist for the user and **wait for their results**. Never mark them passed yourself.
 - If the Dart MCP server is not connected or no emulator is running, stop and tell the user what to start; do not skip the check.
 
 ### Step 4: Report
@@ -109,9 +143,9 @@ Additional info: [optional]
 
 **Simulator tooling:** PlatformIO; ESP32 on a CP2102 bridge (select the port by `/dev/serial/by-id/usb-Silicon_Labs_CP2102…`; the other ttyUSB is a Quectel LTE modem, never touch it); user `pumon` in `dialout`; laptop checks with `firmware/simulator/tools/sim_check.py` (bleak); phone checks with nRF Connect.
 
-**Note 10 checkpoints (user):** after S3A (both ESP32 connect), S4 (left/right timing), S8C (real camera), S9 (full 30-minute run).
+**Note 10 checkpoints (user):** after S3A (both ESP32 connect) ✅, S4 (left/right timing), S4C (a full capture session on the phone), SR (study rehearsal with real boards), S8C (real camera), S9 (full 30-minute run).
 
-| Day | Session | Who | Work | Branch |
+| Date | Session | Who | Work | Branch |
 |---|---|---|---|---|
 | 0 | S0A ✅ | User | Install Flutter, SDK, Note 10, Claude Code | — |
 | 0 | S0B ✅ | Claude Code | Repo setup + docs | `work/repo-setup` |
@@ -120,18 +154,20 @@ Additional info: [optional]
 | 2 | S2A ✅ | Claude Code | Parser + test vectors | `work/flutter-parser` |
 | 2 | S2B ✅ | Claude Code + user | New simulator: core | `work/sim-core` |
 | 3 | S2C ✅ | Claude Code + user | New simulator: control + 2 concurrent connections | `work/sim-control` |
-| 3 | S3A | Claude Code + user | BLE, both feet | `work/flutter-ble` |
-| 4 | S3B | User + Claude Code | Laptop + phone connected at the same time | `work/dual-central-test` |
-| 4 | S4 | Claude Code + user | DeviceManager + timing checks | `work/flutter-device-manager` |
-| 5 | S5 | Claude Code | Heatmap + Home + animation | `work/flutter-home` |
-| 6 | S6A | Claude Code | SQLite | `work/flutter-storage` |
-| 6 | S6B | Claude Code | Temperature + Alerts screens | `work/flutter-temp-alerts` |
-| 7 | S7 | Claude Code | 9 alert rules + risk level + 3-level mapping | `work/flutter-rules` |
-| 8 | S8A | Claude Code | Gait screen + model slot | `work/flutter-gait` |
-| 8 | S8B | Claude Code | Connection + Settings screens | `work/flutter-connect-settings` |
-| 9 | S8C | Claude Code + user | Daily foot check | `work/flutter-footcheck` |
-| 10 | S9 | User + Claude Code | Integration test + APK | `work/flutter-integration` |
-| 11 | S10 | Claude Code | Wrap-up + docs + screenshots | `work/flutter-wrapup` |
+| 21 Oct | S3A ✅ | Claude Code + user | BLE, both feet | `work/flutter-ble` |
+| 22 Oct | S3B | Claude Code + user | Web app fallback check (laptop only) | `work/webapp-fallback-check` |
+| 23 Oct | S4 | Claude Code + user | DeviceManager + timing checks | `work/flutter-device-manager` |
+| 24–25 Oct | S4C | Claude Code + user | Research capture mode | `work/flutter-capture` |
+| 27 Oct | S5 | Claude Code | Heatmap + Home + animation | `work/flutter-home` |
+| 28 Oct | S6A | Claude Code | SQLite | `work/flutter-storage` |
+| 29 Oct | S7 | Claude Code | 9 alert rules + risk level + 3-level mapping | `work/flutter-rules` |
+| 30 Oct–1 Nov | S6B | Claude Code | Temperature + Alerts screens | `work/flutter-temp-alerts` |
+| 2–5 Nov | SR | User + Claude Code | Study rehearsal with real boards | `work/study-readiness` |
+| after 10 Nov | S8A | Claude Code | Gait screen + model slot | `work/flutter-gait` |
+| after 10 Nov | S8B | Claude Code | Connection + Settings screens | `work/flutter-connect-settings` |
+| after 10 Nov | S8C | Claude Code + user | Daily foot check | `work/flutter-footcheck` |
+| after study | S9 | User + Claude Code | Integration test + APK | `work/flutter-integration` |
+| after study | S10 | Claude Code | Wrap-up + docs + screenshots | `work/flutter-wrapup` |
 
 ---
 
@@ -148,7 +184,8 @@ Additional info: [optional]
 - **Done when:** PR is open.
 
 ### S1A — Design (in Claude chat, not Claude Code)
-- Home (4 states) ✅ · Foot check (4 screens) ✅ · Gait / Temperature / Alerts / Connection / Settings (in progress)
+- First version: Home (4 states) ✅ · Foot check (4 screens) ✅
+- Redesign (started 2026-10-20): three Home directions on the canvas; the user picks one, then every screen is redone in that style (Home before S5, Alerts/Temperature before S6B, the rest after the study starts).
 - Results go into `docs/design/DESIGN-SPEC.md` once approved.
 
 ### S1B — `mobile/` scaffold + theme ✅
@@ -185,22 +222,34 @@ Additional info: [optional]
 - **Verify:** the laptop bleak script covers the `docs/BLE-TEST-CHECKLIST.md` items that apply to the simulator (every opcode, calibration long read), and two centrals connect at once; one disconnecting or sending `STOP_STREAM` does not stop the other's stream. Packet bytes still match `shared/test_vectors/`. The web app is not used here; its first connection to the new simulator is in S3B.
 - **Done when:** the bleak checks pass and nothing deviates from the contract.
 
-### S3A — BLE, both feet
+### S3A — BLE, both feet ✅
 - **Requires:** S2A and S2C merged; L and R boards flashed (second board → `pio run -e right`).
 - **Do:** one `BleDataSource` per foot following FLUTTER-PLAN section 5; reject wrong side; auto-reconnect (request MTU 247 again on every reconnect); runtime permissions; temporary debug screen; rule 9 checks from BACKLOG 20.
 - **Verify:** unit test of the connect sequence with a fake BLE · **User:** connect both, power-cycle a board and confirm auto-reconnect, swap slots and confirm rejection.
 - **Done when:** both feet stream continuously for 5 minutes.
 
-### S3B — Laptop + phone at the same time
-- **Do:** a test procedure + a script that analyses the web app's CSV (missing `seq`, sample spacing). First connection of the frozen web app to the new simulator; check the web app accepts per-connection `seq` and boot-based `t0`.
-- **Verify (user runs it, sends results):** 10 minutes, no missing `seq` in the CSV, phone display continuous.
-- **If it fails:** fallback = laptop only on study days; test the phone app separately.
-- **Done when:** laptop capture is complete while the phone displays, or the user accepts the fallback.
+### S3B — Web app fallback check (reduced scope, decided 2026-10-21)
+- **Requires:** S3A merged; Google Chrome on Ubuntu.
+- **Why:** the phone is now the capture tool (S4C). The laptop web app must still work as a fallback if phone capture fails on a study day. This is the frozen web app's first connection to the new simulator.
+- **Do:** check on paper, then live, that the web app connects to both new simulator boards on its own (no phone connected), accepts per-connection `seq` (restarts at 0 on START) and boot-based `t0_ms`, that its report-015 stale check does not misfire, and that its raw capture mode exports a usable CSV. A small script analyses that CSV (missing `seq`, sample spacing, both feet present). **Do not modify the web app**; if it cannot capture correctly, stop and report the smallest fix, and the user decides.
+- **Verify (user runs it, sends results):** 5 minutes of web-app raw capture from both boards, no missing `seq`, 20 ms spacing.
+- **Done when:** the fallback capture works, or the problem and the smallest fix are documented for the user to decide.
 
 ### S4 — DeviceManager + timing
 - **Do:** 50 Hz processing / 10 Hz display, read-time staleness, ΔT null when a foot is missing, `seq` gap detection, stale-packet drop, `SYNC_TIME` every 5 min, temperature history, timing log. Also a `MockDataSource` (same interface as `BleDataSource`) with presets for every Home state (safe, watch, rest, no data, one foot missing, low battery) so later UI sessions can run on the emulator without ESP32. Selectable only in debug builds.
 - **Verify:** unit tests (stale, ΔT null, stale packet, seq wrap at 65535, `deviceMs` uint32 wrap) · **User:** run 10 minutes and send the log.
 - **Done when:** L/R offset ≤ ±10 ms, 20 ms spacing, no lost packets. **Do not start S5 if this fails.**
+
+### S4C — Research capture mode (new, decided 2026-10-21)
+- **Requires:** S4 merged.
+- **Do:** a researcher-only capture flow in the app, built for one person who walks beside the volunteer:
+  1. Session setup: subject code (no names), room temperature, pre-checks (both feet streaming, battery ≥ 80 % on both, firmware/calibration recorded). Generates the trial order: normal gait first, then the 4 abnormal gaits in a random order per subject; simulated-pain side by odd/even subject number (proposal doc 03).
+  2. 30 s standing calibration trial, then each gait trial: 3-minute timer that stops and saves by itself, sound + vibration cues at start, 10 s before the end and at the end, long press to stop early, "redo trial" (the old file is kept and marked invalid), large touch targets, screen kept on (`wakelock_plus`), no accidental input while the phone is in a pocket.
+  3. Link loss during a trial: vibrate, keep recording after reconnect, and record the gap in the file.
+  4. Files in the app's private storage: one CSV per trial (unix time from S4, side, seq, raw ADC and kPa per channel, IMU, temperature, flags) + one JSON sidecar (subject code, gait class, pain side, start/end, room temperature, app/firmware versions, calibration, gaps). Export to the laptop over USB (`adb pull` script) with a manifest and checksums.
+  5. A short `docs/STUDY-CAPTURE.md` for the user: the exact study-day steps on the phone, and how to export.
+- **Verify:** unit tests (trial order and pain-side rules, timer stop, file contents, gap recording, redo) · **You:** emulator with `MockDataSource` for the flow, screenshots · **User checkpoint (Note 10):** one full simulated session with both simulator boards (calibration + 5 trials, shortened timers allowed), export, and the analysis script confirms 50 Hz with no gaps.
+- **Done when:** a full session can be run alone on the phone and the exported files load cleanly in Python.
 
 ### S5 — Heatmap + Home
 - **Do:** heatmap with `CustomPainter` from `sensor_layout.json`; Home per DESIGN-SPEC in all 4 states; animations per FLUTTER-PLAN section 8.
@@ -222,6 +271,12 @@ Additional info: [optional]
 - **Do:** 9 codes per contract §8.3, walking gate, ΔT 2 consecutive readings, 30-minute repeat suppression, level 1–5 (max), 3-level mapping per FLUTTER-PLAN section 7, plain-Thai advice for every code, thresholds from `thresholds.json`.
 - **Verify:** unit tests for every code (trigger / no trigger / boundary) and every row of the mapping table.
 - **Done when:** every rule passes; no threshold numbers in code.
+
+### SR — Study readiness (new, decided 2026-10-21)
+- **Requires:** S4C, S5, S6A, S7, S6B merged; real boards from Phumirapee (fall back to the simulator if not ready).
+- **Do:** run the full protocol from proposal doc 03 end to end on the phone (about 75 minutes): device checklist, calibration, 5 trials, warm-compress alert check, the 3 usability tasks, export. Confirm the alert text the volunteers will see is the version the medical expert reviewed. Install the final build.
+- **Verify (user runs it, sends results):** all trial files complete at 50 Hz with no unexplained gaps; alerts appear with times recorded; nothing on the phone needs the laptop.
+- **Done when:** the user is confident to run the study on 2026-11-10.
 
 ### S8A — Gait screen
 - **Do:** PAI, CoP, step count, `GaitClassifier` (rules + TFLite skeleton in an isolate), label "estimate, not a diagnosis", animations.
