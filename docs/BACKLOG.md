@@ -685,9 +685,15 @@ cross-foot timing check.
 `requestConnectionPriority(high)` on every connect and reconnect. Android's
 public API can't read the interval back, so the interval actually granted
 comes from the simulator's serial log (`[ble] conn N: interval …`), which
-the Note 10 checklist in report 024 captures. **HIGH priority for S4:**
-if the Note 10 still sits at 48.75 ms, the ±10 ms cross-foot timing check
-needs another plan.
+the Note 10 checklist in report 024 captures.
+
+**Measured at the S3A Note 10 checkpoint (2026-10-21):** after the app's
+HIGH request, the Note 10 settled at **11.25 ms** (latency 0, supervision
+timeout 5000 ms) on both boards. That held on every connect and reconnect
+(first connect, EN reset, replug, Bluetooth off/on). Each connection
+briefly passes through 45–48.75 ms and 7.5 ms first. The interval part of
+this item is resolved; S4 still has to measure the actual ±10 ms
+cross-foot timing.
 
 ## 26. Android ≤ 11 location permission and the `permission_handler` pin **(found in S3A)**
 
@@ -700,3 +706,30 @@ needs another plan.
   (`permission_handler_android` 14.1.0) needs compileSdk 37, and AGP 9.1
   supports at most 36. Lift the pin when the Android Gradle plugin is
   upgraded.
+
+## 27. The first packet after START can be dropped as "before START" **(found at the S3A Note 10 checkpoint, for S4)**
+
+Rule 9 check 1 (item 20) drops sensor/temp packets that arrive before
+this connection's `START_STREAM` write is acknowledged. On the Note 10 one
+reconnect of the right board showed `dropped before START 1`. The most
+likely cause (not proven: the phone log had stopped by then, and the
+app's log line doesn't record the `seq`) is that the board starts
+notifying as soon as it handles START, and Android delivered the first
+notification before the write-response callback. If so, that packet was
+genuine (this connection's generation, most likely `seq` 0), so up to 8
+samples (160 ms) were lost at the start of the connection. The gap counter
+doesn't see it, because `seq` tracking restarts with each connection
+(`LinkStats.newSession()`) and the first *accepted* packet becomes the
+baseline.
+
+For S4, either:
+- open the gate when the START write is **issued**, not when it is
+  acknowledged. The generation check already rejects anything from an
+  older connection, and this connection's subscriptions are new, so a
+  packet of this generation can only come from this connection's stream;
+  or
+- keep the gate but accept a packet held back until the ack if its `seq`
+  is 0 or 1 and its `t0` is plausible.
+
+Either way, count a first accepted `seq` k > 0 as k missing packets, so a
+lost start of stream shows up in the gap counter.

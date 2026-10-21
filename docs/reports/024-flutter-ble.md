@@ -1,11 +1,12 @@
 # 024 — S3A: BLE, both feet (Flutter)
 
-Branch `work/flutter-ble` · 2026-10-20 · Session S3A (`docs/SESSIONS.md` §3)
+Branch `work/flutter-ble` · 2026-10-20/21 · Session S3A (`docs/SESSIONS.md` §3)
 
-**Status: code done and verified on the emulator. Waiting on the Note 10
-checkpoint (section "Note 10 checklist"), which only the user can mark
-passed.** Done-when for S3A is "both feet stream continuously for 5 minutes
-on the Note 10".
+**Status: done.** The Note 10 checkpoint passed on 2026-10-21 (section "Note
+10 checkpoint results"). The user ran it on the device; Claude Code
+cross-checked it against the boards' serial logs and the phone's BLE log.
+Done-when for S3A, "both feet stream continuously for 5 minutes on the
+Note 10", is met.
 
 ## What was done
 
@@ -237,10 +238,69 @@ also had to go through `adb shell input tap`. This is noted in
   (`[ble] conn N: interval …`), which the checklist captures.
 - **No wakelock.** The checklist asks for a 10-minute screen timeout.
   Keeping the app alive with the screen off is a later session's job.
+- **Checkpoint setup problems (laptop side, not the app):**
+  - **Serial garbage after plug-in.** For the first few minutes after both
+    boards were plugged in, both ports read repeating garbage at 115200,
+    even with nobody else holding them. A baud scan a few minutes later
+    read 100 % clean at 115200, and it stayed clean. ModemManager probing
+    the new ports is the likely cause, but this isn't proven. The logger
+    now opens with DTR/RTS low and flushes the input buffer.
+  - **adb kept losing the phone.** Several times the USB link stayed up
+    while adb stopped listing the phone (fixed each time by
+    `adb kill-server`). The phone also dropped off USB at 20:52–20:54
+    (during the first install, until the user fixed the connection),
+    21:10:58 and 21:20:03. None of this touched
+    Bluetooth: both foot sessions continued, and the app process never
+    restarted. After 21:20 the app's side was read from the screen.
+  - **The right board's USB cable may be loose.** Unplugging once
+    (step 6b) produced several connect/disconnect cycles in the kernel log
+    between 21:23 and 21:25, including a 1-s attach. Every cycle recovered
+    by itself, but the cable or socket should be checked or replaced
+    before S3B.
 - **The debug screen is temporary.** It reads `BleDataSource.stats`
   directly, which S4's real screens won't do. S8B hides it.
 
-## Note 10 checklist (user checkpoint — waiting on user)
+## Note 10 checkpoint results (2026-10-21) — PASSED
+
+Phone: Samsung Note 10 (SM-N975F, Android 12), debug build. Boards: left
+`88:57:21:B7:74:9E` on laptop USB port 6, right `38:18:2B:8A:26:D6` on port
+7 (by-path; the CP2102s share one by-id). Evidence in
+`docs/reports/024-flutter-ble/`:
+
+- **Serial logs:** `note10-serial-left.log` and `note10-serial-right.log`,
+  laptop time, stray control bytes stripped.
+- **Phone log:** `note10-phone-ble.log`, the app's `[ble]` lines from 20:57
+  to 21:20. The capture ended when adb lost the phone, see Observations.
+- **Screenshots:** `note10-*.jpg`, taken by the user.
+
+The phone's clock runs about 1.6 s behind the laptop's: its "streaming"
+line comes 1.6 s before the board logs `START_STREAM`. Times below are
+laptop time unless marked "phone".
+
+| Step | Result | Evidence |
+|---|---|---|
+| 1 Install | ✅ Debug APK installed; app launched (pid 14079 for the whole run) | `adb install` → Success |
+| 2 Permission | ✅ Nearby-devices prompt → Allow; scan card + two IDLE cards, no readiness card | User; phone log `permission: granted`, `adapter: on` |
+| 3 Scan | ✅ Both found by service UUID within 1 s (RSSI −61 / −63) | Phone log |
+| 4 Connect | ✅ L streaming 21:00:51 (phone), R 21:01:08 (phone); MTU 247 granted, 8/pkt, N 6; calibration `SIM-L-001` / `SIM-R-001` | Phone and serial logs |
+| **5 Five minutes** | ✅ **Both cards at 21:09–21:10 (≈ 9 min):** 6.30 pkt/s, seq = packets − 1 (3395 / 3354), gaps 0, rejects 0, all drop counters 0, sessions 1, link losses 0, last packet 0.1 s | `note10-5-*.jpg`; boards: 6.25 pkt/s sent, 0 notify failures, 0 MTU drops, 0 disconnects |
+| 6a EN reset (right) | ✅ Board reboot 21:19:43.8 → app `link lost` ≈ 5 s later (supervision timeout 5000 ms) → full sequence again → streaming ≈ 7 s after the reset, no tap. Card: sessions 2, link losses 1, gaps 0. Left unaffected | `note10-6a-*.jpg`; both logs |
+| 6b Unplug/replug (right) | ✅ Back to STREAMING · MTU 247 by itself. Card: sessions 4, link losses 3, failed 0, gaps 0, rejects 0, **dropped before START 1** (BACKLOG 27). Left kept streaming. The kernel saw three plug-ins (21:23:55, 21:24:36, 21:25:38), see Observations | `note10-6b-*.jpg`; kernel log |
+| 7a Left board as RIGHT | ✅ `PROBLEM · wrongSide`, "แผ่นรองเท้านี้เป็นข้างซ้าย ใช้เป็นข้างขวาไม่ได้" / "insole reports foot_side left, this slot is right"; calibration not read; sessions 0, failed 1; only Retry. Board: connected 21:37:04, disconnected 21:37:07, **no START**, no retry. Disconnect beforehand sent STOP to both boards, and both stayed IDLE | `note10-7a-*.jpg`; serial logs |
+| 7b Right board as LEFT | ✅ Same result, mirrored. Verified by the user on the device. Board: connected 21:44:33.8, disconnected 21:44:36.5, no START, no retry | User; right serial log |
+| 8 Bluetooth off/on | ✅ Verified by the user on the device: Bluetooth-off card, both feet stopped with no error loop; after Bluetooth on, both back to STREAMING · MTU 247 by themselves. Boards: both disconnected at 21:47:56.5; right reconnected 21:48:13.3, left 21:48:15.2 (one setup at a time), each with MTU 247 → 8/pkt, 11.25 ms, SYNC_TIME, START, then 6.25 pkt/s | User; both serial logs |
+
+**Connection interval (BACKLOG 25):** after the HIGH request, the Note 10
+settled at **11.25 ms** on both boards, on every connect and reconnect,
+with latency 0 and supervision timeout 5000 ms. Each connection briefly
+passes through 45–48.75 ms and 7.5 ms first. nRF Connect, which makes no
+request, stayed at 48.75 ms in S2C.
+
+One extra session not in the checklist: 21:41:37–21:44:24 the right board
+streamed in the RIGHT slot before step 7b. It started with START and ended
+with STOP, so it was a normal user connect and disconnect.
+
+### The checklist as given
 
 Phone: Samsung Note 10 (SM-N975F, Android 12, `RF8M83P4STZ`). Please send
 back the "Copy log" text or a screenshot for each step marked 📋.
@@ -301,16 +361,19 @@ as described. If anything differs, the log is what I need.
   implemented (status added).
 - **23:** the app re-reads calibration on the bit1 falling edge; the
   contract question is still open.
-- **25:** partly done (HIGH priority requested). The granted interval comes
-  from the checkpoint's serial log. Marked HIGH priority for S4.
+- **25:** interval part resolved. The Note 10 grants 11.25 ms after the
+  HIGH request. S4 still measures the ±10 ms cross-foot timing.
 - **26 (new):** Android ≤ 11 location path untested; `permission_handler`
   pin until compileSdk 37 / a newer AGP.
+- **27 (new, S4):** the first packet after START can be dropped as "before
+  START" when Android delivers it before the write ack, and the gap counter
+  misses it. Seen once on the Note 10 (6b). Two fix options are in the item.
 
 ## Decisions needed
 
-None to continue. The Note 10 checkpoint result decides whether S3A is
-done.
+None. Optional: replace the right board's USB cable (see Observations)
+before S3B, where the laptop logs while the phone streams.
 
 ## Next session
 
-S3B (per `docs/SESSIONS.md`), after the Note 10 checkpoint passes.
+S3B (per `docs/SESSIONS.md`): laptop and phone connected at the same time.

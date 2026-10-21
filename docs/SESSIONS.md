@@ -5,7 +5,7 @@
 
 ---
 
-## Status (2026-10-18)
+## Status (2026-10-21)
 
 | Session | Result | PR / report |
 |---|---|---|
@@ -16,7 +16,7 @@
 | S2A | ✅ Dart parser for N FSR, 69 test vectors from the TS parser, 129 tests | PR #17 · report 021 |
 | S2B | ✅ New simulator core; 10-min bleak run: 3,750 packets, 0 gaps, 6.25 Hz; encoders match vectors 33/33 | PR #18 · report 022 |
 | S2C | ✅ All 6 opcodes; TARE → NVS; 2 concurrent centrals (laptop 1,896 packets with no gaps while the phone stopped/reconnected); MTU 120 → 4-sample packets live | PR #19 · report 023 |
-| S3A | ⏭️ Next (after the advisor meeting on 2026-10-19) | — |
+| S3A | ✅ Per-foot BLE (connect sequence, rules 8/9, reconnect), temporary debug screen, 183 tests; Note 10 checkpoint passed: both feet 6.25 Hz with 0 gaps, interval 11.25 ms | PR #20 · report 024 |
 | S3B | ⚠️ Must finish before the November data collection | — |
 | S4–S10 | ⏳ Not started | — |
 
@@ -38,7 +38,9 @@
 ### Carry-forward notes for later sessions
 - **S3A:** request MTU 247 on every connect and reconnect. At MTU 23 the simulator sends nothing (by design) with no error, so the app must show a problem state if the MTU is too small. Pick the device by service UUID and judge the side only by `foot_side` (BlueZ/Android cache device names).
 - **S3A:** opening the ESP32 serial port resets the board; start any serial log before connecting centrals.
-- **S4:** `deviceMs` uint32 wrap; L/R timing check ±10 ms.
+- **S4:** `deviceMs` uint32 wrap; L/R timing check ±10 ms. The Note 10 grants an 11.25 ms connection interval after the HIGH request (BACKLOG 25).
+- **S4:** the first packet after START can be dropped as "before START" when Android delivers it before the write ack; the gap counter misses it (BACKLOG 27).
+- **Note 10 checkpoints:** restart adb (`adb kill-server`) if it loses the phone while USB stays attached; serial output can be garbage for the first minutes after plugging in a board, so check it reads cleanly before a test.
 - **S5 / S7:** zero load reads ≈ 0.01 kPa (display rounding); ADC 4095 ≈ 37,000 kPa (saturation; flags bit0).
 - **S8B:** REBOOT/TARE guard (BACKLOG 21).
 
