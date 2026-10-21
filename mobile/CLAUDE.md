@@ -47,6 +47,7 @@ From `docs/FLUTTER-PLAN.md` section 6:
 | `flutter test` | Unit, widget and golden tests |
 | `flutter test --update-goldens test/goldens` | Regenerate goldens after an intended UI change; review the PNG diff before committing |
 | `flutter run -d <emulator-id> -t test_driver/main_mcp.dart --print-dtd` | Run on the emulator with the Flutter Driver extension, for Dart MCP UI checks |
+| … add `--dart-define=BLE_FAKE=true` | Same, with the scripted fake BLE (two streaming insoles plus one with MTU 23) instead of the real plugin |
 | `flutter run -d <device-id>` | Plain debug run (e.g. the Note 10) |
 | `dart format lib test test_driver` | Formatting |
 | `node shared/test_vectors/generate.mjs [--check]` (repo root, after `npm ci`) | Regenerate / check the BLE test vectors from the web app's TS parser |
@@ -55,9 +56,10 @@ From `docs/FLUTTER-PLAN.md` section 6:
 
 ```
 lib/
-  main.dart            ProviderScope → SmartInsoleApp
+  main.dart            runSmartInsole(): ProviderScope → SmartInsoleApp
   ble/                 wire format: parser (N FSR channels), ParseResult /
-                       RejectReason, calibration, ADC → kPa (S2A)
+                       RejectReason, calibration, ADC → kPa (S2A);
+                       per-foot BleDataSource, BleHub, BleCentral (S3A)
   device/ rules/ gait/ footcheck/ storage/ notify/ config/
                        empty until their session (see each README.md)
   ui/
@@ -67,12 +69,14 @@ lib/
     clock.dart         clockProvider (override in tests) + Thai date
     theme/             colors, typography, dimens, app_theme
     shell/             tab shell (IndexedStack) + bottom bar
-    screens/           one file per screen
+    screens/           one file per screen; debug_ble_screen.dart is
+                       temporary (Settings → "BLE debug", hidden in S8B)
     widgets/           shared widgets
 assets/fonts/          IBM Plex Sans Thai + Looped (OFL, bundled)
 test/                  flutter_test_config.dart loads the real fonts
   ble/                 parser tests; test_vectors_test.dart reads
-                       ../shared/test_vectors/*.json
+                       ../shared/test_vectors/*.json; fake_ble_central.dart
+                       + ble_data_source_test.dart (fake_async)
 test_driver/           main_mcp.dart — driver-enabled entrypoint
 ```
 
@@ -88,6 +92,23 @@ test_driver/           main_mcp.dart — driver-enabled entrypoint
 - Any change to parsing or unit conversion must keep
   `test/ble/test_vectors_test.dart` passing. The vectors come from the TS
   code and are never hand-edited.
+
+## BLE connection rules
+
+- All BLE goes through `BleCentral` (`lib/ble/ble_central.dart`). Only
+  `fbp_central.dart` imports `flutter_blue_plus`.
+- Insoles are found by service UUID. The side comes only from the status
+  `foot_side` byte, never from the advertised name (Android caches names).
+  A wrong side is a `problem`, with no START and no auto-reconnect (rule 8).
+- Every connect and reconnect runs the full sequence: MTU 247 is requested
+  each time and checked against N; a link that can't fit 4 samples is a
+  visible `mtuTooSmall` problem, never a silent link with no data.
+- Rule 9: packets from an older connection, packets before this
+  connection's START is acknowledged, and t0 / temp t_ms not moving forward
+  (mod 2³²) are dropped and counted.
+- Retry waits and the debug screen's tick are timers; connection state and
+  "last packet X s ago" are not latched by them (rule 2).
+- The user's Disconnect sends STOP and never reconnects.
 
 ## Theme rules
 
@@ -119,14 +140,19 @@ test_driver/           main_mcp.dart — driver-enabled entrypoint
   tap/screenshot, `widget_inspector`, `get_runtime_errors`), compare against
   DESIGN-SPEC, and put the screenshots in the session report. The MCP
   runtime tools need `flutter run` in a separate terminal (see Commands).
-  Fallback screenshot: `adb exec-out screencap -p > shot.png`.
+  Fallback screenshot: `adb exec-out screencap -p > shot.png`. On the BLE
+  debug screen the 4 Hz tick keeps frames pending, so call
+  `set_frame_sync enabled=false` before driver taps; items scrolled out of
+  the lazy list can't be found, so scroll first (or tap with
+  `adb shell input tap`).
 - **Golden tests for every screen state you build.** Goldens render at the
   DESIGN-SPEC reference size 390×844 (dpr 2) with the bundled fonts, so they
   show real Thai glyphs. Goldens are rendered on the Linux dev machine; other
   OSes may differ by a few pixels.
-- Use `pumpApp()` in `test/helpers/pump_app.dart`; it fixes the clock and can
-  turn on reduce motion. Widgets that tests or the driver tap carry a
-  `ValueKey` (`tab-home`, `settings-button`, `foot-left`, …).
+- Use `pumpApp()` in `test/helpers/pump_app.dart`; it fixes the clock, can
+  turn on reduce motion, and always replaces BLE with `FakeBleCentral` /
+  `FakePermissions` (pass your own via `central:` / `permissions:`).
+  Widgets that tests or the driver tap carry a `ValueKey` (`tab-home`, `settings-button`, `foot-left`, …).
 - `MockDataSource` presets (from S4) drive every UI state on the emulator.
 - **The Note 10 is used only at 4 checkpoints:** after S3A, S4, S8C and S9
   (real Bluetooth / real camera). Write a checklist for the user and wait for

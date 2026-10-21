@@ -1,0 +1,28 @@
+--------- beginning of main
+10-21 20:56:24.608 I/flutter (14079): [IMPORTANT:flutter/shell/platform/android/android_context_gl_impeller.cc(104)] Using the Impeller rendering backend (OpenGLES).
+10-21 20:56:24.730 I/flutter (14079): The Dart VM service is listening on http://127.0.0.1:44397/kqefY2cUW5c=/
+10-21 20:57:58.565 I/flutter (14079): [ble] 20:57:58.558 - permission: granted
+10-21 20:57:58.575 I/flutter (14079): flutter_blue_plus_version=2.3.14
+10-21 20:57:58.615 I/flutter (14079): [ble] 20:57:58.614 - adapter: on
+10-21 20:58:04.387 I/flutter (14079): [ble] 20:58:04.386 - scan started
+10-21 20:58:04.467 I/flutter (14079): [ble] 20:58:04.467 - found 38:18:2B:8A:26:D6 (advertised name "SMARTINSOLE-R", rssi -63)
+10-21 20:58:05.170 I/flutter (14079): [ble] 20:58:05.169 - found 88:57:21:B7:74:9E (advertised name "SMARTINSOLE-L", rssi -61)
+10-21 20:58:24.365 I/flutter (14079): [ble] 20:58:24.364 - scan stopped
+10-21 21:00:49.102 I/flutter (14079): [ble] 21:00:49.102 L connect 88:57:21:B7:74:9E
+10-21 21:00:49.117 I/flutter (14079): [ble] 21:00:49.115 - scan started
+10-21 21:00:50.690 I/flutter (14079): [ble] 21:00:50.690 L MTU requested 247, got 247
+10-21 21:00:51.272 I/flutter (14079): [ble] 21:00:51.272 L calibration SIM-L-001: N = 6, offset_adc [18.0, 19.0, 18.0, 18.0, 18.0, 18.0]
+10-21 21:00:51.562 I/flutter (14079): [ble] 21:00:51.562 L streaming: MTU 247, 8 samples/packet, N = 6
+10-21 21:00:51.578 I/flutter (14079): [ble] 21:00:51.578 - scan stopped
+10-21 21:01:06.689 I/flutter (14079): [ble] 21:01:06.689 R connect 38:18:2B:8A:26:D6
+10-21 21:01:06.703 I/flutter (14079): [ble] 21:01:06.703 - scan started
+10-21 21:01:07.959 I/flutter (14079): [ble] 21:01:07.959 R MTU requested 247, got 247
+10-21 21:01:08.180 I/flutter (14079): [ble] 21:01:08.178 R calibration SIM-R-001: N = 6, offset_adc [12.0, 12.0, 12.0, 12.0, 12.0, 12.0]
+10-21 21:01:08.585 I/flutter (14079): [ble] 21:01:08.584 R streaming: MTU 247, 8 samples/packet, N = 6
+10-21 21:01:08.594 I/flutter (14079): [ble] 21:01:08.594 - scan stopped
+10-21 21:19:47.048 I/flutter (14079): [ble] 21:19:47.047 R link lost; reconnecting
+10-21 21:19:47.085 I/flutter (14079): [ble] 21:19:47.085 - scan started
+10-21 21:19:48.283 I/flutter (14079): [ble] 21:19:48.283 R MTU requested 247, got 247
+10-21 21:19:48.529 I/flutter (14079): [ble] 21:19:48.529 R calibration SIM-R-001: N = 6, offset_adc [12.0, 12.0, 12.0, 12.0, 12.0, 12.0]
+10-21 21:19:48.923 I/flutter (14079): [ble] 21:19:48.922 R streaming: MTU 247, 8 samples/packet, N = 6
+10-21 21:19:48.930 I/flutter (14079): [ble] 21:19:48.930 - scan stopped

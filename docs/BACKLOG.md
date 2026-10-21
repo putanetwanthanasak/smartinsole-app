@@ -613,6 +613,14 @@ the new simulator, `t0` never goes backwards within a connection, so that
 check never fires. That's harmless, because the new simulator sends no
 stale packets, but worth knowing in S3B.
 
+**S3A status:** checks 1 and 2 are implemented in
+`mobile/lib/ble/ble_data_source.dart` (each connection also gets a
+generation number, so a late notification from an older connection is
+dropped too). The t0 and temp `t_ms` comparisons are modulo 2³², so the
+49.7-day wrap is not "backwards". The `seq` look-ahead was **not**
+implemented: it needs a held packet and fails when `seq` 0 is lost (see
+report 024). `seq` gaps are only counted; gap handling is S4.
+
 ## 21. App: guard REBOOT and TARE (S8B Connection/Settings) **(found in S2C)**
 
 `REBOOT` and `TARE` act on the whole insole, not on one connection
@@ -648,6 +656,11 @@ Calibration notify, or have the app re-read calibration whenever it sees
 flags bit1 go from 1 to 0. Until then, item 21's guard is what keeps a
 research capture consistent.
 
+**S3A status:** the app side is done: the Flutter app re-reads calibration
+when flags bit1 goes from 1 to 0. Packets keep the old offsets until the
+new read returns. The contract-owner question (should Calibration notify?)
+is still open.
+
 ## 24. Malformed control writes can't be reported **(found in S2C, contract owner)**
 
 Contract §3.4 gives each opcode a payload but says nothing about a write
@@ -667,3 +680,56 @@ request high connection priority after connecting (Android
 `requestConnectionPriority(HIGH)`, which gives 11.25–15 ms) and S3A should
 log the interval it actually gets. This matters most for S4's ±10 ms
 cross-foot timing check.
+
+**S3A status — partly done.** The Flutter app calls
+`requestConnectionPriority(high)` on every connect and reconnect. Android's
+public API can't read the interval back, so the interval actually granted
+comes from the simulator's serial log (`[ble] conn N: interval …`), which
+the Note 10 checklist in report 024 captures.
+
+**Measured at the S3A Note 10 checkpoint (2026-10-21):** after the app's
+HIGH request, the Note 10 settled at **11.25 ms** (latency 0, supervision
+timeout 5000 ms) on both boards. That held on every connect and reconnect
+(first connect, EN reset, replug, Bluetooth off/on). Each connection
+briefly passes through 45–48.75 ms and 7.5 ms first. The interval part of
+this item is resolved; S4 still has to measure the actual ±10 ms
+cross-foot timing.
+
+## 26. Android ≤ 11 location permission and the `permission_handler` pin **(found in S3A)**
+
+- The manifest declares `ACCESS_FINE_LOCATION` (maxSdk 30) for BLE scanning
+  on Android 11 and below, but the app only asks for `bluetoothScan` /
+  `bluetoothConnect` itself and leaves location to flutter_blue_plus's own
+  request. That path is untested: the Note 10 runs Android 12. Test it on
+  an Android ≤ 11 phone before release, or ask for location explicitly.
+- `permission_handler` is pinned to `^12.0.3` because 13.x
+  (`permission_handler_android` 14.1.0) needs compileSdk 37, and AGP 9.1
+  supports at most 36. Lift the pin when the Android Gradle plugin is
+  upgraded.
+
+## 27. The first packet after START can be dropped as "before START" **(found at the S3A Note 10 checkpoint, for S4)**
+
+Rule 9 check 1 (item 20) drops sensor/temp packets that arrive before
+this connection's `START_STREAM` write is acknowledged. On the Note 10 one
+reconnect of the right board showed `dropped before START 1`. The most
+likely cause (not proven: the phone log had stopped by then, and the
+app's log line doesn't record the `seq`) is that the board starts
+notifying as soon as it handles START, and Android delivered the first
+notification before the write-response callback. If so, that packet was
+genuine (this connection's generation, most likely `seq` 0), so up to 8
+samples (160 ms) were lost at the start of the connection. The gap counter
+doesn't see it, because `seq` tracking restarts with each connection
+(`LinkStats.newSession()`) and the first *accepted* packet becomes the
+baseline.
+
+For S4, either:
+- open the gate when the START write is **issued**, not when it is
+  acknowledged. The generation check already rejects anything from an
+  older connection, and this connection's subscriptions are new, so a
+  packet of this generation can only come from this connection's stream;
+  or
+- keep the gate but accept a packet held back until the ack if its `seq`
+  is 0 or 1 and its `t0` is plausible.
+
+Either way, count a first accepted `seq` k > 0 as k missing packets, so a
+lost start of stream shows up in the gap counter.
