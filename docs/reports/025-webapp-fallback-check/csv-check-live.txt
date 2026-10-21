@@ -1,0 +1,38 @@
+~/Downloads/TEST-S3B-1792605719387_samples.csv: 53968 rows
+
+== left foot (L) ==
+rows 26984
+span 539.66 s, rate 50.000 Hz
+steps: 26983 of 26983 exactly 20 ms; others: none
+rows per full 10 s window: min 500, max 500
+gaitLabel {'normal': 26984}, isValid=false rows 0
+serial:
+  00:04:32.679 conn 0: connected 98:59:7a:62:7a:6d,
+  00:09:20.670 conn 0: disconnected, reason 0x213
+  00:57:50.124 conn 0: connected 98:59:7a:62:7a:6d,
+  last [sess] conn 0 at 01:13:23.222: streaming, sent 5823, mtu-drops 0
+  SYNC_TIME received: 5; notify failures (max seen) 0
+
+== right foot (R) ==
+rows 26984
+span 539.82 s, rate 49.985 Hz
+steps: 26982 of 26983 exactly 20 ms; others: {180.0: 1}
+rows per full 10 s window: min 492, max 500
+gaitLabel {'normal': 26984}, isValid=false rows 0
+  event row 12392: step 180 ms, lost, SYNC_TIME conn 0 at 01:07:58.824 (unix 1792606078786, +20 ms) -> AMBIGUOUS
+serial:
+  00:04:53.114 conn 0: connected 98:59:7a:62:7a:6d,
+  00:09:24.665 conn 0: disconnected, reason 0x213
+  00:57:57.419 conn 0: connected 98:59:7a:62:7a:6d,
+  last [sess] conn 0 at 01:20:34.577: streaming, sent 8473, mtu-drops 0
+  SYNC_TIME received: 6; notify failures (max seen) 0
+AMBIGUOUS: a later web-app resync step is always 20 + 160 k ms; no packet was lost if the dev panel showed pkts = seq + 1 and dropped=0 for this connection
+
+L/R start difference +36 ms, end difference -124 ms (reported only)
+
+RESULT: PASS
+
+wrote <scratchpad>/live-corrected.csv
+  left: 0 step(s) undone
+  right: 1 step(s) undone
+  a resync between two takes is not visible in the CSV and is not undone

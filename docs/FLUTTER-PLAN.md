@@ -1,6 +1,6 @@
 # SmartInsole Android App (Flutter) — Main Plan (v2)
 
-> Updated 2026-10-17 · Developer: Putanet Wanthanasak (+ Claude Code) · Test phone: Samsung Galaxy Note 10 · Dev machine: Ubuntu (ThinkPad P14s) · Repo: `~/smartinsole-app`
+> Updated 2026-10-21 (v2.2: the phone app is the research capture tool) · Developer: Putanet Wanthanasak (+ Claude Code) · Test phone: Samsung Galaxy Note 10 · Dev machine: Ubuntu (ThinkPad P14s) · Repo: `~/smartinsole-app`
 > Source of truth for wire format and thresholds: `docs/DATA-CONTRACT.md` and `docs/BLE-INTERFACE.md` (if this file disagrees with them, they win) · Design: `docs/design/DESIGN-SPEC.md` · Work order: `docs/SESSIONS.md`
 > Language rule: every document, prompt, code comment, commit message and report is in **English**. The only Thai text allowed is user-facing UI copy, always quoted as string literals.
 
@@ -8,11 +8,12 @@
 
 ## 1. Goal and scope
 
-**Goal:** an Android app that shows live data from both insoles. It is used to test the display during the volunteer study. Research data capture stays on the existing web app running on a laptop.
+**Goal:** an Android app that shows live data from both insoles **and is the research capture tool for the volunteer study** (starts 2026-11-10). The researcher works alone, carries the phone while walking beside the volunteer, and records every trial on the phone. The existing web app on a laptop is kept only as a fallback capture tool.
 
 | In v1 | Not in v1 (but the architecture must allow it later) |
 |---|---|
-| Screens: Home, Gait, Temperature, Alerts, Device connection, Settings, **Daily foot check** | Research capture mode (stays in the web app) |
+| Screens: Home, Gait, Temperature, Alerts, Device connection, Settings, **Daily foot check** | — |
+| **Research capture mode** (S4C): trials, labels, 50 Hz raw CSV, export | |
 | Two ESP32 insoles connected at the same time | Background operation / push notifications with screen off |
 | All 9 alert codes from the contract | Firebase / cloud sync |
 | Rule-based gait estimate + slot for a TFLite model | Real AI model (separate workstream) |
@@ -37,7 +38,8 @@
 | Sensor count | App must support a variable number of FSR and NTC channels. Use 6 FSR + 2 NTC per foot for now (NTC may increase to 6 per foot). |
 | Risk decision | Contract rules (RuleBasedEngine). Gait result is context only. |
 | Daily foot check | 4 photos + 3 questions, no AI, photos stored on device only |
-| Study day | The phone app runs alongside the laptop that captures data (so the dual-connection test S3B is required). The photo feature is not used with volunteers, so no feature flag is needed. |
+| Study day | **The phone app is the only central for each insole and captures all research data (S4C).** The laptop web app is a fallback only, used if the phone capture fails; it is never connected at the same time as the phone during a session. The photo feature is not used with volunteers, so no feature flag is needed. |
+| Research capture | One researcher, hands-free during walking: the app runs a timed 3-minute trial, stops and saves by itself, gives sound + vibration cues, needs a long press to stop early, keeps the screen on, randomises the order of the 4 abnormal gaits per subject (normal gait always first), assigns the simulated-pain side by odd/even subject number, allows "redo trial", checks battery ≥ 80 % and both feet connected before starting, and logs any link loss inside the file. Files: one CSV per trial (unix time, side, seq, raw ADC and kPa per channel, IMU, temperature, flags) + one JSON sidecar per trial (subject code, gait class, pain side, start/end, room temperature, app/firmware versions, calibration). Raw ADC is always kept. |
 | Foot-check entry point | A card on Home ("today's foot check not done yet"), shown only until today's check is done + an in-app evening reminder |
 | Simulator scenario mode (`0x10 SET_SCENARIO`) | Not now; main app first (backlog) |
 | Claude Code language | English only for prompts, docs, code, commits, reports |
@@ -180,7 +182,7 @@ Levels 1–5 are still stored internally for reporting and for expert review.
 | TFLite model | `GaitClassifier` interface + `assets/models/` |
 | New sensor counts | Read from calibration + `sensor_layout.json` |
 | AI on foot photos | Photos stored as a standard 4-view set |
-| Move capture mode from web to app | After the November data collection |
+| Retire the web app's capture mode | After the November data collection, once phone capture has been used for the whole study |
 | Personal temperature baseline | Per-site ΔT history already stored |
 | Simulator scenario mode (`0x10 SET_SCENARIO`) | Simulator data generation kept in separate functions |
 
@@ -190,8 +192,8 @@ Levels 1–5 are still stored internally for reporting and for expert review.
 
 | From | Need | Before session |
 |---|---|---|
-| Phumirapee (hardware) | Final FSR/NTC count and positions; how many NTC the PCB supports | Not blocking (use current values) |
+| Phumirapee (hardware) | Real boards ready for a full rehearsal; final FSR/NTC count and positions; how many NTC the PCB supports; firmware follows the contract (exact-length packets, SET_RATE) | **2026-11-02** (study rehearsal) |
 | Putanet | Two ESP32 boards + PlatformIO installed | S2B |
 | Putanet | Approval of the remaining 5 screen designs | S6B |
-| Medical expert | Review of advice text | S9 |
+| Medical expert | Review of the alert/advice text that volunteers will see | **2026-11-05** (before the study) |
 | AI team | `model_a.tflite` + `normalization.json` | Not blocking |

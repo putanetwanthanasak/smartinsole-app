@@ -1,0 +1,16 @@
+ok   clean, no serial: PASS
+ok   resync step matched to SYNC_TIME: PASS
+ok   resync step with no SYNC_TIME in the log: FAIL
+ok   one lost packet, no sync near: FAIL
+ok   lost-sized step at a resync is AMBIGUOUS, not FAIL: PASS
+ok   4/pkt loss (20 + 80): FAIL
+ok   backwards step: FAIL
+ok   right foot missing: FAIL
+ok   right foot stops 60 s early: FAIL
+ok   45 s break, single take: FAIL
+ok   45 s break, several takes allowed: PASS
+ok   25 Hz stream: FAIL
+ok   corrected: undo a +160 resync step (dev panel: no loss)
+ok   corrected: leave a +160 step without --assume-no-loss
+ok   corrected: undo +160, -140 and an arbitrary step; break kept, shift reset after it
+selftest: all cases as expected (15 cases)
