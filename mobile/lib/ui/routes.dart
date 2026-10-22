@@ -5,6 +5,9 @@ abstract final class Routes {
   static const settings = '/settings';
   static const footCheck = '/foot-check';
 
+  /// Research capture (S4C): researcher-only, from Settings.
+  static const capture = '/capture';
+
   /// Temporary BLE debug screen (S3A); hidden in S8B.
   static const bleDebug = '/debug-ble';
 }

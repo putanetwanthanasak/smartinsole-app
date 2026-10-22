@@ -261,10 +261,7 @@ void main() {
           ..temp(32.0, 30.0);
         expect(temps.single.fromArrival, isTrue);
         expect(temps.single.session, 2);
-        expect(
-          temps.single.unixMs,
-          rig.now().microsecondsSinceEpoch / 1000,
-        );
+        expect(temps.single.unixMs, rig.now().microsecondsSinceEpoch / 1000);
       });
     });
 

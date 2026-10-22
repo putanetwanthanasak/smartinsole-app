@@ -24,6 +24,12 @@ class SettingsScreen extends ConsumerWidget {
       body: PageBody(
         children: [
           const PlaceholderBody(session: 'S8B'),
+          // Researcher tool for the study (S4C); in release builds too.
+          OutlinedButton(
+            key: const ValueKey('capture-button'),
+            onPressed: () => Navigator.pushNamed(context, Routes.capture),
+            child: const Text('Research capture'),
+          ),
           // Temporary developer entry (S3A); removed with the debug screen
           // in S8B.
           OutlinedButton(
