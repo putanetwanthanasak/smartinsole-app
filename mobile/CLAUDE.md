@@ -64,7 +64,12 @@ lib/
   device/              DeviceManager (S4): DeviceClock (unix time per
                        sample), 50 Hz FootBatch stream, 10 Hz
                        DisplaySnapshot, read-time staleness, ΔT,
-                       model channels, mock presets, timing check
+                       model channels + pairFeet, temperature events,
+                       mock presets, timing check
+  capture/             research capture (S4C): protocol (doc 03), trial
+                       recorder on the 50 Hz path, session state machine,
+                       cues, export staging (see its README.md and
+                       docs/STUDY-CAPTURE.md)
   rules/ gait/ footcheck/ storage/ notify/ config/
                        empty until their session (see each README.md)
   ui/
@@ -75,15 +80,26 @@ lib/
     theme/             colors, typography, dimens, app_theme
     shell/             tab shell (IndexedStack) + bottom bar
     screens/           one file per screen; debug_ble_screen.dart is
-                       temporary (Settings → "BLE debug", hidden in S8B)
+                       temporary (Settings → "BLE debug", hidden in S8B);
+                       capture/ = Settings → "Research capture" (English,
+                       researcher-only, release builds too)
     widgets/           shared widgets
 assets/fonts/          IBM Plex Sans Thai + Looped (OFL, bundled)
+assets/sounds/         capture cue beeps, made by tool/make_cues.py
 test/                  flutter_test_config.dart loads the real fonts
   ble/                 parser tests; test_vectors_test.dart reads
                        ../shared/test_vectors/*.json; fake_ble_central.dart
                        + ble_data_source_test.dart (fake_async)
+  capture/             capture tests (fake_async rigs), widget tests, and
+                       capture_fixture_test.dart (writes/checks
+                       ../shared/capture_fixture/)
 test_driver/           main_mcp.dart — driver-enabled entrypoint
 ```
+
+Research capture tools live at the repo root: `tools/capture/load_capture.py`
+(loader, checks, `--selftest`) and `tools/capture/export_capture.py` (adb
+pull + SHA-256 + checks). Any change to the capture file format must keep
+`load_capture.py --selftest` passing.
 
 ## BLE parsing rules
 
@@ -169,6 +185,6 @@ test_driver/           main_mcp.dart — driver-enabled entrypoint
   (`--dart-define=MOCK=<preset>`). Their test checks each preset against
   `shared/thresholds.json`; when a threshold changes, fix the preset, not
   the test.
-- **The Note 10 is used only at 4 checkpoints:** after S3A, S4, S8C and S9
-  (real Bluetooth / real camera). Write a checklist for the user and wait for
+- **The Note 10 is used only at its checkpoints:** after S3A, S4, S4C, SR,
+  S8C and S9 (real Bluetooth / real camera; `docs/SESSIONS.md`). Write a checklist for the user and wait for
   their results; never mark those checks passed yourself.

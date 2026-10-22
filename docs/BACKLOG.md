@@ -842,3 +842,54 @@ band test (`mobile/test/device/mock_data_source_test.dart`) are built on
 that reading. S7 must confirm it with the contract owner. If S7 chooses a
 different reading, change the presets and the test with it.
 
+## 32. Align the TestProtocol doc with proposal doc 03 **(found in S4C)**
+
+The IRB-approved procedure is proposal doc 03 (Thai). It differs from
+`docs/SmartInsole_TestProtocol_v1.md` in two places, and the app follows
+doc 03 (S4C plan approval, 2026-10-22):
+- **Subject data:** doc 03 approves only sex, an **age range**, foot length
+  (under the subject code) and room temperature. TestProtocol §4.1 / §6.2
+  also lists exact age, weight, height, dominant side and humidity.
+- **Timing:** doc 03 has a demonstration, then **30 s** practice before
+  each 3-min recording, and rest **as long as the volunteer wants**.
+  TestProtocol has 1 min practice and a fixed 1 min rest.
+
+Update `docs/SmartInsole_TestProtocol_v1.md` to match doc 03 (or mark it
+superseded by doc 03), so nobody reads the old values as the procedure.
+
+## 33. Age-range bins to confirm against doc 03 **(found in S4C)**
+
+The repo has no copy of doc 03's age ranges. The app uses `ageRanges` in
+`mobile/lib/capture/capture_protocol.dart`: 18–29, 30–39, 40–49, 50–60.
+These are a placeholder over the inclusion range. Confirm them against
+doc 03 before 10 Nov. Changing them changes only that one list.
+
+## 34. The mock can't drop one foot's link mid-recording **(found in S4C)**
+
+The emulator rehearsal could not show the link-lost banner and cue live:
+the mock's presets are switched from Settings, which is unreachable while
+recording (Back is blocked). The behaviour is covered by tests (seq gap
+and link loss with reconnect, the banner widget test, the golden) and is
+part of the Note 10 checklist with a real board reset. If a live emulator
+check is wanted later, add a debug-only way to drop a mock foot (e.g. a
+mock "link drop in N s" option).
+
+## 35. Retire the web app's capture mode after the study **(FLUTTER-PLAN §10, S4C)**
+
+Phone capture (S4C) is the study tool; the web app's capture page stays
+only as the fallback in `docs/STUDY-FALLBACK.md`. After the November data
+collection, retire it as FLUTTER-PLAN says. The phone CSV format differs
+from the web app's (long format, unix time per sample, `seq`, raw ADC,
+gaps), so `tools/capture/load_capture.py` does not read web-app exports.
+
+
+## 36. The study build needs a connect path that isn't the debug screen **(found in S4C)**
+
+Today the only way to connect the insoles is Settings → "BLE debug
+(temporary)", which S8B is meant to hide. Research capture's pre-check
+and `docs/STUDY-CAPTURE.md` point there for now. Before the study build is
+frozen (10 Nov), either Home / Connection must connect both feet, or the
+study build keeps the debug screen. Whichever session does the connect
+UI (S5 or S8B) should update the pre-check hint in
+`mobile/lib/ui/screens/capture/capture_home_screen.dart` and
+`docs/STUDY-CAPTURE.md` step 3.

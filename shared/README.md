@@ -14,6 +14,18 @@ Files shared between the Flutter app (`mobile/`) and the new simulator
   and the 100-sample window / 50-sample stride. The app's
   `mobile/lib/device/model_channels.dart` must match it (a Dart test checks
   this), and the training scripts read the same order. Never reorder.
+  Its `pairing` entry is the rule that pairs a left and a right sample
+  into one row (left is the time base; nearest right sample within
+  ±10 ms). The app (`pairFeet`) and `tools/capture/load_capture.py`
+  implement the same rule.
+- **`capture_fixture/`** — one rehearsal capture session written by the
+  app's own capture code, with its export `manifest.json`, plus
+  `expected.json` (the 24-channel rows the app's `pairFeet` + `modelRow`
+  make). `mobile/test/capture/capture_fixture_test.dart` checks the code
+  still writes exactly these files; `load_capture.py --selftest` must
+  reproduce `expected.json` from them. Regenerate only after an intended
+  format change: `UPDATE_CAPTURE_FIXTURE=1 flutter test
+  test/capture/capture_fixture_test.dart` (in `mobile/`).
 - `sensor_layout.json` — not yet created (planned with the heatmap, S5).
 
 ## The web app still uses `public/thresholds.json`

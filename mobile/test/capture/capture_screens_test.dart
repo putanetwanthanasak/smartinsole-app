@@ -131,6 +131,36 @@ void main() {
       await tester.pumpWidget(const SizedBox());
     });
 
+    testWidgets('reduce motion: no hold ring, the hold still acts (rule 16)', (
+      tester,
+    ) async {
+      final s = rig.newSession();
+      await pumpCapture(
+        tester,
+        rig,
+        CaptureFlowScreen(session: s),
+        reduceMotion: true,
+      );
+      await tapScrolled(tester, 'capture-record');
+      expect(
+        find.descendant(
+          of: byKey('capture-stop'),
+          matching: find.byType(CircularProgressIndicator),
+        ),
+        findsNothing,
+      );
+      final g = await tester.startGesture(
+        tester.getCenter(byKey('capture-stop')),
+      );
+      await tester.pump(const Duration(seconds: 1));
+      expect(find.text('Keep holding…'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 1, milliseconds: 50));
+      await g.up();
+      await tester.pump();
+      expect(s.phase, CapturePhase.saving);
+      await tester.pumpWidget(const SizedBox());
+    });
+
     testWidgets('redo asks first, then keeps a1 and records a2', (
       tester,
     ) async {

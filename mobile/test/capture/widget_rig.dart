@@ -103,11 +103,15 @@ class WidgetRig {
 Future<void> pumpCapture(
   WidgetTester tester,
   WidgetRig rig,
-  Widget screen,
-) async {
+  Widget screen, {
+  bool reduceMotion = false,
+}) async {
   tester.view.physicalSize = referenceSize * 2;
   tester.view.devicePixelRatio = 2;
   addTearDown(tester.view.reset);
+  tester.platformDispatcher.accessibilityFeaturesTestValue =
+      FakeAccessibilityFeatures(disableAnimations: reduceMotion);
+  addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
   await tester.pumpWidget(
     ProviderScope(
       overrides: [clockProvider.overrideWithValue(rig.now), ...rig.overrides],
