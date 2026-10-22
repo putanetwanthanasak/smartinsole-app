@@ -63,8 +63,8 @@ class CaptureRig {
       subject: SubjectInfo(
         code: SubjectCode.parse(code)!,
         sex: Sex.female,
-        ageRange: '30-39',
-        footLengthCm: {FootSide.left: 24.5, FootSide.right: 24.0},
+        ageRange: '26-30',
+        footLengthCm: {FootSide.left: 26.5, FootSide.right: 26.0},
       ),
       roomTempC: 25.5,
       seed: 7,

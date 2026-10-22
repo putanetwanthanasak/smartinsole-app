@@ -79,6 +79,7 @@ class WidgetRig {
     researchRootProvider.overrideWithValue(Future.value(research)),
     exportRootProvider.overrideWithValue(Future.value(export)),
     appVersionProvider.overrideWithValue(Future.value('1.0.0+1')),
+    orderSeedProvider.overrideWithValue(() => 7),
   ];
 
   /// Packets every 160 ms on both feet while fake time passes.

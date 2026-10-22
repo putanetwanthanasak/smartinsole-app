@@ -6,10 +6,10 @@
   "subject": {
     "code": "TEST-009",
     "sex": "female",
-    "ageRange": "30-39",
+    "ageRange": "26-30",
     "footLengthCm": {
-      "L": 24.5,
-      "R": 24.0
+      "L": 26.5,
+      "R": 26.0
     }
   },
   "rehearsal": true,

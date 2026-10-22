@@ -857,12 +857,13 @@ doc 03 (S4C plan approval, 2026-10-22):
 Update `docs/SmartInsole_TestProtocol_v1.md` to match doc 03 (or mark it
 superseded by doc 03), so nobody reads the old values as the procedure.
 
-## 33. Age-range bins to confirm against doc 03 **(found in S4C)**
+## 33. Age-range bins to confirm against doc 03 **(found in S4C)** — RESOLVED
 
-The repo has no copy of doc 03's age ranges. The app uses `ageRanges` in
-`mobile/lib/capture/capture_protocol.dart`: 18–29, 30–39, 40–49, 50–60.
-These are a placeholder over the inclusion range. Confirm them against
-doc 03 before 10 Nov. Changing them changes only that one list.
+Resolved 2026-10-22 (user, from doc 03): doc 03 only admits volunteers
+aged 21–30, so `ageRanges` in `mobile/lib/capture/capture_protocol.dart`
+is 21–25 / 26–30. Doc 03's foot-length inclusion (25.5–27.5 cm, shoe
+size 42) is enforced for `SI-` codes in the same file
+(`footLengthEligible`). BACKLOG 32 should add both to TestProtocol_v1.
 
 ## 34. The mock can't drop one foot's link mid-recording **(found in S4C)**
 

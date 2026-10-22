@@ -16,6 +16,10 @@ Built in S4C (`docs/reports/027-flutter-capture.md`). Code:
   field and no free text anywhere in the flow.
 - **Coded data only** (doc 03): sex, an age range (never an exact age),
   foot length per foot, and room temperature. All optional except the code.
+- **Inclusion (doc 03):** age 21–30, so the age-range choices are
+  21–25 / 26–30. For an `SI-` code, a foot length outside 25.5–27.5 cm
+  (shoe size 42) blocks Start with "Does not meet the inclusion
+  criteria". `TEST-` codes take any value.
 - **Data stays on the phone** in the app's private storage until you
   export it. The export copy goes to the app's own external folder, which
   other apps can't read (Android 11+). It is removed from there after the
@@ -55,7 +59,9 @@ Built in S4C (`docs/reports/027-flutter-capture.md`). Code:
    - **Mark invalid** / **Valid again**: hold when the volunteer leaves the
      instructed gait, and hold again when they are back in form. Those rows
      get `valid = 0`.
-   - **Stop early**: ends the recording now (saved as `stopped_early`).
+   - **Stop early**: ends the recording now. It is saved as
+     `stopped_early` and stays valid; the analysis decides later whether
+     to use it. Press Redo if you want a full recording.
 5. **Cues** (sound + vibration), so you don't need to look:
 
    | Cue | Sound | Vibration |

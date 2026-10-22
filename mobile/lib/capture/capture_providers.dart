@@ -9,6 +9,7 @@ import '../ble/packets.dart';
 import '../device/device_providers.dart';
 import '../ui/clock.dart';
 import 'capture_files.dart';
+import 'capture_protocol.dart';
 import 'capture_session.dart';
 import 'cues.dart';
 
@@ -45,6 +46,10 @@ final wakelockProvider = Provider<Future<void> Function(bool on)>(
   (ref) =>
       (on) => WakelockPlus.toggle(enable: on),
 );
+
+/// Makes each new session's trial-order seed. `Random.secure` in the app;
+/// tests fix it so the plan shown on screen is stable.
+final orderSeedProvider = Provider<int Function()>((ref) => newOrderSeed);
 
 /// Everything a [CaptureSession] needs from the app.
 final captureDepsProvider = FutureProvider<CaptureDeps>((ref) async {

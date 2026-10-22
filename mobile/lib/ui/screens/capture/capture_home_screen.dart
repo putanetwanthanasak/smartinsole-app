@@ -35,7 +35,7 @@ class _CaptureHomeScreenState extends ConsumerState<CaptureHomeScreen> {
   final _room = TextEditingController();
   Sex? _sex;
   String? _age;
-  int _seed = newOrderSeed();
+  late int _seed = ref.read(orderSeedProvider)();
   Directory? _root;
 
   @override
@@ -89,7 +89,7 @@ class _CaptureHomeScreenState extends ConsumerState<CaptureHomeScreen> {
       seed: _seed,
     );
     setState(() {
-      _seed = newOrderSeed();
+      _seed = ref.read(orderSeedProvider)();
       for (final c in [_code, _footL, _footR, _room]) {
         c.clear();
       }
@@ -123,6 +123,15 @@ class _CaptureHomeScreenState extends ConsumerState<CaptureHomeScreen> {
     final precheckOk = issues.values.every((i) => i.isEmpty);
     final code = _subject;
     final codeError = _code.text.isNotEmpty && code == null;
+    bool footOk(TextEditingController c) {
+      final cm = _num(c);
+      return cm == null || footLengthEligible(code, cm);
+    }
+
+    final footLOk = footOk(_footL);
+    final footROk = footOk(_footR);
+    final range =
+        '${footLengthInclusionCm.min}–${footLengthInclusionCm.max} cm';
     final root = _root;
     final sessions = root == null
         ? const <SessionListing>[]
@@ -218,6 +227,8 @@ class _CaptureHomeScreenState extends ConsumerState<CaptureHomeScreen> {
                       key: const ValueKey('capture-foot-l'),
                       controller: _footL,
                       label: 'Foot L (cm)',
+                      errorText: footLOk ? null : range,
+                      onChanged: () => setState(() {}),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -226,10 +237,21 @@ class _CaptureHomeScreenState extends ConsumerState<CaptureHomeScreen> {
                       key: const ValueKey('capture-foot-r'),
                       controller: _footR,
                       label: 'Foot R (cm)',
+                      errorText: footROk ? null : range,
+                      onChanged: () => setState(() {}),
                     ),
                   ),
                 ],
               ),
+              if (!footLOk || !footROk)
+                Text(
+                  'Does not meet the inclusion criteria '
+                  '(foot length $range).',
+                  key: const ValueKey('capture-foot-ineligible'),
+                  style: AppText.small.copyWith(
+                    color: StatusColors.careful.text,
+                  ),
+                ),
               _NumberField(
                 key: const ValueKey('capture-room'),
                 controller: _room,
@@ -238,7 +260,12 @@ class _CaptureHomeScreenState extends ConsumerState<CaptureHomeScreen> {
               if (code != null) _Plan(code: code, seed: _seed),
               FilledButton(
                 key: const ValueKey('capture-start'),
-                onPressed: code != null && precheckOk && root != null
+                onPressed:
+                    code != null &&
+                        precheckOk &&
+                        root != null &&
+                        footLOk &&
+                        footROk
                     ? _start
                     : null,
                 child: const Text('Start session'),
@@ -292,10 +319,14 @@ class _NumberField extends StatelessWidget {
     super.key,
     required this.controller,
     required this.label,
+    this.errorText,
+    this.onChanged,
   });
 
   final TextEditingController controller;
   final String label;
+  final String? errorText;
+  final VoidCallback? onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -306,7 +337,8 @@ class _NumberField extends StatelessWidget {
         FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
         LengthLimitingTextInputFormatter(5),
       ],
-      decoration: InputDecoration(labelText: label),
+      decoration: InputDecoration(labelText: label, errorText: errorText),
+      onChanged: onChanged == null ? null : (_) => onChanged!(),
     );
   }
 }

@@ -31,6 +31,16 @@ class SubjectInfo {
   final String? ageRange;
   final Map<FootSide, double> footLengthCm;
 
+  /// Why this can't start a session (doc 03 inclusion). Empty = OK.
+  List<String> get issues => [
+    if (ageRange != null && !ageRanges.contains(ageRange))
+      'age range $ageRange is not one of $ageRanges',
+    for (final MapEntry(key: side, value: cm) in footLengthCm.entries)
+      if (!footLengthEligible(code, cm))
+        'foot ${sideCode(side)} $cm cm is outside '
+            '${footLengthInclusionCm.min}–${footLengthInclusionCm.max} cm',
+  ];
+
   Map<String, Object?> toJson() => {
     'code': code.code,
     'sex': sex?.id,
@@ -203,6 +213,15 @@ class CaptureSession extends ChangeNotifier {
     double? roomTempC,
     int? seed,
   }) {
+    // The form already blocks this; a study session's files never hold a
+    // volunteer outside the inclusion criteria.
+    if (subject.issues.isNotEmpty) {
+      throw ArgumentError.value(
+        subject.code.code,
+        'subject',
+        '${subject.issues}',
+      );
+    }
     final at = deps.now();
     final s = seed ?? newOrderSeed();
     final order = trialOrder(s);

@@ -104,6 +104,48 @@ void main() {
     });
   });
 
+  testWidgets('foot length outside 25.5–27.5 cm blocks an SI code, '
+      'not a TEST code', (tester) async {
+    await pumpApp(
+      tester,
+      initialRoute: Routes.capture,
+      now: rig.now,
+      overrides: rig.overrides,
+      settle: false,
+    );
+    await tester.pump(const Duration(milliseconds: 200));
+    Future<void> type(String key, String text) async {
+      await tester.ensureVisible(byKey(key));
+      await tester.enterText(byKey(key), text);
+      await tester.pump();
+    }
+
+    VoidCallback? start() =>
+        tester.widget<FilledButton>(byKey('capture-start')).onPressed;
+
+    await type('capture-code', 'SI-001');
+    await type('capture-foot-l', '26.0');
+    await type('capture-foot-r', '25.0');
+    expect(
+      find.byKey(const ValueKey('capture-foot-ineligible')),
+      findsOneWidget,
+    );
+    expect(
+      find.text(
+        'Does not meet the inclusion criteria (foot length 25.5–27.5 cm).',
+      ),
+      findsOneWidget,
+    );
+    expect(start(), isNull);
+    await type('capture-foot-r', '27.5');
+    expect(find.byKey(const ValueKey('capture-foot-ineligible')), findsNothing);
+    expect(start(), isNotNull);
+    await type('capture-foot-r', '25.0');
+    await type('capture-code', 'TEST-001');
+    expect(find.byKey(const ValueKey('capture-foot-ineligible')), findsNothing);
+    expect(start(), isNotNull);
+  });
+
   group('flow', () {
     testWidgets('recording: Back is blocked; a short touch does nothing; '
         'a 2 s hold stops', (tester) async {

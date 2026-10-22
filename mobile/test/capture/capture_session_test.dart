@@ -61,6 +61,35 @@ void main() {
     });
   });
 
+  test('a study code outside the doc 03 inclusion criteria cannot start', () {
+    fakeAsync((async) {
+      final rig = CaptureRig(async, code: 'SI-002');
+      SubjectInfo subject(String code, {String? age, double cm = 26}) =>
+          SubjectInfo(
+            code: SubjectCode.parse(code)!,
+            ageRange: age,
+            footLengthCm: {FootSide.left: 26, FootSide.right: cm},
+          );
+      expect(subject('SI-003').issues, isEmpty);
+      expect(subject('SI-003', cm: 25.4).issues, hasLength(1));
+      expect(subject('SI-003', age: '30-39').issues, hasLength(1));
+      expect(subject('TEST-003', cm: 24).issues, isEmpty);
+      expect(
+        () => CaptureSession.create(
+          deps: rig.session.deps,
+          researchRoot: rig.root,
+          subject: subject('SI-003', cm: 27.6),
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        rig.root.listSync().map((e) => e.uri.pathSegments.last).toList(),
+        isNot(contains(startsWith('SI-003'))),
+      );
+      rig.dispose();
+    });
+  });
+
   group('recording', () {
     test('auto-stops at the deadline: 50 Hz rows per foot, in window', () {
       fakeAsync((async) {

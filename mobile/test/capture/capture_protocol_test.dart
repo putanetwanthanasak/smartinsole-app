@@ -92,4 +92,24 @@ void main() {
       same(CaptureTimings.rehearsal),
     );
   });
+
+  test('doc 03 inclusion: age 21–30 in two ranges', () {
+    expect(ageRanges, ['21-25', '26-30']);
+  });
+
+  test('doc 03 inclusion: foot 25.5–27.5 cm for SI codes, any for TEST', () {
+    final si = SubjectCode.parse('SI-001');
+    for (final cm in [25.5, 26.0, 27.5]) {
+      expect(footLengthEligible(si, cm), isTrue, reason: '$cm');
+    }
+    for (final cm in [25.4, 27.6, 0.0, 30.0]) {
+      expect(footLengthEligible(si, cm), isFalse, reason: '$cm');
+    }
+    // Before the code is valid, the study rule applies.
+    expect(footLengthEligible(null, 25.0), isFalse);
+    final test = SubjectCode.parse('TEST-001');
+    for (final cm in [20.0, 25.0, 31.0]) {
+      expect(footLengthEligible(test, cm), isTrue, reason: '$cm');
+    }
+  });
 }

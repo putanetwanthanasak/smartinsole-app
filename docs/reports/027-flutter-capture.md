@@ -26,15 +26,25 @@ The app follows doc 03:
 | | doc 03 (in the app) | TestProtocol_v1 |
 |---|---|---|
 | Subject data | sex, **age range**, foot length (L/R), room temperature, all under the code | also exact age, weight, height, dominant side, humidity |
+| Inclusion | age **21–30** (ranges 21–25 / 26–30); foot length **25.5–27.5 cm** (shoe size 42) | — |
 | Practice | **30 s**, not recorded, then recording starts by itself | 1 min |
 | Rest | **open-ended**: the volunteer says when; the screen shows elapsed time only | fixed 1 min |
 
 BACKLOG 32 asks for TestProtocol_v1 to be aligned with doc 03.
 
-The repo has no copy of doc 03's **age-range bins**. The app uses 18–29 /
-30–39 / 40–49 / 50–60, in one list (`ageRanges` in
-`mobile/lib/capture/capture_protocol.dart`). **Please confirm them**
-(BACKLOG 33).
+**Inclusion criteria** (user, 2026-10-22, from doc 03), in
+`mobile/lib/capture/capture_protocol.dart`:
+- the age-range choices are **21–25 / 26–30**, since doc 03 only admits
+  volunteers aged 21–30 (`ageRanges`);
+- for `SI-` codes, a foot length outside **25.5–27.5 cm** (inclusive) is
+  shown in the form with "Does not meet the inclusion criteria (foot
+  length 25.5–27.5 cm)." and Start stays disabled
+  (`footLengthEligible`). `CaptureSession.create` also refuses such a
+  subject, so a study session's files never hold one. `TEST-` codes take
+  any value.
+
+Foot length and age range stay **optional**, as approved in the plan.
+An `SI-` session can start with them blank.
 
 ## What was done
 
@@ -77,6 +87,10 @@ Commits on the branch (oldest first):
    - `mobile/lib/capture/README.md`;
    - `mobile/CLAUDE.md`, `lib/device/README.md`, `shared/README.md`;
    - BACKLOG 32–36.
+7. **Doc 03 inclusion criteria** (user review before the checkpoint): the
+   age ranges, the foot-length check, `orderSeedProvider` so goldens that
+   show the plan are stable, and the regenerated fixture (only
+   `session.json`'s subject data changed).
 
 ### Files
 
@@ -163,7 +177,7 @@ Everything is under `<app documents>/research/<code>_<yyyymmdd-HHmmss>/`
 |---|---|
 | `flutter analyze` | No issues |
 | `dart format --set-exit-if-changed lib test test_driver` | 0 changed |
-| `flutter test` | **293 pass**: 35 new in `test/capture/` plus device additions, 9 new goldens (2 regenerated after the pre-check hint fix), and the settings goldens regenerated for the new button |
+| `flutter test` | **298 pass**: 39 new in `test/capture/` plus device additions, 10 new goldens (2 regenerated after the pre-check hint fix; `capture_home_foot_ineligible` added with the inclusion check), and the settings goldens regenerated for the new button |
 | `load_capture.py --selftest` | PASS ([selftest.txt](027-flutter-capture/selftest.txt)): checksums, channel order, 312 paired rows, the same pairs and the same 24 values as Dart's `pairFeet` + `modelRow` (max diff 9e-16), pairing edge cases |
 | Web app diff vs `main` | Empty |
 | Release APK | Builds. It is debug-signed (`android/app/build.gradle.kts`), so it installs over the current debug build and keeps the app's data |
@@ -250,7 +264,7 @@ list but did not kill the app mid-trial.
 ## Leftovers
 
 - **BACKLOG 32**: align TestProtocol_v1 with doc 03.
-- **BACKLOG 33**: confirm the age-range bins.
+- **BACKLOG 33**: resolved (21–25 / 26–30).
 - **BACKLOG 34**: no live link-drop in the mock.
 - **BACKLOG 35**: retire the web app's capture mode after the study.
   `load_capture.py` does not read web-app CSVs.
@@ -265,12 +279,11 @@ list but did not kill the app mid-trial.
 
 ## Decisions needed
 
-1. **Age-range bins** (BACKLOG 33): are 18–29 / 30–39 / 40–49 / 50–60
-   what doc 03 says?
-2. **Does a stopped-early trial count?** Today `stopped_early` stays
-   `valid` (WARN in the loader) unless you press Redo. If doc 03 says
-   every gait needs a full 3 minutes, it should be invalid by default.
-   Tell me which.
+None. Both were answered on 2026-10-22:
+1. **Age ranges:** 21–25 / 26–30 (doc 03 admits 21–30), with foot length
+   25.5–27.5 cm enforced for `SI-` codes (above).
+2. **Stopped early:** stays `valid` by default, with `endReason:
+   stopped_early` (WARN in the loader). The analysis decides later.
 
 ## Next session
 
@@ -297,8 +310,8 @@ Rehearsal code `TEST-001` (30 s trials). 📋 = please send me a screenshot.
    `88:57:…:9E` as **LEFT** and `38:18:…:D6` as **RIGHT**. Wait for
    STREAMING on both, then Back.
 2. Settings → **Research capture**. 📋 The pre-check with both feet green.
-3. New session: code `TEST-001`, pick any sex / age range, foot lengths
-   e.g. 25.0 / 25.0, room temp e.g. 27. **Start session**. 📋 The plan
+3. New session: code `TEST-001`, pick any sex / age range (21–25 or
+   26–30), foot lengths **26.0 / 26.0**, room temp e.g. 27. **Start session**. 📋 The plan
    (order + pain side LEFT).
 4. **Calibration**: Start recording, wait for Saved (L ≈ 500 / R ≈ 500,
    no gaps). Next.

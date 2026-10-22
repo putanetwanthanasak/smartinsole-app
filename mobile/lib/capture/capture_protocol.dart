@@ -127,10 +127,18 @@ enum Sex {
   final String en;
 }
 
-/// Age is recorded as a range only (doc 03). The bins cover the inclusion
-/// range 18–60. **To confirm against doc 03** (S4C report): the repo has no
-/// copy of its bins.
-const ageRanges = ['18-29', '30-39', '40-49', '50-60'];
+/// Age is recorded as a range only. Doc 03 admits volunteers aged 21–30.
+const ageRanges = ['21-25', '26-30'];
+
+/// Doc 03 inclusion: foot length 25.5–27.5 cm (shoe size 42), inclusive.
+const footLengthInclusionCm = (min: 25.5, max: 27.5);
+
+/// Whether [cm] may be entered for [code]. Study codes must meet the
+/// inclusion range; `TEST-` codes take any value. Before the code is valid
+/// the study rule applies, so typing order can't hide the error.
+bool footLengthEligible(SubjectCode? code, double cm) =>
+    (code?.rehearsal ?? false) ||
+    (cm >= footLengthInclusionCm.min && cm <= footLengthInclusionCm.max);
 
 /// The session's trial plan: the 30 s standing calibration, then normal
 /// gait, then the 4 abnormal gaits in a random order per subject (normal
