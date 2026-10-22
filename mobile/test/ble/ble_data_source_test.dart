@@ -126,6 +126,58 @@ void main() {
       });
     });
 
+    test('SYNC_TIME is resent every 5 min while streaming, then stops', () {
+      fakeAsync((async) {
+        final rig = Rig(async, insoles: [leftBoard()]);
+        final syncs = <SyncSent>[];
+        rig.left.syncs.listen(syncs.add);
+        rig.connectLeft('L1');
+        int syncWrites() => rig
+            .link('L1')
+            .writes
+            .where((w) => w[0] == BleOpcode.syncTime)
+            .length;
+        expect(syncWrites(), 1);
+        rig.settle(const Duration(minutes: 4, seconds: 59));
+        expect(syncWrites(), 1);
+        rig.settle(const Duration(seconds: 1));
+        expect(syncWrites(), 2);
+        rig.settle(const Duration(minutes: 5));
+        expect(syncWrites(), 3);
+        expect(syncs.map((s) => s.session), [1, 1, 1]);
+        expect(
+          syncs.map((s) => s.unixMs),
+          [
+            0,
+            5,
+            10,
+          ].map((m) => DateTime(2026, 10, 20, 9, m).millisecondsSinceEpoch),
+        );
+
+        final link = rig.link('L1');
+        rig.left.disconnect();
+        rig.settle(const Duration(minutes: 10));
+        expect(
+          link.writes.where((w) => w[0] == BleOpcode.syncTime),
+          hasLength(3),
+        );
+        expect(syncs, hasLength(3));
+      });
+    });
+
+    test('a shorter sync interval (timing check) applies at once', () {
+      fakeAsync((async) {
+        final rig = Rig(async, insoles: [leftBoard()]);
+        rig.connectLeft('L1');
+        rig.left.syncInterval = const Duration(seconds: 10);
+        rig.settle(const Duration(seconds: 30));
+        expect(
+          rig.link('L1').writes.where((w) => w[0] == BleOpcode.syncTime),
+          hasLength(4),
+        );
+      });
+    });
+
     test('emits frames in kPa with the phone arrival time (rules 1, 3)', () {
       fakeAsync((async) {
         final rig = Rig(async, insoles: [leftBoard()]);
@@ -365,12 +417,11 @@ void main() {
   });
 
   group('stale packets (rule 9)', () {
-    test('packets before the START acknowledgement are dropped', () {
+    test('packets before START is written are dropped', () {
       fakeAsync((async) {
         final rig = Rig(async, insoles: [leftBoard()]);
         rig.central.onWrite = (link, value) {
-          if (value[0] == BleOpcode.syncTime ||
-              value[0] == BleOpcode.startStream) {
+          if (value[0] == BleOpcode.syncTime) {
             link
               ..sendSensor()
               ..sendTemp();
@@ -380,12 +431,72 @@ void main() {
         expect(rig.left.state, isA<LinkStreaming>());
         expect(rig.leftFrames, isEmpty);
         expect(rig.leftTemps, isEmpty);
-        expect(rig.left.stats.droppedBeforeStart, 4);
+        expect(rig.left.stats.droppedBeforeStart, 2);
 
         rig.central.onWrite = null;
         rig.link('L1').sendSensor();
         rig.settle();
         expect(rig.leftFrames, hasLength(1));
+      });
+    });
+
+    test('a first packet delivered before the START ack is kept '
+        '(BACKLOG 27)', () {
+      fakeAsync((async) {
+        final rig = Rig(async, insoles: [leftBoard()]);
+        rig.central.onWrite = (link, value) {
+          if (value[0] == BleOpcode.startStream) {
+            link
+              ..sendSensor()
+              ..sendTemp();
+          }
+        };
+        rig.connectLeft('L1');
+        rig.central.onWrite = null;
+        rig.link('L1').sendSensor();
+        rig.settle();
+
+        expect(rig.leftFrames.map((f) => f.seq), [0, 1]);
+        expect(rig.leftFrames.map((f) => f.missingBefore), [0, 0]);
+        expect(rig.leftTemps, hasLength(1));
+        expect(rig.left.stats.droppedBeforeStart, 0);
+        expect(rig.left.stats.admittedBeforeAck, 2);
+        expect(rig.left.stats.missingAtStart, 0);
+      });
+    });
+
+    test('a lost first packet is counted as missing at start', () {
+      fakeAsync((async) {
+        final rig = Rig(async, insoles: [leftBoard()]);
+        rig.connectLeft('L1');
+        final link = rig.link('L1');
+        link.seq = 2; // seq 0 and 1 never arrive
+        link.sendSensor();
+        rig.settle();
+        expect(rig.leftFrames.single.seq, 2);
+        expect(rig.leftFrames.single.missingBefore, 2);
+        expect(rig.left.stats.missingAtStart, 2);
+        expect(rig.left.stats.seqGaps, 0);
+      });
+    });
+
+    test('a late packet from the old link while the new START is in flight '
+        'is not emitted', () {
+      fakeAsync((async) {
+        final rig = Rig(async, insoles: [leftBoard()]);
+        rig.connectLeft('L1');
+        final old = rig.link('L1')..sendSensor();
+        rig.settle();
+        old.drop();
+        rig.central.onWrite = (link, value) {
+          if (value[0] == BleOpcode.startStream && !identical(link, old)) {
+            old.pushLate(BleUuids.sensorStream, old.nextSensorPacket());
+            link.sendSensor();
+          }
+        };
+        rig.settle(const Duration(seconds: 1));
+        expect(rig.left.state, isA<LinkStreaming>());
+        expect(rig.leftFrames.map((f) => (f.session, f.seq)), [(1, 0), (2, 0)]);
       });
     });
 
@@ -466,7 +577,7 @@ void main() {
         rig.settle(const Duration(seconds: 1));
         final fresh = rig.link('L1');
         expect(identical(old, fresh), isFalse);
-        old.push(BleUuids.sensorStream, old.nextSensorPacket());
+        old.pushLate(BleUuids.sensorStream, old.nextSensorPacket());
         fresh.sendSensor();
         rig.settle();
         expect(rig.leftFrames, hasLength(1));

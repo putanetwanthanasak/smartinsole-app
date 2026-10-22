@@ -2,6 +2,7 @@ import 'dart:collection';
 
 import 'packets.dart';
 import 'parse_result.dart';
+import 'seq_tracker.dart';
 
 /// Per-foot counters for the debug screen and the checkpoint log. Nothing
 /// that is dropped goes uncounted: every rejection and every rule-9 drop
@@ -16,8 +17,13 @@ class LinkStats {
   /// Parser rejections, by reason (sensor, temperature and status).
   final rejects = <RejectReason, int>{};
 
-  /// Rule 9 check 1: arrived before this connection's START was acknowledged.
+  /// Rule 9 check 1: arrived before this connection's START was written.
   int droppedBeforeStart = 0;
+
+  /// Arrived after START was written but before its write was acknowledged
+  /// (Android can deliver the first notification first, BACKLOG 27); these
+  /// are genuine and were admitted.
+  int admittedBeforeAck = 0;
 
   /// Rule 9: delivered by an earlier connection's subscription.
   int droppedOldConnection = 0;
@@ -26,10 +32,13 @@ class LinkStats {
   /// the connection.
   int droppedNotForward = 0;
 
-  /// Sensor `seq` gaps (wrap at 65535) and the packets they skipped.
-  /// Counted for the checkpoint only; S4 owns real gap handling.
-  int seqGaps = 0;
-  int seqMissing = 0;
+  /// Sensor `seq` continuity across this insole's sessions.
+  final seq = SeqTracker();
+
+  int get seqGaps => seq.gaps;
+  int get seqMissing => seq.missing;
+  int get missingAtStart => seq.missingAtStart;
+  int? get lastSeq => seq.lastSeq;
 
   /// Successful connect sequences (START acknowledged).
   int sessions = 0;
@@ -40,7 +49,6 @@ class LinkStats {
   int failedAttempts = 0;
   int calibrationRereads = 0;
 
-  int? lastSeq;
   DateTime? lastPacketAt;
   StatusPacket? lastStatus;
   TempPacket? lastTemp;
@@ -77,5 +85,5 @@ class LinkStats {
   static const rateWindow = Duration(seconds: 10);
 
   /// Resets what belongs to one connection (the `seq` baseline).
-  void newSession() => lastSeq = null;
+  void newSession() => seq.newSession();
 }
