@@ -48,6 +48,7 @@ From `docs/FLUTTER-PLAN.md` section 6:
 | `flutter test --update-goldens test/goldens` | Regenerate goldens after an intended UI change; review the PNG diff before committing |
 | `flutter run -d <emulator-id> -t test_driver/main_mcp.dart --print-dtd` | Run on the emulator with the Flutter Driver extension, for Dart MCP UI checks |
 | … add `--dart-define=BLE_FAKE=true` | Same, with the scripted fake BLE (two streaming insoles plus one with MTU 23) instead of the real plugin |
+| … add `--dart-define=MOCK=<preset>` | Same, with `MockDataSource` for both feet (debug builds only): `safe`, `safeOrangeDot`, `watch`, `rest`, `noData`, `oneFootMissing`, `lowBattery`; Settings → "Mock preset (debug)" switches live |
 | `flutter run -d <device-id>` | Plain debug run (e.g. the Note 10) |
 | `dart format lib test test_driver` | Formatting |
 | `node shared/test_vectors/generate.mjs [--check]` (repo root, after `npm ci`) | Regenerate / check the BLE test vectors from the web app's TS parser |
@@ -60,7 +61,11 @@ lib/
   ble/                 wire format: parser (N FSR channels), ParseResult /
                        RejectReason, calibration, ADC → kPa (S2A);
                        per-foot BleDataSource, BleHub, BleCentral (S3A)
-  device/ rules/ gait/ footcheck/ storage/ notify/ config/
+  device/              DeviceManager (S4): DeviceClock (unix time per
+                       sample), 50 Hz FootBatch stream, 10 Hz
+                       DisplaySnapshot, read-time staleness, ΔT,
+                       model channels, mock presets, timing check
+  rules/ gait/ footcheck/ storage/ notify/ config/
                        empty until their session (see each README.md)
   ui/
     app.dart           MaterialApp, named routes
@@ -104,8 +109,14 @@ test_driver/           main_mcp.dart — driver-enabled entrypoint
   each time and checked against N; a link that can't fit 4 samples is a
   visible `mtuTooSmall` problem, never a silent link with no data.
 - Rule 9: packets from an older connection, packets before this
-  connection's START is acknowledged, and t0 / temp t_ms not moving forward
-  (mod 2³²) are dropped and counted.
+  connection's START is written, and t0 / temp t_ms not moving forward
+  (mod 2³²) are dropped and counted. The gate opens at the START write,
+  not its ack (BACKLOG 27); `admittedBeforeAck` counts the race.
+- Sample unix time comes only from `DeviceClock` (`lib/device/`): never
+  "send time − last received sample" (BACKLOG 28), never a step, never
+  backwards within a session.
+- Screens read `displaySnapshotProvider` (10 Hz); anything per-sample
+  (capture, rules, model input) reads `DeviceManager.batches` (50 Hz).
 - Retry waits and the debug screen's tick are timers; connection state and
   "last packet X s ago" are not latched by them (rule 2).
 - The user's Disconnect sends STOP and never reconnects.
@@ -151,9 +162,13 @@ test_driver/           main_mcp.dart — driver-enabled entrypoint
   OSes may differ by a few pixels.
 - Use `pumpApp()` in `test/helpers/pump_app.dart`; it fixes the clock, can
   turn on reduce motion, and always replaces BLE with `FakeBleCentral` /
-  `FakePermissions` (pass your own via `central:` / `permissions:`).
+  `FakePermissions` (pass your own via `central:` / `permissions:`, and
+  any provider override, e.g. `mockPresetProvider`, via `overrides:`).
   Widgets that tests or the driver tap carry a `ValueKey` (`tab-home`, `settings-button`, `foot-left`, …).
-- `MockDataSource` presets (from S4) drive every UI state on the emulator.
+- `MockDataSource` presets (from S4) drive every UI state on the emulator
+  (`--dart-define=MOCK=<preset>`). Their test checks each preset against
+  `shared/thresholds.json`; when a threshold changes, fix the preset, not
+  the test.
 - **The Note 10 is used only at 4 checkpoints:** after S3A, S4, S8C and S9
   (real Bluetooth / real camera). Write a checklist for the user and wait for
   their results; never mark those checks passed yourself.
