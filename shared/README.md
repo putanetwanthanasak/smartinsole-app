@@ -9,6 +9,11 @@ Files shared between the Flutter app (`mobile/`) and the new simulator
   app's TS parser; the Flutter parser is tested against them. See
   `test_vectors/README.md` (regenerate with
   `node shared/test_vectors/generate.mjs`).
+- **`model_input.json`** — Model A's 24 input channels (DATA-CONTRACT §7.1)
+  in order, with their units (FSR kPa, accel g, gyro °/s), the 50 Hz rate
+  and the 100-sample window / 50-sample stride. The app's
+  `mobile/lib/device/model_channels.dart` must match it (a Dart test checks
+  this), and the training scripts read the same order. Never reorder.
 - `sensor_layout.json` — not yet created (planned with the heatmap, S5).
 
 ## The web app still uses `public/thresholds.json`
