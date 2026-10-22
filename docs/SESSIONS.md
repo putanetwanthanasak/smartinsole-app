@@ -1,6 +1,6 @@
-# Claude Code Session Plan — SmartInsole Flutter App (v2.3)
+# Claude Code Session Plan — SmartInsole Flutter App (v2.4)
 
-> Updated 2026-10-21 (v2.3, 2026-10-22: all sessions finish by 2026-10-31; model-input units fixed for S4C/S8A. v2.2: the phone app becomes the research capture tool; new sessions S4C and SR) · Use together with `docs/FLUTTER-PLAN.md` and `docs/design/DESIGN-SPEC.md`
+> Updated 2026-10-22 (v2.4: two sessions a day, all sessions finish by 2026-10-27. v2.3, 2026-10-22: all sessions finish by 2026-10-31; model-input units fixed for S4C/S8A. v2.2: the phone app becomes the research capture tool; new sessions S4C and SR) · Use together with `docs/FLUTTER-PLAN.md` and `docs/design/DESIGN-SPEC.md`
 > Run Claude Code on the Ubuntu machine in `~/smartinsole-app`
 
 ---
@@ -39,24 +39,20 @@ What the study protocol (proposal doc 03) needs from the app:
 | Volunteer usability tasks: pressure map, alert list, explain an alert message | Home with heatmap, Alerts screen, plain-Thai advice | S5 + S6B + S7 |
 | Alert text shown to volunteers | Reviewed by the medical expert | before 2026-11-05 |
 
-Schedule (v2.3, user decision 2026-10-22: finish every session by 31 Oct, one session a day):
+Schedule (v2.4, user decision 2026-10-22: two sessions a day, every session finished by 27 Oct):
 
-| Date | Claude Code | Design needed (Claude chat) |
-|---|---|---|
-| Thu 22 Oct | S4 | user picks Home style A/B/C |
-| Fri 23 Oct | S4C | Home, 4 states |
-| Sat 24 Oct | S4C Note 10 checkpoint + S5 | — |
-| Sun 25 Oct | S6A + S7 | Alerts + Temperature |
-| **Mon 26 Oct** | advisor meeting + S6B | My feet (gait) |
-| Tue 27 Oct | S8A | Connection + Settings |
-| Wed 28 Oct | S8B | Foot check (4 screens, new style) |
-| Thu 29 Oct | S8C | — |
-| Fri 30 Oct | S9 (simulator boards) | — |
-| Sat 31 Oct | S10 | — |
-| Sun 1 Nov | buffer | — |
-| Mon 2 – Thu 5 Nov | SR: real boards + full 75-minute rehearsal | — |
-| Fri 6 – Mon 9 Nov | buffer, expert text changes, final install | — |
-| **Tue 10 Nov** | study starts | — |
+| Date | Session 1 | Session 2 | Design needed (Claude chat) |
+|---|---|---|---|
+| Thu 22 Oct | S4 ✅ | S4C | user picks Home style A/B/C → Home, 4 states |
+| Fri 23 Oct | S4C Note 10 checkpoint + S5 | S6A | Alerts + Temperature |
+| Sat 24 Oct | S7 | S6B | My feet (gait) + Connection + Settings |
+| Sun 25 Oct | S8A | S8B | Foot check (4 screens, new style) · advisor slides |
+| **Mon 26 Oct** | advisor meeting | S8C | — |
+| Tue 27 Oct | S9 (simulator boards) | S10 | — |
+| Wed 28 Oct – Sun 1 Nov | buffer · changes from the advisor · send alert text to the medical expert | | — |
+| Mon 2 – Thu 5 Nov | SR: real boards + full 75-minute rehearsal | | — |
+| Fri 6 – Mon 9 Nov | buffer, expert text changes, final install | | — |
+| **Tue 10 Nov** | study starts | | — |
 
 If a day slips, move S8A, S8B, S8C to after 10 Nov first (not needed for the study). Never drop S4C, S5, S6A, S7 or S6B. **During the study (10–30 Nov) the study phone's build is frozen:** new work goes on branches and is tested on the emulator or another phone.
 
@@ -168,18 +164,18 @@ Additional info: [optional]
 | 3 | S2C ✅ | Claude Code + user | New simulator: control + 2 concurrent connections | `work/sim-control` |
 | 21 Oct | S3A ✅ | Claude Code + user | BLE, both feet | `work/flutter-ble` |
 | 21–22 Oct | S3B ✅ | Claude Code + user | Web app fallback check (laptop only) | `work/webapp-fallback-check` |
-| 22 Oct | S4 | Claude Code + user | DeviceManager + timing checks | `work/flutter-device-manager` |
-| 23–24 Oct | S4C | Claude Code + user | Research capture mode | `work/flutter-capture` |
-| 24 Oct | S5 | Claude Code | Heatmap + Home + animation | `work/flutter-home` |
-| 25 Oct | S6A | Claude Code | SQLite | `work/flutter-storage` |
-| 25 Oct | S7 | Claude Code | 9 alert rules + risk level + 3-level mapping | `work/flutter-rules` |
-| 26 Oct | S6B | Claude Code | Temperature + Alerts screens | `work/flutter-temp-alerts` |
+| 22 Oct | S4 ✅ | Claude Code + user | DeviceManager + timing checks | `work/flutter-device-manager` |
+| 22–23 Oct | S4C | Claude Code + user | Research capture mode | `work/flutter-capture` |
+| 23 Oct | S5 | Claude Code | Heatmap + Home + animation | `work/flutter-home` |
+| 23 Oct | S6A | Claude Code | SQLite | `work/flutter-storage` |
+| 24 Oct | S7 | Claude Code | 9 alert rules + risk level + 3-level mapping | `work/flutter-rules` |
+| 24 Oct | S6B | Claude Code | Temperature + Alerts screens | `work/flutter-temp-alerts` |
 | 2–5 Nov | SR | User + Claude Code | Study rehearsal with real boards | `work/study-readiness` |
-| 27 Oct | S8A | Claude Code | Gait screen + model slot | `work/flutter-gait` |
-| 28 Oct | S8B | Claude Code | Connection + Settings screens | `work/flutter-connect-settings` |
-| 29 Oct | S8C | Claude Code + user | Daily foot check | `work/flutter-footcheck` |
-| 30 Oct | S9 | User + Claude Code | Integration test + APK | `work/flutter-integration` |
-| 31 Oct | S10 | Claude Code | Wrap-up + docs + screenshots | `work/flutter-wrapup` |
+| 25 Oct | S8A | Claude Code | Gait screen + model slot | `work/flutter-gait` |
+| 25 Oct | S8B | Claude Code | Connection + Settings screens | `work/flutter-connect-settings` |
+| 26 Oct | S8C | Claude Code + user | Daily foot check | `work/flutter-footcheck` |
+| 27 Oct | S9 | User + Claude Code | Integration test + APK | `work/flutter-integration` |
+| 27 Oct | S10 | Claude Code | Wrap-up + docs + screenshots | `work/flutter-wrapup` |
 
 ---
 
