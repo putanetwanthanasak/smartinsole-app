@@ -2,12 +2,22 @@
 
 Branch `work/flutter-device-manager` · 2026-10-22 · Session S4 (`docs/SESSIONS.md` §3)
 
-**Status: code done, waiting on the Note 10 checkpoint.** All automated
-checks pass (242 tests, analyze clean, mutation checks caught). The
-emulator checks are done too. S4's Done-when has not been checked yet:
-L/R offset ≤ ±10 ms, 20 ms spacing and no lost packets over 10 minutes
-can only be measured on the Note 10 with both boards. **Do not start S5
-until that checkpoint passes.** The checklist is at the end.
+**Status: for the 10-minute timing run (2026-10-22), `timing_check.py`
+reports PASS. This is with an L/R measurement method changed after the run
+(section "Note 10 checkpoint results"); the user's acceptance of that
+result is still needed. Checklist step 3 (5× reconnect per foot) is
+waiting on the user.** All automated checks pass (242 tests, analyze clean,
+mutation checks caught), and the emulator checks are done.
+
+S4's Done-when is "L/R offset ≤ ±10 ms, 20 ms spacing, no lost packets".
+In the 10-minute run:
+- L/R stayed within ±3.4 ms (±6.4 ms including the method's ±3 ms
+  uncertainty);
+- the sample spacing stayed within 19.75–20.25 ms;
+- 0 packets were lost.
+
+The user accepted the method change before the rerun (see that
+section). Accepting the result itself is the user's call.
 
 ## What was done
 
@@ -102,28 +112,45 @@ until that checkpoint passes.** The checklist is at the end.
 
 ### How L/R ±10 ms is measured
 
-The two boards and the phone share no clock. The method works per foot:
+The method below is what the plan approved and what this report ran
+first. **It was replaced after the Note 10 run** (see "Note 10 checkpoint
+results"). It is kept in `timing_check.py` as a secondary figure.
 
-1. **The app's offset.** For one foot the app's offset is **A = θ + n**.
-   θ is the true offset between the board's clock and the phone's. n ≥ 0
-   is the smallest notification latency the 30 s minimum found.
-2. **What the board logs.** The board logs each `SYNC_TIME` it handles as
-   "unix U at device D". U is the phone time the app wrote. So
-   **U − D = θ − w**, where w ≥ 0 is the write's latency.
-3. **The bound.** Subtracting gives **B = A − (U − D) = n + w ≥ n**. So B
-   bounds that foot's error from above, and the L/R alignment error
-   n_L − n_R lies in [−B_R, B_L].
-4. **Windows.** w changes from write to write, so the script takes the
-   smallest B in each 120 s window. A 10-minute run gives 5 windows and
-   about 60 brackets per foot. **Pass when every window's bound is
-   ≤ 10 ms for both feet.**
-
-U is what joins the two logs.
-
-Caveat: the board stamps sample k at `epoch + 20k` (its 50 Hz task), while
-D is `millis()`. If a sample's real time can be up to about 1 ms before
-its stamp, the bound is off by up to about 1 ms. The script fails any B
-below −1 ms, which would show this.
+- **Write-latency bound (planned method, now secondary).**
+  - For one foot the app's offset is **A = θ + n**. θ is the true offset
+    between the board's clock and the phone's. n ≥ 0 is the smallest
+    notification latency the 30 s minimum found.
+  - The board logs each `SYNC_TIME` as "unix U at device D". U is the
+    phone time the app wrote. So **U − D = θ − w**, where w ≥ 0 is the
+    write's latency.
+  - So **B = A − (U − D) = n + w ≥ n** bounds the foot's error from
+    above, and the L/R error n_L − n_R lies in [−B_R, B_L].
+  - The bound needs no shared clock, but it **can't go below the write's
+    latency w**.
+- **Laptop clock (primary since the Note 10 run).** Both boards' serial
+  logs are stamped by one laptop clock, so each `SYNC_TIME` line gives
+  that board's offset φ = laptop − D, plus a print/USB delay ≥ 0.
+  - **Per board:** fit the crystal drift against the laptop (a line
+    through each 120 s window's minimum), remove it, and take the floor
+    over ±60 s. That floor is φ with the minimum delay.
+  - **For the same instant**, the two feet's app times differ by
+    **e = (φ_R − φ_L) + A_L − A_R**. The right foot's φ and A are
+    interpolated to each left `SYNC_TIME`.
+  - **Pass:** |e| ≤ 10 ms in every 120 s window.
+  - **Uncertainty: ±3 ms**, a worst-case sum of four parts:
+    - ±1 ms: D is an integer `millis()`;
+    - ±1 ms: the laptop's ms stamp and the 1 ms USB frame, as the
+      difference between the two boards' minimum delays;
+    - ±1 ms: the board stamps sample k as `t0 + 20k`, which can be up to
+      1 ms before its `millis()`;
+    - 0.03 ms: the two boards' `SYNC_TIME` lines differ in length, at
+      115200 baud.
+  - **Evidence the USB delay is steady:** in this run each board's
+    delay above its floor had a median of 0.6–0.7 ms and a p90 of
+    1.0–1.3 ms.
+  - The method assumes both boards' serial delays have the same minimum
+    (same CP2102 chip, driver and laptop). Any difference between them is
+    what the ±1 ms USB term covers.
 
 ## Checks
 
@@ -141,7 +168,8 @@ below −1 ms, which would show this.
 | Emulator, mock | **pass:** `MOCK=safe`, every one of the 7 presets switched live from Settings, no runtime errors from the app |
 | Emulator, fake BLE | **pass:** both feet streaming, timing check started, file written, pulled with `adb exec-out run-as`, parsed by `timing_check.py --app-only` (0 lost, steps 19.75–20.09 ms, clamps 0) |
 | Goldens | new `settings_mock`; `ble_debug_*` regenerated at 390×2000 for the timing card |
-| **Note 10 checkpoint** | **waiting on user** (checklist below) |
+| Note 10, 10-min timing run | **checker: PASS with the laptop-clock method; user acceptance pending** (adopted after the run, accepted by the user): \|L/R\| ≤ 3.38 ms, ±3 ms uncertainty; 0 lost; steps 19.75–20.25 ms; 0 clamps; 0 notify failures. The planned write-latency bound gave 27 / 66 ms (now secondary). |
+| Note 10, step 3 (5× reconnect per foot, BACKLOG 27) | **waiting on user** |
 
 During the emulator run, `get_runtime_errors` showed one
 "Guarded function conflict" from the Flutter Driver. I had sent several
@@ -161,10 +189,94 @@ No screen shows the presets' Home states yet: Home is wired to
 `displaySnapshotProvider` in S5. The presets' data is checked by the
 band test instead.
 
+## Note 10 checkpoint results (2026-10-22)
+
+**Setup:**
+- Phone: Note 10 (`RF8M83P4STZ`), debug build.
+- Left board `88:57:21:B7:74:9E` on laptop USB port 6 (new cable).
+- Right board `38:18:2B:8A:26:D6` on port 7.
+- Run: 12:35:13 to 12:45:51, 10.6 min.
+- Evidence in `docs/reports/026-flutter-device-manager/`:
+  - `note10-timing-20261022-123513.log`: the app's timing log, pulled
+    with `adb exec-out run-as`;
+  - `note10-serial-left.log` and `note10-serial-right.log`;
+  - `note10-timing-check.txt`: the checker's output;
+  - `note10-1-timing-after-stop.jpg`: the user's screenshot.
+
+**Serial log setup:**
+- The first open of the right board's port read only garbage, even though
+  `stty` showed 115200 and no other process had the port open. Probably
+  the CP2102 was probed right after it was plugged in (ModemManager is
+  active). Killing that logger by PID and reopening it gave a clean log.
+  This happened before the phone connected, so the run was not affected.
+- The left log starts with buffered garbage and repeated reset banners
+  from the cable being plugged in. Both boards then booted cleanly at
+  port open (12:20:08 and 12:23:21).
+
+**Result with the planned method: FAIL.** The write-latency bound's worst
+2-minute window was 26.95 ms (left) and 66.02 ms (right), against 10 ms.
+Behind those numbers:
+- **B never got low.** B = n + w had a minimum of 23.2 ms (left) and
+  51.0 ms (right) over 63 writes each.
+- **The writes were slow.** In the app, each write call took 29–75 ms
+  (left) and 57–139 ms (right) to complete.
+- **The right foot's writes were slower.** Both feet's `SYNC_TIME`s go
+  out within 1 ms of each other. The right foot's write consistently
+  takes about 30 ms longer than the left's, most likely because it waits
+  behind the left's in Android's BLE stack (not proven).
+
+**So the method, not the timing, was the limit.** The bound can't go
+below the write's one-way latency w, which on the Note 10 was about
+20 ms or more for the left foot and 45 ms or more for the right (B minus
+a few ms of n). A 10 ms limit can't be shown that way on this phone.
+The plan didn't foresee it.
+
+**Method change after the run (accepted by the user).** The laptop-clock
+comparison above became the primary L/R check. The write-latency bound is
+kept as a secondary figure. Both were run on this run's logs; no new run
+was made.
+- Changed in `timing_check.py`. The self-test now covers:
+  - feet 13 ms apart (fails) and 6 ms apart (passes);
+  - Note 10 write latency of 29–139 ms (passes);
+  - boards drifting +30 / −10 ppm (passes), and the same drift with the
+    feet 13 ms apart (fails);
+  - USB delay jitter of 1–25 ms (passes);
+  - serial lines without laptop time (fails).
+
+**Result with the laptop clock: the checker reports PASS** (for the user
+to accept).
+
+| | Left | Right |
+|---|---|---|
+| Packets (app) / lost | 4 087 / 0 | 4 109 / 0 |
+| Sample step | 19.75–20.25 ms | 19.75–20.25 ms |
+| Clock clamps | 0 | 0 |
+| Board notify failures / mtu-drops | 0 / 0 | 0 / 0 |
+| Drift against the laptop | −32.6 ppm | +13.2 ppm |
+| Serial delay above floor (median / p90) | 0.7 / 1.0 ms | 0.6 / 1.3 ms |
+
+- **L/R error** e = unix_L − unix_R for one instant, over 62 points:
+  min −1.99, median +0.70, max +3.38 ms.
+- **Worst |e| per 120 s window:** 2.0, 2.5, 1.6, 2.5, 3.4, 1.6 ms.
+- **With the ±3 ms uncertainty:** at most 6.41 ms, inside ±10 ms.
+
+**Drift correction matters.** A first cross-check, done in chat before the
+script changed, took only a plain local minimum. It got −1.8 to +7.4 ms
+(39 points, joined on identical U only). The left board's −33 ppm drift
+biases a plain ±60 s minimum by up to about 2 ms, which is why the script
+fits and removes the drift first.
+
+`admitted before START ack` was 0 on both feet, but each foot connected
+only once in this run, so BACKLOG 27 is untested until step 3 is done.
+
 ## Leftovers
 
-- **BACKLOG 27** is fixed in code, pending the Note 10 result.
-  `admittedBeforeAck` will show whether the race really happens.
+- **BACKLOG 27** is fixed in code. Checklist step 3 (5× reconnect per
+  foot) is still to run. `admittedBeforeAck` will show whether the race
+  really happens.
+- **The L/R check needs both boards logged on one laptop.** Real insoles
+  in S9 won't have a serial port, so the same check won't work there. A
+  different reference would be needed then, e.g. a shared tap event.
 - **BACKLOG 28**: the app part is done. S4C still has to write `seq` into
   the CSV.
 - **Contract §4 deviation, for the contract owner:** §4 describes the web
@@ -182,8 +294,11 @@ band test instead.
 
 ## Decisions needed
 
-None for code. After the checkpoint, whether S5 may start depends on its
-result.
+The user accepted the method change on 2026-10-22. Still needed:
+- the user's acceptance of the timing result;
+- the step 3 result.
+
+S5 waits on both.
 
 ## Next session
 
@@ -232,9 +347,10 @@ me a screenshot.
    - run `timing_check.py <file> --serial-left … --serial-right …` and
      send you the result.
 
-**Pass** (S4 Done-when):
+**Pass** (S4 Done-when), as given before the run:
 - both feet's clock-error bound is ≤ 10 ms in every 2-minute window, so
-  L/R is within ±10 ms;
+  L/R is within ±10 ms. Replaced after the run by the laptop-clock
+  check, |e| ≤ 10 ms in every 2-minute window (see the results section);
 - every sample step is 20 ± 1 ms;
 - 0 lost packets, 0 clamps, 0 board notify failures;
 - step 3 counters as listed.

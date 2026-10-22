@@ -70,4 +70,5 @@ adb exec-out run-as th.ac.kmutt.smartinsole cat app_flutter/timing/<name> > <nam
 ```
 
 and check it with `firmware/simulator/tools/timing_check.py` against both
-boards' serial logs (method in `timing_log.dart`).
+boards' serial logs, logged on one laptop (method in that script's
+docstring).

@@ -1,0 +1,437 @@
+# 2026-10-22 12:20:07 logging /dev/serial/by-path/pci-0000:00:14.0-usb-0:6:1.0-port0
+12:20:07.626 ���p���p���p|������ppp|���p�p�pp�p�p|p���p���p���p|������ppp|���p�p�pp�p�p|p���p���p���p|������ppp|���p�p�pp�p�p|p���p���p���p|������ppp|���p�p�pp�p�p|p���p���p���p|������ppp|���p�p�pp�p�p|p���p���p���p|������ppp|���p�p�pp�p�p|p���p���p���p|������ppp|���p�p�pp�p�p|p���p���p���p|������ppp|���p�p�pp�p�p|p���p���p���p|������ppp|���p�p�pp�p�p|p���p���p���p|������ppp|���p�p�pp�p�p|p���p���p���p|������ppp|���p�p�pp�p�p|p���p���p���p|������ppp|���p�p�pp�p�p|p���p���p���p|������ppp|���p�p�pp�p�p|p���p���p���p|������ppp|���p�p�pp�p�p|p���p���p���p|������ppp|���p�p�pp�p�p|p���p���p���p|������ppp|���p�p�pp�p�p|p���p���p���p|������ppp|���p�p�pp�p�p|p���p���p���p|������ppp|���p�p�pp�p�p|p���p���p���p|������ppp|���p�p�pp�p�p|p���p���p���p|������ppp|���p�p�pp�p�p|p���p���p���p|������ppp|���p�p�pp�p�p|p���p���p���p|������ppp|���p�p�pp�p�p|p���p���p���p|������ppp|���p�p�pp�p�p|p���p���p���p|������ppp|���p�p�pp�p�p|p���p���p���p|������ppp|���p�p�pp�p�p|p���p���p���p|������ppp|���p�p�pp�p�p|p���p���p���p|������ppp|���p�p�pp�p�p|p���p���p���p|������ppp|���p�p�pp�p�p|p���p���p���p|������ppp|���p�p�pp�p�p|p���p���p���p|������ppp|���p�p�pp�p�p|p���p���p���p|������ppp|���p�p�pp�p�p|p���p���p���p|������ppp|���p�p�pp�p�p|p���p���p���p|������ppp|���p�p�pp�p�p|p���p���p���p|������ppp|���p�p�pp�p�p|p���p���p���p|������ppp|���p�p�pp�p�p|p���p���p���p|������ppp|���p�p�pp�p�p|p���p���p���p|������ppp|���p�p�pp�p�p|p���p���p���p|������ppp|���p�p�pp�p�p|p���p���p���p|������ppp|���p�p�pp�p�p|p���p���p���p|������ppp|���p�p�pp�p�p|p���p���p���p|������ppp|���p�p�pp�p�p|p���p���p���p|������ppp|���p�p�pp�p�p|p���p���p���p|������ppp|���p�p�pp�p�p|p���p���p���p|������ppp|���p�p�pp�p�p|p���p���p���p|������ppp|���p�p�pp�p�p|pets Jul 29 2019 12:21:46
+12:20:07.626 
+12:20:07.626 rst:ets Jul 29 2019 12:21:46
+12:20:07.626 
+12:20:07.626 rst:ets Jul 29 2019 12:21:46
+12:20:07.626 
+12:20:07.626 rst:ets Jul 29 2019 12:21:46
+12:20:07.626 
+12:20:07.626 rst:ets Jul 29 2019 12:21:46
+12:20:07.626 
+12:20:07.626 rst:ets Jul 29 2019 12:21:46
+12:20:07.626 
+12:20:07.626 rst:ets Jul 29 2019 12:21:46
+12:20:07.627 
+12:20:07.627 rst:ets Jul 29 2019 12:21:46
+12:20:07.627 
+12:20:07.627 rst:ets Jul 29 2019 12:21:46
+12:20:07.627 
+12:20:07.627 rst:ets Jul 29 2019 12:21:46
+12:20:07.627 
+12:20:07.627 rst:ets Jul 29 2019 12:21:46
+12:20:07.627 
+12:20:07.627 rst:ets Jul 29 2019 12:21:46
+12:20:07.627 
+12:20:07.627 rst:ets Jul 29 2019 12:21:46
+12:20:07.627 
+12:20:07.627 rst:ets Jul 29 2019 12:21:46
+12:20:07.627 
+12:20:07.627 rst:ets Jul 29 2019 12:21:46
+12:20:07.627 
+12:20:07.627 rst:ets Jul 29 2019 12:21:46
+12:20:07.627 
+12:20:07.627 rst:ets Jul 29 2019 12:21:46
+12:20:07.627 
+12:20:07.627 rst:ets Jul 29 2019 12:21:46
+12:20:07.627 
+12:20:07.627 rst:ets Jul 29 2019 12:21:46
+12:20:07.627 
+12:20:07.628 rst:ets Jul 29 2019 12:21:46
+12:20:07.628 
+12:20:07.628 rst:ets Jul 29 2019 12:21:46
+12:20:07.628 
+12:20:07.628 rst:ets Jul 29 2019 12:21:46
+12:20:07.628 
+12:20:07.628 rst:ets Jul 29 2019 12:21:46
+12:20:07.628 
+12:20:07.628 rst:ets Jul 29 2019 12:21:46
+12:20:07.628 
+12:20:07.628 rst:ets Jul 29 2019 12:21:46
+12:20:07.628 
+12:20:07.628 rst:ets Jul 29 2019 12:21:46
+12:20:07.628 
+12:20:07.628 rst:ets Jul 29 2019 12:21:46
+12:20:07.628 
+12:20:07.628 rst:ets Jul 29 2019 12:21:46
+12:20:07.628 
+12:20:07.628 rst:ets Jul 29 2019 12:21:46
+12:20:07.629 
+12:20:07.629 rst:ets Jul 29 2019 12:21:46
+12:20:07.629 
+12:20:07.629 rst:ets Jul 29 2019 12:21:46
+12:20:07.629 
+12:20:07.631 rst:0x1 (POWERON_RESET),boot:0x13 (S0x1 (POWERON_RESET),boot:0x13 (S0x1 (POWERON_RESET),boot:0x13 (S0x1 (POWERON_RESET),boot:0x13 (S0x1 (POWERON_RESET),boot:0x13 (S0x1 (POWERON_RESET),boot:0x13 (S0x1 (POWERON_RESET),boot:0x13 (S0x1 (POWERON_RESET),boot:0x13 (S0x1 (POWERON_RESET),boot:0x13 (S0x1 (POWERON_RESET),boot:0x13 (S0x1 (POWERON_RESET),boot:0x13 (S0x1 (POWERON_RESET),boot:0x13 (S0x1 (POWERON_RESET),boot:0x13 (S0x1 (POWERON_RESET),boot:0x13 (S0x1 (POWERON_RESET),boot:0x13 (S0x1 (POWERON_RESET),boot:0x13 (S0x1 (POWERON_RESET),boot:0x13 (S0x1 (POWERON_RESET),boot:0x13 (S0x1 (POWERON_RESET),boot:0x13 (S0x1 (POWERON_RESET),boot:0x13 (S0x1 (POWERON_RESET),boot:0x13 (S0x1 (POWERON_RESET),boot:0x13 (S0x1 (POWERON_RESET),boot:0x13 (S0x1 (POWERON_RESET),boot:0x13 (S0x1 (POWERON_RESET),boot:0x13 (S0x1 (POWERON_RESET),boot:0x13 (S0x1 (POWERON_RESET),boot:0x13 (S0x1 (POWERON_RESET),boot:0x13 (S0x1 (POWERON_RESET),boot:0x13 (S0x1 (POWERON_RESET),boot:0x13 (S0x1 (POWERON_RESET),boot:0x13 (S0x1 (POWERON_RESET),boot:0x13 (S0x1 (POWERON_RESET),boot:0x13 (S0x1 (POWERON_RESET),boot:0x13 (S0x1 (POWERON_RESET),boot:0x13 (S0x1 (POWERON_RESET),boot:0x13 (S0x1 (POWERON_RESET),boot:0x13 (S0x1 (POWERON_RESET),boot:0x13 (S0x1 (POWERON_RESET),boot:0x13 (S0x1 (POWERON_RESET),boot:0x13 (S0x1 (POWERON_RESET),boot:0x13 (S0x1 (POWERON_RESET),boot:0x13 (S0x1 (POWERON_RESET),boot:0x13 (S0x1 (POWERON_RESET),boot:0x13 (S0x1 (POWERON_RESET),boot:0x13 (S0x1 (POWERON_RESET),boot:0x13 (S0x1 (POWERON_RESET),boot:0x13 (S0x1 (POWERON_RESET),boot:0x13 (S0x1 (POWERON_RESET),boot:0x13 (S0x1 (POWERON_RESET),boot:0x13 (S0x1 (POWERON_RESET),boot:0x13 (S0x1 (POWERON_RESET)
+12:20:07.634 configsip: 0, SPIWP:0xee
+12:20:07.640 clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+12:20:07.643 mode:DIO, clock div:2
+12:20:07.646 load:0x3fff0030,len:1184
+12:20:07.649 load:0x40078000,len:13232
+12:20:07.649 load:0x40080400,len:3028
+12:20:07.650 entry 0x400805e4
+12:20:08.170 
+12:20:08.173 [boot] SmartInsole simulator fw 0.1, side L, fsr_count 6
+12:20:08.456 [cal] offsets loaded from NVS
+12:20:08.459 [cal] 381 bytes, offset_adc 18 19 18 18 18 18
+12:20:08.475 [ble] advertising as SMARTINSOLE-L, fsr_count 6, up to 3 centrals
+12:20:18.456 [sess] 0 connected, battery 100%, notify failures 0, heap 218556
+12:20:28.455 [sess] 0 connected, battery 100%, notify failures 0, heap 218556
+12:20:38.455 [sess] 0 connected, battery 100%, notify failures 0, heap 218556
+12:20:48.455 [sess] 0 connected, battery 100%, notify failures 0, heap 218556
+12:20:58.454 [sess] 0 connected, battery 100%, notify failures 0, heap 218556
+12:21:08.454 [sess] 0 connected, battery 100%, notify failures 0, heap 218556
+12:21:18.453 [sess] 0 connected, battery 100%, notify failures 0, heap 218556
+12:21:28.453 [sess] 0 connected, battery 100%, notify failures 0, heap 218556
+12:21:38.453 [sess] 0 connected, battery 100%, notify failures 0, heap 218556
+12:21:48.453 [sess] 0 connected, battery 100%, notify failures 0, heap 218556
+12:21:58.452 [sess] 0 connected, battery 100%, notify failures 0, heap 218556
+12:22:08.452 [sess] 0 connected, battery 100%, notify failures 0, heap 218556
+12:22:18.451 [sess] 0 connected, battery 100%, notify failures 0, heap 218556
+12:22:28.451 [sess] 0 connected, battery 100%, notify failures 0, heap 218556
+12:22:38.451 [sess] 0 connected, battery 100%, notify failures 0, heap 218556
+12:22:48.451 [sess] 0 connected, battery 100%, notify failures 0, heap 218556
+12:22:58.450 [sess] 0 connected, battery 100%, notify failures 0, heap 218556
+12:23:08.450 [sess] 0 connected, battery 100%, notify failures 0, heap 218556
+12:23:18.449 [sess] 0 connected, battery 100%, notify failures 0, heap 218556
+12:23:28.449 [sess] 0 connected, battery 100%, notify failures 0, heap 218556
+12:23:38.449 [sess] 0 connected, battery 100%, notify failures 0, heap 218556
+12:23:48.448 [sess] 0 connected, battery 100%, notify failures 0, heap 218556
+12:23:58.448 [sess] 0 connected, battery 100%, notify failures 0, heap 218556
+12:24:08.448 [sess] 0 connected, battery 100%, notify failures 0, heap 218556
+12:24:18.447 [sess] 0 connected, battery 100%, notify failures 0, heap 218556
+12:24:28.447 [sess] 0 connected, battery 100%, notify failures 0, heap 218556
+12:24:38.447 [sess] 0 connected, battery 100%, notify failures 0, heap 218556
+12:24:48.447 [sess] 0 connected, battery 100%, notify failures 0, heap 218556
+12:24:58.446 [sess] 0 connected, battery 100%, notify failures 0, heap 218556
+12:25:08.446 [sess] 0 connected, battery 100%, notify failures 0, heap 218556
+12:25:18.446 [sess] 0 connected, battery 100%, notify failures 0, heap 218556
+12:25:28.445 [sess] 0 connected, battery 100%, notify failures 0, heap 218556
+12:25:38.445 [sess] 0 connected, battery 100%, notify failures 0, heap 218556
+12:25:48.444 [sess] 0 connected, battery 100%, notify failures 0, heap 218556
+12:25:58.444 [sess] 0 connected, battery 100%, notify failures 0, heap 218556
+12:26:08.444 [sess] 0 connected, battery 99%, notify failures 0, heap 218556
+12:26:18.443 [sess] 0 connected, battery 99%, notify failures 0, heap 218556
+12:26:28.443 [sess] 0 connected, battery 99%, notify failures 0, heap 218556
+12:26:38.443 [sess] 0 connected, battery 99%, notify failures 0, heap 218556
+12:26:48.443 [sess] 0 connected, battery 99%, notify failures 0, heap 218556
+12:26:58.442 [sess] 0 connected, battery 99%, notify failures 0, heap 218556
+12:27:08.442 [sess] 0 connected, battery 99%, notify failures 0, heap 218556
+12:27:18.442 [sess] 0 connected, battery 99%, notify failures 0, heap 218556
+12:27:28.441 [sess] 0 connected, battery 99%, notify failures 0, heap 218556
+12:27:38.441 [sess] 0 connected, battery 99%, notify failures 0, heap 218556
+12:27:48.440 [sess] 0 connected, battery 99%, notify failures 0, heap 218556
+12:27:58.440 [sess] 0 connected, battery 99%, notify failures 0, heap 218556
+12:28:08.440 [sess] 0 connected, battery 99%, notify failures 0, heap 218556
+12:28:18.440 ���������������������������������������������������������������� notify failures 0, heap 218556
+12:28:28.439 [sess] 0 connected, battery 99%, notify failures 0, heap 218556
+12:28:38.439 [sess] 0 connected, battery 99%, notify failures 0, heap 218556
+12:28:48.439 [sess] 0 connected, battery 99%, notify failures 0, heap 218556
+12:28:58.438 [sess] 0 connected, battery 99%, notify failures 0, heap 218556
+12:29:08.438 [sess] 0 connected, battery 99%, notify failures 0, heap 218556
+12:29:18.438 ���������������������������������������������������������������� notify failures 0, heap 218556
+12:29:28.437 [sess] 0 connected, battery 99%, notify failures 0, heap 218556
+12:29:38.437 [sess] 0 connected, battery 99%, notify failures 0, heap 218556
+12:29:48.436 [sess] 0 connected, battery 99%, notify failures 0, heap 218556
+12:29:58.436 [sess] 0 connected, battery 99%, notify failures 0, heap 218556
+12:30:08.436 [sess] 0 connected, battery 99%, notify failures 0, heap 218556
+12:30:18.436 [sess] 0 connected, battery 99%, notify failures 0, heap 218556
+12:30:28.435 [sess] 0 connected, battery 99%, notify failures 0, heap 218556
+12:30:38.435 [sess] 0 connected, battery 99%, notify failures 0, heap 218556
+12:30:48.434 [sess] 0 connected, battery 99%, notify failures 0, heap 218556
+12:30:58.434 [sess] 0 connected, battery 99%, notify failures 0, heap 218556
+12:31:08.434 [sess] 0 connected, battery 99%, notify failures 0, heap 218556
+12:31:18.434 [sess] 0 connected, battery 99%, notify failures 0, heap 218556
+12:31:28.433 [sess] 0 connected, battery 99%, notify failures 0, heap 218556
+12:31:38.433 [sess] 0 connected, battery 99%, notify failures 0, heap 218556
+12:31:48.432 [sess] 0 connected, battery 99%, notify failures 0, heap 218556
+12:31:58.432 [sess] 0 connected, battery 99%, notify failures 0, heap 218556
+12:32:08.432 [sess] 0 connected, battery 98%, notify failures 0, heap 218556
+12:32:18.431 [sess] 0 connected, battery 98%, notify failures 0, heap 218556
+12:32:28.431 [sess] 0 connected, battery 98%, notify failures 0, heap 218556
+12:32:38.431 [sess] 0 connected, battery 98%, notify failures 0, heap 218556
+12:32:48.430 [sess] 0 connected, battery 98%, notify failures 0, heap 218556
+12:32:58.430 [sess] 0 connected, battery 98%, notify failures 0, heap 218556
+12:33:08.430 [sess] 0 connected, battery 98%, notify failures 0, heap 218556
+12:33:18.429 [sess] 0 connected, battery 98%, notify failures 0, heap 218556
+12:33:28.429 [sess] 0 connected, battery 98%, notify failures 0, heap 218556
+12:33:38.429 [sess] 0 connected, battery 98%, notify failures 0, heap 218556
+12:33:48.429 [sess] 0 connected, battery 98%, notify failures 0, heap 218556
+12:33:58.428 [sess] 0 connected, battery 98%, notify failures 0, heap 218556
+12:34:08.428 [sess] 0 connected, battery 98%, notify failures 0, heap 218556
+12:34:18.427 [sess] 0 connected, battery 98%, notify failures 0, heap 218556
+12:34:28.427 [sess] 0 connected, battery 98%, notify failures 0, heap 218556
+12:34:38.427 [sess] 0 connected, battery 98%, notify failures 0, heap 218556
+12:34:48.427 [sess] 0 connected, battery 98%, notify failures 0, heap 218556
+12:34:51.994 [ble] conn 0: connected 60:c4:fb:39:cc:eb, mtu 23, 1 connected
+12:34:52.169 [ble] conn 0: interval 45.00 ms, latency 0, timeout 5000 ms
+12:34:52.483 [ble] conn 0: interval 7.50 ms, latency 0, timeout 5000 ms
+12:34:52.804 [ble] conn 0: mtu 247 -> 8 samples/packet
+12:34:52.888 [ble] conn 0: interval 45.00 ms, latency 0, timeout 5000 ms
+12:34:53.093 [ble] conn 0: f0a5c000-9b4d-4e8a-a3c1-72d6e1b45903 notifications on
+12:34:53.183 [ble] conn 0: f0a5c000-9b4d-4e8a-a3c1-72d6e1b45901 notifications on
+12:34:53.273 [ble] conn 0: f0a5c000-9b4d-4e8a-a3c1-72d6e1b45902 notifications on
+12:34:53.362 [ble] conn 0: interval 11.25 ms, latency 0, timeout 5000 ms
+12:34:53.368 [ctl] conn 0: SYNC_TIME unix 1792647293378 ms at device 885474 ms
+12:34:53.494 [ctl] conn 0: START_STREAM
+12:34:58.429 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 30 mtu-drops 0 synced
+12:34:58.434 [sess] 1 connected, battery 98%, notify failures 0, heap 218292
+12:35:08.429 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 93 mtu-drops 0 synced
+12:35:08.433 [sess] 1 connected, battery 98%, notify failures 0, heap 218292
+12:35:18.428 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 155 mtu-drops 0 synced
+12:35:18.433 [sess] 1 connected, battery 98%, notify failures 0, heap 218292
+12:35:23.400 [ctl] conn 0: SYNC_TIME unix 1792647323419 ms at device 915512 ms
+12:35:28.430 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 218 mtu-drops 0 synced
+12:35:28.432 [sess] 1 connected, battery 98%, notify failures 0, heap 218292
+12:35:33.379 [ctl] conn 0: SYNC_TIME unix 1792647333417 ms at device 925491 ms
+12:35:38.428 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 280 mtu-drops 0 synced
+12:35:38.432 [sess] 1 connected, battery 98%, notify failures 0, heap 218292
+12:35:43.381 [ctl] conn 0: SYNC_TIME unix 1792647343417 ms at device 935493 ms
+12:35:48.427 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 343 mtu-drops 0 synced
+12:35:48.432 [sess] 1 connected, battery 98%, notify failures 0, heap 218292
+12:35:53.383 [ctl] conn 0: SYNC_TIME unix 1792647353417 ms at device 945495 ms
+12:35:58.427 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 405 mtu-drops 0 synced
+12:35:58.432 [sess] 1 connected, battery 98%, notify failures 0, heap 218292
+12:36:03.384 [ctl] conn 0: SYNC_TIME unix 1792647363417 ms at device 955497 ms
+12:36:08.427 ����������������������������������������������������������������reaming sub[s1 t1 st1] sent 468 mtu-drops 0 synced
+12:36:08.431 [sess] 1 connected, battery 98%, notify failures 0, heap 218292
+12:36:13.386 [ctl] conn 0: SYNC_TIME unix 1792647373418 ms at device 965499 ms
+12:36:18.426 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 530 mtu-drops 0 synced
+12:36:18.431 [sess] 1 connected, battery 98%, notify failures 0, heap 218292
+12:36:23.388 [ctl] conn 0: SYNC_TIME unix 1792647383417 ms at device 975501 ms
+12:36:28.426 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 593 mtu-drops 0 synced
+12:36:28.431 [sess] 1 connected, battery 98%, notify failures 0, heap 218292
+12:36:33.378 [ctl] conn 0: SYNC_TIME unix 1792647393417 ms at device 985492 ms
+12:36:38.426 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 655 mtu-drops 0 synced
+12:36:38.430 [sess] 1 connected, battery 98%, notify failures 0, heap 218292
+12:36:43.379 [ctl] conn 0: SYNC_TIME unix 1792647403418 ms at device 995494 ms
+12:36:48.425 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 718 mtu-drops 0 synced
+12:36:48.430 [sess] 1 connected, battery 98%, notify failures 0, heap 218292
+12:36:53.381 [ctl] conn 0: SYNC_TIME unix 1792647413417 ms at device 1005496 ms
+12:36:58.425 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 780 mtu-drops 0 synced
+12:36:58.430 [sess] 1 connected, battery 98%, notify failures 0, heap 218292
+12:37:03.383 [ctl] conn 0: SYNC_TIME unix 1792647423417 ms at device 1015498 ms
+12:37:08.425 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 843 mtu-drops 0 synced
+12:37:08.430 [sess] 1 connected, battery 98%, notify failures 0, heap 218292
+12:37:13.384 [ctl] conn 0: SYNC_TIME unix 1792647433418 ms at device 1025499 ms
+12:37:18.425 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 905 mtu-drops 0 synced
+12:37:18.429 [sess] 1 connected, battery 98%, notify failures 0, heap 218292
+12:37:23.386 [ctl] conn 0: SYNC_TIME unix 1792647443417 ms at device 1035501 ms
+12:37:28.424 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 968 mtu-drops 0 synced
+12:37:28.429 [sess] 1 connected, battery 98%, notify failures 0, heap 218292
+12:37:33.376 [ctl] conn 0: SYNC_TIME unix 1792647453417 ms at device 1045492 ms
+12:37:38.424 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 1030 mtu-drops 0 synced
+12:37:38.429 [sess] 1 connected, battery 98%, notify failures 0, heap 218292
+12:37:43.389 [ctl] conn 0: SYNC_TIME unix 1792647463417 ms at device 1055505 ms
+12:37:48.424 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 1093 mtu-drops 0 synced
+12:37:48.428 [sess] 1 connected, battery 98%, notify failures 0, heap 218292
+12:37:53.379 [ctl] conn 0: SYNC_TIME unix 1792647473417 ms at device 1065496 ms
+12:37:58.423 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 1155 mtu-drops 0 synced
+12:37:58.428 [sess] 1 connected, battery 98%, notify failures 0, heap 218292
+12:38:03.381 [ctl] conn 0: SYNC_TIME unix 1792647483418 ms at device 1075498 ms
+12:38:08.424 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 1218 mtu-drops 0 synced
+12:38:08.429 [sess] 1 connected, battery 97%, notify failures 0, heap 218292
+12:38:13.382 [ctl] conn 0: SYNC_TIME unix 1792647493417 ms at device 1085500 ms
+12:38:18.423 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 1280 mtu-drops 0 synced
+12:38:18.427 [sess] 1 connected, battery 97%, notify failures 0, heap 218292
+12:38:23.384 [ctl] conn 0: SYNC_TIME unix 1792647503417 ms at device 1095502 ms
+12:38:28.422 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 1343 mtu-drops 0 synced
+12:38:28.427 [sess] 1 connected, battery 97%, notify failures 0, heap 218292
+12:38:33.386 [ctl] conn 0: SYNC_TIME unix 1792647513417 ms at device 1105504 ms
+12:38:38.422 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 1405 mtu-drops 0 synced
+12:38:38.427 [sess] 1 connected, battery 97%, notify failures 0, heap 218292
+12:38:43.387 [ctl] conn 0: SYNC_TIME unix 1792647523417 ms at device 1115505 ms
+12:38:48.421 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 1468 mtu-drops 0 synced
+12:38:48.426 [sess] 1 connected, battery 97%, notify failures 0, heap 218292
+12:38:53.389 [ctl] conn 0: SYNC_TIME unix 1792647533417 ms at device 1125507 ms
+12:38:58.421 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 1530 mtu-drops 0 synced
+12:38:58.426 [sess] 1 connected, battery 97%, notify failures 0, heap 218292
+12:39:03.379 [ctl] conn 0: SYNC_TIME unix 1792647543416 ms at device 1135498 ms
+12:39:08.421 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 1593 mtu-drops 0 synced
+12:39:08.425 [sess] 1 connected, battery 97%, notify failures 0, heap 218292
+12:39:13.392 [ctl] conn 0: SYNC_TIME unix 1792647553417 ms at device 1145511 ms
+12:39:18.420 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 1655 mtu-drops 0 synced
+12:39:18.425 [sess] 1 connected, battery 97%, notify failures 0, heap 218292
+12:39:23.382 [ctl] conn 0: SYNC_TIME unix 1792647563417 ms at device 1155502 ms
+12:39:28.420 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 1718 mtu-drops 0 synced
+12:39:28.425 [sess] 1 connected, battery 97%, notify failures 0, heap 218292
+12:39:33.384 [ctl] conn 0: SYNC_TIME unix 1792647573417 ms at device 1165504 ms
+12:39:38.420 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 1780 mtu-drops 0 synced
+12:39:38.424 [sess] 1 connected, battery 97%, notify failures 0, heap 218292
+12:39:43.386 [ctl] conn 0: SYNC_TIME unix 1792647583416 ms at device 1175506 ms
+12:39:48.419 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 1843 mtu-drops 0 synced
+12:39:48.424 [sess] 1 connected, battery 97%, notify failures 0, heap 218292
+12:39:53.376 [ctl] conn 0: SYNC_TIME unix 1792647593417 ms at device 1185497 ms
+12:39:58.419 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 1905 mtu-drops 0 synced
+12:39:58.424 [sess] 1 connected, battery 97%, notify failures 0, heap 218292
+12:40:03.378 [ctl] conn 0: SYNC_TIME unix 1792647603417 ms at device 1195499 ms
+12:40:08.419 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 1968 mtu-drops 0 synced
+12:40:08.424 [sess] 1 connected, battery 97%, notify failures 0, heap 218292
+12:40:13.391 [ctl] conn 0: SYNC_TIME unix 1792647613417 ms at device 1205512 ms
+12:40:18.418 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 2030 mtu-drops 0 synced
+12:40:18.423 [sess] 1 connected, battery 97%, notify failures 0, heap 218292
+12:40:23.381 [ctl] conn 0: SYNC_TIME unix 1792647623417 ms at device 1215503 ms
+12:40:28.418 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 2093 mtu-drops 0 synced
+12:40:28.423 [sess] 1 connected, battery 97%, notify failures 0, heap 218292
+12:40:33.383 [ctl] conn 0: SYNC_TIME unix 1792647633417 ms at device 1225505 ms
+12:40:38.418 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 2155 mtu-drops 0 synced
+12:40:38.423 [sess] 1 connected, battery 97%, notify failures 0, heap 218292
+12:40:43.384 [ctl] conn 0: SYNC_TIME unix 1792647643417 ms at device 1235506 ms
+12:40:48.417 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 2218 mtu-drops 0 synced
+12:40:48.422 [sess] 1 connected, battery 97%, notify failures 0, heap 218292
+12:40:53.374 [ctl] conn 0: SYNC_TIME unix 1792647653417 ms at device 1245497 ms
+12:40:58.417 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 2280 mtu-drops 0 synced
+12:40:58.422 [sess] 1 connected, battery 97%, notify failures 0, heap 218292
+12:41:03.376 [ctl] conn 0: SYNC_TIME unix 1792647663416 ms at device 1255499 ms
+12:41:08.417 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 2343 mtu-drops 0 synced
+12:41:08.421 [sess] 1 connected, battery 97%, notify failures 0, heap 218292
+12:41:13.377 [ctl] conn 0: SYNC_TIME unix 1792647673417 ms at device 1265501 ms
+12:41:18.416 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 2405 mtu-drops 0 synced
+12:41:18.421 [sess] 1 connected, battery 97%, notify failures 0, heap 218292
+12:41:23.390 [ctl] conn 0: SYNC_TIME unix 1792647683418 ms at device 1275514 ms
+12:41:28.416 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 2468 mtu-drops 0 synced
+12:41:28.421 [sess] 1 connected, battery 97%, notify failures 0, heap 218292
+12:41:33.381 [ctl] conn 0: SYNC_TIME unix 1792647693417 ms at device 1285505 ms
+12:41:38.416 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 2530 mtu-drops 0 synced
+12:41:38.420 [sess] 1 connected, battery 97%, notify failures 0, heap 218292
+12:41:43.382 [ctl] conn 0: SYNC_TIME unix 1792647703416 ms at device 1295507 ms
+12:41:48.415 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 2593 mtu-drops 0 synced
+12:41:48.420 [sess] 1 connected, battery 97%, notify failures 0, heap 218292
+12:41:53.384 [ctl] conn 0: SYNC_TIME unix 1792647713417 ms at device 1305509 ms
+12:41:58.415 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 2655 mtu-drops 0 synced
+12:41:58.420 [sess] 1 connected, battery 97%, notify failures 0, heap 218292
+12:42:03.374 [ctl] conn 0: SYNC_TIME unix 1792647723417 ms at device 1315499 ms
+12:42:08.415 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 2718 mtu-drops 0 synced
+12:42:08.420 [sess] 1 connected, battery 97%, notify failures 0, heap 218292
+12:42:13.387 [ctl] conn 0: SYNC_TIME unix 1792647733418 ms at device 1325513 ms
+12:42:18.414 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 2780 mtu-drops 0 synced
+12:42:18.419 [sess] 1 connected, battery 97%, notify failures 0, heap 218292
+12:42:23.378 [ctl] conn 0: SYNC_TIME unix 1792647743417 ms at device 1335503 ms
+12:42:28.414 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 2843 mtu-drops 0 synced
+12:42:28.419 [sess] 1 connected, battery 97%, notify failures 0, heap 218292
+12:42:33.379 [ctl] conn 0: SYNC_TIME unix 1792647753418 ms at device 1345505 ms
+12:42:38.414 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 2905 mtu-drops 0 synced
+12:42:38.418 [sess] 1 connected, battery 97%, notify failures 0, heap 218292
+12:42:43.381 [ctl] conn 0: SYNC_TIME unix 1792647763417 ms at device 1355507 ms
+12:42:48.414 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 2968 mtu-drops 0 synced
+12:42:48.418 [sess] 1 connected, battery 97%, notify failures 0, heap 218292
+12:42:53.393 [ctl] conn 0: SYNC_TIME unix 1792647773417 ms at device 1365520 ms
+12:42:58.413 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 3030 mtu-drops 0 synced
+12:42:58.418 [sess] 1 connected, battery 97%, notify failures 0, heap 218292
+12:43:03.384 [ctl] conn 0: SYNC_TIME unix 1792647783418 ms at device 1375511 ms
+12:43:08.414 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 3093 mtu-drops 0 synced
+12:43:08.417 [sess] 1 connected, battery 97%, notify failures 0, heap 218292
+12:43:13.385 [ctl] conn 0: SYNC_TIME unix 1792647793417 ms at device 1385513 ms
+12:43:18.412 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 3155 mtu-drops 0 synced
+12:43:18.417 [sess] 1 connected, battery 97%, notify failures 0, heap 218292
+12:43:23.387 [ctl] conn 0: SYNC_TIME unix 1792647803418 ms at device 1395515 ms
+12:43:28.412 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 3218 mtu-drops 0 synced
+12:43:28.417 [sess] 1 connected, battery 97%, notify failures 0, heap 218292
+12:43:33.377 [ctl] conn 0: SYNC_TIME unix 1792647813417 ms at device 1405505 ms
+12:43:38.412 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 3280 mtu-drops 0 synced
+12:43:38.417 [sess] 1 connected, battery 97%, notify failures 0, heap 218292
+12:43:43.391 [ctl] conn 0: SYNC_TIME unix 1792647823417 ms at device 1415519 ms
+12:43:48.412 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 3343 mtu-drops 0 synced
+12:43:48.416 [sess] 1 connected, battery 97%, notify failures 0, heap 218292
+12:43:53.381 [ctl] conn 0: SYNC_TIME unix 1792647833417 ms at device 1425509 ms
+12:43:58.411 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 3405 mtu-drops 0 synced
+12:43:58.416 [sess] 1 connected, battery 97%, notify failures 0, heap 218292
+12:44:03.382 [ctl] conn 0: SYNC_TIME unix 1792647843417 ms at device 1435511 ms
+12:44:08.411 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 3468 mtu-drops 0 synced
+12:44:08.416 [sess] 1 connected, battery 96%, notify failures 0, heap 218292
+12:44:13.384 [ctl] conn 0: SYNC_TIME unix 1792647853419 ms at device 1445513 ms
+12:44:18.411 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 3530 mtu-drops 0 synced
+12:44:18.415 [sess] 1 connected, battery 96%, notify failures 0, heap 218292
+12:44:23.386 [ctl] conn 0: SYNC_TIME unix 1792647863418 ms at device 1455515 ms
+12:44:28.410 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 3593 mtu-drops 0 synced
+12:44:28.415 [sess] 1 connected, battery 96%, notify failures 0, heap 218292
+12:44:33.376 [ctl] conn 0: SYNC_TIME unix 1792647873417 ms at device 1465506 ms
+12:44:38.410 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 3655 mtu-drops 0 synced
+12:44:38.414 [sess] 1 connected, battery 96%, notify failures 0, heap 218292
+12:44:43.377 [ctl] conn 0: SYNC_TIME unix 1792647883418 ms at device 1475507 ms
+12:44:48.410 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 3718 mtu-drops 0 synced
+12:44:48.414 [sess] 1 connected, battery 96%, notify failures 0, heap 218292
+12:44:53.379 [ctl] conn 0: SYNC_TIME unix 1792647893418 ms at device 1485510 ms
+12:44:58.409 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 3780 mtu-drops 0 synced
+12:44:58.414 [sess] 1 connected, battery 96%, notify failures 0, heap 218292
+12:45:03.380 [ctl] conn 0: SYNC_TIME unix 1792647903418 ms at device 1495511 ms
+12:45:08.409 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 3843 mtu-drops 0 synced
+12:45:08.413 [sess] 1 connected, battery 96%, notify failures 0, heap 218292
+12:45:13.382 [ctl] conn 0: SYNC_TIME unix 1792647913417 ms at device 1505513 ms
+12:45:18.408 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 3905 mtu-drops 0 synced
+12:45:18.413 [sess] 1 connected, battery 96%, notify failures 0, heap 218292
+12:45:23.384 [ctl] conn 0: SYNC_TIME unix 1792647923418 ms at device 1515515 ms
+12:45:28.408 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 3968 mtu-drops 0 synced
+12:45:28.413 [sess] 1 connected, battery 96%, notify failures 0, heap 218292
+12:45:33.374 [ctl] conn 0: SYNC_TIME unix 1792647933417 ms at device 1525506 ms
+12:45:38.408 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 4030 mtu-drops 0 synced
+12:45:38.412 [sess] 1 connected, battery 96%, notify failures 0, heap 218292
+12:45:43.376 [ctl] conn 0: SYNC_TIME unix 1792647943417 ms at device 1535508 ms
+12:45:48.408 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 4093 mtu-drops 0 synced
+12:45:48.413 [sess] 1 connected, battery 96%, notify failures 0, heap 218292
+12:45:58.407 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 4155 mtu-drops 0 synced
+12:45:58.412 [sess] 1 connected, battery 96%, notify failures 0, heap 218292
+12:46:08.407 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 4218 mtu-drops 0 synced
+12:46:08.412 [sess] 1 connected, battery 96%, notify failures 0, heap 218292
+12:46:18.407 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 4280 mtu-drops 0 synced
+12:46:18.411 [sess] 1 connected, battery 96%, notify failures 0, heap 218292
+12:46:28.406 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 4343 mtu-drops 0 synced
+12:46:28.411 [sess] 1 connected, battery 96%, notify failures 0, heap 218292
+12:46:38.406 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 4405 mtu-drops 0 synced
+12:46:38.411 [sess] 1 connected, battery 96%, notify failures 0, heap 218292
+12:46:48.405 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 4468 mtu-drops 0 synced
+12:46:48.410 [sess] 1 connected, battery 96%, notify failures 0, heap 218292
+12:46:58.405 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 4530 mtu-drops 0 synced
+12:46:58.410 [sess] 1 connected, battery 96%, notify failures 0, heap 218292
+12:47:08.405 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 4593 mtu-drops 0 synced
+12:47:08.410 [sess] 1 connected, battery 96%, notify failures 0, heap 218292
+12:47:18.404 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 4655 mtu-drops 0 synced
+12:47:18.409 [sess] 1 connected, battery 96%, notify failures 0, heap 218292
+12:47:28.404 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 4718 mtu-drops 0 synced
+12:47:28.409 [sess] 1 connected, battery 96%, notify failures 0, heap 218292
+12:47:38.404 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 4780 mtu-drops 0 synced
+12:47:38.408 [sess] 1 connected, battery 96%, notify failures 0, heap 218292
+12:47:48.404 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 4843 mtu-drops 0 synced
+12:47:48.409 [sess] 1 connected, battery 96%, notify failures 0, heap 218292
+12:47:58.403 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 4905 mtu-drops 0 synced
+12:47:58.408 [sess] 1 connected, battery 96%, notify failures 0, heap 218292
+12:48:08.403 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 4968 mtu-drops 0 synced
+12:48:08.408 [sess] 1 connected, battery 96%, notify failures 0, heap 218292
+12:48:18.403 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 5030 mtu-drops 0 synced
+12:48:18.407 [sess] 1 connected, battery 96%, notify failures 0, heap 218292
+12:48:28.402 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 5093 mtu-drops 0 synced
+12:48:28.407 [sess] 1 connected, battery 96%, notify failures 0, heap 218292
+12:48:38.402 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 5155 mtu-drops 0 synced
+12:48:38.407 [sess] 1 connected, battery 96%, notify failures 0, heap 218292
+12:48:48.401 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 5218 mtu-drops 0 synced
+12:48:48.406 [sess] 1 connected, battery 96%, notify failures 0, heap 218292
+12:48:58.401 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 5280 mtu-drops 0 synced
+12:48:58.406 [sess] 1 connected, battery 96%, notify failures 0, heap 218292
+12:49:08.401 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 5343 mtu-drops 0 synced
+12:49:08.406 [sess] 1 connected, battery 96%, notify failures 0, heap 218292
+12:49:18.401 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 5405 mtu-drops 0 synced
+12:49:18.405 [sess] 1 connected, battery 96%, notify failures 0, heap 218292
+12:49:28.400 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 5468 mtu-drops 0 synced
+12:49:28.405 [sess] 1 connected, battery 96%, notify failures 0, heap 218292
+12:49:38.402 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 5530 mtu-drops 0 synced
+12:49:38.405 [sess] 1 connected, battery 96%, notify failures 0, heap 218292
+12:49:48.400 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 5593 mtu-drops 0 synced
+12:49:48.404 [sess] 1 connected, battery 96%, notify failures 0, heap 218292
+12:49:58.399 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 5655 mtu-drops 0 synced
+12:49:58.404 [sess] 1 connected, battery 96%, notify failures 0, heap 218292
+12:50:08.400 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 5718 mtu-drops 0 synced
+12:50:08.405 [sess] 1 connected, battery 95%, notify failures 0, heap 218292
+12:50:18.399 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 5780 mtu-drops 0 synced
+12:50:18.403 [sess] 1 connected, battery 95%, notify failures 0, heap 218292
+12:50:28.398 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 5843 mtu-drops 0 synced
+12:50:28.403 [sess] 1 connected, battery 95%, notify failures 0, heap 218292
+12:50:38.398 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 5905 mtu-drops 0 synced
+12:50:38.403 [sess] 1 connected, battery 95%, notify failures 0, heap 218292
+12:50:47.492 [ctl] conn 0: SYNC_TIME unix 1792648247528 ms at device 1839634 ms
+12:50:48.397 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 5968 mtu-drops 0 synced
+12:50:48.402 [sess] 1 connected, battery 95%, notify failures 0, heap 218292
+12:50:58.397 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 6030 mtu-drops 0 synced
+12:50:58.402 [sess] 1 connected, battery 95%, notify failures 0, heap 218292
+12:51:08.397 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 6093 mtu-drops 0 synced
+12:51:08.402 [sess] 1 connected, battery 95%, notify failures 0, heap 218292
+12:51:18.397 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 6155 mtu-drops 0 synced
+12:51:18.401 [sess] 1 connected, battery 95%, notify failures 0, heap 218292

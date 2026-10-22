@@ -706,6 +706,13 @@ timing check plus `firmware/simulator/tools/timing_check.py` bound each
 foot's clock error from the `SYNC_TIME` the board logs (report 026). The
 result comes from the S4 Note 10 checkpoint.
 
+**Measured at the S4 Note 10 checkpoint (2026-10-22):**
+- L/R alignment was within ±3.4 ms (±3 ms uncertainty) over 10.6 min.
+  This used the laptop-clock method, adopted after the run.
+- The `SYNC_TIME` write took 29–139 ms to complete on the Note 10, so the
+  originally planned write-latency bound couldn't get below 23 ms (left)
+  and 51 ms (right).
+
 ## 26. Android ≤ 11 location permission and the `permission_handler` pin **(found in S3A)**
 
 - The manifest declares `ACCESS_FINE_LOCATION` (maxSdk 30) for BLE scanning

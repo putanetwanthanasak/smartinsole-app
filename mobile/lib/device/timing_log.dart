@@ -9,17 +9,16 @@ import 'device_manager.dart';
 /// The S4 timing check (debug screen): a text log of both feet's clock and
 /// continuity figures, for `firmware/simulator/tools/timing_check.py`.
 ///
-/// **How it proves L/R ≤ ±10 ms without a shared clock.** For one foot,
-/// the app's offset is `A = θ + n`: θ is the true offset between the
-/// board's clock and the phone's, n ≥ 0 the least notification latency
-/// the minimum filter found. Each `SYNC_TIME` the app writes carries the
-/// phone time `U`; the simulator logs the device time `D` it handled it at
-/// (`[ctl] … SYNC_TIME unix U ms at device D ms`). With w ≥ 0 the write's
-/// latency, `U − D = θ − w`, so `B = A − (U − D) = n + w ≥ n`. The L/R
-/// alignment error is `n_L − n_R`, which lies in `[−B_R, B_L]`: if both
-/// feet's B are ≤ 10 ms, contract §4's ±10 ms holds. `U` joins the two
-/// logs. While running, `SYNC_TIME` goes out every [probeInterval] instead
-/// of every 5 minutes, for enough brackets; the simulator only logs it.
+/// **How L/R ±10 ms is measured.** Each `SYNC_TIME` the app writes carries
+/// the phone time `U`; the simulator logs the device time `D` it handled it
+/// at (`[ctl] … SYNC_TIME unix U ms at device D ms`), and both boards'
+/// serial logs are stamped by one laptop clock. `timing_check.py` puts both
+/// boards' clocks on that laptop clock and compares them with each foot's
+/// offset `A` (unix − device) logged here; `U` joins the logs. The
+/// write-latency bound `B = A − (U − D)` is printed as a secondary figure
+/// only: it can't go below the write's latency, which on the Note 10 was
+/// tens of ms (report 026). While running, `SYNC_TIME` goes out every
+/// [probeInterval] instead of every 5 minutes; the simulator only logs it.
 ///
 /// Lines are `KIND key=value …`, one event per line:
 /// - `SYNC t= side= session= U= A= target=` — a `SYNC_TIME` written
