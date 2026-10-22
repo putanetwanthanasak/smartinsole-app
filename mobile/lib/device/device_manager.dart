@@ -74,8 +74,10 @@ class DeviceManager {
   /// Temperature trend of one foot.
   TempHistory history(FootSide side) => _feet[side]!.history;
 
-  /// Clock and continuity figures of one foot, for the timing log.
-  FootTiming timing(FootSide side) {
+  /// Clock and continuity figures of one foot, for the timing log. The
+  /// step range covers the samples since the previous call that took it
+  /// ([takeSteps]).
+  FootTiming timing(FootSide side, {bool takeSteps = true}) {
     final f = _feet[side]!;
     final t = FootTiming(
       session: f.session,
@@ -90,8 +92,10 @@ class DeviceManager {
       stepMaxMs: f.stepMax,
       droppedOldSession: f.droppedOldSession,
     );
-    f.stepMin = null;
-    f.stepMax = null;
+    if (takeSteps) {
+      f.stepMin = null;
+      f.stepMax = null;
+    }
     return t;
   }
 
@@ -311,7 +315,7 @@ class FootTiming {
   final int clamps;
 
   /// Smallest and largest step between consecutive sample times since the
-  /// previous [DeviceManager.timing] call.
+  /// previous [DeviceManager.timing] call that took them.
   final double? stepMinMs;
   final double? stepMaxMs;
   final int droppedOldSession;

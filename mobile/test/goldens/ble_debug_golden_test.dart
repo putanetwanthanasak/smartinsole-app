@@ -16,7 +16,7 @@ import '../helpers/pump_app.dart';
 /// One golden per BLE debug screen state (S3A). Taller than the reference
 /// screen so every card is in the picture. Regenerate with:
 ///   flutter test --update-goldens test/goldens
-const _size = Size(390, 1700);
+const _size = Size(390, 2000);
 
 Future<void> _pump(WidgetTester tester) async {
   for (var i = 0; i < 4; i++) {

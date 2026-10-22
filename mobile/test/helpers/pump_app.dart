@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smartinsole/ble/ble_providers.dart';
 import 'package:smartinsole/ui/app.dart';
@@ -27,6 +28,7 @@ Future<void> pumpApp(
   Size size = referenceSize,
   bool settle = true,
   DateTime Function()? now,
+  List<Override> overrides = const [],
 }) async {
   tester.view.physicalSize = size * 2;
   tester.view.devicePixelRatio = 2;
@@ -43,6 +45,7 @@ Future<void> pumpApp(
         blePermissionsProvider.overrideWithValue(
           permissions ?? FakePermissions(),
         ),
+        ...overrides,
       ],
       child: SmartInsoleApp(initialRoute: initialRoute),
     ),

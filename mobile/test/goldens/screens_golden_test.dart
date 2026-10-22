@@ -3,6 +3,8 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:smartinsole/device/device_providers.dart';
+import 'package:smartinsole/device/mock_data_source.dart';
 import 'package:smartinsole/ui/routes.dart';
 
 import '../helpers/pump_app.dart';
@@ -42,5 +44,14 @@ void main() {
         await expectScreen(name);
       });
     }
+  });
+
+  testWidgets('settings with the debug mock preset button', (tester) async {
+    await pumpApp(
+      tester,
+      initialRoute: Routes.settings,
+      overrides: [mockPresetProvider.overrideWithValue(MockPreset.watch)],
+    );
+    await expectScreen('settings_mock');
   });
 }

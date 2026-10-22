@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../ble/ble_providers.dart';
 import '../ble/insole_data_source.dart';
@@ -8,6 +9,7 @@ import '../ui/clock.dart';
 import 'device_manager.dart';
 import 'display_snapshot.dart';
 import 'mock_data_source.dart';
+import 'timing_check.dart';
 
 /// `--dart-define=MOCK=<preset>`; ignored in release builds.
 const _mockDefine = String.fromEnvironment('MOCK');
@@ -56,3 +58,19 @@ final deviceManagerProvider = Provider<DeviceManager>((ref) {
 final displaySnapshotProvider = StreamProvider.autoDispose<DisplaySnapshot>(
   (ref) => ref.watch(deviceManagerProvider).snapshots,
 );
+
+/// The debug screen's timing check (S4 checkpoint). It logs the BLE
+/// sources' `SYNC_TIME` writes, so it is meaningless with the mock.
+final timingCheckProvider = Provider<TimingCheck>((ref) {
+  final check = TimingCheck(
+    manager: ref.watch(deviceManagerProvider),
+    sources: {
+      for (final side in FootSide.values)
+        side: ref.watch(insoleSourceProvider(side)),
+    },
+    now: ref.watch(clockProvider),
+    directory: getApplicationDocumentsDirectory,
+  );
+  ref.onDispose(check.stop);
+  return check;
+});
