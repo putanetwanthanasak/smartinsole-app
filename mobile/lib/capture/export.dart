@@ -48,7 +48,12 @@ List<ManifestEntry> stageExport(Directory sessionDir, Directory exportRoot) {
   for (final f in files) {
     final name = f.uri.pathSegments.last;
     final hash = sha256Of(f);
-    final copy = f.copySync('${dest.path}/$name');
+    // A new file, not copySync: a copy keeps the private original's mode
+    // (0600), which the adb shell can't read; a new file in the external
+    // folder gets 0660 for group ext_data_rw, which adb can (checked on
+    // the emulator, API 37).
+    final copy = File('${dest.path}/$name')
+      ..writeAsBytesSync(f.readAsBytesSync(), flush: true);
     final copyHash = sha256Of(copy);
     if (copyHash != hash) {
       throw FileSystemException('copy does not match original', copy.path);

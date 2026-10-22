@@ -435,7 +435,7 @@ class _Saved extends StatelessWidget {
     return PageBody(
       children: [
         CaptureBanner(
-          palette: a.valid && gaps.isEmpty
+          palette: a.valid && gaps.isEmpty && a.endReason == EndReason.completed
               ? StatusColors.safe
               : StatusColors.careful,
           icon: LucideIcons.save,

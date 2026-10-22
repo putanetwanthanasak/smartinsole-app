@@ -1,0 +1,12 @@
+M1 tick-counting timer instead of deadline: CAUGHT
+    fails: test/capture/capture_session_test.dart: recording a starved timer cannot stretch a trial (deadline, not ticks)
+M2 redo overwrites the old attempt file: CAUGHT
+    fails: test/capture/capture_session_test.dart: recording redo keeps the old files, marked invalid; a2 is recorded
+M3 link loss not recorded: CAUGHT
+    fails: test/capture/capture_session_test.dart: recording a seq gap and a link loss with reconnect are both recorded
+M4 early-stop cut not clamped after written rows: CAUGHT
+    fails: test/capture/capture_fixture_test.dart: capture fixture matches the code that writes it
+    fails: test/capture/capture_session_test.dart: recording stop early: stopped_early, the window ends at the stop
+M5 no recording window (late samples written): CAUGHT
+    fails: test/capture/capture_session_test.dart: recording auto-stops at the deadline: 50 Hz rows per foot, in window
+    fails: test/capture/capture_session_test.dart: recording stop early: stopped_early, the window ends at the stop

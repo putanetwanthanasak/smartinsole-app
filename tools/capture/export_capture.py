@@ -37,7 +37,9 @@ REMOTE = f"/sdcard/Android/data/{APP_ID}/files/export"
 
 def adb(serial: str | None, *args: str, check: bool = True) -> subprocess.CompletedProcess:
     cmd = ["adb"] + (["-s", serial] if serial else []) + list(args)
-    return subprocess.run(cmd, check=check, capture_output=True, text=True)
+    # stdin closed: `adb shell` would otherwise eat the y/N answer below.
+    return subprocess.run(cmd, check=check, capture_output=True, text=True,
+                          stdin=subprocess.DEVNULL)
 
 
 def staged_sessions(serial: str | None) -> list[str]:
@@ -117,9 +119,14 @@ def main(argv: list[str]) -> int:
             all_ok = False
             print("  kept on the phone (a check failed)")
             continue
-        remove = args.remove_staged or input(
-            f"  remove the staged copy {REMOTE}/{sid} from the phone? [y/N] "
-        ).strip().lower() == "y"
+        remove = args.remove_staged
+        if not remove:
+            try:
+                remove = input(
+                    f"  remove the staged copy {REMOTE}/{sid} from the phone? [y/N] "
+                ).strip().lower() == "y"
+            except EOFError:
+                remove = False
         if remove:
             adb(args.serial, "shell", "rm", "-r", f"{REMOTE}/{sid}")
             print("  removed the staged copy (the app's private originals are untouched)")

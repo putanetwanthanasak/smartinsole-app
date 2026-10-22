@@ -1,0 +1,16 @@
+selftest: shared/capture_fixture (written by the app's code)
+  ok    manifest checksums match
+  ok    fixture channels == model_input.json
+  ok    312 paired rows (app: 312)
+  ok    same L/R pairs as the app's pairFeet()
+  ok    same 24 values per row as the app (max diff 8.88178e-16)
+  ok    the fixture's seq gap is a FAIL
+  ok    the sidecar's seq gap is reported
+  ok    the left foot passes 50 Hz with no gaps
+  ok    pairing: nearest within 10 ms
+  ok    pairing: tie to the earlier
+  ok    pairing: 10 ms inclusive, no further
+  ok    pairing: each right row once
+  ok    a changed byte fails the checksum
+  ok    load_session refuses a bad checksum
+selftest: PASS
