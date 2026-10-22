@@ -274,6 +274,7 @@ class MockDataSource implements InsoleDataSource {
   @override
   final FootSide side;
   final MockInsoles _owner;
+  @override
   final Calibration calibration;
 
   /// Unix ms at which this "board" booted; device time counts from here.
@@ -469,6 +470,7 @@ class MockDataSource implements InsoleDataSource {
     _temps.add(
       TempFrame(
         side: side,
+        session: _session,
         receivedAt: at,
         packet: TempPacket(
           seq: _tempCount,

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:smartinsole/ble/calibration.dart';
 import 'package:smartinsole/ble/insole_data_source.dart';
 import 'package:smartinsole/ble/link_state.dart';
 import 'package:smartinsole/ble/packets.dart';
@@ -30,6 +31,9 @@ class FakeSource implements InsoleDataSource {
   Stream<SensorFrame> get frames => _frames.stream;
   @override
   Stream<TempFrame> get temps => _temps.stream;
+  @override
+  Calibration? calibration;
+
   @override
   Stream<StatusFrame> get statuses => _statuses.stream;
 
@@ -116,6 +120,7 @@ class FakeSource implements InsoleDataSource {
   }) => _temps.add(
     TempFrame(
       side: side,
+      session: session,
       receivedAt: now(),
       packet: TempPacket(
         seq: 0,

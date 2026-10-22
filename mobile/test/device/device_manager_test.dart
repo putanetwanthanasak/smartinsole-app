@@ -228,6 +228,59 @@ void main() {
     });
   });
 
+  group('temperature events', () {
+    test('are unix-timed on the session clock, after its first packet', () {
+      fakeAsync((async) {
+        final rig = Rig(async);
+        final temps = <FootTemp>[];
+        rig.manager.temps.listen(temps.add);
+        rig.left
+          ..stream()
+          ..packet();
+        final lastSample = rig.batches.last.samples.last;
+        rig.elapse(const Duration(seconds: 1));
+        rig.left.temp(31.0, 30.0);
+        expect(temps.single.fromArrival, isFalse);
+        expect(temps.single.session, 1);
+        // On the device clock: the last sample's time + the device time since.
+        expect(
+          temps.single.unixMs - lastSample.unixMs,
+          closeTo(rig.left.deviceNow - lastSample.deviceMs, 0.01),
+        );
+      });
+    });
+
+    test('use arrival time before the session has a packet', () {
+      fakeAsync((async) {
+        final rig = Rig(async)..bothStreaming();
+        final temps = <FootTemp>[];
+        rig.manager.temps.listen(temps.add);
+        rig.left
+          ..set(const LinkSearching(deviceId: 'X'))
+          ..stream()
+          ..temp(32.0, 30.0);
+        expect(temps.single.fromArrival, isTrue);
+        expect(temps.single.session, 2);
+        expect(
+          temps.single.unixMs,
+          rig.now().microsecondsSinceEpoch / 1000,
+        );
+      });
+    });
+
+    test('a reading sent before the first packet is kept for the display', () {
+      fakeAsync((async) {
+        final rig = Rig(async)..bothStreaming();
+        rig.right
+          ..set(const LinkSearching(deviceId: 'X'))
+          ..stream()
+          ..temp(31.9, 30.4)
+          ..packet();
+        expect(rig.manager.snapshot().deltaForefootC, closeTo(-0.1, 1e-9));
+      });
+    });
+  });
+
   group('50 Hz path (rule 10)', () {
     test('every packet is a batch at once, unix-timed, 20 ms apart', () {
       fakeAsync((async) {

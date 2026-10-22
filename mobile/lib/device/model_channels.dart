@@ -35,8 +35,8 @@ List<double>? footModelChannels(FootSample s) {
   return [...s.fsrKpa, ...s.accelG, ...s.gyroDps];
 }
 
-/// One 24-channel timestep: [left] then [right]. Pairing the two feet's
-/// samples in time is the caller's job (both carry `unixMs`).
+/// One 24-channel timestep: [left] then [right]. Pair the two feet's
+/// samples in time with [pairFeet] first.
 List<double>? modelRow(FootSample left, FootSample right) {
   final l = footModelChannels(left);
   final r = footModelChannels(right);
@@ -47,3 +47,46 @@ List<double>? modelRow(FootSample left, FootSample right) {
 /// Where a foot's block starts in the 24 channels.
 int modelChannelOffset(FootSide side) =>
     side == FootSide.left ? 0 : modelChannelsPerFoot;
+
+/// How far apart (unix ms) a left and a right sample may be and still form
+/// one 24-channel row: half a 20 ms sample period. The same value is
+/// `pairing.toleranceMs` in `shared/model_input.json` (a test checks).
+const pairToleranceMs = 10.0;
+
+/// Pairs the two feet's samples in time for [modelRow], by the rule in
+/// `shared/model_input.json` (`pairing`), which the Python loader
+/// (`tools/capture/load_capture.py`) implements too, so the app and the
+/// training data line the feet up the same way:
+/// - [left] is the time base, [right] the other foot; both ascending in
+///   `unixMs`;
+/// - each left sample takes the right sample nearest in time, within
+///   ±[pairToleranceMs] inclusive; on a tie, the earlier one;
+/// - each right sample is used at most once, in order; a left sample with
+///   no right sample in reach gives no row.
+List<(FootSample, FootSample)> pairFeet(
+  List<FootSample> left,
+  List<FootSample> right,
+) {
+  final out = <(FootSample, FootSample)>[];
+  var j = 0;
+  for (final l in left) {
+    while (j < right.length && right[j].unixMs < l.unixMs - pairToleranceMs) {
+      j++;
+    }
+    int? best;
+    var bestD = double.infinity;
+    for (var k = j; k < right.length; k++) {
+      if (right[k].unixMs > l.unixMs + pairToleranceMs) break;
+      final d = (right[k].unixMs - l.unixMs).abs();
+      if (d < bestD) {
+        best = k;
+        bestD = d;
+      }
+    }
+    if (best != null) {
+      out.add((l, right[best]));
+      j = best + 1;
+    }
+  }
+  return out;
+}

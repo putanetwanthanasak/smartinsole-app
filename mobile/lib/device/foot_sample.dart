@@ -60,3 +60,28 @@ class FootBatch {
   final bool calibrating;
   final List<FootSample> samples;
 }
+
+/// One temperature reading of one foot, unix-timed (50 Hz path's companion:
+/// research capture writes these next to the samples).
+class FootTemp {
+  const FootTemp({
+    required this.side,
+    required this.session,
+    required this.unixMs,
+    required this.fromArrival,
+    required this.receivedAt,
+    required this.packet,
+  });
+
+  final FootSide side;
+  final int session;
+
+  /// The reading's `t_ms` on the session's clock; when the session has no
+  /// sensor packet yet (no clock), the phone time it arrived.
+  final double unixMs;
+
+  /// True when [unixMs] is the arrival time, not the device time mapped.
+  final bool fromArrival;
+  final DateTime receivedAt;
+  final TempPacket packet;
+}

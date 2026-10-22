@@ -6,8 +6,8 @@ import 'package:smartinsole/ble/packets.dart';
 import 'package:smartinsole/device/foot_sample.dart';
 import 'package:smartinsole/device/model_channels.dart';
 
-FootSample sample(double base, {int n = 6}) => FootSample(
-  unixMs: 0,
+FootSample sample(double base, {int n = 6, double unixMs = 0}) => FootSample(
+  unixMs: unixMs,
   deviceMs: 0,
   fsrAdc: List.filled(n, 0),
   fsrKpa: [for (var i = 0; i < n; i++) base + i],
@@ -26,6 +26,9 @@ void main() {
     expect(json['strideSamples'], 50);
     expect(json['sampleRateHz'], 50);
     expect(json['units'], {'fsr': 'kPa', 'accel': 'g', 'gyro': 'deg/s'});
+    final pairing = json['pairing']! as Map<String, Object?>;
+    expect(pairing['timeBase'], 'L');
+    expect((pairing['toleranceMs']! as num).toDouble(), pairToleranceMs);
   });
 
   test('a row is FSR 0-5, accel xyz, gyro xyz; left then right (§7.1)', () {
@@ -44,5 +47,36 @@ void main() {
   test('a foot without exactly 6 FSR channels has no model input', () {
     expect(footModelChannels(sample(0, n: 8)), isNull);
     expect(modelRow(sample(0), sample(0, n: 4)), isNull);
+  });
+
+  group('pairFeet', () {
+    List<FootSample> at(List<double> t) => [
+      for (final u in t) sample(u, unixMs: u),
+    ];
+    List<(double, double)> times(List<(FootSample, FootSample)> p) => [
+      for (final (l, r) in p) (l.unixMs, r.unixMs),
+    ];
+
+    test('nearest right sample within 10 ms, left as the time base', () {
+      final p = pairFeet(at([0, 20, 40, 60]), at([7, 26, 52, 75]));
+      // 40 has nothing within 10 ms (26 and 52 are 14 and 12 away); 60
+      // takes 52 (8 ms), not 75 (15 ms).
+      expect(times(p), [(0.0, 7.0), (20.0, 26.0), (60.0, 52.0)]);
+    });
+
+    test('±10 ms is inclusive; a tie goes to the earlier sample', () {
+      expect(times(pairFeet(at([100]), at([90, 110]))), [(100.0, 90.0)]);
+      expect(times(pairFeet(at([100]), at([110.5]))), isEmpty);
+    });
+
+    test('each right sample is used once, in order', () {
+      // 10 and 30 are both 10 ms from 20; 10 takes it first.
+      expect(times(pairFeet(at([10, 30]), at([20]))), [(10.0, 20.0)]);
+    });
+
+    test('a gap in either foot gives no row there', () {
+      final p = pairFeet(at([0, 20, 40, 60, 80]), at([3, 23, 83]));
+      expect(times(p), [(0.0, 3.0), (20.0, 23.0), (80.0, 83.0)]);
+    });
   });
 }
