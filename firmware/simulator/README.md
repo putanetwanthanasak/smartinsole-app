@@ -94,6 +94,25 @@ spacing. It matches the web app's 5-minute clock steps to the logged
 `--assume-no-loss --write-corrected OUT` undoes those clock steps within
 each take.
 
+## Phone timing check (S4)
+
+The app's debug screen → Timing check writes a timing log (every
+`SYNC_TIME` it sends, with its clock offset, plus per-foot counters every
+10 s) and sends `SYNC_TIME` every 10 s while it runs. `timing_check.py`
+joins that log to both serial logs on the `SYNC_TIME` unix value. Both
+serial logs are stamped by the same laptop clock, so it puts both boards on
+that clock and gives the contract's L/R ±10 ms check directly (about ±3 ms
+uncertainty; the method is in the script's docstring). Both boards must be
+logged by `serial_log.py` on one laptop for that. It also prints a
+write-latency bound as a secondary figure, and checks lost packets, 20 ms
+sample steps and the boards' notify failures. Standard library only:
+
+```
+/usr/bin/python3 tools/timing_check.py --selftest
+/usr/bin/python3 tools/timing_check.py timing-<date>.log \
+    --serial-left left.log --serial-right right.log
+```
+
 ## Behaviour
 
 - **Advertising:** service UUID in the advertisement, `SMARTINSOLE-L`/`-R`

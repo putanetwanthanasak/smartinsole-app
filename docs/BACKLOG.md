@@ -621,6 +621,12 @@ dropped too). The t0 and temp `t_ms` comparisons are modulo 2³², so the
 implemented: it needs a held packet and fails when `seq` 0 is lost (see
 report 024). `seq` gaps are only counted; gap handling is S4.
 
+**S4 status:** check 1 changed: the gate now opens when the START write is
+**issued**, not when it is acknowledged (item 27). `seq` gaps (with the
+65535 wrap) and a lost start of stream are counted by `SeqTracker`
+(`mobile/lib/ble/seq_tracker.dart`), and `DeviceManager` drops any batch
+from an older session as a second line of defence. See report 026.
+
 ## 21. App: guard REBOOT and TARE (S8B Connection/Settings) **(found in S2C)**
 
 `REBOOT` and `TARE` act on the whole insole, not on one connection
@@ -695,6 +701,18 @@ briefly passes through 45–48.75 ms and 7.5 ms first. The interval part of
 this item is resolved; S4 still has to measure the actual ±10 ms
 cross-foot timing.
 
+**S4 status:** the cross-foot measurement is built: the debug screen's
+timing check plus `firmware/simulator/tools/timing_check.py` bound each
+foot's clock error from the `SYNC_TIME` the board logs (report 026). The
+result comes from the S4 Note 10 checkpoint.
+
+**Measured at the S4 Note 10 checkpoint (2026-10-22):**
+- L/R alignment was within ±3.4 ms (±3 ms uncertainty) over 10.6 min.
+  This used the laptop-clock method, adopted after the run.
+- The `SYNC_TIME` write took 29–139 ms to complete on the Note 10, so the
+  originally planned write-latency bound couldn't get below 23 ms (left)
+  and 51 ms (right).
+
 ## 26. Android ≤ 11 location permission and the `permission_handler` pin **(found in S3A)**
 
 - The manifest declares `ACCESS_FINE_LOCATION` (maxSdk 30) for BLE scanning
@@ -707,7 +725,7 @@ cross-foot timing.
   supports at most 36. Lift the pin when the Android Gradle plugin is
   upgraded.
 
-## 27. The first packet after START can be dropped as "before START" **(found at the S3A Note 10 checkpoint, for S4)**
+## 27. The first packet after START can be dropped as "before START" **(found at the S3A Note 10 checkpoint, for S4)** — RESOLVED
 
 Rule 9 check 1 (item 20) drops sensor/temp packets that arrive before
 this connection's `START_STREAM` write is acknowledged. On the Note 10 one
@@ -733,6 +751,22 @@ For S4, either:
 
 Either way, count a first accepted `seq` k > 0 as k missing packets, so a
 lost start of stream shows up in the gap counter.
+
+**S4 status — fixed in code, pending the S4 Note 10 checkpoint.** The first
+option is implemented (`mobile/lib/ble/ble_data_source.dart`). Packets that
+arrive between the START write and its ack are counted as
+`admittedBeforeAck`. A first accepted `seq` k > 0 is counted as k
+`missingAtStart`, kept separate from mid-stream gaps (so real firmware that
+doesn't restart `seq`, item 19, shows up as one clear number). Tests: a
+packet before the ack is kept, one before the write is still dropped, a
+late packet from the old link is still dropped.
+
+**Verified at the S4 Note 10 checkpoint (2026-10-22):**
+- The race happened once in the 10 reconnects (5 per foot), on
+  the right foot: "a packet arrived before the START ack (kept)".
+- That packet was kept. `missing at start` and `dropped before START`
+  stayed 0 on both feet.
+- Resolved.
 
 ## 28. Web-app CSV: resync steps of exactly 160 ms, and no `seq` **(found in S3B; user decided: no web-app change)**
 
@@ -764,6 +798,15 @@ formula. Anything that anchors "now" to the last packet received is
 quantised to the 160 ms packet period. Anchor to each packet's own arrival
 time (e.g. a minimum-latency filter), and write `seq` into the S4C CSV.
 
+**S4 status — the app part is done.** `mobile/lib/device/device_clock.dart`
+anchors each packet to its own arrival, takes the 30 s minimum as the
+offset, and slews toward it by at most 0.25 ms per sample: no steps, never
+backwards within a session (tested, including bursty arrivals that gave the
+web app its 160 ms steps). `SYNC_TIME` is still sent every 5 minutes but
+sets nothing. Writing `seq` into the CSV is S4C. **For the contract owner:**
+contract §4 describes the web app's formula; the app deliberately
+doesn't follow it.
+
 ## 29. Chrome on Linux can't reconnect a remembered insole after about 30 s **(found in S3B)**
 
 The web app's Connect reuses the remembered `BluetoothDevice` without a
@@ -774,3 +817,28 @@ the board. **Forget device → Connect → pick the insole** works every time.
 That is the step in `docs/STUDY-FALLBACK.md`, so there is no code change.
 A one-line web-app fix exists if ever wanted: call `forgetDevice()` when
 `gatt.connect()` throws, so the next click opens the picker.
+
+## 30. `thresholds.json` has no battery threshold **(found in S4, for S7)**
+
+Contract §8.3 defines `BATTERY_LOW` as below 15 %, but
+`shared/thresholds.json` has no battery entry. The S4 `lowBattery` mock
+preset (left foot 10 %) and its test cite the contract value directly. S7
+should add it to `thresholds.json` (rule 12) and point the test at it.
+
+## 31. How to read the PTI and concentration rules **(found in S4, for S7)**
+
+Contract §8.3 gives `ptiKpaS` and `concentrationPct` without saying what
+they are computed over. Read literally:
+- an instantaneous concentration (one channel's share of the current
+  total) is close to 100 % at every heel strike, so it would fire on every
+  step;
+- a PTI over a whole hour passes `ptiKpaS` for anyone who walks.
+
+The S4 mock presets assume **per step**: PTI is the area under each
+channel's curve (and under the max-over-channels curve) for one stance,
+and concentration is the highest channel peak's share of the sum of that
+step's channel peaks. The `watch` and `safeOrangeDot` presets and their
+band test (`mobile/test/device/mock_data_source_test.dart`) are built on
+that reading. S7 must confirm it with the contract owner. If S7 chooses a
+different reading, change the presets and the test with it.
+

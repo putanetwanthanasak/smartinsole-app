@@ -26,10 +26,21 @@ import 'parse_result.dart';
 ///
 /// Rule 9 (BACKLOG 20): every attempt has a generation number, and a
 /// notification from an earlier one is dropped; a sensor or temperature
-/// packet that arrives before this connection's START is acknowledged is
+/// packet that arrives before this connection's START is written is
 /// dropped; within a connection `t0_ms` (and temperature `t_ms`) must
 /// advance, compared modulo 2³² so the 49.7-day wrap is not "backwards".
 /// Every drop and every parser rejection is counted in [stats].
+///
+/// The gate opens when START is written, not when the write is
+/// acknowledged (BACKLOG 27): Android can deliver the board's first
+/// notification before the write callback. That packet is genuine. This
+/// connection's subscriptions are new and carry its generation, and
+/// `onValueReceived` never replays a cached value, so nothing from an
+/// earlier connection can arrive through them.
+///
+/// While streaming, `SYNC_TIME` is sent again every [syncInterval]
+/// (contract §4). It is only sent and reported on [syncs]; the app's unix
+/// time per sample does not come from it (BACKLOG 28, `DeviceClock`).
 class BleDataSource implements InsoleDataSource {
   BleDataSource({
     required this.side,
@@ -57,6 +68,20 @@ class BleDataSource implements InsoleDataSource {
   /// How long the user's Disconnect waits for its STOP_STREAM write.
   static const stopTimeout = Duration(seconds: 2);
 
+  /// Contract §4: `SYNC_TIME` again every 5 minutes.
+  static const defaultSyncInterval = Duration(minutes: 5);
+
+  /// How often `SYNC_TIME` is resent while streaming. The debug timing
+  /// check shortens it; a change restarts the running timer.
+  Duration get syncInterval => _syncInterval;
+  set syncInterval(Duration d) {
+    _syncInterval = d;
+    if (_syncTimer != null) _startSyncTimer(_gen);
+  }
+
+  Duration _syncInterval = defaultSyncInterval;
+  Timer? _syncTimer;
+
   /// Counters for the insole this foot is bound to; a new binding starts
   /// fresh ones, so one insole's numbers never show under another's id.
   LinkStats get stats => _stats;
@@ -70,6 +95,7 @@ class BleDataSource implements InsoleDataSource {
   final _frames = StreamController<SensorFrame>.broadcast();
   final _temps = StreamController<TempFrame>.broadcast();
   final _statuses = StreamController<StatusFrame>.broadcast();
+  final _syncs = StreamController<SyncSent>.broadcast();
   late final StreamSubscription<BleReadiness> _readinessSub;
 
   String? _deviceId;
@@ -88,7 +114,15 @@ class BleDataSource implements InsoleDataSource {
 
   Calibration? _cal;
   int _mtu = 0;
+
+  /// START has been written on this connection (the rule 9 gate is open).
+  bool _startIssued = false;
+
+  /// START was acknowledged (STOP is only sent after this).
   bool _startAcked = false;
+
+  /// Streaming sessions so far; never reset, see [SensorFrame.session].
+  int _session = 0;
   int? _lastT0;
   int? _lastTempT;
   bool _calibrating = false;
@@ -104,6 +138,9 @@ class BleDataSource implements InsoleDataSource {
   Stream<TempFrame> get temps => _temps.stream;
   @override
   Stream<StatusFrame> get statuses => _statuses.stream;
+
+  /// Every `SYNC_TIME` written, with the phone time it carried.
+  Stream<SyncSent> get syncs => _syncs.stream;
 
   String? get deviceId => _deviceId;
   Calibration? get calibration => _cal;
@@ -173,6 +210,7 @@ class BleDataSource implements InsoleDataSource {
     _frames.close();
     _temps.close();
     _statuses.close();
+    _syncs.close();
   }
 
   // --- Searching and retries ----------------------------------------------
@@ -278,6 +316,9 @@ class BleDataSource implements InsoleDataSource {
       s.cancel();
     }
     _linkSubs.clear();
+    _syncTimer?.cancel();
+    _syncTimer = null;
+    _startIssued = false;
     _startAcked = false;
     final link = _link;
     _link = null;
@@ -411,6 +452,7 @@ class BleDataSource implements InsoleDataSource {
       if (fit == null) return;
 
       step(ConnectStep.subscribe);
+      _startIssued = false;
       _startAcked = false;
       _lastT0 = null;
       _lastTempT = null;
@@ -443,16 +485,17 @@ class BleDataSource implements InsoleDataSource {
       }
 
       step(ConnectStep.syncTime);
-      await link.write(
-        BleUuids.control,
-        syncTimeCommand(now().millisecondsSinceEpoch),
-      );
+      await _writeSync(link);
       if (stale()) return;
 
       step(ConnectStep.start);
+      // The gate opens now, before the ack (BACKLOG 27); see the class doc.
+      _session++;
+      _startIssued = true;
       await link.write(BleUuids.control, startStreamCommand());
       if (stale()) return;
       _startAcked = true;
+      _startSyncTimer(gen);
       _failures = 0;
       stats.sessions++;
       hub.releaseScan(this);
@@ -474,6 +517,28 @@ class BleDataSource implements InsoleDataSource {
     } on _SetupRejected catch (e) {
       if (!stale()) _failed(e.message);
     }
+  }
+
+  Future<void> _writeSync(BleLink link) async {
+    final unixMs = now().millisecondsSinceEpoch;
+    await link.write(BleUuids.control, syncTimeCommand(unixMs));
+    if (!_syncs.isClosed) {
+      final session = _startIssued ? _session : _session + 1;
+      _syncs.add(SyncSent(side: side, session: session, unixMs: unixMs));
+    }
+  }
+
+  void _startSyncTimer(int gen) {
+    _syncTimer?.cancel();
+    _syncTimer = Timer.periodic(_syncInterval, (_) async {
+      final link = _link;
+      if (gen != _gen || link == null || !_startAcked) return;
+      try {
+        await _writeSync(link);
+      } on BleException catch (e) {
+        _log.add('SYNC_TIME failed: ${e.message}', side: side);
+      }
+    });
   }
 
   Never _rejectedDuringSetup(RejectReason reason, String detail) {
@@ -574,12 +639,18 @@ class BleDataSource implements InsoleDataSource {
       stats.droppedOldConnection++;
       return false;
     }
-    if (!_startAcked) {
+    if (!_startIssued) {
       stats.droppedBeforeStart++;
       if (stats.droppedBeforeStart == 1) {
         _log.add('dropped a packet that arrived before START', side: side);
       }
       return false;
+    }
+    if (!_startAcked) {
+      stats.admittedBeforeAck++;
+      if (stats.admittedBeforeAck == 1) {
+        _log.add('a packet arrived before the START ack (kept)', side: side);
+      }
     }
     return true;
   }
@@ -602,16 +673,15 @@ class BleDataSource implements InsoleDataSource {
     _lastT0 = h.t0Ms;
 
     final last = stats.lastSeq;
-    if (last != null) {
-      final expected = (last + 1) & 0xFFFF;
-      if (h.seq != expected) {
-        final missing = (h.seq - expected) & 0xFFFF;
-        stats.seqGaps++;
-        stats.seqMissing += missing;
-        _log.add('seq gap: $last -> ${h.seq} ($missing missing)', side: side);
-      }
+    final missing = stats.seq.accept(h.seq);
+    if (missing > 0) {
+      _log.add(
+        last == null
+            ? 'first packet has seq ${h.seq} ($missing missing at start)'
+            : 'seq gap: $last -> ${h.seq} ($missing missing)',
+        side: side,
+      );
     }
-    stats.lastSeq = h.seq;
 
     // BACKLOG 23: offset_adc changes after a TARE, and nothing announces it;
     // re-read calibration once the calibrating flag clears.
@@ -624,6 +694,7 @@ class BleDataSource implements InsoleDataSource {
       for (final s in packet.samples)
         SensorSample(
           deviceMs: s.deviceMs,
+          fsrAdc: s.fsrAdc,
           fsrKpa: sampleKpa(s, cal),
           accelG: [for (final v in s.accelRaw) accelRawToG(v)],
           gyroDps: [for (final v in s.gyroRaw) gyroRawToDps(v)],
@@ -633,7 +704,9 @@ class BleDataSource implements InsoleDataSource {
     _frames.add(
       SensorFrame(
         side: side,
+        session: _session,
         seq: h.seq,
+        missingBefore: missing,
         receivedAt: at,
         saturated: h.saturated,
         calibrating: h.calibrating,
@@ -725,4 +798,21 @@ bool advances(int prev, int next) {
 class _SetupRejected implements Exception {
   const _SetupRejected(this.message);
   final String message;
+}
+
+/// A `SYNC_TIME` the app wrote; [unixMs] is the phone time it carried, the
+/// key that joins the app's timing log to the board's serial log.
+class SyncSent {
+  const SyncSent({
+    required this.side,
+    required this.session,
+    required this.unixMs,
+  });
+
+  final FootSide side;
+
+  /// The session it belongs to (the one about to start, for the SYNC_TIME
+  /// in the connect sequence).
+  final int session;
+  final int unixMs;
 }

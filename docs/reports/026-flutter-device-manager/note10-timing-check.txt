@@ -1,0 +1,15 @@
+run: 10.6 min
+L: sessions 1 · pkts 4087 · lost 0 · step 19.750-20.250 ms · clamps 0 · admitted before START ack 0
+L: board sent (last [sess] line) 6155
+L: (secondary) 63 brackets B = A - (U - D) = n + w: min 23.20 · median 31.00 · max 47.75 ms; per-120-s-window bound: worst 26.95 ms
+R: sessions 1 · pkts 4109 · lost 0 · step 19.750-20.250 ms · clamps 0 · admitted before START ack 0
+R: board sent (last [sess] line) 6200
+R: (secondary) 63 brackets B = A - (U - D) = n + w: min 51.04 · median 70.74 · max 129.46 ms; per-120-s-window bound: worst 66.02 ms
+(secondary) write-latency bound on |L/R error| per window (ms): 66.0 64.5 54.0 51.0 54.3; worst 66.02 (not part of the verdict: it can't go below the write latency)
+L: 63 SYNC_TIME lines on the laptop clock; drift -32.6 ppm vs laptop; delay above floor median 0.7, p90 1.0 ms
+R: 63 SYNC_TIME lines on the laptop clock; drift +13.2 ppm vs laptop; delay above floor median 0.6, p90 1.3 ms
+L/R error e = unix_L - unix_R for one instant, 62 points: min -1.99 · median +0.70 · max +3.38 ms
+per-120-s window, max |e| (ms): 2.0 2.5 1.6 2.5 3.4 1.6
+uncertainty +-3.0 ms (worst-case sum: D 1 + laptop stamp/USB 1 + sample stamp 1 + line length 0.03)
+L/R alignment (laptop clock): |e| <= 3.38 ms, within +-10.0 ms; with the uncertainty <= 6.41 ms
+PASS

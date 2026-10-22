@@ -17,6 +17,7 @@ BLE wire format (S2A) and the per-foot BLE connection (S3A).
 | `insole_data_source.dart` | `InsoleDataSource` (one per foot) and the frames it emits |
 | `link_state.dart` | Sealed `LinkState`, `ProblemKind`, `ConnectStep`, `BleReadiness` |
 | `link_stats.dart` | Per-foot counters for the debug screen |
+| `seq_tracker.dart` | `SeqTracker`: seq gaps (wrap 65535 → 0) and packets missing at the start of a session |
 | `ble_event_log.dart` | Ring buffer of BLE events (debug screen, "Copy log") |
 | `ble_hub.dart` | Shared by both feet: readiness, one shared scan, sightings, which foot owns which insole, one setup at a time |
 | `ble_data_source.dart` | `BleDataSource`: connect sequence, wrong side (rule 8), MTU fit, stale-packet drops (rule 9), reconnect |
@@ -30,3 +31,13 @@ connect → request MTU 247 → priority HIGH → discover → read status → c
 `foot_side` → read calibration → MTU fit check → subscribe → SYNC_TIME →
 START. Tests: `test/ble/ble_data_source_test.dart` against
 `test/ble/fake_ble_central.dart`.
+
+Rule 9: the gate opens when the START write is **issued**, not when it is
+acknowledged, because Android can deliver the first notification before the
+write's ack (BACKLOG 27); such packets are counted as `admittedBeforeAck`.
+A packet before START is written is still `droppedBeforeStart`, and each
+connection's subscriptions carry its generation, so nothing from an older
+link gets through (`droppedOldConnection`). While streaming, `SYNC_TIME` is
+written every 5 minutes (`syncInterval`; the debug timing check uses 10 s)
+and published on `syncs`. It is sent and logged only; the app's own clock
+mapping is `lib/device/device_clock.dart`.

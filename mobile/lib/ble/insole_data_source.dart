@@ -4,8 +4,8 @@ import 'packets.dart';
 /// One insole, one foot (contract §6 `IDataSource`). The two feet are
 /// independent peripherals, so there is one source per foot: one side can be
 /// streaming while the other is missing, and the UI must be able to say
-/// which. `BleDataSource` implements this over Bluetooth; S4 adds a
-/// `MockDataSource` with the same interface for the emulator.
+/// which. `BleDataSource` implements this over Bluetooth; `MockDataSource`
+/// (`lib/device/`) implements it for the emulator in debug builds.
 ///
 /// Every stream is a broadcast stream. Listeners cancel their subscriptions
 /// when they go away; the source keeps running regardless.
@@ -27,12 +27,15 @@ abstract interface class InsoleDataSource {
   Future<void> disconnect();
 }
 
-/// A sensor packet's samples in app units. No unix time yet: converting
-/// `deviceMs` with the `SYNC_TIME` offset is S4's job.
+/// A sensor packet's samples in app units, on the device clock. Unix time
+/// per sample is worked out downstream by `DeviceManager`
+/// (`lib/device/device_clock.dart`) from [receivedAt] and `deviceMs`.
 class SensorFrame {
   const SensorFrame({
     required this.side,
+    required this.session,
     required this.seq,
+    required this.missingBefore,
     required this.receivedAt,
     required this.saturated,
     required this.calibrating,
@@ -40,7 +43,16 @@ class SensorFrame {
   });
 
   final FootSide side;
+
+  /// Which streaming session (one per `START_STREAM`) this packet belongs
+  /// to. Counts up for the life of the source and never repeats, so a
+  /// consumer can tell a new connection's packets from an old one's.
+  final int session;
   final int seq;
+
+  /// Packets missing just before this one in its session (a `seq` gap, or
+  /// a first packet whose `seq` is above 0). See `SeqTracker`.
+  final int missingBefore;
 
   /// Phone time the packet arrived (rule 3); never the device clock.
   final DateTime receivedAt;
@@ -52,6 +64,7 @@ class SensorFrame {
 class SensorSample {
   const SensorSample({
     required this.deviceMs,
+    required this.fsrAdc,
     required this.fsrKpa,
     required this.accelG,
     required this.gyroDps,
@@ -59,6 +72,11 @@ class SensorSample {
 
   /// `t0_ms + i × 20` (rule 1), device clock.
   final int deviceMs;
+
+  /// Raw ADC per FSR channel (0–4095), channel index order. Kept because
+  /// it is the source of truth (contract §5.1) and research capture stores
+  /// it next to kPa.
+  final List<int> fsrAdc;
 
   /// kPa per FSR channel, in channel index order (N channels).
   final List<double> fsrKpa;

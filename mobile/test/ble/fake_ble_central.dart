@@ -245,7 +245,9 @@ class FakeLink implements BleLink {
     _checkOpen();
     if (uuid != BleUuids.control) return;
     writes.add(value);
-    central.onWrite?.call(this, value);
+    // Like the simulator, a START takes effect before the write is
+    // acknowledged, so [onWrite] can deliver this session's first packet
+    // (seq 0) while the write is still in flight (BACKLOG 27).
     if (value.length == 1 && value[0] == BleOpcode.startStream) {
       streaming = true;
       seq = 0;
@@ -254,6 +256,7 @@ class FakeLink implements BleLink {
       streaming = false;
       _auto?.cancel();
     }
+    central.onWrite?.call(this, value);
   }
 
   @override
@@ -294,6 +297,10 @@ class FakeLink implements BleLink {
   void push(String uuid, Uint8List bytes) {
     if (isOpen) _ctl(uuid).add(bytes);
   }
+
+  /// Delivers [bytes] even after the link has closed: a notification the
+  /// stack had queued before the disconnect (rule 9).
+  void pushLate(String uuid, Uint8List bytes) => _ctl(uuid).add(bytes);
 
   /// The next sensor packet: `seq` and `t0` advance as the simulator's do.
   Uint8List nextSensorPacket({int samples = 8, int flags = 0}) {

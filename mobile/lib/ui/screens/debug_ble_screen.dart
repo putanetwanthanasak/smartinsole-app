@@ -10,6 +10,9 @@ import '../../ble/ble_providers.dart';
 import '../../ble/link_state.dart';
 import '../../ble/link_stats.dart';
 import '../../ble/packets.dart';
+import '../../device/device_manager.dart';
+import '../../device/device_providers.dart';
+import '../../device/timing_check.dart';
 import '../clock.dart';
 import '../theme/colors.dart';
 import '../theme/dimens.dart';
@@ -78,6 +81,16 @@ class _DebugBleScreenState extends ConsumerState<DebugBleScreen> {
     });
   }
 
+  Future<void> _toggleTiming() async {
+    final check = ref.read(timingCheckProvider);
+    if (check.running) {
+      check.stop();
+    } else {
+      await check.start();
+    }
+    if (mounted) setState(() {});
+  }
+
   Future<void> _copyLog() async {
     final now = ref.read(clockProvider)();
     final text = StringBuffer();
@@ -119,6 +132,13 @@ class _DebugBleScreenState extends ConsumerState<DebugBleScreen> {
           ),
           _FootCard(source: left, now: now),
           _FootCard(source: right, now: now),
+          _TimingCard(
+            check: ref.read(timingCheckProvider),
+            manager: ref.read(deviceManagerProvider),
+            mock: ref.read(mockInsolesProvider) != null,
+            now: now,
+            onToggle: _toggleTiming,
+          ),
           _LogCard(lines: ref.read(bleLogProvider).entries, onCopy: _copyLog),
         ],
       ),
@@ -191,6 +211,8 @@ String _summary(BleDataSource s, DateTime now) {
         '${_rejects(st)} · before START ${st.droppedBeforeStart} · '
         'old conn ${st.droppedOldConnection} · t0 not forward '
         '${st.droppedNotForward}',
+    '  admitted before START ack ${st.admittedBeforeAck} · missing at '
+        'start ${st.missingAtStart}',
     '  sessions ${st.sessions} · link losses ${st.linkLosses} · failed '
         '${st.failedAttempts} · cal re-reads ${st.calibrationRereads}',
   ].join('\n');
@@ -447,6 +469,11 @@ class _FootCard extends StatelessWidget {
                   '${st.droppedNotForward}',
             ),
             _kv(
+              'start',
+              'admitted before ack ${st.admittedBeforeAck} · missing at '
+                  'start ${st.missingAtStart}',
+            ),
+            _kv(
               'sessions',
               '${st.sessions} · link losses ${st.linkLosses} · failed '
                   '${st.failedAttempts} · cal re-reads ${st.calibrationRereads}',
@@ -504,6 +531,83 @@ class _FootCard extends StatelessWidget {
       ),
     ),
   );
+}
+
+/// S4 checkpoint: starts the timing log (SYNC_TIME every 10 s, a file in
+/// the app's private storage) and shows each foot's clock figures.
+class _TimingCard extends StatelessWidget {
+  const _TimingCard({
+    required this.check,
+    required this.manager,
+    required this.mock,
+    required this.now,
+    required this.onToggle,
+  });
+
+  final TimingCheck check;
+  final DeviceManager manager;
+  final bool mock;
+  final DateTime now;
+  final VoidCallback onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    final started = check.startedAt;
+    return Card(
+      key: const ValueKey('timing-card'),
+      child: Padding(
+        padding: const EdgeInsets.all(Dimens.cardPadding),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Expanded(
+                  child: Text('Timing check', style: AppText.cardTitle),
+                ),
+                OutlinedButton(
+                  key: const ValueKey('timing-toggle'),
+                  style: _compact,
+                  onPressed: mock ? null : onToggle,
+                  child: Text(check.running ? 'Stop' : 'Start'),
+                ),
+              ],
+            ),
+            Text(
+              mock
+                  ? 'BLE only: the mock data source is active'
+                  : check.running && started != null
+                  ? 'running ${_secs(now.difference(started))} · '
+                        '${check.lines} lines · SYNC_TIME every 10 s'
+                  : 'off · SYNC_TIME every 5 min',
+              style: AppText.small.copyWith(color: AppColors.inkMuted),
+            ),
+            if (check.path != null)
+              Text('file ${check.path}', style: AppText.small),
+            for (final side in FootSide.values) _foot(side),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _foot(FootSide side) {
+    final t = manager.timing(side, takeSteps: false);
+    String ms(double? v) => v == null ? '—' : v.toStringAsFixed(2);
+    final settling = t.offsetMs == null || t.targetMs == null
+        ? null
+        : t.offsetMs! - t.targetMs!;
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Text(
+        '${side.name.toUpperCase()}  session ${t.session ?? '—'} · '
+        'pkts ${t.packets} · lost ${t.lost} · settling ${ms(settling)} ms · '
+        'last excess ${ms(t.lastExcessMs)} ms · step ${ms(t.stepMinMs)}–'
+        '${ms(t.stepMaxMs)} ms · clamps ${t.clamps}',
+        style: AppText.small,
+      ),
+    );
+  }
 }
 
 class _Banner extends StatelessWidget {

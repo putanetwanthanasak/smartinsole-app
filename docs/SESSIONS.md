@@ -1,6 +1,6 @@
-# Claude Code Session Plan — SmartInsole Flutter App (v2.2)
+# Claude Code Session Plan — SmartInsole Flutter App (v2.3)
 
-> Updated 2026-10-21 (v2.2: the phone app becomes the research capture tool; new sessions S4C and SR; dates fixed for the 2026-11-10 study start) · Use together with `docs/FLUTTER-PLAN.md` and `docs/design/DESIGN-SPEC.md`
+> Updated 2026-10-21 (v2.3, 2026-10-22: all sessions finish by 2026-10-31; model-input units fixed for S4C/S8A. v2.2: the phone app becomes the research capture tool; new sessions S4C and SR) · Use together with `docs/FLUTTER-PLAN.md` and `docs/design/DESIGN-SPEC.md`
 > Run Claude Code on the Ubuntu machine in `~/smartinsole-app`
 
 ---
@@ -18,8 +18,8 @@
 | S2C | ✅ All 6 opcodes; TARE → NVS; 2 concurrent centrals (laptop 1,896 packets with no gaps while the phone stopped/reconnected); MTU 120 → 4-sample packets live | PR #19 · report 023 |
 | S3A | ✅ Per-foot BLE (connect sequence, rules 8/9, reconnect), temporary debug screen, 183 tests; Note 10 checkpoint passed: both feet 6.25 Hz with 0 gaps, interval 11.25 ms | PR #20 · report 024 |
 | S3B | ✅ Web app fallback works with the new simulator: 9-min capture, both feet 26 984 rows, no lost packets, 20 ms spacing; resync steps of 160 ms (BACKLOG 28) and reconnect via the picker (BACKLOG 29) handled in `docs/STUDY-FALLBACK.md` | PR #21 · report 025 |
-| S4, S4C, S5, S6A, S7, S6B, SR | ⏳ Must finish before the study starts on 2026-11-10 | — |
-| S8A, S8B, S8C, S9, S10 | ⏳ After the study starts | — |
+| S4 | ✅ DeviceManager (50 Hz / 10 Hz, read-time staleness, ΔT), DeviceClock (no steps, never backwards), 7 mock presets, 242 tests; Note 10 checkpoint passed: L/R ≤ 3.4 ms (laptop-clock method, ±3 ms), 0 lost over 10.6 min, 20 ± 0.25 ms steps; BACKLOG 27 fixed and seen on the phone | PR #22 · report 026 |
+| S4C → S10 | ⏳ All finish by 2026-10-31 (see the schedule below); SR 2–5 Nov; study starts 2026-11-10 | — |
 
 **Demo state of the app:** installed on the Note 10 as a release build; all screens are placeholders ("ยังไม่พร้อมใช้งาน") until their sessions.
 
@@ -39,19 +39,26 @@ What the study protocol (proposal doc 03) needs from the app:
 | Volunteer usability tasks: pressure map, alert list, explain an alert message | Home with heatmap, Alerts screen, plain-Thai advice | S5 + S6B + S7 |
 | Alert text shown to volunteers | Reviewed by the medical expert | before 2026-11-05 |
 
-Not needed before the study: S8A (Gait screen, no model yet), S8B (the debug screen is enough for the researcher), S8C (foot check is not used with volunteers), S9, S10.
+Schedule (v2.3, user decision 2026-10-22: finish every session by 31 Oct, one session a day):
 
-| Date | Work |
-|---|---|
-| Thu 22 Oct | S3B (reduced) · user picks the new Home design |
-| Fri 23 Oct | S4 |
-| Sat 24 – Sun 25 Oct | S4C + simulator rehearsal of one capture session · advisor slides |
-| **Mon 26 Oct** | Advisor meeting (demo: capture on the phone) |
-| Tue 27 – Thu 29 Oct | S5, S6A, S7 |
-| Fri 30 Oct – Sun 1 Nov | S6B · send alert text to the medical expert |
-| Mon 2 – Thu 5 Nov | SR: real boards from Phumirapee + full 75-minute rehearsal |
-| Fri 6 – Mon 9 Nov | Buffer, fixes, expert text changes, final install |
-| **Tue 10 Nov** | Study starts |
+| Date | Claude Code | Design needed (Claude chat) |
+|---|---|---|
+| Thu 22 Oct | S4 | user picks Home style A/B/C |
+| Fri 23 Oct | S4C | Home, 4 states |
+| Sat 24 Oct | S4C Note 10 checkpoint + S5 | — |
+| Sun 25 Oct | S6A + S7 | Alerts + Temperature |
+| **Mon 26 Oct** | advisor meeting + S6B | My feet (gait) |
+| Tue 27 Oct | S8A | Connection + Settings |
+| Wed 28 Oct | S8B | Foot check (4 screens, new style) |
+| Thu 29 Oct | S8C | — |
+| Fri 30 Oct | S9 (simulator boards) | — |
+| Sat 31 Oct | S10 | — |
+| Sun 1 Nov | buffer | — |
+| Mon 2 – Thu 5 Nov | SR: real boards + full 75-minute rehearsal | — |
+| Fri 6 – Mon 9 Nov | buffer, expert text changes, final install | — |
+| **Tue 10 Nov** | study starts | — |
+
+If a day slips, move S8A, S8B, S8C to after 10 Nov first (not needed for the study). Never drop S4C, S5, S6A, S7 or S6B. **During the study (10–30 Nov) the study phone's build is frozen:** new work goes on branches and is tested on the emulator or another phone.
 
 If real boards are not ready by 2 Nov, SR runs on the simulator and the real-board check moves to the buffer days.
 
@@ -61,7 +68,7 @@ If real boards are not ready by 2 Nov, SR runs on the simulator and the real-boa
 - Normal synthetic walk stays below `watchKpa` (heel peak ≈ 60 kPa); higher pressure comes from the future scenario mode (BACKLOG 18).
 - Simulated battery never falls below 50 %; low battery comes from scenario mode.
 - `seq` restarts at 0 on every `START_STREAM`, per connection; `t0_ms` counts from boot and never restarts (BACKLOG 19 asks the contract owner to add this).
-- Rule 9 design for S3A/S4 (BACKLOG 20): primary checks are (1) drop packets before this connection's START is acknowledged and (2) `t0` never goes backwards within a connection. Seq look-ahead is only an optional idea.
+- Rule 9 design for S3A/S4 (BACKLOG 20): primary checks are (1) drop packets before this connection's START is acknowledged and (2) `t0` never goes backwards within a connection. Seq look-ahead is only an optional idea. (S4: check 1 now opens at the START write, not its ack; BACKLOG 27.)
 - Opcode scope: START, STOP, SYNC_TIME per connection; SET_RATE, TARE, REBOOT device-wide.
 - SET_RATE accepts only 50 Hz (other values logged and ignored) because the packet has no sample-spacing field (rule 1).
 - TARE in the simulator = per-channel minimum over one stride (55 samples), flags bit1 during the window.
@@ -74,8 +81,11 @@ If real boards are not ready by 2 Nov, SR runs on the simulator and the real-boa
 - **S4:** `deviceMs` uint32 wrap; L/R timing check ±10 ms. The Note 10 grants an 11.25 ms connection interval after the HIGH request (BACKLOG 25).
 - **S4:** the first packet after START can be dropped as "before START" when Android delivers it before the write ack; the gap counter misses it (BACKLOG 27).
 - **S4:** do not copy the web app's resync formula (offset = send time − last received sample): it is quantised to the 160 ms packet period and gives ±160 ms steps (BACKLOG 28). Anchor the offset to each packet's own arrival time.
-- **S4 checkpoint:** the left board's USB (laptop port 3-6, old cable) re-enumerated 4 times at plug-in and dropped once in S3B; replace that cable or use another port before the next serial log.
-- **Note 10 checkpoints:** restart adb (`adb kill-server`) if it loses the phone while USB stays attached; serial output can be garbage for the first minutes after plugging in a board, so check it reads cleanly before a test.
+- **S4 checkpoint:** the left board's USB (laptop port 3-6, old cable) re-enumerated 4 times at plug-in and dropped once in S3B; replace that cable or use another port before the next serial log. (Done in S4: new cable, port 6, no drops.)
+- **Note 10 checkpoints:** restart adb (`adb kill-server`) if it loses the phone while USB stays attached; serial output can be garbage for the first minutes after plugging in a board, so check it reads cleanly before a test; if it stays garbled, kill that logger by PID and reopen it before the phone connects (S4).
+- **S4C:** read `DeviceManager.batches` (50 Hz, unix-timed, raw ADC kept) and take the column order from `shared/model_input.json`; write `seq`.
+- **S7:** `thresholds.json` has no battery threshold (BACKLOG 30); confirm with the contract owner that PTI and concentration are per step, as the mock presets assume (BACKLOG 31).
+- **S9:** the L/R timing check needs both boards' serial logs on one laptop; real insoles have no serial port, so it needs another reference (report 026).
 - **S5 / S7:** zero load reads ≈ 0.01 kPa (display rounding); ADC 4095 ≈ 37,000 kPa (saturation; flags bit0).
 - **S8B:** REBOOT/TARE guard (BACKLOG 21).
 
@@ -157,19 +167,19 @@ Additional info: [optional]
 | 2 | S2B ✅ | Claude Code + user | New simulator: core | `work/sim-core` |
 | 3 | S2C ✅ | Claude Code + user | New simulator: control + 2 concurrent connections | `work/sim-control` |
 | 21 Oct | S3A ✅ | Claude Code + user | BLE, both feet | `work/flutter-ble` |
-| 22 Oct | S3B | Claude Code + user | Web app fallback check (laptop only) | `work/webapp-fallback-check` |
-| 23 Oct | S4 | Claude Code + user | DeviceManager + timing checks | `work/flutter-device-manager` |
-| 24–25 Oct | S4C | Claude Code + user | Research capture mode | `work/flutter-capture` |
-| 27 Oct | S5 | Claude Code | Heatmap + Home + animation | `work/flutter-home` |
-| 28 Oct | S6A | Claude Code | SQLite | `work/flutter-storage` |
-| 29 Oct | S7 | Claude Code | 9 alert rules + risk level + 3-level mapping | `work/flutter-rules` |
-| 30 Oct–1 Nov | S6B | Claude Code | Temperature + Alerts screens | `work/flutter-temp-alerts` |
+| 21–22 Oct | S3B ✅ | Claude Code + user | Web app fallback check (laptop only) | `work/webapp-fallback-check` |
+| 22 Oct | S4 | Claude Code + user | DeviceManager + timing checks | `work/flutter-device-manager` |
+| 23–24 Oct | S4C | Claude Code + user | Research capture mode | `work/flutter-capture` |
+| 24 Oct | S5 | Claude Code | Heatmap + Home + animation | `work/flutter-home` |
+| 25 Oct | S6A | Claude Code | SQLite | `work/flutter-storage` |
+| 25 Oct | S7 | Claude Code | 9 alert rules + risk level + 3-level mapping | `work/flutter-rules` |
+| 26 Oct | S6B | Claude Code | Temperature + Alerts screens | `work/flutter-temp-alerts` |
 | 2–5 Nov | SR | User + Claude Code | Study rehearsal with real boards | `work/study-readiness` |
-| after 10 Nov | S8A | Claude Code | Gait screen + model slot | `work/flutter-gait` |
-| after 10 Nov | S8B | Claude Code | Connection + Settings screens | `work/flutter-connect-settings` |
-| after 10 Nov | S8C | Claude Code + user | Daily foot check | `work/flutter-footcheck` |
-| after study | S9 | User + Claude Code | Integration test + APK | `work/flutter-integration` |
-| after study | S10 | Claude Code | Wrap-up + docs + screenshots | `work/flutter-wrapup` |
+| 27 Oct | S8A | Claude Code | Gait screen + model slot | `work/flutter-gait` |
+| 28 Oct | S8B | Claude Code | Connection + Settings screens | `work/flutter-connect-settings` |
+| 29 Oct | S8C | Claude Code + user | Daily foot check | `work/flutter-footcheck` |
+| 30 Oct | S9 | User + Claude Code | Integration test + APK | `work/flutter-integration` |
+| 31 Oct | S10 | Claude Code | Wrap-up + docs + screenshots | `work/flutter-wrapup` |
 
 ---
 
@@ -248,7 +258,7 @@ Additional info: [optional]
   1. Session setup: subject code (no names), room temperature, pre-checks (both feet streaming, battery ≥ 80 % on both, firmware/calibration recorded). Generates the trial order: normal gait first, then the 4 abnormal gaits in a random order per subject; simulated-pain side by odd/even subject number (proposal doc 03).
   2. 30 s standing calibration trial, then each gait trial: 3-minute timer that stops and saves by itself, sound + vibration cues at start, 10 s before the end and at the end, long press to stop early, "redo trial" (the old file is kept and marked invalid), large touch targets, screen kept on (`wakelock_plus`), no accidental input while the phone is in a pocket.
   3. Link loss during a trial: vibrate, keep recording after reconnect, and record the gap in the file.
-  4. Files in the app's private storage: one CSV per trial (unix time from S4, side, seq, raw ADC and kPa per channel, IMU, temperature, flags) + one JSON sidecar (subject code, gait class, pain side, start/end, room temperature, app/firmware versions, calibration, gaps). Export to the laptop over USB (`adb pull` script) with a manifest and checksums.
+  4. Files in the app's private storage: one CSV per trial (unix time from S4, side, seq, raw ADC and kPa per channel, IMU, temperature, flags) + one JSON sidecar (subject code, gait class, pain side, start/end, room temperature, app/firmware versions, calibration, gaps). **Model-input convention (user decision 2026-10-22):** FSR in kPa (raw ADC kept too), accel in g, gyro in °/s, and the 24 model channels in the exact order of DATA-CONTRACT §7.1. The app and the training scripts must use the same conversion code path (checked against `shared/test_vectors/`), so a model trained on these files runs unchanged in the app. Do not copy the web app's resync offset formula (BACKLOG 28). Export to the laptop over USB (`adb pull` script) with a manifest and checksums.
   5. A short `docs/STUDY-CAPTURE.md` for the user: the exact study-day steps on the phone, and how to export.
 - **Verify:** unit tests (trial order and pain-side rules, timer stop, file contents, gap recording, redo) · **You:** emulator with `MockDataSource` for the flow, screenshots · **User checkpoint (Note 10):** one full simulated session with both simulator boards (calibration + 5 trials, shortened timers allowed), export, and the analysis script confirms 50 Hz with no gaps.
 - **Done when:** a full session can be run alone on the phone and the exported files load cleanly in Python.
@@ -281,7 +291,7 @@ Additional info: [optional]
 - **Done when:** the user is confident to run the study on 2026-11-10.
 
 ### S8A — Gait screen
-- **Do:** PAI, CoP, step count, `GaitClassifier` (rules + TFLite skeleton in an isolate), label "estimate, not a diagnosis", animations.
+- **Do:** PAI, CoP, step count, label "estimate, not a diagnosis", animations. `GaitClassifier` interface with a rule-based implementation and a TFLite implementation in an isolate per DATA-CONTRACT §7: loads `assets/models/model_a.tflite` + `normalization.json` when present, input `[1,100,24]` (2 s window, 1 s stride, channel order §7.1, units as in S4C), outputs `gait_probs` [1,5] and `gait_embedding` [1,32]; falls back to the rules when the model is missing or confidence < 0.60. Prove the slot with a dummy model of the right shapes generated by a committed Python script (untrained weights): loads, channel order correct, inference ≤ 100 ms on the Note 10. Swapping in the real model in December must need only the two asset files. Model B stays out of scope (S7 rules give the status level).
 - **Verify:** unit + golden tests · **You:** emulator + mock presets, screenshots via Dart MCP.
 - **Done when:** values shown from mock data; classifier swappable without touching the screen.
 
@@ -297,7 +307,7 @@ Additional info: [optional]
 - **Done when:** a full check takes about 1 minute and photos stay inside the app.
 
 ### S9 — Integration + APK
-- **Do:** integration checklist; 30 minutes with 2 boards + laptop; battery and smoothness; reduce-motion; release APK. **User checkpoint** also covers: press sensors and watch the right dots change, warm one temperature sensor and watch ΔT, connect both insoles unaided.
+- **Do:** integration checklist; 30 minutes with 2 boards on the phone (simulator boards; real boards are SR); battery and smoothness; reduce-motion; release APK. **User checkpoint** also covers: press sensors and watch the right dots change, warm one temperature sensor and watch ΔT, connect both insoles unaided.
 - **Done when:** the APK works for 30 minutes with no serious issues.
 
 ### S10 — Wrap-up
