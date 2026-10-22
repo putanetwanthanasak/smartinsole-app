@@ -725,7 +725,7 @@ result comes from the S4 Note 10 checkpoint.
   supports at most 36. Lift the pin when the Android Gradle plugin is
   upgraded.
 
-## 27. The first packet after START can be dropped as "before START" **(found at the S3A Note 10 checkpoint, for S4)**
+## 27. The first packet after START can be dropped as "before START" **(found at the S3A Note 10 checkpoint, for S4)** — RESOLVED
 
 Rule 9 check 1 (item 20) drops sensor/temp packets that arrive before
 this connection's `START_STREAM` write is acknowledged. On the Note 10 one
@@ -760,6 +760,13 @@ arrive between the START write and its ack are counted as
 doesn't restart `seq`, item 19, shows up as one clear number). Tests: a
 packet before the ack is kept, one before the write is still dropped, a
 late packet from the old link is still dropped.
+
+**Verified at the S4 Note 10 checkpoint (2026-10-22):**
+- The race happened once in the 10 reconnects (5 per foot), on
+  the right foot: "a packet arrived before the START ack (kept)".
+- That packet was kept. `missing at start` and `dropped before START`
+  stayed 0 on both feet.
+- Resolved.
 
 ## 28. Web-app CSV: resync steps of exactly 160 ms, and no `seq` **(found in S3B; user decided: no web-app change)**
 

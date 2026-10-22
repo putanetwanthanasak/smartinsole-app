@@ -1,0 +1,92 @@
+[ble] 12:34:24.076 - permission: granted
+[ble] 12:34:24.119 - adapter: on
+[ble] 12:34:28.811 - scan started
+[ble] 12:34:28.900 - found 88:57:21:B7:74:9E (advertised name "SMARTINSOLE-L", rssi -50)
+[ble] 12:34:28.908 - found 38:18:2B:8A:26:D6 (advertised name "SMARTINSOLE-R", rssi -88)
+[ble] 12:34:40.661 L connect 38:18:2B:8A:26:D6
+[ble] 12:34:41.853 L MTU requested 247, got 247
+[ble] 12:34:42.138 L problem wrongSide: insole reports foot_side right, this slot is left
+[ble] 12:34:47.921 R connect 38:18:2B:8A:26:D6
+[ble] 12:34:49.252 R MTU requested 247, got 247
+[ble] 12:34:49.589 R calibration SIM-R-001: N = 6, offset_adc [12.0, 12.0, 12.0, 12.0, 12.0, 12.0]
+[ble] 12:34:49.997 R streaming: MTU 247, 8 samples/packet, N = 6
+[ble] 12:34:50.013 - scan stopped
+[ble] 12:34:51.544 L disconnected by user
+[ble] 12:34:51.545 L connect 88:57:21:B7:74:9E
+[ble] 12:34:51.553 - scan started
+[ble] 12:34:52.876 L MTU requested 247, got 247
+[ble] 12:34:53.112 L calibration SIM-L-001: N = 6, offset_adc [18.0, 19.0, 18.0, 18.0, 18.0, 18.0]
+[ble] 12:34:53.573 L streaming: MTU 247, 8 samples/packet, N = 6
+[ble] 12:34:53.577 - scan stopped
+[ble] 12:55:27.397 R disconnected by user
+[ble] 12:55:31.595 R connect 38:18:2B:8A:26:D6
+[ble] 12:55:31.607 - scan started
+[ble] 12:55:32.818 R MTU requested 247, got 247
+[ble] 12:55:33.152 R calibration SIM-R-001: N = 6, offset_adc [12.0, 12.0, 12.0, 12.0, 12.0, 12.0]
+[ble] 12:55:33.529 R streaming: MTU 247, 8 samples/packet, N = 6
+[ble] 12:55:33.537 - scan stopped
+[ble] 12:55:36.824 R disconnected by user
+[ble] 12:55:38.852 R connect 38:18:2B:8A:26:D6
+[ble] 12:55:38.865 - scan started
+[ble] 12:55:40.160 R MTU requested 247, got 247
+[ble] 12:55:40.491 R calibration SIM-R-001: N = 6, offset_adc [12.0, 12.0, 12.0, 12.0, 12.0, 12.0]
+[ble] 12:55:40.833 R streaming: MTU 247, 8 samples/packet, N = 6
+[ble] 12:55:40.844 - scan stopped
+[ble] 12:55:45.781 R disconnected by user
+[ble] 12:55:47.114 R connect 38:18:2B:8A:26:D6
+[ble] 12:55:47.137 - scan started
+[ble] 12:55:48.601 R MTU requested 247, got 247
+[ble] 12:55:48.945 R calibration SIM-R-001: N = 6, offset_adc [12.0, 12.0, 12.0, 12.0, 12.0, 12.0]
+[ble] 12:55:49.304 R streaming: MTU 247, 8 samples/packet, N = 6
+[ble] 12:55:49.314 - scan stopped
+[ble] 12:55:51.168 R disconnected by user
+[ble] 12:55:53.503 R connect 38:18:2B:8A:26:D6
+[ble] 12:55:53.521 - scan started
+[ble] 12:55:54.628 R MTU requested 247, got 247
+[ble] 12:55:55.066 R calibration SIM-R-001: N = 6, offset_adc [12.0, 12.0, 12.0, 12.0, 12.0, 12.0]
+[ble] 12:55:55.346 R streaming: MTU 247, 8 samples/packet, N = 6
+[ble] 12:55:55.353 - scan stopped
+[ble] 12:55:59.922 R disconnected by user
+[ble] 12:56:02.036 R connect 38:18:2B:8A:26:D6
+[ble] 12:56:02.049 - scan started
+[ble] 12:56:03.403 R MTU requested 247, got 247
+[ble] 12:56:03.751 R calibration SIM-R-001: N = 6, offset_adc [12.0, 12.0, 12.0, 12.0, 12.0, 12.0]
+[ble] 12:56:04.101 R a packet arrived before the START ack (kept)
+[ble] 12:56:04.105 R streaming: MTU 247, 8 samples/packet, N = 6
+[ble] 12:56:04.111 - scan stopped
+[ble] 12:56:09.920 L disconnected by user
+[ble] 12:56:14.584 L connect 88:57:21:B7:74:9E
+[ble] 12:56:14.598 - scan started
+[ble] 12:56:15.907 L MTU requested 247, got 247
+[ble] 12:56:16.251 L calibration SIM-L-001: N = 6, offset_adc [18.0, 19.0, 18.0, 18.0, 18.0, 18.0]
+[ble] 12:56:16.559 L streaming: MTU 247, 8 samples/packet, N = 6
+[ble] 12:56:16.565 - scan stopped
+[ble] 12:56:17.828 L disconnected by user
+[ble] 12:56:23.481 L connect 88:57:21:B7:74:9E
+[ble] 12:56:23.490 - scan started
+[ble] 12:56:24.810 L MTU requested 247, got 247
+[ble] 12:56:25.142 L calibration SIM-L-001: N = 6, offset_adc [18.0, 19.0, 18.0, 18.0, 18.0, 18.0]
+[ble] 12:56:25.492 L streaming: MTU 247, 8 samples/packet, N = 6
+[ble] 12:56:25.500 - scan stopped
+[ble] 12:56:28.776 L disconnected by user
+[ble] 12:56:31.605 L connect 88:57:21:B7:74:9E
+[ble] 12:56:31.618 - scan started
+[ble] 12:56:32.066 L attempt 1 failed: connect: ANDROID_SPECIFIC_ERROR (code 133)
+[ble] 12:56:34.208 L MTU requested 247, got 247
+[ble] 12:56:34.594 L calibration SIM-L-001: N = 6, offset_adc [18.0, 19.0, 18.0, 18.0, 18.0, 18.0]
+[ble] 12:56:34.895 L streaming: MTU 247, 8 samples/packet, N = 6
+[ble] 12:56:34.901 - scan stopped
+[ble] 12:56:39.338 L disconnected by user
+[ble] 12:56:41.262 L connect 88:57:21:B7:74:9E
+[ble] 12:56:41.270 - scan started
+[ble] 12:56:42.582 L MTU requested 247, got 247
+[ble] 12:56:42.918 L calibration SIM-L-001: N = 6, offset_adc [18.0, 19.0, 18.0, 18.0, 18.0, 18.0]
+[ble] 12:56:43.299 L streaming: MTU 247, 8 samples/packet, N = 6
+[ble] 12:56:43.308 - scan stopped
+[ble] 12:56:47.946 L disconnected by user
+[ble] 12:56:49.745 L connect 88:57:21:B7:74:9E
+[ble] 12:56:49.765 - scan started
+[ble] 12:56:51.150 L MTU requested 247, got 247
+[ble] 12:56:51.495 L calibration SIM-L-001: N = 6, offset_adc [18.0, 19.0, 18.0, 18.0, 18.0, 18.0]
+[ble] 12:56:51.839 L streaming: MTU 247, 8 samples/packet, N = 6
+[ble] 12:56:51.845 - scan stopped

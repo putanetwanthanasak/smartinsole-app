@@ -2,12 +2,15 @@
 
 Branch `work/flutter-device-manager` · 2026-10-22 · Session S4 (`docs/SESSIONS.md` §3)
 
-**Status: for the 10-minute timing run (2026-10-22), `timing_check.py`
-reports PASS. This is with an L/R measurement method changed after the run
-(section "Note 10 checkpoint results"); the user's acceptance of that
-result is still needed. Checklist step 3 (5× reconnect per foot) is
-waiting on the user.** All automated checks pass (242 tests, analyze clean,
-mutation checks caught), and the emulator checks are done.
+**Status: done.** The S4 Note 10 checkpoint passed on 2026-10-22.
+- **Timing run:** `timing_check.py` reports PASS, using an L/R method
+  changed after the run (section "Note 10 checkpoint results"). The user
+  accepted both the method change and the result.
+- **Step 3** (5× reconnect per foot) was verified by the user on the
+  device.
+- **Automated checks:** all pass (242 tests, analyze clean, mutation
+  checks caught).
+- **Emulator checks:** done.
 
 S4's Done-when is "L/R offset ≤ ±10 ms, 20 ms spacing, no lost packets".
 In the 10-minute run:
@@ -16,8 +19,8 @@ In the 10-minute run:
 - the sample spacing stayed within 19.75–20.25 ms;
 - 0 packets were lost.
 
-The user accepted the method change before the rerun (see that
-section). Accepting the result itself is the user's call.
+The user accepted the method change before the rerun, and then the
+result: worst 3.4 ms, 6.4 ms with the uncertainty.
 
 ## What was done
 
@@ -93,7 +96,10 @@ section). Accepting the result itself is the user's call.
    lost packets, 20 ± 1 ms steps, clamps, and the boards' notify failures
    and mtu-drops. Without serial logs it fails, unless `--app-only` is
    given.
-6. **Docs** (`f3eb9e3`):
+6. **After the Note 10 run** (`bfdb95b`): the
+   laptop-clock comparison became `timing_check.py`'s primary L/R check.
+   The Note 10 evidence and results were added to this report.
+7. **Docs** (`f3eb9e3`):
    - `lib/device/README.md`, `lib/ble/README.md` and `mobile/CLAUDE.md`
      (layout, the `MOCK` define, BLE rules);
    - BACKLOG status for items 20, 25, 27 and 28, plus new items 30 and
@@ -168,8 +174,8 @@ results"). It is kept in `timing_check.py` as a secondary figure.
 | Emulator, mock | **pass:** `MOCK=safe`, every one of the 7 presets switched live from Settings, no runtime errors from the app |
 | Emulator, fake BLE | **pass:** both feet streaming, timing check started, file written, pulled with `adb exec-out run-as`, parsed by `timing_check.py --app-only` (0 lost, steps 19.75–20.09 ms, clamps 0) |
 | Goldens | new `settings_mock`; `ble_debug_*` regenerated at 390×2000 for the timing card |
-| Note 10, 10-min timing run | **checker: PASS with the laptop-clock method; user acceptance pending** (adopted after the run, accepted by the user): \|L/R\| ≤ 3.38 ms, ±3 ms uncertainty; 0 lost; steps 19.75–20.25 ms; 0 clamps; 0 notify failures. The planned write-latency bound gave 27 / 66 ms (now secondary). |
-| Note 10, step 3 (5× reconnect per foot, BACKLOG 27) | **waiting on user** |
+| Note 10, 10-min timing run | **pass, accepted by the user**: checker PASS with the laptop-clock method (adopted after the run, accepted by the user): \|L/R\| ≤ 3.38 ms, ±3 ms uncertainty; 0 lost; steps 19.75–20.25 ms; 0 clamps; 0 notify failures. The planned write-latency bound gave 27 / 66 ms (now secondary). |
+| Note 10, step 3 (5× reconnect per foot, BACKLOG 27) | **pass, verified by the user on the device**: sessions 6, dropped before START 0, old conn 0, missing at start 0, seq gaps 0 on both feet. Admitted before ack: left 0, right ≥ 1, from the phone log (see results) |
 
 During the emulator run, `get_runtime_errors` showed one
 "Guarded function conflict" from the Flutter Driver. I had sent several
@@ -243,8 +249,8 @@ was made.
   - USB delay jitter of 1–25 ms (passes);
   - serial lines without laptop time (fails).
 
-**Result with the laptop clock: the checker reports PASS** (for the user
-to accept).
+**Result with the laptop clock: the checker reports PASS.** The user
+accepted the result on 2026-10-22.
 
 | | Left | Right |
 |---|---|---|
@@ -266,14 +272,46 @@ script changed, took only a plain local minimum. It got −1.8 to +7.4 ms
 biases a plain ±60 s minimum by up to about 2 ms, which is why the script
 fits and removes the drift first.
 
-`admitted before START ack` was 0 on both feet, but each foot connected
-only once in this run, so BACKLOG 27 is untested until step 3 is done.
+`admitted before START ack` was 0 on both feet during the timing run.
+Each foot had connected only once by then.
+
+### Step 3: 5× Disconnect → Connect per foot (BACKLOG 27)
+
+**Verified by the user on the device** (no screenshot). After 5×
+Disconnect → Connect on each card, both cards showed:
+- sessions 6;
+- dropped before START 0;
+- old conn 0;
+- missing at start 0;
+- seq gaps 0.
+
+**Admitted before ack: left 0, right ≥ 1.** The user's message left these
+as placeholders ("left X, right Y"), so they come from the phone's
+`[ble]` log, saved as `note10-phone-ble.log`. The counter is cumulative
+per foot, and the app logs only its first occurrence:
+- **Right:** "R a packet arrived before the START ack (kept)" at
+  12:56:04.101, on the 5th reconnect, 4 ms before "R streaming".
+- **Left:** the line never appears in this app run, so left was 0.
+- **Not known:** the right's exact count. It was the last right connect
+  of the run, so it is 1 unless several packets arrived in that single
+  gap.
+
+**This is the S3A race (BACKLOG 27) happening on the phone.** That
+packet would have been dropped before S4. It was kept, and `missing at
+start` stayed 0.
+
+**Other things in the phone log:**
+- **12:34:42:** the right board, connected into the LEFT slot by
+  mistake, was rejected with `problem wrongSide` (rule 8), with no
+  START. It was then connected correctly.
+- **12:56:32, 3rd left reconnect:** attempt 1 failed with Android's
+  GATT error 133. The app's normal retry connected 2 s later; streaming
+  and counters were unaffected.
 
 ## Leftovers
 
-- **BACKLOG 27** is fixed in code. Checklist step 3 (5× reconnect per
-  foot) is still to run. `admittedBeforeAck` will show whether the race
-  really happens.
+- **BACKLOG 27** is fixed and was seen working on the Note 10 (right
+  foot, ≥ 1 packet kept).
 - **The L/R check needs both boards logged on one laptop.** Real insoles
   in S9 won't have a serial port, so the same check won't work there. A
   different reference would be needed then, e.g. a shared tap event.
@@ -294,16 +332,20 @@ only once in this run, so BACKLOG 27 is untested until step 3 is done.
 
 ## Decisions needed
 
-The user accepted the method change on 2026-10-22. Still needed:
-- the user's acceptance of the timing result;
-- the step 3 result.
-
-S5 waits on both.
+None. The user accepted the method change and the timing result on
+2026-10-22, and verified step 3 on the device. S4C and S5 may start.
 
 ## Next session
 
-S5 (Home + mock-driven UI), once the Note 10 checkpoint passes. S4C reads
-`DeviceManager.batches` and `shared/model_input.json`.
+**S4C**, research capture mode (Fri 23 Oct in the v2.3 schedule). It
+builds on S4:
+- it reads `DeviceManager.batches` (50 Hz, unix-timed, raw ADC kept);
+- it takes its column order from `shared/model_input.json`;
+- it writes `seq` (BACKLOG 28).
+
+**S5** (Home on `displaySnapshotProvider`, driven by the mock presets) is
+no longer blocked by S4. It needs the Home style pick (A/B/C), which the
+schedule puts on 22 Oct.
 
 ## Note 10 checkpoint — checklist
 

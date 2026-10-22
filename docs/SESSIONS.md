@@ -18,7 +18,8 @@
 | S2C | ✅ All 6 opcodes; TARE → NVS; 2 concurrent centrals (laptop 1,896 packets with no gaps while the phone stopped/reconnected); MTU 120 → 4-sample packets live | PR #19 · report 023 |
 | S3A | ✅ Per-foot BLE (connect sequence, rules 8/9, reconnect), temporary debug screen, 183 tests; Note 10 checkpoint passed: both feet 6.25 Hz with 0 gaps, interval 11.25 ms | PR #20 · report 024 |
 | S3B | ✅ Web app fallback works with the new simulator: 9-min capture, both feet 26 984 rows, no lost packets, 20 ms spacing; resync steps of 160 ms (BACKLOG 28) and reconnect via the picker (BACKLOG 29) handled in `docs/STUDY-FALLBACK.md` | PR #21 · report 025 |
-| S4 → S10 | ⏳ All finish by 2026-10-31 (see the schedule below); SR 2–5 Nov; study starts 2026-11-10 | — |
+| S4 | ✅ DeviceManager (50 Hz / 10 Hz, read-time staleness, ΔT), DeviceClock (no steps, never backwards), 7 mock presets, 242 tests; Note 10 checkpoint passed: L/R ≤ 3.4 ms (laptop-clock method, ±3 ms), 0 lost over 10.6 min, 20 ± 0.25 ms steps; BACKLOG 27 fixed and seen on the phone | PR #22 · report 026 |
+| S4C → S10 | ⏳ All finish by 2026-10-31 (see the schedule below); SR 2–5 Nov; study starts 2026-11-10 | — |
 
 **Demo state of the app:** installed on the Note 10 as a release build; all screens are placeholders ("ยังไม่พร้อมใช้งาน") until their sessions.
 
@@ -67,7 +68,7 @@ If real boards are not ready by 2 Nov, SR runs on the simulator and the real-boa
 - Normal synthetic walk stays below `watchKpa` (heel peak ≈ 60 kPa); higher pressure comes from the future scenario mode (BACKLOG 18).
 - Simulated battery never falls below 50 %; low battery comes from scenario mode.
 - `seq` restarts at 0 on every `START_STREAM`, per connection; `t0_ms` counts from boot and never restarts (BACKLOG 19 asks the contract owner to add this).
-- Rule 9 design for S3A/S4 (BACKLOG 20): primary checks are (1) drop packets before this connection's START is acknowledged and (2) `t0` never goes backwards within a connection. Seq look-ahead is only an optional idea.
+- Rule 9 design for S3A/S4 (BACKLOG 20): primary checks are (1) drop packets before this connection's START is acknowledged and (2) `t0` never goes backwards within a connection. Seq look-ahead is only an optional idea. (S4: check 1 now opens at the START write, not its ack; BACKLOG 27.)
 - Opcode scope: START, STOP, SYNC_TIME per connection; SET_RATE, TARE, REBOOT device-wide.
 - SET_RATE accepts only 50 Hz (other values logged and ignored) because the packet has no sample-spacing field (rule 1).
 - TARE in the simulator = per-channel minimum over one stride (55 samples), flags bit1 during the window.
@@ -80,8 +81,11 @@ If real boards are not ready by 2 Nov, SR runs on the simulator and the real-boa
 - **S4:** `deviceMs` uint32 wrap; L/R timing check ±10 ms. The Note 10 grants an 11.25 ms connection interval after the HIGH request (BACKLOG 25).
 - **S4:** the first packet after START can be dropped as "before START" when Android delivers it before the write ack; the gap counter misses it (BACKLOG 27).
 - **S4:** do not copy the web app's resync formula (offset = send time − last received sample): it is quantised to the 160 ms packet period and gives ±160 ms steps (BACKLOG 28). Anchor the offset to each packet's own arrival time.
-- **S4 checkpoint:** the left board's USB (laptop port 3-6, old cable) re-enumerated 4 times at plug-in and dropped once in S3B; replace that cable or use another port before the next serial log.
-- **Note 10 checkpoints:** restart adb (`adb kill-server`) if it loses the phone while USB stays attached; serial output can be garbage for the first minutes after plugging in a board, so check it reads cleanly before a test.
+- **S4 checkpoint:** the left board's USB (laptop port 3-6, old cable) re-enumerated 4 times at plug-in and dropped once in S3B; replace that cable or use another port before the next serial log. (Done in S4: new cable, port 6, no drops.)
+- **Note 10 checkpoints:** restart adb (`adb kill-server`) if it loses the phone while USB stays attached; serial output can be garbage for the first minutes after plugging in a board, so check it reads cleanly before a test; if it stays garbled, kill that logger by PID and reopen it before the phone connects (S4).
+- **S4C:** read `DeviceManager.batches` (50 Hz, unix-timed, raw ADC kept) and take the column order from `shared/model_input.json`; write `seq`.
+- **S7:** `thresholds.json` has no battery threshold (BACKLOG 30); confirm with the contract owner that PTI and concentration are per step, as the mock presets assume (BACKLOG 31).
+- **S9:** the L/R timing check needs both boards' serial logs on one laptop; real insoles have no serial port, so it needs another reference (report 026).
 - **S5 / S7:** zero load reads ≈ 0.01 kPa (display rounding); ADC 4095 ≈ 37,000 kPa (saturation; flags bit0).
 - **S8B:** REBOOT/TARE guard (BACKLOG 21).
 
