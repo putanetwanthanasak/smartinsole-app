@@ -181,12 +181,22 @@ class TrialRecorder {
     }
   }
 
+  /// Ends the window early (a held "Stop early"). Never at or before a row
+  /// already written, so every row is inside the window the sidecar gives.
+  void cut(double atUnixMs) {
+    final written = _lastWrittenUnixMs;
+    final at = written != null && written >= atUnixMs
+        ? written + 0.001
+        : atUnixMs;
+    if (at < endUnixMs) endUnixMs = at;
+  }
+
   /// Stops listening and closes the file. Ends an open invalid segment.
   /// [cutAtUnixMs] cuts the window short (an early stop).
   void stop({double? cutAtUnixMs}) {
     if (_file == null) return;
     if (cutAtUnixMs != null && cutAtUnixMs < endUnixMs) {
-      endUnixMs = cutAtUnixMs;
+      cut(cutAtUnixMs);
     }
     setMarkedInvalid(false);
     for (final side in FootSide.values) {

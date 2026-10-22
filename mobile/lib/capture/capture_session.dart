@@ -584,7 +584,7 @@ class CaptureSession extends ChangeNotifier {
 
   void _finish(EndReason reason, {DateTime? cutAt}) {
     _stopTicker();
-    if (cutAt != null) _recorder?.endUnixMs = _ms(cutAt);
+    if (cutAt != null) _recorder?.cut(_ms(cutAt));
     _deadline = null;
     _phase = CapturePhase.saving;
     deps.cues.play(Cue.end);

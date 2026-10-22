@@ -143,6 +143,11 @@ void main() {
         final j = sidecar(rig, 'TEST-001_00_calibration_a1');
         expect(j['endReason'], 'stopped_early');
         expect(j['durationS'], closeTo(4.0, 0.01));
+        // Every row is inside the window the sidecar gives.
+        final csv = csvOf(rig, 'TEST-001_00_calibration_a1');
+        for (final r in csv.rows) {
+          expect(csv.num(r, 'unix_ms'), lessThan(j['endUnixMs']! as double));
+        }
         expect(rig.cues.played.last, Cue.end);
         rig.dispose();
       });
