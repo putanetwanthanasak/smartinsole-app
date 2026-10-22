@@ -68,12 +68,14 @@ class FakeSource implements InsoleDataSource {
     );
   }
 
-  /// One packet of 8 samples, all channels at [kpa].
+  /// One packet of 8 samples, all channels at [kpa], or each sample from
+  /// [sample] (given the sample's index in the packet).
   void packet({
     double kpa = 10,
     int missingBefore = 0,
     int? sessionOverride,
     DateTime? at,
+    SensorSample Function(int i, int deviceMs)? sample,
   }) {
     _frames.add(
       SensorFrame(
@@ -86,13 +88,16 @@ class FakeSource implements InsoleDataSource {
         calibrating: false,
         samples: [
           for (var i = 0; i < 8; i++)
-            SensorSample(
-              deviceMs: (t0 + i * 20) & 0xFFFFFFFF,
-              fsrAdc: List.filled(6, 1000),
-              fsrKpa: List.filled(6, kpa),
-              accelG: [0, 0, 1],
-              gyroDps: [0, 0, 0],
-            ),
+            if (sample != null)
+              sample(i, (t0 + i * 20) & 0xFFFFFFFF)
+            else
+              SensorSample(
+                deviceMs: (t0 + i * 20) & 0xFFFFFFFF,
+                fsrAdc: List.filled(6, 1000),
+                fsrKpa: List.filled(6, kpa),
+                accelG: [0, 0, 1],
+                gyroDps: [0, 0, 0],
+              ),
         ],
       ),
     );
