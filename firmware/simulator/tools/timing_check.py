@@ -37,6 +37,7 @@ Exits non-zero on FAIL.
     /usr/bin/python3 tools/timing_check.py --selftest
     /usr/bin/python3 tools/timing_check.py timing-20261022-....log \\
         --serial-left left.log --serial-right right.log
+    /usr/bin/python3 tools/timing_check.py timing-....log --app-only
 """
 
 from __future__ import annotations
@@ -102,6 +103,7 @@ def check(
     window_s: float = 120.0,
     min_minutes: float = 0.0,
     min_brackets: int = 6,
+    app_only: bool = False,
 ) -> tuple[bool, list[str]]:
     out: list[str] = []
     syncs = [fields(l) for l in app_lines if l.startswith("SYNC ")]
@@ -182,7 +184,10 @@ def check(
         # The board's side.
         s = serial.get(side)
         if s is None:
-            r.lines.append(f"{side}: no serial log, bracket not checked")
+            if app_only:
+                r.lines.append(f"{side}: no serial log, bracket not checked")
+            else:
+                r.fails.append("no serial log (--app-only to check the app side alone)")
             continue
         if s.notify_failures and s.notify_failures[-1] != s.notify_failures[0]:
             r.fails.append(
@@ -342,6 +347,13 @@ def selftest() -> int:
     good = not ok and any("not in the serial log" in l for l in out)
     failed += not good
     print(f"{'ok  ' if good else 'BAD '} unmatched SYNC lines are reported")
+    # No serial log is a FAIL unless asked for the app side only.
+    app, _ = _synth()
+    ok_missing, _ = check(app, {"L": None, "R": None})
+    ok_app_only, _ = check(app, {"L": None, "R": None}, app_only=True)
+    good = not ok_missing and ok_app_only
+    failed += not good
+    print(f"{'ok  ' if good else 'BAD '} a missing serial log fails unless --app-only")
     print(f"selftest: {'PASS' if not failed else f'{failed} FAILED'}")
     return 1 if failed else 0
 
@@ -355,6 +367,11 @@ def main() -> int:
     p.add_argument("--step-tol-ms", type=float, default=1.0)
     p.add_argument("--window-s", type=float, default=120.0)
     p.add_argument("--min-minutes", type=float, default=10.0)
+    p.add_argument(
+        "--app-only",
+        action="store_true",
+        help="check the app log alone (no L/R bound; never the checkpoint)",
+    )
     p.add_argument("--selftest", action="store_true")
     a = p.parse_args()
     if a.selftest:
@@ -379,6 +396,7 @@ def main() -> int:
         step_tol_ms=a.step_tol_ms,
         window_s=a.window_s,
         min_minutes=a.min_minutes,
+        app_only=a.app_only,
     )
     print("\n".join(out))
     return 0 if ok else 1
