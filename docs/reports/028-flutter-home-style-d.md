@@ -3,10 +3,10 @@
 Branch `work/s5-home-style-d` · 2026-10-23 · Session S5 (`docs/SESSIONS.md` §3)
 Spec: `docs/design/DESIGN-SPEC.md` v2 §1–§6, §12, §13.
 
-**Status: waiting for the Note 10 checkpoint.** Automated checks, the
-emulator and the phone checks I ran (section "Note 10 session") pass. One
-accessibility bug found on the phone is fixed. The user's items at the end
-of this report are still open, so S5 is not done.
+**Status: Note 10 checkpoint run, every item passes (section "Note 10
+checkpoint results"); waiting for the user's acceptance.** One
+accessibility bug found on the phone and the `watch` preset found in the
+design review are both fixed.
 
 > **Level 3 is not checked until S7.** In S5, Home's "ควรระวัง" (Be
 > careful) state only appears from the `watch` mock preset. No rule
@@ -311,3 +311,43 @@ the design boards.
    also PASS.
 
 Results go in a "Note 10 checkpoint results" section of this report.
+
+## Note 10 checkpoint results (2026-10-23)
+
+Release build `efdc7cd`, both ESP32 simulator boards.
+
+| Item | Result | Who |
+|---|---|---|
+| 1. Presets vs the design boards | Pass after the `watch` fix (section "Design review") | user's design reviewer |
+| 2. Tab bar | Pass | user |
+| 3. Thai fonts | Pass | user |
+| 4. Motion, "Remove animations" on and off | Pass | user |
+| 5. TalkBack | Pass | user |
+| 6. Jank (profile, performance overlay) | Pass (section "Note 10 session") | Claude |
+| 7. Two simulators, one unplugged | Pass | user |
+| 8. Research capture from the long press, TEST-003, export, laptop check | **PASS** (below) | user on the phone, Claude on the laptop |
+
+**TEST-003** (session `TEST-003_20261023-215802`, rehearsal): calibration
+and all 5 gaits, one attempt each, all valid and completed.
+- `export_capture.py --dest ~/smartinsole-data --serial RF8M83P4STZ
+  --session TEST-003_20261023-215802`: every SHA-256 matches
+  `manifest.json`, and the checks **PASS**
+  ([export_test003.txt](028-flutter-home-style-d/export_test003.txt)).
+- `load_capture.py check ~/smartinsole-data/TEST-003_20261023-215802`:
+  **PASS** ([load_test003.txt](028-flutter-home-style-d/load_test003.txt)).
+- Every attempt, both feet: 20 ms steps (±0.25 ms), no gaps, 0 missing
+  packets.
+- Right foot, normal: 1,499 samples instead of 1,500. The sidecar shows
+  no gap and 0 missing packets. It is where that board's 20 ms sample grid
+  falls against the 30.0 s window edges, not lost data. Both checks count
+  it OK.
+
+**Nothing was deleted.** The user asked that "Delete from phone" not be
+pressed. The private session is still in the app, and the staged copy is
+still in the export folder (the script's "remove the staged copy?" prompt
+got no answer). The laptop copy is the only other copy
+(`~/smartinsole-data/TEST-003_20261023-215802`). The protocol asks for a
+second backup before anything is deleted from the phone.
+
+Every checkpoint item has a result. Accepting S5 and merging PR #24 is the
+user's decision.
