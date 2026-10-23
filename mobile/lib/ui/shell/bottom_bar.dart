@@ -168,10 +168,13 @@ class _TabButtonState extends State<_TabButton> with TickerProviderStateMixin {
       );
     }
 
+    // excludeSemantics also drops the InkWell's tap action, so the tap is
+    // given to TalkBack here.
     return Semantics(
       button: true,
       selected: selected,
       label: label,
+      onTap: widget.onTap,
       excludeSemantics: true,
       child: InkWell(
         borderRadius: BorderRadius.circular(Dimens.radiusCard),

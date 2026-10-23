@@ -247,6 +247,26 @@ void main() {
       expect(find.byTooltip('ตั้งค่า'), findsOneWidget);
     });
 
+    testWidgets('TalkBack can activate every tab', (tester) async {
+      final semantics = tester.ensureSemantics();
+      await pumpApp(tester);
+      for (final tab in ['myFeet', 'footCheck', 'alerts', 'today']) {
+        // Performs the semantics tap action; throws if there is none.
+        tester.semantics.tap(
+          find.semantics.byPredicate(
+            (n) => n.label == tester.getSemantics(byKey('tab-$tab')).label,
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(
+          tester.getSemantics(byKey('tab-$tab')),
+          isSemantics(isSelected: true, hasTapAction: true),
+          reason: tab,
+        );
+      }
+      semantics.dispose();
+    });
+
     for (final (count, label) in [
       (0, 'แจ้งเตือน'),
       (3, 'แจ้งเตือน มี 3 รายการที่ยังไม่ได้อ่าน'),
