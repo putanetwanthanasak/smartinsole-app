@@ -73,6 +73,16 @@ abstract final class AppText {
     height: _lineHeight,
     color: AppColors.inkMuted,
   );
+
+  /// Research capture countdown: read at arm's length while walking.
+  static const captureTimer = TextStyle(
+    fontFamily: AppFonts.heading,
+    fontSize: 72,
+    fontWeight: FontWeight.w700,
+    height: 1.1,
+    color: AppColors.ink,
+    fontFeatures: [FontFeature.tabularFigures()],
+  );
   static const small = TextStyle(
     fontFamily: AppFonts.body,
     fontSize: 14,

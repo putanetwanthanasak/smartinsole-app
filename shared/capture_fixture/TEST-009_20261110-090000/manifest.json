@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "kind": "manifest",
+  "sessionId": "TEST-009_20261110-090000",
+  "files": [
+    {
+      "name": "TEST-009_00_calibration_a1.csv",
+      "size": 109378,
+      "sha256": "b7b093fcda0a53a16fc5b19030615d7bf3c72e46343117c0133aae78adfa33aa"
+    },
+    {
+      "name": "TEST-009_00_calibration_a1.json",
+      "size": 3932,
+      "sha256": "d42db6f3bc8a42a4399ffe71dd819aacc7e7e3e59f159bbe3e21034880dbc067"
+    },
+    {
+      "name": "session.json",
+      "size": 2155,
+      "sha256": "b97bc9b24e33ad7324b9ada525e2228d60c859f8589e3b170c3235dcddbe1d1a"
+    }
+  ]
+}

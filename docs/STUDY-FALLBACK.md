@@ -1,6 +1,7 @@
 # Study-day fallback: capture on the laptop web app
 
 Use this only when phone capture fails in the middle of a study session.
+The normal phone procedure is `docs/STUDY-CAPTURE.md`.
 Only one central may hold the insoles at a time, so the phone gives them up
 first. Checked against the simulator in S3B (`docs/reports/025-*.md`).
 

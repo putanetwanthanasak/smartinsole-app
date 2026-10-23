@@ -143,6 +143,7 @@ class BleDataSource implements InsoleDataSource {
   Stream<SyncSent> get syncs => _syncs.stream;
 
   String? get deviceId => _deviceId;
+  @override
   Calibration? get calibration => _cal;
 
   /// Binds this foot to [deviceId] (picked from the scan list) and connects.
@@ -733,7 +734,14 @@ class BleDataSource implements InsoleDataSource {
     _lastTempT = packet.tMs;
     stats.tempPackets++;
     stats.lastTemp = packet;
-    _temps.add(TempFrame(side: side, receivedAt: now(), packet: packet));
+    _temps.add(
+      TempFrame(
+        side: side,
+        session: _session,
+        receivedAt: now(),
+        packet: packet,
+      ),
+    );
   }
 
   /// Counts the rejection; logs the first and then every 50th of a reason.

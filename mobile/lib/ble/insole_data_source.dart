@@ -1,3 +1,4 @@
+import 'calibration.dart';
 import 'link_state.dart';
 import 'packets.dart';
 
@@ -19,6 +20,11 @@ abstract interface class InsoleDataSource {
   Stream<SensorFrame> get frames;
   Stream<TempFrame> get temps;
   Stream<StatusFrame> get statuses;
+
+  /// The calibration in use (contract §5.1): read at every connect, and
+  /// again after a TARE. Null before the first connect. Research capture
+  /// records it with every trial.
+  Calibration? get calibration;
 
   /// Connects (and keeps reconnecting) to this foot's insole.
   Future<void> connect();
@@ -87,11 +93,16 @@ class SensorSample {
 class TempFrame {
   const TempFrame({
     required this.side,
+    required this.session,
     required this.receivedAt,
     required this.packet,
   });
 
   final FootSide side;
+
+  /// The streaming session it belongs to, as [SensorFrame.session]: a
+  /// reading can arrive before the session's first sensor packet.
+  final int session;
   final DateTime receivedAt;
   final TempPacket packet;
 }

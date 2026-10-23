@@ -1,0 +1,26 @@
+
+## TEST-001_20261023-182749
+  ok    every SHA-256 matches manifest.json
+== TEST-001_20261023-182749  (TEST-001, rehearsal, done)
+  OK    TEST-001_00_calibration_a1: L: 500 samples, steps 20 +- 0.00 ms
+  OK    TEST-001_00_calibration_a1: R: 500 samples, steps 20 +- 0.25 ms
+  OK    TEST-001_01_normal_a1: L: 1500 samples, steps 20 +- 0.25 ms
+  OK    TEST-001_01_normal_a1: R: 1500 samples, steps 20 +- 0.25 ms
+  WARN  TEST-001_01_normal_a1: 1 segment(s) marked invalid (rows valid=0)
+  OK    TEST-001_02_antalgic_a1: L: 1500 samples, steps 20 +- 0.25 ms
+  OK    TEST-001_02_antalgic_a1: R: 1150 samples, steps 20 +- 0.25 ms
+  FAIL  TEST-001_02_antalgic_a1: R: link lost (connection sessions [1, 2])
+  FAIL  TEST-001_02_antalgic_a1: gap R link_lost
+  FAIL  TEST-001_02_antalgic_a1: R: 1150 samples < 1470
+  OK    TEST-001_03_heel_walking_a1: L: 1273 samples, steps 20 +- 0.00 ms
+  OK    TEST-001_03_heel_walking_a1: R: 1273 samples, steps 20 +- 0.25 ms
+  WARN  TEST-001_03_heel_walking_a1: stopped early at 25.5 of 30.0 s
+  OK    TEST-001_04_toe_walking_a1: L: 1500 samples, steps 20 +- 0.25 ms
+  OK    TEST-001_04_toe_walking_a1: R: 1500 samples, steps 20 +- 0.25 ms
+  OK    TEST-001_05_rotated_foot_a1: L: 1500 samples, steps 20 +- 0.25 ms
+  OK    TEST-001_05_rotated_foot_a1: R: 1500 samples, steps 20 +- 0.25 ms
+  -> FAIL (3)
+  saved export/TEST-001_20261023-182749
+  kept on the phone (a check failed)
+
+Next: back up export to a second place, then delete the session in the app.

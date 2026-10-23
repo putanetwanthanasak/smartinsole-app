@@ -47,6 +47,7 @@ class DeviceManager {
 
   late final Map<FootSide, _Foot> _feet;
   final _batches = StreamController<FootBatch>.broadcast(sync: true);
+  final _temps = StreamController<FootTemp>.broadcast(sync: true);
   late final _snapshots = StreamController<DisplaySnapshot>.broadcast(
     onListen: _startTicker,
     onCancel: _stopTicker,
@@ -57,6 +58,10 @@ class DeviceManager {
   /// unix-timed. Research capture (S4C) and the rules (S7) listen here.
   /// Delivered synchronously, in arrival order.
   Stream<FootBatch> get batches => _batches.stream;
+
+  /// Every temperature reading of either foot, unix-timed on the same
+  /// clock as [batches] once the session has a sensor packet.
+  Stream<FootTemp> get temps => _temps.stream;
 
   /// 10 Hz display path. The ticker runs only while someone listens.
   Stream<DisplaySnapshot> get snapshots => _snapshots.stream;
@@ -121,6 +126,7 @@ class DeviceManager {
       }
     }
     _batches.close();
+    _temps.close();
     _snapshots.close();
   }
 
@@ -154,7 +160,8 @@ class DeviceManager {
       f.sessionPackets = 0;
       f.sessionLost = 0;
       f.lastUnix = null;
-      f.temp = null;
+      // Keep a reading this session already sent (it can come first).
+      if (f.tempSession != fr.session) f.temp = null;
     }
     final unix = f.clock!.mapPacket([
       for (final s in fr.samples) s.deviceMs,
@@ -203,11 +210,27 @@ class DeviceManager {
   }
 
   void _onTemp(_Foot f, TempFrame t) {
-    f.temp = t.packet;
-    final unix =
-        f.clock?.unixOf(t.packet.tMs) ??
-        t.receivedAt.millisecondsSinceEpoch.toDouble();
+    final current = f.session;
+    if (current != null && t.session < current) return; // rule 9
+    f
+      ..temp = t.packet
+      ..tempSession = t.session;
+    // A reading can come before its session's first sensor packet; the
+    // clock then still belongs to the previous session, so use arrival.
+    final mapped = t.session == current ? f.clock?.unixOf(t.packet.tMs) : null;
+    final unix = mapped ?? t.receivedAt.microsecondsSinceEpoch / 1000;
     f.history.add(unix, t.packet);
+    if (_temps.isClosed) return;
+    _temps.add(
+      FootTemp(
+        side: t.side,
+        session: t.session,
+        unixMs: unix,
+        fromArrival: mapped == null,
+        receivedAt: t.receivedAt,
+        packet: t.packet,
+      ),
+    );
   }
 
   // --- Display ------------------------------------------------------------
@@ -344,6 +367,7 @@ class _Foot {
   bool calibrating = false;
   StatusPacket? status;
   TempPacket? temp;
+  int? tempSession;
 
   void clearData() {
     lastSampleAt = null;
