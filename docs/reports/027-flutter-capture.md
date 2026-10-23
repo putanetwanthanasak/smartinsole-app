@@ -283,7 +283,8 @@ list but did not kill the app mid-trial.
   checks this in a pocket.
 - **The staged copy is private only on Android 11+.** On Android 10 or
   older, other apps with storage permission could read it until it is
-  removed. I'll read the Note 10's Android version in checklist step 0.
+  removed. The Note 10 runs Android 12 (API 31; read in checklist
+  step 0), so it is private there.
 
 ## Decisions needed
 
