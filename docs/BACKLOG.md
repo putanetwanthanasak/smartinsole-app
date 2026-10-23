@@ -907,23 +907,37 @@ Connection placeholder (S8B). Research capture moved behind a 2 s long
 press (Settings → "ส่วนผู้วิจัย"); the debug screen is still the only
 connect path, so this item stays open for S8B.
 
-## 37. Peak asymmetry: interim definition **(found in S5, for S7)**
+## 37. Balance and peak asymmetry: interim definitions **(found in S5, for S7)**
 
-Contract §8.3 defines `ASYMMETRY_PEAK` as "PAI > `asymmetry.peakPct`
-sustained for ≥ 20 steps" but does not say what a foot's peak is or how
-PAI is computed. S5 uses one pure function,
-`mobile/lib/rules/asymmetry.dart` (`PeakAsymmetry`), marked INTERIM:
+**Home's balance card (user decision 2026-10-23, replaces the first D6
+change).** "{L} : {R}" means weight share:
+- each foot's share of the summed kPa over all six zones, as a mean per
+  sample over a rolling 10 s window (`mobile/lib/device/rolling_load.dart`,
+  `mobile/lib/rules/weight_share.dart`, both marked INTERIM). A mean, so
+  lost packets do not make a foot look lighter;
+- the note reads "ลงน้ำหนักเท้า{ซ้าย/ขวา}มากกว่า" when the two mean loads
+  differ by more than `asymmetry.peakPct` (PAI formula), otherwise
+  "ซ้ายและขวาพอ ๆ กัน";
+- **until S7 the note is always `ink` with no icon.** There is no orange
+  on the balance card before S7. **S7 turns it orange (with the
+  `triangle-alert` icon) only while `ASYMMETRY_PEAK` is active**;
+- the number keeps its shown value while the share is within 1 point of it
+  (`shareDeadband`, display only), so it does not flicker at 10 Hz.
 
-- a foot's peak = the highest FSR channel over the last 2 s (all six
-  channels, kPa, no step detection);
-- PAI = |L − R| / ((L + R) / 2) × 100 %; undefined when both are 0;
-- Home's balance numbers are the left/right shares of L + R, and the
-  orange note shows when PAI > `asymmetry.peakPct`, right away (no
-  20-step persistence).
+**`ASYMMETRY_PEAK` (S7).** Contract §8.3: "PAI > `asymmetry.peakPct`
+sustained for ≥ 20 steps", PAI from §8.2, but the contract does not say
+what a foot's peak is. `mobile/lib/rules/asymmetry.dart`
+(`PeakAsymmetry`, INTERIM) is the starting point: a foot's peak is its
+highest channel over the last 2 s, and there is no step detection or
+20-step persistence yet. S7 must settle the peak with the contract owner,
+add the persistence, and drive the balance note's orange from the rule.
+Both functions share the PAI formula (`paiPercent`).
 
-S7 must confirm the definition with the contract owner, add per-step
-peaks and the 20-step persistence, and reuse this function (not a second
-copy) for both the rule and Home.
+**Mock `watch` and S7.** To match board HomeDWatch, the `watch` preset's
+left first metatarsal head peaks above `alertKpa` (240 kPa), so S7's
+`PRESSURE_PEAK` can fire alongside the intended `PRESSURE_PTI` (both level
+3). S7 decides which cause the status detail names; the board's detail is
+the PTI one ("…รับน้ำหนักมากต่อเนื่องนานเกินไป").
 
 ## 38. One foot missing: the connected foot's level 3+ must win **(found in S5, for S7)**
 
@@ -934,7 +948,10 @@ data; and the No-data detail text must name which foot is missing
 (e.g. "ยังไม่ได้เชื่อมต่อเท้าขวา"). Two-foot values (temperature
 difference, balance) stay "—" either way (rule 4).
 
-## 39. Home copy written in S5 that the spec does not give **(found in S5)**
+## 39. Home copy written in S5 that the spec does not give **(found in S5)** — APPROVED
+
+Approved by the user's design review on 2026-10-23.
+
 
 DESIGN-SPEC §6 does not give these strings; S5 wrote them in the spec's
 style. Review with the rest of the draft health copy (Appendix A):

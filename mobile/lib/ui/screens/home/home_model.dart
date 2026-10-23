@@ -8,12 +8,14 @@ import '../../../config/foot_layout.dart';
 import '../../../config/thresholds.dart';
 import '../../../device/device_providers.dart';
 import '../../../device/display_snapshot.dart';
+import '../../../device/rolling_load.dart';
 import '../../../device/rolling_peaks.dart';
 import '../../../rules/alert_code.dart';
 import '../../../rules/asymmetry.dart';
 import '../../../rules/interim_status.dart';
 import '../../../rules/patient_status.dart';
 import '../../../rules/pressure_level.dart';
+import '../../../rules/weight_share.dart';
 
 /// One foot chip on Home.
 @immutable
@@ -119,11 +121,15 @@ class HomeView {
   /// That |ΔT| is above `deltaC` on this reading (not yet a `TEMP_DELTA`).
   final bool deltaOver;
 
-  /// Left share of the two peaks, whole percent ([PeakAsymmetry]).
+  /// Left foot's share of the weight, whole percent ([WeightShare]).
   final int? leftSharePct;
+
+  /// The heavier foot, only while [uneven].
   final FootSide? heavierSide;
 
-  /// PAI above `asymmetry.peakPct`.
+  /// The loads differ by more than `asymmetry.peakPct` ([WeightShare]):
+  /// the note names the heavier foot. Text only; the note stays `ink`
+  /// until S7 (BACKLOG 37).
   final bool uneven;
 
   /// Both feet usable but neither carries any load (the ratio is
@@ -170,13 +176,18 @@ class HomeView {
   );
 }
 
-/// Builds [HomeView] from the device layer: per-zone peaks from the 50 Hz
-/// path ([RollingPeaks]), connection, battery and ΔT from the 10 Hz
-/// snapshot, and the status from [InterimStatus] (S7 replaces it).
+/// Builds [HomeView] from the device layer: per-zone peaks ([RollingPeaks])
+/// and mean loads ([RollingLoad]) from the 50 Hz path, connection, battery
+/// and ΔT from the 10 Hz snapshot, and the status from [InterimStatus] (S7
+/// replaces it).
 class HomeController extends Notifier<HomeView> {
   final _peaks = {
     for (final s in FootSide.values)
       s: RollingPeaks(windowMs: PeakAsymmetry.peakWindowMs),
+  };
+  final _loads = {
+    for (final s in FootSide.values)
+      s: RollingLoad(windowMs: WeightShare.windowMs),
   };
 
   @override
@@ -190,7 +201,10 @@ class HomeController extends Notifier<HomeView> {
       mockPreset: mock == null ? null : () => mock.preset,
     );
     final subs = <StreamSubscription<Object?>>[
-      manager.batches.listen((b) => _peaks[b.side]!.add(b)),
+      manager.batches.listen((b) {
+        _peaks[b.side]!.add(b);
+        _loads[b.side]!.add(b);
+      }),
       manager.snapshots.listen((s) {
         final next = homeViewOf(
           s,
@@ -200,6 +214,10 @@ class HomeController extends Notifier<HomeView> {
             for (final side in FootSide.values)
               side: _peaks[side]!.channelPeaks(),
           },
+          meanLoads: {
+            for (final side in FootSide.values) side: _loads[side]!.meanLoad(),
+          },
+          shownSharePct: state.leftSharePct,
         );
         if (next != state) state = next;
       }),
@@ -216,6 +234,7 @@ class HomeController extends Notifier<HomeView> {
       thresholds: thresholds,
       status: interim.status(s),
       channelPeaks: const {},
+      meanLoads: const {},
     );
   }
 }
@@ -224,14 +243,22 @@ final homeViewProvider = NotifierProvider<HomeController, HomeView>(
   HomeController.new,
 );
 
-/// Pure: what Home shows for [s]. [channelPeaks] are the windowed peaks per
-/// foot (falls back to the snapshot's newest sample when a window is still
-/// empty).
+/// Pure: what Home shows for [s]. [channelPeaks] are the windowed peaks
+/// and [meanLoads] the windowed mean loads per foot; each falls back to the
+/// snapshot's newest sample while its window is still empty.
+///
+/// [shownSharePct] is the balance number on screen now. It is kept while
+/// the new share is within [shareDeadband] of it, so a 10 s mean that
+/// moves by a fraction of a point as strides enter and leave the window
+/// does not make the number flicker at 10 Hz (display only, not a
+/// threshold).
 HomeView homeViewOf(
   DisplaySnapshot s, {
   required Thresholds thresholds,
   required PatientStatus status,
   required Map<FootSide, List<double>?> channelPeaks,
+  required Map<FootSide, double?> meanLoads,
+  int? shownSharePct,
 }) {
   List<double>? peaksOf(FootView f) =>
       f.usable ? (channelPeaks[f.side] ?? f.kpa) : null;
@@ -270,16 +297,15 @@ HomeView homeViewOf(
   }
   if (!both) delta = null;
 
-  PeakAsymmetry? asym;
+  WeightShare? share;
   if (both) {
-    double footPeak(List<double>? p) =>
-        (p ?? const <double>[]).fold(0, (m, v) => v > m ? v : m);
-    asym = PeakAsymmetry.of(
-      footPeak(peaksOf(s.left)),
-      footPeak(peaksOf(s.right)),
-    );
+    double loadOf(FootView f) =>
+        meanLoads[f.side] ??
+        (f.kpa ?? const <double>[]).fold(0, (a, k) => a + k);
+    share = WeightShare.of(loadOf(s.left), loadOf(s.right));
   }
-  final leftHigher = asym?.leftHigher;
+  final leftHeavier = share?.leftHeavier;
+  final uneven = share?.isUneven(thresholds) ?? false;
 
   return HomeView(
     status: status,
@@ -292,14 +318,24 @@ HomeView homeViewOf(
         ? null
         : (delta > 0 ? FootSide.left : FootSide.right),
     deltaOver: delta != null && deltaAbove(delta, thresholds.deltaC),
-    leftSharePct: asym?.leftSharePct.round(),
-    heavierSide: leftHigher == null
+    leftSharePct: share == null
         ? null
-        : (leftHigher ? FootSide.left : FootSide.right),
-    uneven: asym?.isUneven(thresholds) ?? false,
-    balanceNoLoad: both && asym == null,
+        : (shownSharePct != null &&
+                  (share.leftSharePct - shownSharePct).abs() <= shareDeadband
+              ? shownSharePct
+              : share.leftSharePct.round()),
+    // Only when the note names a foot: below the cut-off which foot is a
+    // hair heavier is not shown, and must not rebuild Home at 10 Hz.
+    heavierSide: leftHeavier == null || !uneven
+        ? null
+        : (leftHeavier ? FootSide.left : FootSide.right),
+    uneven: uneven,
+    balanceNoLoad: both && share == null,
   );
 }
+
+/// Balance-number deadband, percentage points (see [homeViewOf]).
+const shareDeadband = 1.0;
 
 /// Zone names, for copy and labels.
 FootZone zoneOf(int channel) => footLayout.zones[channel];

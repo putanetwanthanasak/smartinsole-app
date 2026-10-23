@@ -35,7 +35,8 @@ Future<void> pumpHome(
   for (var t = Duration.zero; t < warmUp; t += const Duration(seconds: 1)) {
     await tester.pump(const Duration(seconds: 1));
   }
-  await tester.pumpAndSettle();
+  // Not pumpAndSettle: a high dot pulses for as long as it is high.
+  await tester.pump(const Duration(seconds: 1));
 }
 
 /// Disposes the mock insoles' timers before the test ends.

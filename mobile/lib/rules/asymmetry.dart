@@ -7,9 +7,10 @@ import '../config/thresholds.dart';
 /// where L and R are each foot's **peak** pressure (kPa). `ASYMMETRY_PEAK`
 /// (§8.3) is "PAI > `asymmetry.peakPct` sustained for ≥ 20 steps".
 ///
-/// This is the one definition of left/right asymmetry in the app. Home's
-/// balance numbers and its orange note use it, and S7's `ASYMMETRY_PEAK`
-/// rule must reuse it.
+/// This is the definition S7's `ASYMMETRY_PEAK` rule starts from. Home
+/// does not use it: the balance card shows weight share ([WeightShare],
+/// user decision 2026-10-23), and its note turns orange only once S7
+/// reports `ASYMMETRY_PEAK` active.
 ///
 /// **INTERIM (S5), BACKLOG 37.** The contract gives the formula and that it
 /// uses peaks, but not what a peak is taken over. Until S7 settles it:
@@ -38,15 +39,7 @@ class PeakAsymmetry {
   final double rightPeakKpa;
 
   /// PAI in percent, 0–200.
-  double get paiPct =>
-      (leftPeakKpa - rightPeakKpa).abs() /
-      ((leftPeakKpa + rightPeakKpa) / 2) *
-      100;
-
-  /// Left foot's share of the two peaks, percent (0–100). The balance
-  /// numbers "{L} : {R}" are [leftSharePct] and 100 − it, so the same two
-  /// peaks give both the numbers and the PAI.
-  double get leftSharePct => leftPeakKpa / (leftPeakKpa + rightPeakKpa) * 100;
+  double get paiPct => paiPercent(leftPeakKpa, rightPeakKpa);
 
   /// Above `asymmetry.peakPct` (the `ASYMMETRY_PEAK` boundary).
   bool isUneven(Thresholds t) => paiPct > t.peakAsymmetryPct;
@@ -55,3 +48,9 @@ class PeakAsymmetry {
   bool? get leftHigher =>
       leftPeakKpa == rightPeakKpa ? null : leftPeakKpa > rightPeakKpa;
 }
+
+/// |L − R| / ((L + R) / 2) × 100, in percent (0–200). The contract's PAI
+/// formula (§8.2), shared by [PeakAsymmetry] and `WeightShare`. Not
+/// defined when both are 0.
+double paiPercent(double left, double right) =>
+    (left - right).abs() / ((left + right) / 2) * 100;

@@ -11,9 +11,8 @@ void main() {
     expect(PeakAsymmetry.of(100, 0)!.paiPct, 200);
   });
 
-  test('balance shares come from the same two peaks', () {
+  test('the higher peak', () {
     final a = PeakAsymmetry.of(55, 45)!;
-    expect(a.leftSharePct, closeTo(55, 1e-9));
     // 55 : 45 is PAI 20 %.
     expect(a.paiPct, closeTo(20, 1e-9));
     expect(a.leftHigher, isTrue);

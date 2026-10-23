@@ -285,6 +285,7 @@ class _PressureCard extends ConsumerWidget {
     final (caption, warning) = mapCaption(maps.$1, maps.$2);
 
     return AppCard(
+      key: const ValueKey('pressure-card'),
       padding: const EdgeInsets.fromLTRB(
         Dimens.cardPadding,
         Dimens.cardPadding,
@@ -560,12 +561,11 @@ class _BalanceCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final (share, note, uneven, noLoad) = ref.watch(
+    final (share, note, noLoad) = ref.watch(
       homeViewProvider.select(
         (v) => (
           v.leftSharePct,
           v.leftSharePct == null ? '' : balanceNote(v),
-          v.uneven,
           v.balanceNoLoad,
         ),
       ),
@@ -587,13 +587,9 @@ class _BalanceCard extends ConsumerWidget {
                 ),
               ),
               _BalanceBar(leftSharePct: share.toDouble()),
-              uneven
-                  ? _Note(
-                      text: note,
-                      palette: StatusColors.careful,
-                      icon: LucideIcons.triangle_alert,
-                    )
-                  : _Note(text: note),
+              // `ink`, no icon, until S7: orange only while ASYMMETRY_PEAK
+              // is active (user decision 2026-10-23, BACKLOG 37).
+              _Note(text: note),
             ],
     );
   }

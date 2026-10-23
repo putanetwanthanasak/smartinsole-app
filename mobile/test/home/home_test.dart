@@ -3,6 +3,7 @@ import 'package:flutter_lucide/flutter_lucide.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smartinsole/device/mock_data_source.dart';
+import 'package:smartinsole/rules/pressure_level.dart';
 import 'package:smartinsole/ui/screens/home/home_copy.dart';
 import 'package:smartinsole/ui/screens/home/home_model.dart';
 import 'package:smartinsole/ui/screens/home_screen.dart';
@@ -188,20 +189,54 @@ void main() {
     await unmount(tester);
   });
 
-  testWidgets('watch: the heavier foot is named, in the Be-careful style', (
-    tester,
-  ) async {
+  testWidgets('watch: the map matches board HomeDWatch', (tester) async {
     await pumpHome(tester, MockPreset.watch);
+    // The caption names the high zone, in the Be-careful text colour with
+    // the warning icon.
+    final caption = tester.widget<Text>(
+      inCard('pressure-card', find.text('ปลายเท้าซ้ายรับน้ำหนักมาก')),
+    );
+    expect(caption.style!.color, StatusColors.careful.text);
     expect(
-      inCard('balance-card', find.text('ลงน้ำหนักเท้าซ้ายมากกว่า')),
+      inCard('pressure-card', find.byIcon(LucideIcons.triangle_alert)),
       findsOneWidget,
     );
     expect(
-      inCard('balance-card', find.byIcon(LucideIcons.triangle_alert)),
+      find.bySemanticsLabel('เท้าซ้าย ปลายเท้ารับน้ำหนักมาก'),
       findsOneWidget,
     );
+    expect(
+      find.bySemanticsLabel('เท้าขวา ปลายเท้ารับน้ำหนักปานกลาง'),
+      findsOneWidget,
+    );
+    final view = ProviderScope.containerOf(
+      tester.element(find.byType(HomeScreen)),
+    ).read(homeViewProvider);
+    const low = PressureLevel.low;
+    const medium = PressureLevel.medium;
+    const high = PressureLevel.high;
+    expect(view.leftMap.levels, [medium, high, medium, low, low, medium]);
+    expect(view.rightMap.levels, [low, medium, low, low, low, medium]);
     await unmount(tester);
   });
+
+  for (final preset in [MockPreset.watch, MockPreset.safeOrangeDot]) {
+    testWidgets('${preset.name}: balance note in ink, no icon, before S7', (
+      tester,
+    ) async {
+      await pumpHome(tester, preset);
+      final note = tester.widget<Text>(
+        inCard('balance-card', find.text('ลงน้ำหนักเท้าซ้ายมากกว่า')),
+      );
+      expect(note.style!.color, isNot(StatusColors.careful.text));
+      expect(
+        inCard('balance-card', find.byType(Icon)),
+        findsOneWidget,
+        reason: 'only the card title icon',
+      );
+      await unmount(tester);
+    });
+  }
 
   testWidgets('safeOrangeDot: Safe card, orange dot on the left map', (
     tester,
@@ -296,7 +331,7 @@ void main() {
         // A RenderFlex overflow would have failed the test already.
         expect(tester.takeException(), isNull);
         await tester.scrollUntilVisible(byKey('balance-card'), 300);
-        await tester.pumpAndSettle();
+        await tester.pump(const Duration(seconds: 1));
         expect(tester.takeException(), isNull);
         await unmount(tester);
       });
