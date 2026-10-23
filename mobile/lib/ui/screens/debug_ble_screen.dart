@@ -255,7 +255,7 @@ class _ReadinessCard extends StatelessWidget {
                 color: StatusColors.careful.text,
               ),
             ),
-            Text('readiness: ${r.name}', style: AppText.small),
+            Text('readiness: ${r.name}', style: AppText.secondary),
             if (action != null) ...[
               const SizedBox(height: 8),
               FilledButton(
@@ -313,7 +313,7 @@ class _ScanCard extends StatelessWidget {
             Text(
               'scan ${hub.scanning ? 'running' : 'off'} · by service UUID · '
               'names may be cached by the OS; the side comes from foot_side',
-              style: AppText.small.copyWith(color: AppColors.inkMuted),
+              style: AppText.secondary.copyWith(color: AppColors.inkMuted),
             ),
             if (seen.isEmpty)
               const Padding(
@@ -330,7 +330,7 @@ class _ScanCard extends StatelessWidget {
                   null => '',
                   final side => ' · bound to ${side.name.toUpperCase()}',
                 }}',
-                style: AppText.small.copyWith(color: AppColors.inkMuted),
+                style: AppText.secondary.copyWith(color: AppColors.inkMuted),
               ),
               const SizedBox(height: 8),
               Wrap(
@@ -379,8 +379,8 @@ class _FootCard extends StatelessWidget {
     final quietFor = quietFrom == null ? null : now.difference(quietFrom);
     final quiet = quietFor != null && quietFor > _quietAfter;
     final dot = state is LinkStreaming && !quiet
-        ? AppColors.deviceConnected
-        : AppColors.deviceDisconnected;
+        ? AppColors.connected
+        : AppColors.inkSubtle;
     final canConnect =
         source.deviceId != null && (state is LinkIdle || state is LinkProblem);
     final canDisconnect = state is! LinkIdle && state is! LinkProblem;
@@ -524,9 +524,9 @@ class _FootCard extends StatelessWidget {
         children: [
           TextSpan(
             text: '$k  ',
-            style: AppText.small.copyWith(color: AppColors.inkMuted),
+            style: AppText.secondary.copyWith(color: AppColors.inkMuted),
           ),
-          TextSpan(text: v, style: AppText.small),
+          TextSpan(text: v, style: AppText.secondary),
         ],
       ),
     ),
@@ -580,10 +580,10 @@ class _TimingCard extends StatelessWidget {
                   ? 'running ${_secs(now.difference(started))} · '
                         '${check.lines} lines · SYNC_TIME every 10 s'
                   : 'off · SYNC_TIME every 5 min',
-              style: AppText.small.copyWith(color: AppColors.inkMuted),
+              style: AppText.secondary.copyWith(color: AppColors.inkMuted),
             ),
             if (check.path != null)
-              Text('file ${check.path}', style: AppText.small),
+              Text('file ${check.path}', style: AppText.secondary),
             for (final side in FootSide.values) _foot(side),
           ],
         ),
@@ -604,7 +604,7 @@ class _TimingCard extends StatelessWidget {
         'pkts ${t.packets} · lost ${t.lost} · settling ${ms(settling)} ms · '
         'last excess ${ms(t.lastExcessMs)} ms · step ${ms(t.stepMinMs)}–'
         '${ms(t.stepMaxMs)} ms · clamps ${t.clamps}',
-        style: AppText.small,
+        style: AppText.secondary,
       ),
     );
   }
@@ -625,13 +625,13 @@ class _Banner extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: palette.background,
-        borderRadius: BorderRadius.circular(Dimens.radiusTip),
+        borderRadius: BorderRadius.circular(Dimens.radiusCard),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(th, style: AppText.bodyStrong.copyWith(color: palette.text)),
-          Text(en, style: AppText.small.copyWith(color: palette.text)),
+          Text(en, style: AppText.secondary.copyWith(color: palette.text)),
         ],
       ),
     );
@@ -674,10 +674,10 @@ class _LogCard extends StatelessWidget {
             ),
             Text(
               'newest first',
-              style: AppText.small.copyWith(color: AppColors.inkMuted),
+              style: AppText.secondary.copyWith(color: AppColors.inkMuted),
             ),
             const SizedBox(height: 4),
-            for (final l in recent) Text('$l', style: AppText.small),
+            for (final l in recent) Text('$l', style: AppText.secondary),
           ],
         ),
       ),

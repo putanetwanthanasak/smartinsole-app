@@ -176,7 +176,7 @@ class _CaptureSummaryState extends ConsumerState<CaptureSummary> {
           Text(
             _exportResult!,
             key: const ValueKey('capture-export-result'),
-            style: AppText.small,
+            style: AppText.secondary,
           ),
         ],
         const SizedBox(height: 8),
@@ -189,7 +189,7 @@ class _CaptureSummaryState extends ConsumerState<CaptureSummary> {
           s.exports.isEmpty
               ? 'Delete is available after an export.'
               : 'Last export: ${s.exports.last}',
-          style: AppText.small,
+          style: AppText.secondary,
         ),
       ],
     );
@@ -232,7 +232,7 @@ class _TrialRow extends StatelessWidget {
                       '${a.valid ? '' : ' · invalid (${a.invalidReason})'}'
                       '${a.gapCount > 0 ? ' · ${a.gapCount} gap(s)' : ''}'
                       '${a.samples.isEmpty ? '' : ' · L ${a.samples[FootSide.left]} / R ${a.samples[FootSide.right]}'}',
-                      style: AppText.small,
+                      style: AppText.secondary,
                     ),
                 ],
               ),

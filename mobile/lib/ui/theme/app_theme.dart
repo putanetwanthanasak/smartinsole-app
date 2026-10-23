@@ -18,29 +18,32 @@ abstract final class AppTheme {
       surface: AppColors.surface,
       onSurface: AppColors.ink,
       onSurfaceVariant: AppColors.inkMuted,
-      outline: AppColors.outlineBtn,
-      outlineVariant: AppColors.border,
+      outline: AppColors.outline,
+      outlineVariant: AppColors.divider,
       error: Color(0xFFB42318),
       onError: AppColors.surface,
     );
 
-    const pill = StadiumBorder();
+    const radius = RoundedRectangleBorder(
+      borderRadius: BorderRadius.all(Radius.circular(Dimens.radiusCard)),
+    );
 
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
       scaffoldBackgroundColor: AppColors.bg,
       fontFamily: AppFonts.body,
+      fontFamilyFallback: AppFonts.bodyFallback,
       textTheme: const TextTheme(
-        headlineMedium: AppText.screenTitle,
+        headlineMedium: AppText.pageTitle,
         headlineSmall: AppText.statusTitle,
         titleLarge: AppText.cardTitle,
         titleMedium: AppText.bodyStrong,
         bodyLarge: AppText.body,
         bodyMedium: AppText.secondary,
-        bodySmall: AppText.small,
-        labelLarge: AppText.bodyStrong,
-        labelMedium: AppText.tabLabel,
+        bodySmall: AppText.secondary,
+        labelLarge: AppText.button,
+        labelMedium: AppText.label,
       ),
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.bg,
@@ -50,35 +53,40 @@ abstract final class AppTheme {
         centerTitle: false,
         // Aligns titles with the page padding used by card content.
         titleSpacing: Dimens.pagePadding,
-        titleTextStyle: AppText.screenTitle,
+        titleTextStyle: AppText.pageTitle,
       ),
+      // Style D: no shadows; cards are separated by a divider border.
       cardTheme: const CardThemeData(
         color: AppColors.surface,
         elevation: 0,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(
-            Radius.circular(Dimens.radiusCardLarge),
-          ),
+          borderRadius: BorderRadius.all(Radius.circular(Dimens.radiusCard)),
+          side: BorderSide(color: AppColors.divider),
         ),
       ),
-      dividerTheme: const DividerThemeData(color: AppColors.border),
+      dividerTheme: const DividerThemeData(color: AppColors.divider),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           backgroundColor: AppColors.primary,
           foregroundColor: AppColors.surface,
-          minimumSize: const Size.fromHeight(Dimens.buttonPrimaryHeight),
-          shape: pill,
-          textStyle: AppText.bodyStrong,
+          minimumSize: const Size.fromHeight(Dimens.buttonHeight),
+          shape: radius,
+          textStyle: AppText.button,
+          elevation: 0,
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.primary,
-          minimumSize: const Size.fromHeight(Dimens.buttonSecondaryHeight),
-          shape: pill,
-          side: const BorderSide(color: AppColors.outlineBtn, width: 1.5),
-          textStyle: AppText.bodyStrong,
+          foregroundColor: AppColors.ink,
+          backgroundColor: AppColors.surface,
+          minimumSize: const Size.fromHeight(Dimens.buttonHeight),
+          shape: radius,
+          side: const BorderSide(
+            color: AppColors.outline,
+            width: Dimens.outlineWidth,
+          ),
+          textStyle: AppText.button,
         ),
       ),
       iconButtonTheme: IconButtonThemeData(

@@ -104,12 +104,12 @@ class _HoldButtonState extends State<HoldButton>
           opacity: enabled ? 1 : 0.5,
           child: Container(
             constraints: const BoxConstraints(
-              minHeight: Dimens.buttonPrimaryHeight + 16,
+              minHeight: Dimens.buttonHeight + 16,
             ),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               color: p.background,
-              borderRadius: BorderRadius.circular(Dimens.radiusCardSmall),
+              borderRadius: BorderRadius.circular(Dimens.radiusCard),
               border: Border.all(color: p.icon, width: 2),
             ),
             child: Row(
@@ -144,7 +144,7 @@ class _HoldButtonState extends State<HoldButton>
                       ),
                       Text(
                         _holding ? 'Keep holding…' : 'Hold 2 s',
-                        style: AppText.small.copyWith(color: p.text),
+                        style: AppText.secondary.copyWith(color: p.text),
                       ),
                     ],
                   ),
@@ -177,7 +177,7 @@ class CaptureBanner extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: palette.background,
-        borderRadius: BorderRadius.circular(Dimens.radiusTip),
+        borderRadius: BorderRadius.circular(Dimens.radiusCard),
       ),
       child: Row(
         children: [
@@ -219,7 +219,7 @@ class FootLinkRow extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: p.background,
-        borderRadius: BorderRadius.circular(Dimens.radiusTip),
+        borderRadius: BorderRadius.circular(Dimens.radiusCard),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -237,11 +237,11 @@ class FootLinkRow extends StatelessWidget {
                   '$side foot',
                   style: AppText.bodyStrong.copyWith(color: p.text),
                 ),
-                Text(detail, style: AppText.small.copyWith(color: p.text)),
+                Text(detail, style: AppText.secondary.copyWith(color: p.text)),
                 if (issues != null && issues!.isNotEmpty)
                   Text(
                     issues!.join(' · '),
-                    style: AppText.small.copyWith(
+                    style: AppText.secondary.copyWith(
                       color: p.text,
                       fontWeight: FontWeight.w600,
                     ),
