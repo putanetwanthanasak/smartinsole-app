@@ -269,6 +269,34 @@ step 6 of the Note 10 checklist with a real board reset. **Resume after a
 crash** is covered by a session test; on the emulator I saw the sessions
 list but did not kill the app mid-trial.
 
+## Note 10 checkpoint results (2026-10-23, in progress)
+
+This was a release build on Android 12 (API 31), session
+`TEST-001_20261023-182749`. Both boards were logged from 18:11:24
+(fresh boot, 0 centrals). The order was normal, antalgic, heel walking,
+toe walking, rotated foot.
+
+Export run 1 ([note10-check-1.txt](027-flutter-capture/note10-check-1.txt)):
+- **adb pulled the export from the release build** (`run-as` is refused,
+  as expected), and **every SHA-256 matched**.
+- **Every attempt, both feet: 50 Hz, steps 20 ± 0.25 ms, no seq gaps.**
+- Normal: 1 marked segment (WARN, as intended). Heel walking: stopped
+  early at 25.5 of 30 s (WARN, stays valid as decided).
+- **Antalgic a1: FAIL (3)**, all from the board reset:
+  - The right board was reset at 18:32:32.6 laptop time, and the app
+    recorded `link_lost` R. On the laptop clock that is 18:32:32.3 to
+    18:32:39.4: the phone's clock ran 2.94 s ahead, from the
+    `SYNC_TIME` in [note10-right-reset.log](027-flutter-capture/note10-right-reset.log).
+    The gap ends at the new `START_STREAM` (18:32:39.29), and the right
+    foot continued in connection session 2. R has 1150 samples, 350
+    fewer than L = 7.0 s, the length of the gap.
+  - The attempt has **no a2**, so it is still `valid`. The loader
+    therefore fails it, which is what it should do with a valid attempt
+    that has a link loss. Checklist step 6's Redo was not done (or not
+    saved).
+- Still open: the step 5 answers (cues and holds in a pocket) and the
+  redo of antalgic.
+
 ## Leftovers
 
 - **BACKLOG 32**: align TestProtocol_v1 with doc 03.
