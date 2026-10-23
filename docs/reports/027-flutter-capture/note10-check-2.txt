@@ -1,0 +1,25 @@
+
+## TEST-002_20261023-184043
+  ok    every SHA-256 matches manifest.json
+== TEST-002_20261023-184043  (TEST-002, rehearsal, done)
+  OK    TEST-002_00_calibration_a1: L: 500 samples, steps 20 +- 0.00 ms
+  OK    TEST-002_00_calibration_a1: R: 500 samples, steps 20 +- 0.00 ms
+  OK    TEST-002_01_normal_a1: L: 1500 samples, steps 20 +- 0.25 ms
+  OK    TEST-002_01_normal_a1: R: 1140 samples, steps 20 +- 0.25 ms
+  INFO  TEST-002_01_normal_a1: R: link lost (connection sessions [2, 3])
+  INFO  TEST-002_01_normal_a1: gap R link_lost
+  INFO  TEST-002_01_normal_a1: R: 1140 samples < 1470
+  OK    TEST-002_01_normal_a2: L: 1500 samples, steps 20 +- 0.25 ms
+  OK    TEST-002_01_normal_a2: R: 1500 samples, steps 20 +- 0.14 ms
+  OK    TEST-002_02_antalgic_a1: L: 1500 samples, steps 20 +- 0.14 ms
+  OK    TEST-002_02_antalgic_a1: R: 1500 samples, steps 20 +- 0.10 ms
+  OK    TEST-002_03_toe_walking_a1: L: 1500 samples, steps 20 +- 0.25 ms
+  OK    TEST-002_03_toe_walking_a1: R: 1500 samples, steps 20 +- 0.25 ms
+  OK    TEST-002_04_rotated_foot_a1: L: 1500 samples, steps 20 +- 0.21 ms
+  OK    TEST-002_04_rotated_foot_a1: R: 1500 samples, steps 20 +- 0.25 ms
+  OK    TEST-002_05_heel_walking_a1: L: 1500 samples, steps 20 +- 0.25 ms
+  OK    TEST-002_05_heel_walking_a1: R: 1500 samples, steps 20 +- 0.25 ms
+  -> PASS
+  saved export/TEST-002_20261023-184043
+  remove the staged copy /sdcard/Android/data/th.ac.kmutt.smartinsole/files/export/TEST-002_20261023-184043 from the phone? [y/N] 
+Next: back up export to a second place, then delete the session in the app.

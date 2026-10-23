@@ -294,8 +294,41 @@ Export run 1 ([note10-check-1.txt](027-flutter-capture/note10-check-1.txt)):
     therefore fails it, which is what it should do with a valid attempt
     that has a link loss. Checklist step 6's Redo was not done (or not
     saved).
-- Still open: the step 5 answers (cues and holds in a pocket) and the
-  redo of antalgic.
+
+TEST-001 had already been deleted from the phone, so it could not be
+redone. The user ran **TEST-002** to check the redo path instead (session
+`TEST-002_20261023-184043`). It has calibration and all 5 gaits; normal
+had an EN reset on the right board, then Redo. The user didn't fill in
+age range for this `TEST-` code, which is allowed.
+
+Export run 2 ([note10-check-2.txt](027-flutter-capture/note10-check-2.txt)),
+**PASS**:
+- Every SHA-256 matched. Every attempt, both feet: 50 Hz, steps 20 ±
+  0.25 ms, no seq gaps.
+- **Normal a1** is kept, `valid: false, invalidReason: redo`, with
+  `link_lost` R lasting 7.22 s. On the laptop clock (phone 2.94 s ahead)
+  that is 18:41:30.22 to 18:41:37.44. The board reset at 18:41:30.507
+  and got `START_STREAM` at 18:41:37.373
+  ([note10-right-reset-2.log](027-flutter-capture/note10-right-reset-2.log)).
+  R has 1140 samples. The loader lists its problems as INFO, because the
+  attempt is invalid.
+- **Normal a2** has 1500 / 1500 samples and no gaps.
+- The serial loggers were stopped by PID after this export.
+
+**Result by checklist item:**
+
+| Item | Result | Evidence |
+|---|---|---|
+| adb export from a release build, checksums | ✅ | runs 1 and 2 |
+| 50 Hz both feet, no gaps, in every valid attempt | ✅ | runs 1 and 2 (TEST-001 antalgic a1 is the reset trial, not redone) |
+| Link loss: banner/cue, recording continues, gap in sidecar | ✅ gap recorded and recording continued (both runs); the banner and cue weren't reported | runs 1 and 2 |
+| Redo keeps a1 (invalid, redo), a2 clean | ✅ | run 2 |
+| Stopped early → `stopped_early`, valid, WARN | ✅ | run 1, heel walking |
+| Marked segment → WARN, `valid = 0` rows | ✅ | run 1, normal |
+| Cues heard/felt in a pocket; holds through cloth | **waiting for the user's answer** | step 5 |
+
+Staged copies of TEST-001 and TEST-002 are still in the phone's export
+folder. The script didn't remove them because its stdin was closed.
 
 ## Leftovers
 

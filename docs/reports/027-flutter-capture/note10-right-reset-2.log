@@ -1,0 +1,28 @@
+18:41:23.409 [sess] conn 0 mtu 247 (8/pkt) streaming sub[s1 t1 st1] sent 3275 mtu-drops 0 synced
+18:41:23.413 [sess] 1 connected, battery 99%, notify failures 0, heap 218272
+18:41:30.502 ets Jul 29 2019 12:21:46
+18:41:30.502 
+18:41:30.507 rst:0x1 (POWERON_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+18:41:30.510 configsip: 0, SPIWP:0xee
+18:41:30.516 clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+18:41:30.518 mode:DIO, clock div:2
+18:41:30.521 load:0x3fff0030,len:1184
+18:41:30.524 load:0x40078000,len:13232
+18:41:30.524 load:0x40080400,len:3028
+18:41:30.526 entry 0x400805e4
+18:41:31.041 
+18:41:31.043 [boot] SmartInsole simulator fw 0.1, side R, fsr_count 6
+18:41:31.315 [   521][E][Preferences.cpp:50] begin(): nvs_open failed: NOT_FOUND
+18:41:31.320 [cal] 381 bytes, offset_adc 12 12 12 12 12 12
+18:41:31.336 [ble] advertising as SMARTINSOLE-R, fsr_count 6, up to 3 centrals
+18:41:35.918 [ble] conn 0: connected 51:ab:94:c7:f0:55, mtu 23, 1 connected
+18:41:36.137 [ble] conn 0: interval 45.00 ms, latency 0, timeout 5000 ms
+18:41:36.452 [ble] conn 0: interval 7.50 ms, latency 0, timeout 5000 ms
+18:41:36.763 [ble] conn 0: mtu 247 -> 8 samples/packet
+18:41:36.847 [ble] conn 0: interval 45.00 ms, latency 0, timeout 5000 ms
+18:41:37.040 [ble] conn 0: f0a5c000-9b4d-4e8a-a3c1-72d6e1b45903 notifications on
+18:41:37.129 [ble] conn 0: f0a5c000-9b4d-4e8a-a3c1-72d6e1b45901 notifications on
+18:41:37.219 [ble] conn 0: f0a5c000-9b4d-4e8a-a3c1-72d6e1b45902 notifications on
+18:41:37.309 [ble] conn 0: interval 11.25 ms, latency 0, timeout 5000 ms
+18:41:37.315 [ctl] conn 0: SYNC_TIME unix 1792755700252 ms at device 6517 ms
+18:41:37.373 [ctl] conn 0: START_STREAM
