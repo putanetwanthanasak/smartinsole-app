@@ -5,7 +5,7 @@ Branch `work/flutter-capture` · 2026-10-22 · Session S4C (`docs/SESSIONS.md` �
 **Status: built, verified on the emulator, and every Note 10 checkpoint
 item has a result (section "Note 10 checkpoint results"). Waiting for the
 user to accept the checkpoint**; I don't mark it passed.
-- **Automated checks:** 293 tests pass, analyze and format are clean, the
+- **Automated checks:** 301 tests pass, analyze and format are clean, the
   loader self-test passes, and all 5 mutation checks were caught.
 - **Emulator:** a full `TEST-001` rehearsal with `MOCK=safe` ran end to end:
   pre-check → calibration → 5 gaits (one early stop, one redo, one marked
