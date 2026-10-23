@@ -68,6 +68,17 @@ class _CaptureHomeScreenState extends ConsumerState<CaptureHomeScreen> {
     if (mounted) setState(() {});
   }
 
+  SubjectInfo _subjectInfo(SubjectCode code) => SubjectInfo(
+    code: code,
+    sex: _sex,
+    ageRange: _age,
+    footLengthCm: {FootSide.left: ?_num(_footL), FootSide.right: ?_num(_footR)},
+  );
+
+  /// Text typed that isn't a number (the formatter still lets "2.5.5" in).
+  bool _badNumber(TextEditingController c) =>
+      c.text.trim().isNotEmpty && _num(c) == null;
+
   Future<void> _start() async {
     final code = _subject;
     final root = _root;
@@ -76,15 +87,7 @@ class _CaptureHomeScreenState extends ConsumerState<CaptureHomeScreen> {
     final session = CaptureSession.create(
       deps: deps,
       researchRoot: root,
-      subject: SubjectInfo(
-        code: code,
-        sex: _sex,
-        ageRange: _age,
-        footLengthCm: {
-          FootSide.left: ?_num(_footL),
-          FootSide.right: ?_num(_footR),
-        },
-      ),
+      subject: _subjectInfo(code),
       roomTempC: _num(_room),
       seed: _seed,
     );
@@ -132,6 +135,14 @@ class _CaptureHomeScreenState extends ConsumerState<CaptureHomeScreen> {
     final footROk = footOk(_footR);
     final range =
         '${footLengthInclusionCm.min}–${footLengthInclusionCm.max} cm';
+    String? numberError(TextEditingController c, {bool ok = true}) =>
+        _badNumber(c) ? 'Not a number' : (ok ? null : range);
+    final numbersOk = ![_footL, _footR, _room].any(_badNumber);
+    // Before the code is valid the study rule applies (as for foot length).
+    final optional = code?.rehearsal ?? false ? ' (optional)' : '';
+    final missing = code == null
+        ? const <String>[]
+        : missingForStudy(_subjectInfo(code), _num(_room));
     final root = _root;
     final sessions = root == null
         ? const <SessionListing>[]
@@ -195,7 +206,7 @@ class _CaptureHomeScreenState extends ConsumerState<CaptureHomeScreen> {
                 ),
                 onChanged: (_) => setState(() {}),
               ),
-              Text('Sex (optional)', style: AppText.small),
+              Text('Sex$optional', style: AppText.small),
               SegmentedButton<Sex>(
                 key: const ValueKey('capture-sex'),
                 emptySelectionAllowed: true,
@@ -211,9 +222,7 @@ class _CaptureHomeScreenState extends ConsumerState<CaptureHomeScreen> {
               DropdownButtonFormField<String>(
                 key: const ValueKey('capture-age'),
                 initialValue: _age,
-                decoration: const InputDecoration(
-                  labelText: 'Age range (optional)',
-                ),
+                decoration: InputDecoration(labelText: 'Age range$optional'),
                 items: [
                   for (final a in ageRanges)
                     DropdownMenuItem(value: a, child: Text(a)),
@@ -227,7 +236,7 @@ class _CaptureHomeScreenState extends ConsumerState<CaptureHomeScreen> {
                       key: const ValueKey('capture-foot-l'),
                       controller: _footL,
                       label: 'Foot L (cm)',
-                      errorText: footLOk ? null : range,
+                      errorText: numberError(_footL, ok: footLOk),
                       onChanged: () => setState(() {}),
                     ),
                   ),
@@ -237,7 +246,7 @@ class _CaptureHomeScreenState extends ConsumerState<CaptureHomeScreen> {
                       key: const ValueKey('capture-foot-r'),
                       controller: _footR,
                       label: 'Foot R (cm)',
-                      errorText: footROk ? null : range,
+                      errorText: numberError(_footR, ok: footROk),
                       onChanged: () => setState(() {}),
                     ),
                   ),
@@ -255,9 +264,17 @@ class _CaptureHomeScreenState extends ConsumerState<CaptureHomeScreen> {
               _NumberField(
                 key: const ValueKey('capture-room'),
                 controller: _room,
-                label: 'Room temperature (°C)',
+                label: 'Room temperature (°C)$optional',
+                errorText: numberError(_room),
+                onChanged: () => setState(() {}),
               ),
               if (code != null) _Plan(code: code, seed: _seed),
+              if (missing.isNotEmpty)
+                Text(
+                  'Required for SI- codes: ${missing.join(', ')}.',
+                  key: const ValueKey('capture-missing'),
+                  style: AppText.small,
+                ),
               FilledButton(
                 key: const ValueKey('capture-start'),
                 onPressed:
@@ -265,7 +282,9 @@ class _CaptureHomeScreenState extends ConsumerState<CaptureHomeScreen> {
                         precheckOk &&
                         root != null &&
                         footLOk &&
-                        footROk
+                        footROk &&
+                        numbersOk &&
+                        missing.isEmpty
                     ? _start
                     : null,
                 child: const Text('Start session'),

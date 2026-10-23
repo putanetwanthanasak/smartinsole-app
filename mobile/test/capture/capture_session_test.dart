@@ -61,15 +61,58 @@ void main() {
     });
   });
 
+  test('SI codes need every field (doc 03); TEST codes keep them optional', () {
+    fakeAsync((async) {
+      final rig = CaptureRig(async, code: 'SI-002');
+      final full = SubjectInfo(
+        code: SubjectCode.parse('SI-003')!,
+        sex: Sex.male,
+        ageRange: '21-25',
+        footLengthCm: {FootSide.left: 26, FootSide.right: 26},
+      );
+      expect(missingForStudy(full, 27), isEmpty);
+      expect(missingForStudy(full, null), ['room temperature']);
+      final blank = SubjectInfo(code: SubjectCode.parse('SI-003')!);
+      expect(missingForStudy(blank, null), [
+        'sex',
+        'age range',
+        'foot L',
+        'foot R',
+        'room temperature',
+      ]);
+      expect(
+        missingForStudy(
+          SubjectInfo(code: SubjectCode.parse('TEST-003')!),
+          null,
+        ),
+        isEmpty,
+      );
+      expect(
+        () => CaptureSession.create(
+          deps: rig.session.deps,
+          researchRoot: rig.root,
+          subject: full,
+        ),
+        throwsArgumentError,
+      );
+      rig.dispose();
+    });
+  });
+
   test('a study code outside the doc 03 inclusion criteria cannot start', () {
     fakeAsync((async) {
       final rig = CaptureRig(async, code: 'SI-002');
-      SubjectInfo subject(String code, {String? age, double cm = 26}) =>
-          SubjectInfo(
-            code: SubjectCode.parse(code)!,
-            ageRange: age,
-            footLengthCm: {FootSide.left: 26, FootSide.right: cm},
-          );
+      // Every other field filled, so only the inclusion check can refuse.
+      SubjectInfo subject(
+        String code, {
+        String age = '21-25',
+        double cm = 26,
+      }) => SubjectInfo(
+        code: SubjectCode.parse(code)!,
+        sex: Sex.female,
+        ageRange: age,
+        footLengthCm: {FootSide.left: 26, FootSide.right: cm},
+      );
       expect(subject('SI-003').issues, isEmpty);
       expect(subject('SI-003', cm: 25.4).issues, hasLength(1));
       expect(subject('SI-003', age: '30-39').issues, hasLength(1));
@@ -79,6 +122,7 @@ void main() {
           deps: rig.session.deps,
           researchRoot: rig.root,
           subject: subject('SI-003', cm: 27.6),
+          roomTempC: 27,
         ),
         throwsArgumentError,
       );

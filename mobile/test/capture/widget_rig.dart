@@ -150,6 +150,36 @@ Future<void> tapScrolled(WidgetTester tester, String key) async {
   await tester.pump();
 }
 
+/// Types [text] into the capture-home field [key], scrolled into view.
+Future<void> typeInto(WidgetTester tester, String key, String text) async {
+  await tester.ensureVisible(byKey(key));
+  await tester.enterText(byKey(key), text);
+  await tester.pump();
+}
+
+/// Fills every field an SI- code needs on capture home: Female, 26-30,
+/// both foot lengths and the room temperature.
+Future<void> fillStudyFields(
+  WidgetTester tester, {
+  String footL = '26.0',
+  String footR = '26.0',
+  String room = '27',
+}) async {
+  await tester.ensureVisible(find.text('Female'));
+  await tester.tap(find.text('Female'));
+  await tester.pump();
+  await tester.ensureVisible(byKey('capture-age'));
+  await tester.tap(byKey('capture-age'));
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 500));
+  await tester.tap(find.text('26-30').last);
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 500));
+  await typeInto(tester, 'capture-foot-l', footL);
+  await typeInto(tester, 'capture-foot-r', footR);
+  await typeInto(tester, 'capture-room', room);
+}
+
 /// Holds a hold-to-act button for [d], then lets go.
 Future<void> hold(WidgetTester tester, String key, Duration d) async {
   final g = await tester.startGesture(tester.getCenter(byKey(key)));

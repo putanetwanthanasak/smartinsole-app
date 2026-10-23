@@ -15,7 +15,10 @@ Built in S4C (`docs/reports/027-flutter-capture.md`). Code:
   (study) or `TEST-001`… (rehearsal) and nothing else. There is no name
   field and no free text anywhere in the flow.
 - **Coded data only** (doc 03): sex, an age range (never an exact age),
-  foot length per foot, and room temperature. All optional except the code.
+  foot length per foot, and room temperature. For an `SI-` code **all are
+  required** (doc 03 records the room temperature every time). Start
+  stays disabled, with a "Required for SI- codes: …" line, until every
+  field is filled and valid. `TEST-` codes keep them optional.
 - **Inclusion (doc 03):** age 21–30, so the age-range choices are
   21–25 / 26–30. For an `SI-` code, a foot length outside 25.5–27.5 cm
   (shoe size 42) blocks Start with "Does not meet the inclusion
@@ -39,8 +42,8 @@ Built in S4C (`docs/reports/027-flutter-capture.md`). Code:
 
 ## The session
 
-1. **2 · New session**: type the subject code, and optionally sex, age
-   range, foot lengths and room temperature. The box below shows the gait
+1. **2 · New session**: type the subject code, then sex, age range, both
+   foot lengths and the room temperature (all required for `SI-` codes). The box below shows the gait
    order for this session (normal first, the other four random) and the
    antalgic pain side (odd code = left, even = right). Tap **Start
    session**. The screen stays on from here until you leave the session.

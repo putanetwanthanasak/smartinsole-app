@@ -61,6 +61,7 @@ void main() {
       await tester.enterText(byKey('capture-code'), 'si-003');
       await tester.pump();
       expect(find.textContaining('Antalgic pain side: left'), findsOneWidget);
+      await fillStudyFields(tester);
       await tester.ensureVisible(byKey('capture-start'));
       await tester.pump();
       await tester.tap(byKey('capture-start'));
@@ -68,11 +69,16 @@ void main() {
       await tester.pump(const Duration(milliseconds: 500));
       expect(find.text('Standing still'), findsOneWidget);
       expect(rig.wakelock, [true]);
-      expect(
-        File('${rig.research.path}/SI-003_20261110-090000/session.json')
-            .existsSync(),
-        isTrue,
+      final j = readJson(
+        File('${rig.research.path}/SI-003_20261110-090000/session.json'),
       );
+      expect(j['subject'], {
+        'code': 'SI-003',
+        'sex': 'female',
+        'ageRange': '26-30',
+        'footLengthCm': {'L': 26.0, 'R': 26.0},
+      });
+      expect(j['roomTempC'], 27.0);
       // Leaving the flow lets the screen sleep again.
       await tester.tap(find.byTooltip('กลับ'));
       await tester.pump();
@@ -114,18 +120,11 @@ void main() {
       settle: false,
     );
     await tester.pump(const Duration(milliseconds: 200));
-    Future<void> type(String key, String text) async {
-      await tester.ensureVisible(byKey(key));
-      await tester.enterText(byKey(key), text);
-      await tester.pump();
-    }
-
     VoidCallback? start() =>
         tester.widget<FilledButton>(byKey('capture-start')).onPressed;
 
-    await type('capture-code', 'SI-001');
-    await type('capture-foot-l', '26.0');
-    await type('capture-foot-r', '25.0');
+    await typeInto(tester, 'capture-code', 'SI-001');
+    await fillStudyFields(tester, footR: '25.0');
     expect(
       find.byKey(const ValueKey('capture-foot-ineligible')),
       findsOneWidget,
@@ -137,12 +136,58 @@ void main() {
       findsOneWidget,
     );
     expect(start(), isNull);
-    await type('capture-foot-r', '27.5');
+    await typeInto(tester, 'capture-foot-r', '27.5');
     expect(find.byKey(const ValueKey('capture-foot-ineligible')), findsNothing);
     expect(start(), isNotNull);
-    await type('capture-foot-r', '25.0');
-    await type('capture-code', 'TEST-001');
+    await typeInto(tester, 'capture-foot-r', '25.0');
+    await typeInto(tester, 'capture-code', 'TEST-001');
     expect(find.byKey(const ValueKey('capture-foot-ineligible')), findsNothing);
+    expect(start(), isNotNull);
+  });
+
+  testWidgets('SI codes need every field (doc 03); TEST codes keep them '
+      'optional', (tester) async {
+    await pumpApp(
+      tester,
+      initialRoute: Routes.capture,
+      now: rig.now,
+      overrides: rig.overrides,
+      settle: false,
+    );
+    await tester.pump(const Duration(milliseconds: 200));
+    VoidCallback? start() =>
+        tester.widget<FilledButton>(byKey('capture-start')).onPressed;
+    Finder missing(String what) => find.text('Required for SI- codes: $what.');
+
+    await typeInto(tester, 'capture-code', 'SI-001');
+    expect(find.text('Sex'), findsOneWidget);
+    expect(
+      missing('sex, age range, foot L, foot R, room temperature'),
+      findsOneWidget,
+    );
+    expect(start(), isNull);
+
+    await fillStudyFields(tester);
+    expect(byKey('capture-missing'), findsNothing);
+    expect(start(), isNotNull);
+
+    await typeInto(tester, 'capture-room', '');
+    expect(missing('room temperature'), findsOneWidget);
+    expect(start(), isNull);
+
+    // Filled but not a number: not valid either.
+    await typeInto(tester, 'capture-room', '2.5.5');
+    expect(find.text('Not a number'), findsOneWidget);
+    expect(start(), isNull);
+    await typeInto(tester, 'capture-room', '27');
+    expect(start(), isNotNull);
+
+    // A rehearsal code starts with the fields blank.
+    await typeInto(tester, 'capture-foot-l', '');
+    await typeInto(tester, 'capture-room', '');
+    await typeInto(tester, 'capture-code', 'TEST-001');
+    expect(find.text('Sex (optional)'), findsOneWidget);
+    expect(byKey('capture-missing'), findsNothing);
     expect(start(), isNotNull);
   });
 

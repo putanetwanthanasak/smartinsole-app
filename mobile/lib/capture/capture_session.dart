@@ -64,6 +64,20 @@ class SubjectInfo {
   }
 }
 
+/// The fields a study (`SI-`) session can't start without: sex, age range,
+/// both foot lengths and the room temperature (doc 03 records it every
+/// time). `TEST-` codes keep them optional. Empty = complete.
+List<String> missingForStudy(SubjectInfo subject, double? roomTempC) =>
+    subject.code.rehearsal
+    ? const []
+    : [
+        if (subject.sex == null) 'sex',
+        if (subject.ageRange == null) 'age range',
+        for (final side in FootSide.values)
+          if (subject.footLengthCm[side] == null) 'foot ${sideCode(side)}',
+        if (roomTempC == null) 'room temperature',
+      ];
+
 /// Why a foot can't start a session (pre-check). Empty = ready.
 List<String> precheckIssues(FootView v, {required bool hasCalibration}) => [
   if (!v.usable) 'not streaming',
@@ -213,14 +227,14 @@ class CaptureSession extends ChangeNotifier {
     double? roomTempC,
     int? seed,
   }) {
-    // The form already blocks this; a study session's files never hold a
-    // volunteer outside the inclusion criteria.
-    if (subject.issues.isNotEmpty) {
-      throw ArgumentError.value(
-        subject.code.code,
-        'subject',
-        '${subject.issues}',
-      );
+    // The form already blocks these; a study session's files never hold a
+    // volunteer outside the inclusion criteria, or with a field missing.
+    final problems = [
+      ...subject.issues,
+      for (final m in missingForStudy(subject, roomTempC)) 'missing $m',
+    ];
+    if (problems.isNotEmpty) {
+      throw ArgumentError.value(subject.code.code, 'subject', '$problems');
     }
     final at = deps.now();
     final s = seed ?? newOrderSeed();

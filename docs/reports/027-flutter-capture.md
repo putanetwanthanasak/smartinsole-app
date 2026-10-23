@@ -43,8 +43,16 @@ BACKLOG 32 asks for TestProtocol_v1 to be aligned with doc 03.
   subject, so a study session's files never hold one. `TEST-` codes take
   any value.
 
-Foot length and age range stay **optional**, as approved in the plan.
-An `SI-` session can start with them blank.
+**Required fields** (user, 2026-10-23): for an `SI-` code, sex, age
+range, both foot lengths and the room temperature (doc 03 records it
+every time) are all required. `missingForStudy()` in
+`capture_session.dart` is the one rule:
+- the form shows "Required for SI- codes: …" and keeps Start disabled;
+- a filled field that isn't a number shows "Not a number";
+- `CaptureSession.create` refuses an incomplete study subject.
+
+`TEST-` codes keep every field optional. Both guards were checked by
+removing them, and each removal fails "SI codes need every field".
 
 ## What was done
 
@@ -88,7 +96,7 @@ Commits on the branch (oldest first):
    - `mobile/CLAUDE.md`, `lib/device/README.md`, `shared/README.md`;
    - BACKLOG 32–36.
 7. **Doc 03 inclusion criteria** (user review before the checkpoint): the
-   age ranges, the foot-length check, `orderSeedProvider` so goldens that
+   age ranges, the foot-length check, the required fields for `SI-` codes, `orderSeedProvider` so goldens that
    show the plan are stable, and the regenerated fixture (only
    `session.json`'s subject data changed).
 
@@ -177,7 +185,7 @@ Everything is under `<app documents>/research/<code>_<yyyymmdd-HHmmss>/`
 |---|---|
 | `flutter analyze` | No issues |
 | `dart format --set-exit-if-changed lib test test_driver` | 0 changed |
-| `flutter test` | **298 pass**: 39 new in `test/capture/` plus device additions, 10 new goldens (2 regenerated after the pre-check hint fix; `capture_home_foot_ineligible` added with the inclusion check), and the settings goldens regenerated for the new button |
+| `flutter test` | **301 pass**: 41 new in `test/capture/` plus device additions, 11 new goldens (`capture_home_foot_ineligible` and `capture_home_missing` for the doc 03 checks), and the settings goldens regenerated for the new button |
 | `load_capture.py --selftest` | PASS ([selftest.txt](027-flutter-capture/selftest.txt)): checksums, channel order, 312 paired rows, the same pairs and the same 24 values as Dart's `pairFeet` + `modelRow` (max diff 9e-16), pairing edge cases |
 | Web app diff vs `main` | Empty |
 | Release APK | Builds. It is debug-signed (`android/app/build.gradle.kts`), so it installs over the current debug build and keeps the app's data |
@@ -310,8 +318,9 @@ Rehearsal code `TEST-001` (30 s trials). 📋 = please send me a screenshot.
    `88:57:…:9E` as **LEFT** and `38:18:…:D6` as **RIGHT**. Wait for
    STREAMING on both, then Back.
 2. Settings → **Research capture**. 📋 The pre-check with both feet green.
-3. New session: code `TEST-001`, pick any sex / age range (21–25 or
-   26–30), foot lengths **26.0 / 26.0**, room temp e.g. 27. **Start session**. 📋 The plan
+3. New session: code `TEST-001`, then fill every field as a study
+   session would: any sex, age range 21–25 or 26–30, foot lengths
+   **26.0 / 26.0**, room temperature e.g. 27. **Start session**. 📋 The plan
    (order + pain side LEFT).
 4. **Calibration**: Start recording, wait for Saved (L ≈ 500 / R ≈ 500,
    no gaps). Next.

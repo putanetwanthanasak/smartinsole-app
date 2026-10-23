@@ -42,6 +42,26 @@ void main() {
       await golden(tester, 'capture_home');
     });
 
+    testWidgets('capture_home_missing', (tester) async {
+      await pumpApp(
+        tester,
+        initialRoute: Routes.capture,
+        now: rig.now,
+        overrides: rig.overrides,
+        settle: false,
+      );
+      await tester.pump(const Duration(milliseconds: 200));
+      await tester.enterText(byKey('capture-code'), 'SI-001');
+      await fillStudyFields(tester, room: '');
+      await typeInto(tester, 'capture-foot-l', '');
+      Scrollable.ensureVisible(
+        tester.element(byKey('capture-foot-l')),
+        alignment: 0.3,
+      );
+      await tester.pump();
+      await golden(tester, 'capture_home_missing');
+    });
+
     testWidgets('capture_home_foot_ineligible', (tester) async {
       await pumpApp(
         tester,
@@ -52,9 +72,7 @@ void main() {
       );
       await tester.pump(const Duration(milliseconds: 200));
       await tester.enterText(byKey('capture-code'), 'SI-001');
-      await tester.enterText(byKey('capture-foot-l'), '26.0');
-      await tester.enterText(byKey('capture-foot-r'), '25.0');
-      await tester.pump();
+      await fillStudyFields(tester, footR: '25.0');
       // The fields and the message mid-screen (the list clamps at its end).
       Scrollable.ensureVisible(
         tester.element(byKey('capture-foot-l')),
