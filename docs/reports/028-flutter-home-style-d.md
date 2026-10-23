@@ -17,7 +17,7 @@ of this report are still open, so S5 is not done.
 
 ## Summary
 
-- **Automated:** `flutter analyze` is clean. All **374 tests pass**,
+- **Automated:** `flutter analyze` is clean. All **384 tests pass**,
   including 36 goldens (14 of them new Home goldens). `dart format` is clean.
 - **Emulator** (`emulator-5554`, `MOCK=…`): Safe, Rest and one-foot-missing
   were shown live, plus 200 % system text. There were no runtime errors.
@@ -65,13 +65,20 @@ of this report are still open, so S5 is not done.
   is safe. Contract versioning: §8.3 now notes "`battery` added 2026-10-23
   (S5), a local addendum to v1.5", and the history table has a "1.5
   addendum" row. The contract owner should fold it into the next version.
-- **D6** One asymmetry definition: `PeakAsymmetry` in
-  `lib/rules/asymmetry.dart` holds the balance numbers ("71 : 29") and the
-  orange note. PAI = |L − R| / ((L + R)/2) × 100 (contract §8.2). The
-  contract does not say what a foot's "peak" is taken over, so S5 uses the
-  highest channel over the last 2 s. This is marked **INTERIM** in code and
-  in **BACKLOG 37** for S7 (per-step peaks, "≥ 20 steps" persistence). S7
-  must reuse this function.
+- **D6** (final, from the design review on 2026-10-23; it replaces the
+  first D6 change). "{L} : {R}" is **weight share**: each foot's share of
+  the summed kPa over all zones, as a mean per sample over a rolling 10 s
+  window (`lib/device/rolling_load.dart`, `lib/rules/weight_share.dart`,
+  INTERIM). The note reads "ลงน้ำหนักเท้า{ซ้าย/ขวา}มากกว่า" when the two
+  loads differ by more than `asymmetry.peakPct` (PAI formula), otherwise
+  "ซ้ายและขวาพอ ๆ กัน". **Until S7 the note is always `ink` with no
+  icon**; S7 turns it orange only while `ASYMMETRY_PEAK` is active.
+  `PeakAsymmetry` (`lib/rules/asymmetry.dart`, peak = highest channel over
+  2 s) stays as S7's starting point for that rule and is not used by Home.
+  Both use one PAI formula (`paiPercent`). All of this is in **BACKLOG
+  37**. To stop the number flickering at 10 Hz as strides enter and leave
+  the window, it keeps its shown value while the share is within 1 point
+  of it (display only).
 - **D7** Home shows No data when either foot is missing. **BACKLOG 38**
   (for S7): the connected foot's level 3+ must win over No data, and the
   detail text must name the missing foot.
@@ -228,23 +235,47 @@ three installs.
 | debug | Accessibility tree (`uiautomator dump`) | Tabs were not activatable. **Fixed** in `669d7b7` (above) and re-checked |
 | profile | Both simulators connected through BLE debug, Home streaming, performance overlay on, 40 s | Steady state: UI avg 1.3–1.7 ms (max 10.6 ms), raster avg 6.1–7.2 ms (max 16.5 ms), all inside the 16.7 ms frame. One 20.3 ms UI frame came from navigating back to Home (entrance stagger), not from the 10 Hz updates. It is in the 10 s and 20 s windows and gone by 30 s. `phone/profile_overlay_home_*.png` |
 | profile | Home with both simulators | Both chips connected (battery 97 %), the foot map follows the boards, and the small cards show values |
-| **release `669d7b7`** (stays on the phone) | Settings → "ส่วนผู้วิจัย": a short tap does nothing; a 2.3 s hold opens Research capture; the row is `long-clickable` for TalkBack | Pass |
+| release `669d7b7` | Settings → "ส่วนผู้วิจัย": a short tap does nothing; a 2.3 s hold opens Research capture; the row is `long-clickable` for TalkBack | Pass |
 
 The phone's Settings node merges the group header "สำหรับผู้วิจัย" with the
 row, so TalkBack reads "สำหรับผู้วิจัย ส่วนผู้วิจัย, กดค้าง 2 วินาทีเพื่อเปิด".
 This is acceptable, but the header could be separated in S8B.
 
-**For the user to decide (safeOrangeDot):** with the interim asymmetry
-definition, the `safeOrangeDot` preset also shows the orange balance note
-("61 : 39", "ลงน้ำหนักเท้าซ้ายมากกว่า"). A foot's peak is its highest
-zone, so one medium zone on one foot is enough to cross
-`asymmetry.peakPct`. The spec gives `PRESSURE_WATCH` as "Safe + orange
-dot" only. Whether this pairing is right depends on how the contract
-defines a foot's peak (BACKLOG 37).
+### Design review (2026-10-23) and fixes
+
+The user's design reviewer compared the phone screenshots with the style D
+boards. Everything matched except the `watch` preset. The three BACKLOG 39
+strings were approved.
+
+- **`watch` vs board HomeDWatch.** The status named the left forefoot,
+  but the map had no high dot and the caption said "แรงกดกระจายดีทั้งสอง
+  ข้าง". The preset's zones now follow the board: left [medium, high,
+  medium, low, low, medium] and right [low, medium, low, low, low,
+  medium]. The mock test checks every zone's band against
+  `thresholds.json`. The caption now reads "ปลายเท้าซ้ายรับน้ำหนักมาก" in
+  the Be-careful text colour with the warning icon, and the left map label
+  is "เท้าซ้าย ปลายเท้ารับน้ำหนักมาก".
+  - The caption comes from the live dot levels: `mapCaption` reads the
+    map's levels. `test/home/home_model_test.dart` streams one high
+    channel from a fake insole with the status Safe and no mock, and gets
+    the same caption.
+  - `test/home/home_test.dart` checks the watch levels, the caption colour
+    and icon, and the map labels. The `home_watch_*` goldens show it.
+  - The left first metatarsal head now peaks above `alertKpa`, so S7's
+    `PRESSURE_PEAK` can fire alongside `PRESSURE_PTI` (BACKLOG 37 note).
+  - The right foot's two medium zones were tied, which made its top zone
+    and TalkBack label flip at 10 Hz. They are now 120 and 100 kPa.
+- **Balance:** D6 above. On the phone, `safeOrangeDot` shows "55 : 45" and
+  "ลงน้ำหนักเท้าซ้ายมากกว่า" in ink, with no icon.
+- Regenerated goldens: `home_watch_100/200`, `home_safeOrangeDot_100/200`.
+  No other golden changed.
+- Phone screenshots for `watch` and `safeOrangeDot` were replaced in
+  `phone/text100/` and `phone/text130/` (debug build, then release
+  reinstalled; `firstInstallTime` still 2026-10-18).
 
 ## Note 10 checkpoint — for the user
 
-The release build `669d7b7` is on the phone and stays there. **Do not
+The release build **`efdc7cd`** is on the phone and stays there. **Do not
 reinstall until the TEST-003 laptop check below says PASS.** Items 1 and 6
 were run by Claude (above). Item 1 still needs the user's comparison with
 the design boards.
