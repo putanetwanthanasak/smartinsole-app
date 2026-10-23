@@ -558,9 +558,12 @@ Model A ต้องเสร็จก่อน Model B เสมอ เนื�
   "temperature": { "deltaC": 2.2, "consecutiveReadings": 2 },
   "asymmetry": { "peakPct": 15, "ptiPct": 20, "concentrationPct": 40 },
   "model": { "minConfidence": 0.60 },
-  "motion": { "walkingAccelG": 0.15, "walkingWindowMs": 800 }
+  "motion": { "walkingAccelG": 0.15, "walkingWindowMs": 800 },
+  "battery": { "lowPct": 15 }
 }
 ```
+
+> **`battery` added 2026-10-23 (S5), a local addendum to v1.5.** `lowPct` is the `BATTERY_LOW` boundary from the table above (below 15 %), moved into the file so the app does not hardcode it (FLUTTER-PLAN rule 12; `docs/BACKLOG.md` item 30). Additive only: no existing key changed, so the file's `"version"` stays 1. This applies to `shared/thresholds.json`; the frozen web app keeps its own `public/thresholds.json` without this key. Like `motion`, it is an addition outside the original document and has not been sent back to the contract owner.
 
 > **`motion` เพิ่มใน v1.5 — ดูข้อ 8.3.2.** สี่บล็อกแรก (`pressure`/`temperature`/`asymmetry`/`model`) มาจากเจ้าของสัญญา; `motion` เป็นการเพิ่มเติมนอกเอกสารต้นฉบับ ยังไม่ส่งกลับให้เจ้าของสัญญา — เหมือนสถานะของสูตร §5.1 ที่แก้ไขในรีโปนี้แต่ยังไม่อัปสตรีม
 
@@ -664,3 +667,4 @@ users/{uid}
 | 1.3 | — | — | ตัดกฎ `GAIT_ABNORMAL` ออกจากเกณฑ์แจ้งเตือน (ข้อ 8.3) เพราะยังอ้างอิง index คลาสแบบ v1.1 ที่ไม่มีความหมายอีกต่อไปหลังเปลี่ยนเป็นรูปแบบการเดิน — แทนที่ด้วยชั้นข้อความเสริมตามรูปแบบการเดิน (ข้อ 8.3.1) ที่ไม่สร้างเกณฑ์แจ้งเตือนใหม่และไม่กระทบ `statusLevel` พร้อมอ้างอิงวรรณกรรมด้านชีวกลศาสตร์ประกอบ ระบุน้ำหนักของหลักฐานที่ไม่เท่ากันในแต่ละท่าเดินอย่างชัดเจน |
 | 1.4 | — | — | เพิ่มข้อ 8.0 พื้นหลังทางคลินิกเรื่องกลไกการเกิดแผลกดทับ (LOPS → โครงสร้างเท้าเปลี่ยนรูป → แรงกดสะสม) พร้อมระบุข้อจำกัดสำคัญว่าอาสาสมัครสุขภาพดีในโปรโตคอลยังรับรู้ความรู้สึกและปรับท่าเดินได้ปกติ ต่างจากกลไกจริงในผู้ป่วยที่สูญเสียการรับความรู้สึก |
 | 1.5 | — | — | เพิ่มข้อ 8.3.2 อธิบายเกณฑ์ตรวจจับ "ขณะเดิน" (walking gate) ของ `PRESSURE_PEAK` — ค่าเฉลี่ยส่วนเบี่ยงเบนของขนาดเวกเตอร์ความเร่งจาก 1g เทียบกับเกณฑ์ในหน้าต่างเวลาหนึ่ง — และเพิ่มบล็อก `motion` (`walkingAccelG`, `walkingWindowMs`) ในโครงสร้าง `thresholds.json` ของข้อ 8.3 ให้ตรงกับสิ่งที่ implement แล้วจริงใน `AlertStore.ts`/`constants.ts` (`docs/BACKLOG.md` ข้อ 10, `docs/reports/017-*.md`) เป็นการเพิ่มเติมนอกเอกสารต้นฉบับ ยังไม่ส่งกลับให้เจ้าของสัญญา ทั้งสองค่าเป็น PROVISIONAL รอการตรวจสอบกับฮาร์ดแวร์จริง สถานะเดียวกับ `PRESSURE_WATCH_KPA`/`PRESSURE_ALERT_KPA` — ยืนยันแล้วว่าฟิลด์ `pressure.ptiKpaS`/`asymmetry.ptiPct`/`asymmetry.concentrationPct` ที่มีอยู่แล้วในบล็อก JSON ตรงกับค่าที่ใช้จริงในโค้ด ไม่มีการเปลี่ยนค่าทั้งสามนี้ |
+| 1.5 addendum | 2026-10-23 | — | Added the `battery` block (`lowPct`: 15, the `BATTERY_LOW` boundary from §8.3) to the `thresholds.json` structure in §8.3. Additive: the file's `"version"` stays 1. Addition outside the original document, not yet sent back to the contract owner. |

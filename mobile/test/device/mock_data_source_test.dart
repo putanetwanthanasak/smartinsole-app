@@ -24,9 +24,9 @@ final concentrationPct = th('asymmetry', 'concentrationPct');
 final walkingAccelG = th('motion', 'walkingAccelG');
 final walkingWindowMs = th('motion', 'walkingWindowMs');
 
-/// Contract §8.3 `BATTERY_LOW`: below 15 %. Not in thresholds.json yet
-/// (noted for S7).
-const batteryLowPct = 15;
+/// Contract §8.3 `BATTERY_LOW` (added to thresholds.json in S5,
+/// BACKLOG 30).
+final batteryLowPct = th('battery', 'lowPct');
 
 const sampleS = 0.02;
 

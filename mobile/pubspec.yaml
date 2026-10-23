@@ -75,30 +75,49 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
-  # Bundled fonts (SIL OFL 1.1, see assets/fonts/OFL.txt). Never fetched at runtime.
+  # Bundled fonts (SIL OFL 1.1, see assets/fonts/OFL-*.txt). Never fetched at
+  # runtime. Headings: Figtree + Noto Sans Thai; body: Noto Sans + Noto Sans
+  # Thai Looped (DESIGN-SPEC §2). Static instances, only the weights used.
   fonts:
-    - family: PlexSansThai
+    - family: Figtree
       fonts:
-        - asset: assets/fonts/IBMPlexSansThai-Medium.ttf
-          weight: 500
-        - asset: assets/fonts/IBMPlexSansThai-SemiBold.ttf
+        - asset: assets/fonts/Figtree-SemiBold.ttf
           weight: 600
-        - asset: assets/fonts/IBMPlexSansThai-Bold.ttf
+        - asset: assets/fonts/Figtree-Bold.ttf
           weight: 700
-    - family: PlexSansThaiLooped
+    - family: NotoSansThai
       fonts:
-        - asset: assets/fonts/IBMPlexSansThaiLooped-Regular.ttf
-          weight: 400
-        - asset: assets/fonts/IBMPlexSansThaiLooped-Medium.ttf
-          weight: 500
-        - asset: assets/fonts/IBMPlexSansThaiLooped-SemiBold.ttf
+        - asset: assets/fonts/NotoSansThai-SemiBold.ttf
           weight: 600
-        - asset: assets/fonts/IBMPlexSansThaiLooped-Bold.ttf
+        - asset: assets/fonts/NotoSansThai-Bold.ttf
+          weight: 700
+    - family: NotoSans
+      fonts:
+        - asset: assets/fonts/NotoSans-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/NotoSans-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/NotoSans-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/NotoSans-Bold.ttf
+          weight: 700
+    - family: NotoSansThaiLooped
+      fonts:
+        - asset: assets/fonts/NotoSansThaiLooped-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/NotoSansThaiLooped-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/NotoSansThaiLooped-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/NotoSansThaiLooped-Bold.ttf
           weight: 700
 
   # Research capture cue sounds (S4C), made by tool/make_cues.py.
   assets:
     - assets/sounds/
+    # Copy of shared/thresholds.json (Flutter can't bundle files outside
+    # mobile/); test/config/thresholds_test.dart keeps it identical.
+    - assets/config/thresholds.json
 
   # To add assets to your application, add an assets section, like this:
   # assets:
