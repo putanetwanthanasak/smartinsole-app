@@ -2,8 +2,9 @@
 
 Branch `work/flutter-capture` · 2026-10-22 · Session S4C (`docs/SESSIONS.md` §3)
 
-**Status: built and verified on the emulator. The Note 10 checkpoint is
-open** (checklist at the end). The user runs it; I don't mark it passed.
+**Status: built, verified on the emulator, and every Note 10 checkpoint
+item has a result (section "Note 10 checkpoint results"). Waiting for the
+user to accept the checkpoint**; I don't mark it passed.
 - **Automated checks:** 293 tests pass, analyze and format are clean, the
   loader self-test passes, and all 5 mutation checks were caught.
 - **Emulator:** a full `TEST-001` rehearsal with `MOCK=safe` ran end to end:
@@ -269,7 +270,7 @@ step 6 of the Note 10 checklist with a real board reset. **Resume after a
 crash** is covered by a session test; on the emulator I saw the sessions
 list but did not kill the app mid-trial.
 
-## Note 10 checkpoint results (2026-10-23, in progress)
+## Note 10 checkpoint results (2026-10-23)
 
 This was a release build on Android 12 (API 31), session
 `TEST-001_20261023-182749`. Both boards were logged from 18:11:24
@@ -325,7 +326,7 @@ Export run 2 ([note10-check-2.txt](027-flutter-capture/note10-check-2.txt)),
 | Redo keeps a1 (invalid, redo), a2 clean | ✅ | run 2 |
 | Stopped early → `stopped_early`, valid, WARN | ✅ | run 1, heel walking |
 | Marked segment → WARN, `valid = 0` rows | ✅ | run 1, normal |
-| Cues heard/felt in a pocket; holds through cloth | **waiting for the user's answer** | step 5 |
+| Cues heard/felt in a pocket; holds through cloth | ✅ all 4 cues (practice, start, 10 s left, end) heard and felt in a pocket; the 2 s holds worked through cloth | the user, 2026-10-23 |
 
 Staged copies of TEST-001 and TEST-002 are still in the phone's export
 folder. The script didn't remove them because its stdin was closed.
