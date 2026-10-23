@@ -15,7 +15,7 @@
 | Screens: Home, Gait, Temperature, Alerts, Device connection, Settings, **Daily foot check** | — |
 | **Research capture mode** (S4C): trials, labels, 50 Hz raw CSV, export | |
 | Two ESP32 insoles connected at the same time | Background operation / push notifications with screen off |
-| All 9 alert codes from the contract | Firebase / cloud sync |
+| All 8 alert codes from the contract | Firebase / cloud sync |
 | Rule-based gait estimate + slot for a TFLite model | Real AI model (separate workstream) |
 | Local storage (SQLite), including foot photos | AI analysis of foot photos (future work) |
 | Meaningful animations | iOS |
@@ -57,7 +57,7 @@ smartinsole-app/
 │   ├── lib/
 │   │   ├── ble/             ← parser, unit conversion, one connection per foot
 │   │   ├── device/          ← DeviceManager combining both feet
-│   │   ├── rules/           ← 9 alert codes + level 1–5 + mapping to 3 patient levels
+│   │   ├── rules/           ← 8 alert codes + level 1–5 + mapping to 3 patient levels
 │   │   ├── gait/            ← GaitClassifier (rules now / TFLite later)
 │   │   ├── footcheck/       ← daily foot check (camera, photos, questions)
 │   │   ├── storage/         ← SQLite (drift)
