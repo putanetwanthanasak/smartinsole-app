@@ -17,7 +17,8 @@ void main() {
   tearDown(() => rig.dispose());
 
   group('home', () {
-    testWidgets('Settings opens research capture', (tester) async {
+    testWidgets('Settings › ส่วนผู้วิจัย opens research capture only after '
+        'a 2 s long press', (tester) async {
       await pumpApp(
         tester,
         initialRoute: Routes.settings,
@@ -25,7 +26,22 @@ void main() {
         overrides: rig.overrides,
         settle: false,
       );
-      await tester.tap(byKey('capture-button'));
+      await tester.ensureVisible(byKey('researcher-row'));
+      await tester.pump();
+      // A tap and a normal long press do nothing.
+      await tester.tap(byKey('researcher-row'));
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.longPress(byKey('researcher-row'));
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.text('Research capture'), findsNothing);
+      // Held for 2 s it opens.
+      final g = await tester.startGesture(
+        tester.getCenter(byKey('researcher-row')),
+      );
+      await tester.pump(const Duration(milliseconds: 1900));
+      expect(find.text('Research capture'), findsNothing);
+      await tester.pump(const Duration(milliseconds: 200));
+      await g.up();
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 500));
       expect(find.text('Research capture'), findsOneWidget);

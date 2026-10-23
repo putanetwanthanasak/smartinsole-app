@@ -3,7 +3,6 @@ abstract final class Routes {
   static const shell = '/';
   static const connection = '/connection';
   static const settings = '/settings';
-  static const footCheck = '/foot-check';
 
   /// Research capture (S4C): researcher-only, from Settings.
   static const capture = '/capture';
