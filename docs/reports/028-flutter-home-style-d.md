@@ -3,9 +3,10 @@
 Branch `work/s5-home-style-d` · 2026-10-23 · Session S5 (`docs/SESSIONS.md` §3)
 Spec: `docs/design/DESIGN-SPEC.md` v2 §1–§6, §12, §13.
 
-**Status: waiting for the Note 10 checkpoint.** Automated checks and the
-emulator pass. Nobody has run the phone checklist at the end of this report
-yet. S5 is not done until the user runs it and reports back.
+**Status: waiting for the Note 10 checkpoint.** Automated checks, the
+emulator and the phone checks I ran (section "Note 10 session") pass. One
+accessibility bug found on the phone is fixed. The user's items at the end
+of this report are still open, so S5 is not done.
 
 > **Level 3 is not checked until S7.** In S5, Home's "ควรระวัง" (Be
 > careful) state only appears from the `watch` mock preset. No rule
@@ -16,7 +17,7 @@ yet. S5 is not done until the user runs it and reports back.
 
 ## Summary
 
-- **Automated:** `flutter analyze` is clean. All **373 tests pass**,
+- **Automated:** `flutter analyze` is clean. All **374 tests pass**,
   including 36 goldens (14 of them new Home goldens). `dart format` is clean.
 - **Emulator** (`emulator-5554`, `MOCK=…`): Safe, Rest and one-foot-missing
   were shown live, plus 200 % system text. There were no runtime errors.
@@ -91,6 +92,14 @@ yet. S5 is not done until the user runs it and reports back.
 as a float, so 33.20 − 31.00 = 2.2000000000000028 counted as "above 2.2".
 `deltaAbove()` now compares at the sensor's 0.01 °C resolution, and both
 the status and the temperature card's note use it.
+
+**Found on the Note 10 (commit `669d7b7`):** the accessibility tree on the
+phone showed the four tabs as `clickable="false"`. The tab button's
+`Semantics(excludeSemantics: true)` also hid the InkWell's tap action, so
+TalkBack could read a tab but could not switch to it. The Semantics node now
+carries `onTap`. A test performs the semantics tap on every tab; it fails
+without the fix and passes with it. The phone's tree now shows
+`clickable="true"`.
 
 **Second fix:** the foot-map dots restarted their 300 ms tween on every
 10 Hz rebuild, because each rebuild made a new list. They now compare by
@@ -198,28 +207,64 @@ after navigation.
   Research capture". I left it, to keep `tools/capture/` unchanged. The
   real path is in `docs/STUDY-CAPTURE.md`.
 
-## Note 10 checkpoint — for the user (not run yet)
+## Note 10 session (2026-10-23), run by Claude
 
-Phone `RF8M83P4STZ`; both ESP32 simulator boards. I will install the
-builds once the phone and boards are plugged in.
+Phone `RF8M83P4STZ` (Android 12, system text size 130 %), both ESP32
+simulator boards.
 
-1. **Mock presets (debug build, `MOCK=safe`):** Settings → Mock preset →
-   go through all 7 presets. Each matches the goldens above. `rest` needs
-   about 1 minute before it shows "ควรพักเท้าตอนนี้".
+**Data safety before installing.** The installed app was a release
+build. Research capture → "3 · On this phone" said "No sessions yet.", and
+the export staging folder
+(`/sdcard/Android/data/th.ac.kmutt.smartinsole/files/export/`) was empty.
+Debug, profile and release are all signed with the debug key
+(`android/app/build.gradle.kts`), so each install was `adb install -r`
+(or `flutter run`, which installed without uninstalling). Nothing was
+uninstalled: `firstInstallTime` is still 2026-10-18 19:20:47 after all
+three installs.
+
+| Build | What I checked | Result |
+|---|---|---|
+| debug, `MOCK=safe` | All 7 presets switched live from Settings and screenshotted at the phone's 130 % text and at 100 % (font scale set to 1.0 for this run, then put back to 1.3) | Content matches the goldens. Files: `028-flutter-home-style-d/phone/text100/` and `phone/text130/`, as `home_<preset>_<1..3>.png` (top, then two scrolls) |
+| debug | Accessibility tree (`uiautomator dump`) | Tabs were not activatable. **Fixed** in `669d7b7` (above) and re-checked |
+| profile | Both simulators connected through BLE debug, Home streaming, performance overlay on, 40 s | Steady state: UI avg 1.3–1.7 ms (max 10.6 ms), raster avg 6.1–7.2 ms (max 16.5 ms), all inside the 16.7 ms frame. One 20.3 ms UI frame came from navigating back to Home (entrance stagger), not from the 10 Hz updates. It is in the 10 s and 20 s windows and gone by 30 s. `phone/profile_overlay_home_*.png` |
+| profile | Home with both simulators | Both chips connected (battery 97 %), the foot map follows the boards, and the small cards show values |
+| **release `669d7b7`** (stays on the phone) | Settings → "ส่วนผู้วิจัย": a short tap does nothing; a 2.3 s hold opens Research capture; the row is `long-clickable` for TalkBack | Pass |
+
+The phone's Settings node merges the group header "สำหรับผู้วิจัย" with the
+row, so TalkBack reads "สำหรับผู้วิจัย ส่วนผู้วิจัย, กดค้าง 2 วินาทีเพื่อเปิด".
+This is acceptable, but the header could be separated in S8B.
+
+**For the user to decide (safeOrangeDot):** with the interim asymmetry
+definition, the `safeOrangeDot` preset also shows the orange balance note
+("61 : 39", "ลงน้ำหนักเท้าซ้ายมากกว่า"). A foot's peak is its highest
+zone, so one medium zone on one foot is enough to cross
+`asymmetry.peakPct`. The spec gives `PRESSURE_WATCH` as "Safe + orange
+dot" only. Whether this pairing is right depends on how the contract
+defines a foot's peak (BACKLOG 37).
+
+## Note 10 checkpoint — for the user
+
+The release build `669d7b7` is on the phone and stays there. **Do not
+reinstall until the TEST-003 laptop check below says PASS.** Items 1 and 6
+were run by Claude (above). Item 1 still needs the user's comparison with
+the design boards.
+
+1. **Mock presets vs the boards:** compare
+   `docs/reports/028-flutter-home-style-d/phone/text100/` (and `text130/`)
+   with the design boards.
 2. **Tab bar:** all 4 tabs switch. The icon pops on the active tab. The
    placeholder tabs show their title and "กำลังพัฒนา". The foot-check card
    and "ดูเพิ่ม" switch to their tabs.
 3. **Thai fonts:** headings are Noto Sans Thai, and body text is the looped
    Thai face. No tofu boxes, and no clipped tone marks (e.g. "น้ำ", "ปู่").
 4. **Motion:** with the system "Remove animations" off, Home fades and
-   rises in on launch, and dots tween when a preset changes. With it on,
-   everything appears at once and nothing pulses.
+   rises in on launch, and chip dots change colour smoothly when a board
+   connects. With it on, everything appears at once.
 5. **TalkBack:** focus the status card; it reads title + detail (+ advice).
-   Switch preset while TalkBack is on; the change is announced once
-   (polite live region). The Alerts tab reads "แจ้งเตือน".
-6. **Jank (profile build):** `flutter run --profile`, performance overlay
-   on, Home with both simulators streaming for 30 s. Both bars stay under
-   16 ms; no red frames during the 10 Hz updates.
+   Unplug one board while TalkBack is on. The change to "ยังไม่ได้รับข้อมูล"
+   is announced once (polite live region). The Alerts tab reads
+   "แจ้งเตือน", and a double-tap on any tab switches to it.
+6. **Jank:** done by Claude (above).
 7. **Two ESP32 simulators (release build):** connect both through BLE
    debug. Home shows both chips connected with battery, the foot map moves,
    and the temperature and balance cards show values. Unplug one board:
