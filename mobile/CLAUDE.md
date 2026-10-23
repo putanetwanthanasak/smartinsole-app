@@ -70,7 +70,12 @@ lib/
                        recorder on the 50 Hz path, session state machine,
                        cues, export staging (see its README.md and
                        docs/STUDY-CAPTURE.md)
-  rules/ gait/ footcheck/ storage/ notify/ config/
+  config/              thresholds.json loader (thresholdsProvider) and the
+                       placeholder foot layout (S5)
+  rules/               alert codes, pressure level, PeakAsymmetry (one
+                       definition, interim, BACKLOG 37), InterimStatus
+                       (S5 only; S7 replaces it)
+  gait/ footcheck/ storage/ notify/
                        empty until their session (see each README.md)
   ui/
     app.dart           MaterialApp, named routes
@@ -78,13 +83,19 @@ lib/
     motion.dart        ALL animation durations and curves
     clock.dart         clockProvider (override in tests) + Thai date
     theme/             colors, typography, dimens, app_theme
-    shell/             tab shell (IndexedStack) + bottom bar
+    shell/             4-tab shell (IndexedStack: วันนี้ / เท้าของฉัน /
+                       ตรวจเท้า / แจ้งเตือน) + bottom bar with unread badge
     screens/           one file per screen; debug_ble_screen.dart is
                        temporary (Settings → "BLE debug", hidden in S8B);
-                       capture/ = Settings → "Research capture" (English,
-                       researcher-only, release builds too)
+                       home/ = Home view model and draft copy;
+                       capture/ = Settings → hold "ส่วนผู้วิจัย" 2 s
+                       (English, researcher-only, release builds too)
     widgets/           shared widgets
-assets/fonts/          IBM Plex Sans Thai + Looped (OFL, bundled)
+assets/fonts/          Figtree 600/700, Noto Sans Thai 600/700 (headings);
+                       Noto Sans + Noto Sans Thai Looped 400–700 (body);
+                       static TTFs, OFL, never downloaded at runtime
+assets/config/         thresholds.json, byte-identical copy of
+                       shared/thresholds.json (a test checks it)
 assets/sounds/         capture cue beeps, made by tool/make_cues.py
 test/                  flutter_test_config.dart loads the real fonts
   ble/                 parser tests; test_vectors_test.dart reads
@@ -180,11 +191,11 @@ pull + SHA-256 + checks). Any change to the capture file format must keep
   turn on reduce motion, and always replaces BLE with `FakeBleCentral` /
   `FakePermissions` (pass your own via `central:` / `permissions:`, and
   any provider override, e.g. `mockPresetProvider`, via `overrides:`).
-  Widgets that tests or the driver tap carry a `ValueKey` (`tab-home`, `settings-button`, `foot-left`, …).
+  Widgets that tests or the driver tap carry a `ValueKey` (`tab-today`, `tab-myFeet`, `tab-footCheck`, `tab-alerts`, `settings-button`, `foot-left`, `status-card`, `researcher-row`, …).
 - `MockDataSource` presets (from S4) drive every UI state on the emulator
   (`--dart-define=MOCK=<preset>`). Their test checks each preset against
   `shared/thresholds.json`; when a threshold changes, fix the preset, not
   the test.
-- **The Note 10 is used only at its checkpoints:** after S3A, S4, S4C, SR,
+- **The Note 10 is used only at its checkpoints:** after S3A, S4, S4C, S5, SR,
   S8C and S9 (real Bluetooth / real camera; `docs/SESSIONS.md`). Write a checklist for the user and wait for
   their results; never mark those checks passed yourself.

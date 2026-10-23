@@ -818,7 +818,14 @@ That is the step in `docs/STUDY-FALLBACK.md`, so there is no code change.
 A one-line web-app fix exists if ever wanted: call `forgetDevice()` when
 `gatt.connect()` throws, so the next click opens the picker.
 
-## 30. `thresholds.json` has no battery threshold **(found in S4, for S7)**
+## 30. `thresholds.json` has no battery threshold **(found in S4, for S7)** — RESOLVED (S5)
+
+Resolved in S5: `shared/thresholds.json` has `battery.lowPct` (15), an
+additive key noted in `docs/DATA-CONTRACT.md` §8.3 as a local addendum to
+v1.5. The app reads it (Home chips, `lowBattery` preset test). S7's
+`BATTERY_LOW` rule should read the same key.
+
+Original note:
 
 Contract §8.3 defines `BATTERY_LOW` as below 15 %, but
 `shared/thresholds.json` has no battery entry. The S4 `lowBattery` mock
@@ -894,3 +901,49 @@ study build keeps the debug screen. Whichever session does the connect
 UI (S5 or S8B) should update the pre-check hint in
 `mobile/lib/ui/screens/capture/capture_home_screen.dart` and
 `docs/STUDY-CAPTURE.md` step 3.
+
+S5 note: Home's No-data card has "เชื่อมต่อแผ่นรองเท้า", but it opens the
+Connection placeholder (S8B). Research capture moved behind a 2 s long
+press (Settings → "ส่วนผู้วิจัย"); the debug screen is still the only
+connect path, so this item stays open for S8B.
+
+## 37. Peak asymmetry: interim definition **(found in S5, for S7)**
+
+Contract §8.3 defines `ASYMMETRY_PEAK` as "PAI > `asymmetry.peakPct`
+sustained for ≥ 20 steps" but does not say what a foot's peak is or how
+PAI is computed. S5 uses one pure function,
+`mobile/lib/rules/asymmetry.dart` (`PeakAsymmetry`), marked INTERIM:
+
+- a foot's peak = the highest FSR channel over the last 2 s (all six
+  channels, kPa, no step detection);
+- PAI = |L − R| / ((L + R) / 2) × 100 %; undefined when both are 0;
+- Home's balance numbers are the left/right shares of L + R, and the
+  orange note shows when PAI > `asymmetry.peakPct`, right away (no
+  20-step persistence).
+
+S7 must confirm the definition with the contract owner, add per-step
+peaks and the 20-step persistence, and reuse this function (not a second
+copy) for both the rule and Home.
+
+## 38. One foot missing: the connected foot's level 3+ must win **(found in S5, for S7)**
+
+S5 shows No data whenever either foot is not usable (decision D7). With
+the rules engine (S7): when one foot is missing and the connected foot
+has a level 3 or higher status, show that status (max level), not No
+data; and the No-data detail text must name which foot is missing
+(e.g. "ยังไม่ได้เชื่อมต่อเท้าขวา"). Two-foot values (temperature
+difference, balance) stay "—" either way (rule 4).
+
+## 39. Home copy written in S5 that the spec does not give **(found in S5)**
+
+DESIGN-SPEC §6 does not give these strings; S5 wrote them in the spec's
+style. Review with the rest of the draft health copy (Appendix A):
+
+- pressure caption with one foot connected: "แรงกดเท้า{ซ้าย/ขวา}กระจายดี";
+- foot map TalkBack label with no data: "เท้า{ซ้าย/ขวา} ยังไม่มีข้อมูล";
+- pressure caption with no foot connected: "ยังไม่มีข้อมูล
+  ต้องเชื่อมต่อแผ่นรองเท้าก่อน".
+
+Also: the dots show each zone's peak over the last 2 s (the same window
+as the balance card), so a zone touched once during a step stays
+coloured for 2 s instead of flickering at walking pace.
