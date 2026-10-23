@@ -2,9 +2,8 @@
 
 Branch `work/flutter-capture` · 2026-10-22 · Session S4C (`docs/SESSIONS.md` §3)
 
-**Status: built, verified on the emulator, and every Note 10 checkpoint
-item has a result (section "Note 10 checkpoint results"). Waiting for the
-user to accept the checkpoint**; I don't mark it passed.
+**Status: done.** The user accepted the S4C Note 10 checkpoint on
+2026-10-23, and every item passes (section "Note 10 checkpoint results").
 - **Automated checks:** 301 tests pass, analyze and format are clean, the
   loader self-test passes, and all 5 mutation checks were caught.
 - **Emulator:** a full `TEST-001` rehearsal with `MOCK=safe` ran end to end:
@@ -271,6 +270,8 @@ crash** is covered by a session test; on the emulator I saw the sessions
 list but did not kill the app mid-trial.
 
 ## Note 10 checkpoint results (2026-10-23)
+
+**Accepted by the user on 2026-10-23: all items pass.**
 
 This was a release build on Android 12 (API 31), session
 `TEST-001_20261023-182749`. Both boards were logged from 18:11:24
