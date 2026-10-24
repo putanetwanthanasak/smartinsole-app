@@ -122,6 +122,38 @@ by its time stamp, never by the subject code. It goes into the export as
   30 minutes, so a second warm compress within 30 minutes on the same
   foot and site gives no second row.
 
+## Clearing test data before the study (S6B)
+
+Testing the app on the study phone leaves rows in its database: alerts,
+temperature readings, daily summaries and foot checks. Clear them once,
+before 2026-11-10 (SR checklist):
+
+1. Disconnect both insoles first (for now: Settings → BLE debug →
+   Disconnect on each foot). While an insole is connected the app keeps
+   writing temperature readings, so a reading can land between the clear
+   and the restart (seen in S6B: one row).
+2. Settings → hold **ส่วนผู้วิจัย** 2 s → Research capture.
+3. Scroll to **4 · App database (test data)** → *Clear app database
+   (test data)*. The button is disabled while a session screen is open.
+4. The first confirmation says what goes, and how many capture sessions
+   on the phone keep their alerts. *Continue*, then *Clear*.
+5. The result lists what was removed. Close the app from Recents and
+   open it again, so the alert engine starts clean.
+6. Settings → BLE debug: "alerts N" must equal "capture-tagged N", and
+   both "temperature rows" lines read 0.
+
+What it deletes: every alert **without** a capture stamp, every
+temperature reading, daily summary and foot check, and the files in the
+foot-photo folder. What it never deletes: alerts with a capture stamp
+(study data: they go only with their session, through *Delete from
+phone*), the capture session folders, and the export folder.
+
+Why an in-app action and not adb: the study phone runs the release build,
+which is not debuggable, so `adb shell run-as` cannot reach the app's
+database. (On a debug build the equivalent is
+`adb shell run-as th.ac.kmutt.smartinsole` and deleting rows with
+`sqlite3`, which is not installed on stock Android; use the app action.)
+
 ## Export (right after the session)
 
 1. Summary (the list icon at the top right, or the screen after the last

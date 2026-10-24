@@ -8,5 +8,6 @@
   "battery": { "lowPct": 15 },
   "device": { "lostAfterMin": 5 },
   "alerts": { "repeatMin": 30 },
-  "steps": { "contactKpa": 10, "minStanceMs": 250, "maxStanceMs": 2500 }
+  "steps": { "contactKpa": 10, "minStanceMs": 250, "maxStanceMs": 2500 },
+  "sources": { "TEMP_DELTA": "Lavery et al. (2004)", "PRESSURE_WATCH": "เกณฑ์เฝ้าระวังของโครงงาน", "PRESSURE_PEAK": "Owings et al. (2009)", "PRESSURE_PTI": "Waaijman et al. (2014)", "ASYMMETRY_PEAK": "ตัวชี้วัดของโครงงาน", "LOAD_CONCENTRATION": "ตัวชี้วัดของโครงงาน", "DEVICE_LOST": "—", "BATTERY_LOW": "—" }
 }

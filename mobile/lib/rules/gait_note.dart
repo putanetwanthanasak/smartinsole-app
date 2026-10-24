@@ -67,3 +67,13 @@ const _notes = <String, (Set<String>?, String)>{
     'ตรวจพบรูปแบบเดินไม่สมมาตร ควรตรวจสอบแรงกดทั้งสองข้างเทียบกัน',
   ),
 };
+
+/// Model A's class names in plain Thai (DESIGN-SPEC §8.3): the alert
+/// detail's "รูปแบบการเดิน" row, and the Gait tab (S8A).
+const gaitClassTh = {
+  'normal': 'เดินปกติ',
+  'toe_walking': 'เดินเขย่งปลายเท้า',
+  'antalgic': 'เดินกะเผลก',
+  'heel_walking': 'เดินลงส้นเท้า',
+  'rotated_foot': 'เดินบิดปลายเท้า',
+};

@@ -1,4 +1,19 @@
+import 'display_snapshot.dart';
 import 'foot_sample.dart';
+
+/// The foot maps' peak window: a dot shows the highest kPa of the last
+/// 2 s, the same window as the web app's heatmap (report 003). Display
+/// only, not a threshold. The alert engine keeps the same window, so the
+/// map stored with a pressure alert is the map Home showed.
+const mapPeakWindowMs = 2000;
+
+/// The kPa per zone a foot map shows for [f]: the windowed peaks
+/// ([windowPeaks], from a [RollingPeaks] of [mapPeakWindowMs]), the
+/// newest sample while that window is still empty, or null when the foot
+/// is not usable. Home and the alert engine both use this, so they never
+/// disagree.
+List<double>? mapPeaksOf(FootView f, List<double>? windowPeaks) =>
+    f.usable ? (windowPeaks ?? f.kpa) : null;
 
 /// Highest kPa per FSR channel over the last [windowMs] of one foot's
 /// samples, fed from the 50 Hz path ([DeviceManager.batches]) and read on

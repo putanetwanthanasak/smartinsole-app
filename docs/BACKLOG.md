@@ -1097,3 +1097,70 @@ simulator's default output), or leave it until real-board data sets
 simulator does, so this is a simulator limit, not evidence the gate is
 too strict.
 
+## 43. The PTI threshold's source does not confirm 80 kPa·s **(found in S6B, deadline 2026-11-05)** — OPEN
+
+The alert detail shows "ที่มาของเกณฑ์" from `shared/thresholds.json`
+`sources` (S6B), copied word for word from DATA-CONTRACT §8.3. For
+`PRESSURE_PTI` that is "Waaijman et al. (2014)", but that paper does not
+confirm the 80 kPa·s value (`pressure.ptiKpaS`). Before the medical
+expert review (2026-11-05): find a verified source for 80 kPa·s, or
+change the value to one the source supports, and update §8.3,
+`thresholds.json` and its `sources` line together. Until then the screen
+keeps the contract's text unchanged; nothing on screen says it is
+unverified.
+
+## 44. Icon stroke is Lucide's 2, not the spec's 2.25 **(found in the S6B review)** — OPEN, for S10
+
+DESIGN-SPEC §5 gives `stroke 2.25` for the back link's `chevron-left` and
+the status tag's icon (and the boards draw every Lucide icon at 2.25).
+The app draws icons with `flutter_lucide`'s font glyphs, whose stroke is
+fixed at Lucide's default 2 and cannot be set, on every screen since S5.
+Options for S10: accept 2 and change §5, or draw the icons from the Lucide
+SVGs (e.g. `flutter_svg`, stroke 2.25) everywhere. Not changed per screen,
+so the app stays consistent.
+
+## 45. The left insole was not reconnected within 5 minutes after S7 **(found in S6B, check in S9, before SR)** — OPEN
+
+After the S7 Note 10 run (report 030), the phone's database showed:
+- the left foot's last temperature row at 19:05:36;
+- `DEVICE_LOST` (left) at 19:10:56, 5 min later (`alerts.deviceLostAfterMin`);
+- the right foot's rows continuing until 19:24:27.
+
+So the left link dropped at about 19:05:50 and the app had not got it
+back 5 minutes later. The cause is not known yet. What the evidence
+shows so far:
+- Both S7 serial loggers stopped at about 19:01:14. The last left
+  line, 19:01:13.785, shows the board still streaming with 0 drops.
+  So no serial log covers the drop, and the left board's state at
+  19:05 (reset, still advertising, connected) is unknown.
+- Closing the logger did not stop the left stream at once: data kept
+  arriving for about 4.5 minutes after.
+- When the S6B logger opened the left port at 20:38:45, the board
+  rebooted (`POWERON_RESET`), as in the known "port open resets the
+  board" behaviour. The app was not running then (the S6B debug build
+  was installed over it later), so this says nothing about auto-reconnect.
+
+Questions for S9:
+- Did the board reset or crash?
+- Was the phone screen off, or the app in the background?
+- Did auto-reconnect give up?
+- Does the app retry at all after a link loss on that path? Check the
+  BLE debug card's "link losses / failed" and the event log.
+
+**S9 checklist step** (`docs/SESSIONS.md` §3, S9): reset one board while
+both stream, once with the screen on and once with it off. Keep both
+serial loggers running throughout, and record how long auto-reconnect
+takes. Expected: well under `deviceLostAfterMin`, with no DEVICE_LOST.
+If either case does not reconnect, fix it before SR.
+
+## 46. Thai line breaks leave a short word alone on the last line **(found in the S6B phone check)** — OPEN, for S10
+
+Thai has no spaces between words, so Flutter breaks lines by dictionary.
+A short word can end up alone on the last line, e.g. "ไม่" in the
+DEVICE_LOST detail and "เดิน" in the PEAK detail. That reads badly for
+older patients.
+
+In S10: keep such phrases together, e.g. with a non-breaking join
+(U+2060 WORD JOINER between the last two words) or a shared helper that
+binds the final short word to the one before it. Check every screen at
+100 % and 200 % text. The goldens show the change.

@@ -160,6 +160,34 @@ abstract final class FootDotColors {
   /// The "high" pulse ring (DESIGN-SPEC §12.2).
   static const pulseRing = Color(0xFFC2410C);
   static const pulseRingWidth = 2.5;
+
+  /// A zone whose level was not recorded (an alert stored before S6B kept
+  /// only the zone that triggered): a plain outline circle, no fill, no
+  /// dashes. Not the no-data style, which means "disconnected".
+  static const notRecorded = FootDotStyle(
+    fill: Color(0x00FFFFFF),
+    radius: 10,
+    legendRadius: 7,
+  );
+
+  /// Alert detail: the ring around the zone that triggered (DESIGN-SPEC
+  /// §7.3: 3 px at radius + 7, view-box units).
+  static const triggerRing = Color(0xFFC2410C);
+  static const triggerRingWidth = 3.0;
+  static const triggerRingExtra = 7.0;
+}
+
+/// Temperature sites on the alert detail map (DESIGN-SPEC §7.3), view-box
+/// units. The warmer site uses the Rest-your-feet colours.
+abstract final class TempSiteColors {
+  static const radius = 15.0;
+  static const strokeWidth = 2.0;
+  static const ringRadius = 23.0;
+  static const ringWidth = 3.0;
+  static final warmFill = StatusColors.rest.background;
+  static final warmStroke = StatusColors.rest.icon;
+  static const otherFill = AppColors.surface;
+  static const otherStroke = AppColors.inkMuted;
 }
 
 /// Daily foot check camera screen (DESIGN-SPEC §1).

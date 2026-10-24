@@ -24,10 +24,39 @@ final selectedTabProvider = NotifierProvider<SelectedTab, AppTab>(
   SelectedTab.new,
 );
 
+/// The sub-tabs of My feet (DESIGN-SPEC §8). Home's "ดูเพิ่ม" and the
+/// pressure alerts open [pressure]; `TEMP_DELTA` opens [temperature].
+enum MyFeetTab { pressure, temperature, gait }
+
+class SelectedMyFeetTab extends Notifier<MyFeetTab> {
+  @override
+  MyFeetTab build() => MyFeetTab.pressure;
+
+  void select(MyFeetTab tab) => state = tab;
+}
+
+final myFeetTabProvider = NotifierProvider<SelectedMyFeetTab, MyFeetTab>(
+  SelectedMyFeetTab.new,
+);
+
+/// Opens My feet on [tab] from anywhere: back to the tab shell (closing
+/// pushed screens such as an alert detail), then the tab and sub-tab.
+void openMyFeet(BuildContext context, WidgetRef ref, MyFeetTab tab) {
+  ref.read(myFeetTabProvider.notifier).select(tab);
+  ref.read(selectedTabProvider.notifier).select(AppTab.myFeet);
+  Navigator.of(context).popUntil((r) => r.isFirst);
+}
+
 /// Unread alerts, for the Alerts tab badge: 0 until the store has answered
 /// (and when it is empty). Tests override it.
 final unreadAlertCountProvider = Provider<int>(
   (ref) => ref.watch(unreadAlertsProvider).value ?? 0,
+);
+
+/// Whether the store has answered: the first count at start-up is not a
+/// new alert, so the bell does not wiggle for it.
+final unreadAlertsKnownProvider = Provider<bool>(
+  (ref) => ref.watch(unreadAlertsProvider).hasValue,
 );
 
 const appTabs = [
@@ -67,6 +96,7 @@ class AppShell extends ConsumerWidget {
         items: appTabs,
         selected: tab,
         unreadAlerts: ref.watch(unreadAlertCountProvider),
+        animateBadge: ref.watch(unreadAlertsKnownProvider),
         onSelect: ref.read(selectedTabProvider.notifier).select,
       ),
     );

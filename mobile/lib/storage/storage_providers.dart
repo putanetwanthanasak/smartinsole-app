@@ -10,9 +10,11 @@ import 'daily_summary_repository.dart';
 import 'database.dart';
 import 'foot_check_repository.dart';
 import 'local_date.dart';
+import 'models.dart';
 import 'retention.dart';
 import 'temperature_recorder.dart';
 import 'temperature_repository.dart';
+import 'test_data.dart';
 
 // The only way into storage for the rest of the app: screens and services
 // read the repository providers, never [AppDatabase].
@@ -71,6 +73,27 @@ final unreadAlertsProvider = StreamProvider<int>(
   (ref) => ref
       .watch(alertRepositoryProvider)
       .watchUnreadCount(ref.watch(clockProvider)().millisecondsSinceEpoch),
+);
+
+/// What the Alerts list shows (S6A's one visibility rule, newest first).
+final visibleAlertsProvider = StreamProvider<List<StoredAlert>>(
+  (ref) => ref
+      .watch(alertRepositoryProvider)
+      .watchVisible(ref.watch(clockProvider)().millisecondsSinceEpoch),
+);
+
+/// One stored alert, for its detail screen.
+final alertByIdProvider = FutureProvider.autoDispose.family<StoredAlert?, int>(
+  (ref, id) => ref.watch(alertRepositoryProvider).byId(id),
+);
+
+/// The researcher's "Clear app database (test data)" ([clearTestData]).
+final clearTestDataProvider = Provider<Future<ClearedTestData> Function()>(
+  (ref) =>
+      () => clearTestData(
+        ref.read(databaseProvider),
+        photoDir: ref.read(footPhotoDirProvider),
+      ),
 );
 
 /// Retention at start and once a day. Started by `StorageHost`.

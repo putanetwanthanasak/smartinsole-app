@@ -17,7 +17,7 @@ is the one file it skips).
 | `walking_gate.dart` | Contract §8.3.2's walking gate, per foot |
 | `step_detector.dart` | Walking steps per foot: stance limits, per-zone peak and PTI |
 | `alert_copy.dart` | Plain-Thai copy for every code (rule 13; DRAFT health copy) |
-| `gait_note.dart` | Contract §8.3.1's gait note (never changes a level) |
+| `gait_note.dart` | Contract §8.3.1's gait note (never changes a level); `gaitClassTh`, the gait class names in Thai (S6B) |
 | `asymmetry.dart` | PAI (`paiPercent`, `PeakAsymmetry`) |
 | `weight_share.dart` | Home's balance card share (display only, not a rule) |
 | `pressure_level.dart` | Foot-map dot level |
@@ -38,6 +38,16 @@ is the one file it skips).
   holds across a restart. Each stored alert has the patient level shown at
   that moment, the numbers for the detail rows, the gait estimate
   (pressure codes only) and the open research capture's stamp.
+- **Foot map with pressure alerts (S6B).** Every pressure code
+  (`pressureCodes`) also stores `details.map = {left|right: {kpa: [6],
+  levels: ["low", …]} | null}`: both feet's 2 s rolling-peak map at the
+  moment it was raised, from the engine's own `RollingPeaks` fed by the
+  same batches and the same `mapPeaksOf` rule as Home, so the alert
+  detail's "ตำแหน่งที่พบ" shows what Home showed. A foot that was not
+  usable is `null` (drawn as No data). Alerts stored before S6B have no
+  map; the detail then draws only the ringed zone (PEAK: its level;
+  PTI / LOAD_CONCENTRATION: a plain outline, no level claimed) and every
+  other zone as a plain outline circle, never the No-data style.
 - **Status.** Both feet unusable → No data. Otherwise the best level-3+
   rule names the card: higher level first, then TEMP_DELTA > PTI > PEAK >
   LOAD_CONCENTRATION, then the one furthest past its threshold. A

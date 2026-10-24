@@ -1,9 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smartinsole/ble/packets.dart';
 import 'package:smartinsole/config/foot_layout.dart';
+import 'package:smartinsole/device/rolling_peaks.dart';
 import 'package:smartinsole/rules/alert_code.dart';
 import 'package:smartinsole/rules/gait_note.dart';
 import 'package:smartinsole/rules/patient_status.dart';
+import 'package:smartinsole/rules/pressure_level.dart';
 import 'package:smartinsole/storage/database.dart';
 import 'package:smartinsole/storage/models.dart';
 
@@ -86,7 +88,7 @@ void main() {
       expect(peak.measuredValue, t.alertKpa + 0.5);
       expect(peak.threshold, 200);
       expect(peak.patientLevel, PatientLevel.careful);
-      expect(peak.details, {'walking': true});
+      expect(peak.details!['walking'], true);
     });
 
     test('stops holding peakHoldMs after the last walking sample above', () {
@@ -681,6 +683,108 @@ void main() {
         isNull,
       );
       expect(await rig.alerts.forCapture('20261110-093000'), isNotEmpty);
+    });
+  });
+
+  group('foot map stored with pressure alerts (S6B)', () {
+    /// Home's map rule fed with the same batches as the engine: after
+    /// each batch, (snapshot time, both feet's map kPa).
+    List<(int, Map<FootSide, List<double>?>)> recordMaps(RulesRig rig) {
+      final peaks = {
+        for (final s in FootSide.values)
+          s: RollingPeaks(windowMs: mapPeakWindowMs),
+      };
+      final out = <(int, Map<FootSide, List<double>?>)>[];
+      // Subscribed after the engine, so each record is the state the
+      // engine saw while handling that batch.
+      final sub = rig.manager.batches.listen((b) {
+        peaks[b.side]!.add(b);
+        final snap = rig.manager.snapshot();
+        out.add((
+          snap.at.millisecondsSinceEpoch,
+          {
+            for (final s in FootSide.values)
+              s: mapPeaksOf(snap.of(s), peaks[s]!.channelPeaks()),
+          },
+        ));
+      });
+      addTearDown(sub.cancel);
+      return out;
+    }
+
+    test('PEAK: both feet, the map Home showed when it was raised', () async {
+      final rig = RulesRig()..stream();
+      final maps = recordMaps(rig);
+      // Both feet usable and their 2 s windows full before the peak.
+      rig.walkBoth(const Duration(seconds: 3), light);
+      rig.walkBoth(
+        const Duration(seconds: 4),
+        Gait(kpa: [20, t.alertKpa + 30, t.watchKpa + 10, 20, 20, 60]),
+        right: light,
+      );
+      final peak = (await rig.stored()).firstWhere(
+        (a) => a.kind == AlertKind.pressurePeak,
+      );
+      final map = peak.details!['map']! as Map<String, Object?>;
+      final expected = maps.firstWhere((m) => m.$1 == peak.atMs).$2;
+      for (final side in FootSide.values) {
+        final foot = map[side.name]! as Map<String, Object?>;
+        expect(foot['kpa'], expected[side], reason: side.name);
+        expect(foot['levels'], [
+          for (final k in expected[side]!) pressureLevel(k, t).name,
+        ]);
+      }
+      final left = map['left']! as Map<String, Object?>;
+      expect(left['levels'], ['low', 'high', 'medium', 'low', 'low', 'low']);
+      // The rest of the details are unchanged.
+      expect(peak.details!['walking'], true);
+    });
+
+    test('a foot that is not usable is stored as null', () async {
+      final rig = RulesRig()..stream([FootSide.left]);
+      rig.run(
+        const Duration(seconds: 4),
+        left: Gait(kpa: at(1, t.alertKpa + 30)),
+      );
+      final peak = (await rig.stored()).firstWhere(
+        (a) => a.kind == AlertKind.pressurePeak,
+      );
+      final map = peak.details!['map']! as Map<String, Object?>;
+      expect(map['right'], isNull);
+      expect(map['left'], isNotNull);
+    });
+
+    test('every pressure code has a map; other codes do not', () async {
+      final rig = RulesRig()..stream();
+      rig.walkBoth(strides(t.concentrationSteps + 2, light), light);
+      rig.walkBoth(
+        strides(t.ptiMinSteps + 2, const Gait()),
+        Gait(kpa: at(5, t.alertKpa + 30)),
+        right: light,
+      );
+      rig.temp(FootSide.left, 31, 30);
+      rig.temp(FootSide.right, 31 + t.deltaC + 1, 30);
+      rig.temp(FootSide.left, 31, 30);
+      rig.temp(FootSide.right, 31 + t.deltaC + 1, 30);
+      final stored = await rig.stored();
+      final kinds = {for (final a in stored) a.kind};
+      expect(
+        kinds,
+        containsAll([
+          AlertKind.pressureWatch,
+          AlertKind.pressurePeak,
+          AlertKind.loadConcentration,
+          AlertKind.tempDelta,
+        ]),
+      );
+      for (final a in stored) {
+        final hasMap = a.details?.containsKey('map') ?? false;
+        expect(
+          hasMap,
+          pressureCodes.contains(a.kind.code),
+          reason: '${a.kind}',
+        );
+      }
     });
   });
 

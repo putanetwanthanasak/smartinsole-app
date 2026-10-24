@@ -11,6 +11,7 @@ import '../../../capture/capture_session.dart';
 import '../../../device/device_providers.dart';
 import '../../../device/display_snapshot.dart';
 import '../../../storage/models.dart' show captureStampOf;
+import '../../../storage/storage_providers.dart';
 import '../../theme/colors.dart';
 import '../../theme/dimens.dart';
 import '../../theme/typography.dart';
@@ -115,6 +116,81 @@ class _CaptureHomeScreenState extends ConsumerState<CaptureHomeScreen> {
     final deps = await ref.read(captureDepsProvider.future);
     await _open(CaptureSession.resume(deps: deps, dir: s.dir));
   }
+
+  /// Two confirmations, then [clearTestData]; tagged alerts and the
+  /// capture files are never touched.
+  Future<void> _clearTestData(int sessionCount) async {
+    final kept = sessionCount == 0
+        ? ''
+        : '\n\n$sessionCount session${sessionCount == 1 ? '' : 's'} on this '
+              'phone keep${sessionCount == 1 ? 's' : ''} ${sessionCount == 1 ? 'its' : 'their'} alerts.';
+    final first = await _confirm(
+      key: 'clear-confirm-1',
+      title: 'Clear app database?',
+      text:
+          'Deletes every alert not tagged with a capture session, and all '
+          'temperature readings, daily summaries, foot checks and foot '
+          'photos on this phone.$kept',
+      action: 'Continue',
+    );
+    if (!first || !mounted) return;
+    final second = await _confirm(
+      key: 'clear-confirm-2',
+      title: 'This cannot be undone',
+      text: 'Clear the app database now?',
+      action: 'Clear',
+    );
+    if (!second || !mounted) return;
+    final done = await ref.read(clearTestDataProvider)();
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        key: const ValueKey('clear-done'),
+        title: const Text('Cleared'),
+        content: Text(
+          'Removed ${done.alerts} alerts, ${done.temperatureReadings} '
+          'temperature readings, ${done.dailySummaries} daily summaries, '
+          '${done.footChecks} foot checks and ${done.photos} photo files.'
+          '\n\nRestart the app now (close it from Recents and open it '
+          'again), so the alert engine starts clean.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<bool> _confirm({
+    required String key,
+    required String title,
+    required String text,
+    required String action,
+  }) async =>
+      await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          key: ValueKey(key),
+          title: Text(title),
+          content: Text(text),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              key: ValueKey('$key-ok'),
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(action),
+            ),
+          ],
+        ),
+      ) ??
+      false;
 
   @override
   Widget build(BuildContext context) {
@@ -311,6 +387,24 @@ class _CaptureHomeScreenState extends ConsumerState<CaptureHomeScreen> {
                   listing: s,
                   onOpen: () => _resume(s),
                 ),
+            ],
+          ),
+          _Section(
+            title: '4 · App database (test data)',
+            children: [
+              Text(
+                'Before the study: clears the patient screens\' test data. '
+                'Capture sessions, their alerts and the export folder '
+                'stay.',
+                style: AppText.secondary,
+              ),
+              OutlinedButton(
+                key: const ValueKey('clear-test-data'),
+                onPressed: ref.watch(activeCaptureProvider) == null
+                    ? () => _clearTestData(sessions.length)
+                    : null,
+                child: const Text('Clear app database (test data)'),
+              ),
             ],
           ),
         ],

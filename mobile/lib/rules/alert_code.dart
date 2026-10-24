@@ -24,3 +24,15 @@ enum AlertCode {
 /// lowest shown as Rest your feet. Lower levels never set the status card.
 const carefulLevel = 3;
 const restLevel = 4;
+
+/// The highest internal level (the contract's 1–5 scale), for "4 จาก 5".
+const maxLevel = 5;
+
+/// The codes about one pressure zone: the alert engine stores the foot
+/// map with them (`details.map`), and the alert detail draws that map.
+const pressureCodes = {
+  AlertCode.pressureWatch,
+  AlertCode.pressurePeak,
+  AlertCode.pressurePti,
+  AlertCode.loadConcentration,
+};

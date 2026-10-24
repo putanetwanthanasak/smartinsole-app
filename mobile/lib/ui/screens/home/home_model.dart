@@ -183,11 +183,6 @@ class HomeView {
   );
 }
 
-/// The foot maps' peak window: a dot shows the highest kPa of the last
-/// 2 s, the same window as the web app's heatmap (report 003). Display
-/// only, not a threshold.
-const mapPeakWindowMs = 2000;
-
 /// The balance card's window: weight share averaged over 10 s (user
 /// decision 2026-10-23). Display only, not a threshold.
 const balanceWindowMs = 10000;
@@ -268,8 +263,7 @@ HomeView homeViewOf(
   required Map<FootSide, double?> meanLoads,
   int? shownSharePct,
 }) {
-  List<double>? peaksOf(FootView f) =>
-      f.usable ? (channelPeaks[f.side] ?? f.kpa) : null;
+  List<double>? peaksOf(FootView f) => mapPeaksOf(f, channelPeaks[f.side]);
 
   FootChipView chip(FootView f) => FootChipView(
     side: f.side,

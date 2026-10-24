@@ -80,6 +80,33 @@ abstract final class Dimens {
   static const balanceTickWidth = 2.0;
   static const balanceTickHeight = 16.0;
 
+  // Pills (DESIGN-SPEC §5): status tag padding 4 10 with an 18 px icon;
+  // "ใหม่" chip padding 2 10.
+  static const tagPaddingV = 4.0;
+  static const tagPaddingH = 10.0;
+  static const tagGap = 6.0;
+  static const tagIcon = 18.0;
+  static const chipPaddingV = 2.0;
+
+  // Numbered steps.
+  static const stepCircle = 32.0;
+  static const stepTextGap = 12.0;
+
+  // Details expander: header min height 56, padding 12 24; rows 12 0.
+  static const expanderHeaderHeight = 56.0;
+  static const expanderHeaderPaddingV = 12.0;
+  static const detailRowPaddingV = 12.0;
+
+  // Alerts list and empty state (DESIGN-SPEC §7.2).
+  static const groupTitleGap = 16.0;
+  static const emptyTop = 72.0;
+  static const emptyCircle = 88.0;
+  static const emptyIcon = 40.0;
+  static const emptyTextMaxWidth = 300.0;
+
+  // Alert detail gait note box icon.
+  static const noteIcon = 24.0;
+
   // Bottom bar.
   static const bottomBarHeight = 80.0;
   static const bottomBarPadding = 8.0;

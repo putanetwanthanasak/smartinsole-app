@@ -20,7 +20,8 @@ void main() {
     ) as Map<String, Object?>;
     final values = <num>{
       for (final e in json.entries)
-        if (e.key != 'version')
+        // `sources` holds the contract's citation texts, not numbers.
+        if (e.key != 'version' && e.key != 'sources')
           for (final v in (e.value! as Map<String, Object?>).values) v! as num,
     };
     expect(values, isNotEmpty);
