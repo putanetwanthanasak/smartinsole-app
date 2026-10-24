@@ -128,14 +128,19 @@ Testing the app on the study phone leaves rows in its database: alerts,
 temperature readings, daily summaries and foot checks. Clear them once,
 before 2026-11-10 (SR checklist):
 
-1. Settings → hold **ส่วนผู้วิจัย** 2 s → Research capture.
-2. Scroll to **4 · App database (test data)** → *Clear app database
+1. Disconnect both insoles first (for now: Settings → BLE debug →
+   Disconnect on each foot). While an insole is connected the app keeps
+   writing temperature readings, so a reading can land between the clear
+   and the restart (seen in S6B: one row).
+2. Settings → hold **ส่วนผู้วิจัย** 2 s → Research capture.
+3. Scroll to **4 · App database (test data)** → *Clear app database
    (test data)*. The button is disabled while a session screen is open.
-3. The first confirmation says what goes, and how many capture sessions
+4. The first confirmation says what goes, and how many capture sessions
    on the phone keep their alerts. *Continue*, then *Clear*.
-4. The result lists what was removed. Close the app from Recents and
+5. The result lists what was removed. Close the app from Recents and
    open it again, so the alert engine starts clean.
-5. Settings → BLE debug: "alerts N" must equal "capture-tagged N".
+6. Settings → BLE debug: "alerts N" must equal "capture-tagged N", and
+   both "temperature rows" lines read 0.
 
 What it deletes: every alert **without** a capture stamp, every
 temperature reading, daily summary and foot check, and the files in the

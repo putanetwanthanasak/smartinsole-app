@@ -1,0 +1,44 @@
+# S6B Note 10 live check: serial logs (laptop time). Left board = USB port 6, right = port 7.
+## left (port 6)
+# 2026-10-24 20:37:25 logging /dev/serial/by-path/pci-0000:00:14.0-usb-0:6:1.0-port0
+# 2026-10-24 20:38:45 logging /dev/serial/by-path/pci-0000:00:14.0-usb-0:6:1.0-port0
+20:38:45.944 rst:0x1 (POWERON_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+20:38:46.487 [boot] SmartInsole simulator fw 0.1, side L, fsr_count 6
+20:38:46.493 [scenario] n (normal walk)  (commands: n t p ?)
+20:38:46.785 [ble] advertising as SMARTINSOLE-L, fsr_count 6, up to 3 centrals
+20:52:05.805 [ble] conn 0: connected 47:e4:dc:5b:59:8b, mtu 23, 1 connected
+20:52:05.989 [ble] conn 0: interval 48.75 ms, latency 0, timeout 5000 ms
+20:52:06.333 [ble] conn 0: interval 7.50 ms, latency 0, timeout 5000 ms
+20:52:06.644 [ble] conn 0: mtu 247 -> 8 samples/packet
+20:52:06.728 [ble] conn 0: interval 48.75 ms, latency 0, timeout 5000 ms
+20:52:07.206 [ble] conn 0: f0a5c000-9b4d-4e8a-a3c1-72d6e1b45903 notifications on
+20:52:07.253 [ble] conn 0: interval 11.25 ms, latency 0, timeout 5000 ms
+20:52:07.307 [ble] conn 0: f0a5c000-9b4d-4e8a-a3c1-72d6e1b45901 notifications on
+20:52:07.340 [ble] conn 0: f0a5c000-9b4d-4e8a-a3c1-72d6e1b45902 notifications on
+20:52:07.404 [ctl] conn 0: START_STREAM
+20:58:12.116 [ble] conn 0: f0a5c000-9b4d-4e8a-a3c1-72d6e1b45901 notifications off
+20:58:12.117 [ble] conn 0: f0a5c000-9b4d-4e8a-a3c1-72d6e1b45902 notifications off
+20:58:12.123 [ble] conn 0: f0a5c000-9b4d-4e8a-a3c1-72d6e1b45903 notifications off
+20:58:12.125 [ble] conn 0: disconnected, reason 0x213
+## right (port 7)
+# 2026-10-24 20:37:25 logging /dev/serial/by-path/pci-0000:00:14.0-usb-0:7:1.0-port0
+20:37:25.042 rst:0x1 (POWERON_RESET),boot:0x13 (S0x1 (POWERON_RESET),boot:0x13 ( … (boot banner repeated while the port opened; truncated)
+20:37:25.578 [boot] SmartInsole simulator fw 0.1, side R, fsr_count 6
+20:37:25.582 [scenario] n (normal walk)  (commands: n t p ?)
+20:37:25.870 [ble] advertising as SMARTINSOLE-R, fsr_count 6, up to 3 centrals
+20:52:19.838 [ble] conn 0: connected 47:e4:dc:5b:59:8b, mtu 23, 1 connected
+20:52:20.017 [ble] conn 0: interval 45.00 ms, latency 0, timeout 5000 ms
+20:52:20.332 [ble] conn 0: interval 7.50 ms, latency 0, timeout 5000 ms
+20:52:20.677 [ble] conn 0: mtu 247 -> 8 samples/packet
+20:52:20.769 [ble] conn 0: interval 45.00 ms, latency 0, timeout 5000 ms
+20:52:21.072 [ble] conn 0: f0a5c000-9b4d-4e8a-a3c1-72d6e1b45903 notifications on
+20:52:21.162 [ble] conn 0: f0a5c000-9b4d-4e8a-a3c1-72d6e1b45901 notifications on
+20:52:21.251 [ble] conn 0: interval 11.25 ms, latency 0, timeout 5000 ms
+20:52:21.308 [ble] conn 0: f0a5c000-9b4d-4e8a-a3c1-72d6e1b45902 notifications on
+20:52:21.372 [ctl] conn 0: START_STREAM
+20:52:51.478 [scenario] t (forefoot +3.0 degC)
+20:56:51.231 [scenario] n (normal walk)
+20:58:12.107 [ble] conn 0: f0a5c000-9b4d-4e8a-a3c1-72d6e1b45901 notifications off
+20:58:12.113 [ble] conn 0: f0a5c000-9b4d-4e8a-a3c1-72d6e1b45902 notifications off
+20:58:12.118 [ble] conn 0: f0a5c000-9b4d-4e8a-a3c1-72d6e1b45903 notifications off
+20:58:12.120 [ble] conn 0: disconnected, reason 0x213
