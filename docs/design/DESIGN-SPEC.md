@@ -241,7 +241,7 @@ The real detail text is generated from the rule that caused the status (alert co
 
 ### 7.1 What appears in the list
 
-Codes follow DATA-CONTRACT v1.5 §8.3: **8 codes** (user decision; the "9" in FLUTTER-PLAN and SESSIONS is a plan error). Level-2 events are not listed (user decision); they show only as orange dots and notes on Home and My feet.
+Codes follow DATA-CONTRACT v1.5 §8.3: **8 codes** (user decision; an earlier "9" in the plan was an error, fixed in S6A). Level-2 events are not listed (user decision); they show only as orange dots and notes on Home and My feet.
 
 | Code (level) | Patient sees | In the list | Tag | Board example: title / "ควรทำ" | Opens |
 |---|---|---|---|---|---|
@@ -534,7 +534,7 @@ Everything jumps to its end state. "High" dots show a still ring (radius + 5, op
 
 ### Decisions (user, 2026-10-22)
 
-1. Alert codes follow DATA-CONTRACT v1.5 §8.3: 8 codes. The "9" in the plan is a plan error; the user fixes the plan.
+1. Alert codes follow DATA-CONTRACT v1.5 §8.3: 8 codes. (An earlier "9" in the plan was an error; fixed in S6A.)
 2. Status card radius is 20 (the canvas value). The 28 in the Home-only v2 was a misreading of the 56 px icon circle.
 3. Placeholder sensor positions (§5) are fine until `shared/sensor_layout.json` exists.
 4. PTI is display-only: its values stay only under "ดูตัวเลขละเอียด" until S7 settles its meaning (BACKLOG 31). The `PRESSURE_PTI` alert is still raised as the contract defines it.
@@ -576,7 +576,6 @@ Earlier design-chat decisions: style D for the whole app; plain Thai first with 
 - PTI meaning, per step or per window (S7, BACKLOG 31)
 - Medical expert review of Appendix A before 2026-11-05
 - Advisor (2026-10-26): IRB doc 05 screenshots
-- SESSIONS.md assigns the Temperature tab to S6B and the Gait tab to S8A; the My feet shell and the Pressure tab have no session yet
 
 ### Board differences this spec settles
 

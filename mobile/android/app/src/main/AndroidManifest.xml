@@ -17,10 +17,16 @@
         android:maxSdkVersion="30" />
     <uses-feature android:name="android.hardware.bluetooth_le"
         android:required="false" />
+    <!-- No backup, no device transfer: health and study data stay on this
+         phone (S6A, rule 15). See res/xml/data_extraction_rules.xml. -->
     <application
         android:label="smartinsole"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:allowBackup="false"
+        android:fullBackupContent="@xml/backup_rules"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        tools:targetApi="s">
         <activity
             android:name=".MainActivity"
             android:exported="true"

@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smartinsole/ble/ble_providers.dart';
 import 'package:smartinsole/config/thresholds.dart';
+import 'package:smartinsole/storage/database.dart';
+import 'package:smartinsole/storage/storage_providers.dart';
 import 'package:smartinsole/ui/app.dart';
 import 'package:smartinsole/ui/clock.dart';
 import 'package:smartinsole/ui/routes.dart';
@@ -33,7 +35,8 @@ DateTime Function() fakeTimeClock(WidgetTester tester, [DateTime? start]) {
 const referenceSize = Size(390, 844);
 
 /// Pumps the whole app at the reference screen size. BLE always runs on a
-/// fake stack ([central], [permissions]); no test reaches the real plugins.
+/// fake stack ([central], [permissions]) and storage on an in-memory
+/// database; no test reaches the real plugins or the phone's file.
 /// Pass [settle] false for screens with a periodic display tick (the BLE
 /// debug screen), which `pumpAndSettle` would wait on forever.
 Future<void> pumpApp(
@@ -66,6 +69,11 @@ Future<void> pumpApp(
         blePermissionsProvider.overrideWithValue(
           permissions ?? FakePermissions(),
         ),
+        databaseProvider.overrideWith((ref) {
+          final db = AppDatabase.memory();
+          ref.onDispose(db.close);
+          return db;
+        }),
         ...overrides,
       ],
       child: SmartInsoleApp(initialRoute: initialRoute),

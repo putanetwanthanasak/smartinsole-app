@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_lucide/flutter_lucide.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../storage/storage_providers.dart';
 import '../screens/alerts_screen.dart';
 import '../screens/foot_check_screen.dart';
 import '../screens/home_screen.dart';
@@ -23,9 +24,11 @@ final selectedTabProvider = NotifierProvider<SelectedTab, AppTab>(
   SelectedTab.new,
 );
 
-/// Unread alerts, for the Alerts tab badge. Always 0 until the alert store
-/// exists (S6A/S6B); tests override it.
-final unreadAlertCountProvider = Provider<int>((ref) => 0);
+/// Unread alerts, for the Alerts tab badge: 0 until the store has answered
+/// (and when it is empty). Tests override it.
+final unreadAlertCountProvider = Provider<int>(
+  (ref) => ref.watch(unreadAlertsProvider).value ?? 0,
+);
 
 const appTabs = [
   BottomBarItem(tab: AppTab.today, icon: LucideIcons.house, label: 'วันนี้'),

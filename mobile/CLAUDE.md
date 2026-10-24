@@ -51,6 +51,8 @@ From `docs/FLUTTER-PLAN.md` section 6:
 | … add `--dart-define=MOCK=<preset>` | Same, with `MockDataSource` for both feet (debug builds only): `safe`, `safeOrangeDot`, `watch`, `rest`, `noData`, `oneFootMissing`, `lowBattery`; Settings → "Mock preset (debug)" switches live |
 | `flutter run -d <device-id>` | Plain debug run (e.g. the Note 10) |
 | `dart format lib test test_driver` | Formatting |
+| `dart run build_runner build` | Regenerate drift code (`lib/storage/database.g.dart`) after a table change |
+| `dart run drift_dev make-migrations` | After bumping `schemaVersion`: dump the schema, write migration steps and tests |
 | `node shared/test_vectors/generate.mjs [--check]` (repo root, after `npm ci`) | Regenerate / check the BLE test vectors from the web app's TS parser |
 
 ## Layout
@@ -75,7 +77,11 @@ lib/
   rules/               alert codes, pressure level, PeakAsymmetry (one
                        definition, interim, BACKLOG 37), InterimStatus
                        (S5 only; S7 replaces it)
-  gait/ footcheck/ storage/ notify/
+  storage/             drift database (S6A), schema v1: alerts,
+                       temperature readings, daily summary, foot checks;
+                       one repository interface each (see its README.md);
+                       30-day retention; TemperatureRecorder
+  gait/ footcheck/ notify/
                        empty until their session (see each README.md)
   ui/
     app.dart           MaterialApp, named routes
@@ -104,6 +110,10 @@ test/                  flutter_test_config.dart loads the real fonts
   capture/             capture tests (fake_async rigs), widget tests, and
                        capture_fixture_test.dart (writes/checks
                        ../shared/capture_fixture/)
+  storage/             repository, retention, recorder tests (in-memory
+                       database; persistence_test.dart uses a file)
+  drift/               schema migration tests (drift_schemas/ holds the
+                       committed schema dumps)
 test_driver/           main_mcp.dart — driver-enabled entrypoint
 ```
 
@@ -189,8 +199,8 @@ pull + SHA-256 + checks). Any change to the capture file format must keep
   OSes may differ by a few pixels.
 - Use `pumpApp()` in `test/helpers/pump_app.dart`; it fixes the clock, can
   turn on reduce motion, and always replaces BLE with `FakeBleCentral` /
-  `FakePermissions` (pass your own via `central:` / `permissions:`, and
-  any provider override, e.g. `mockPresetProvider`, via `overrides:`).
+  `FakePermissions` and the database with `AppDatabase.memory()` (pass
+  your own via `central:` / `permissions:`, and any provider override, e.g. `mockPresetProvider`, via `overrides:`).
   Widgets that tests or the driver tap carry a `ValueKey` (`tab-today`, `tab-myFeet`, `tab-footCheck`, `tab-alerts`, `settings-button`, `foot-left`, `status-card`, `researcher-row`, …).
 - `MockDataSource` presets (from S4) drive every UI state on the emulator
   (`--dart-define=MOCK=<preset>`). Their test checks each preset against

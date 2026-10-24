@@ -1,0 +1,13 @@
+targets:
+  $default:
+    builders:
+      drift_dev:
+        generate_for:
+          - lib/storage/**
+        options:
+          # `dart run drift_dev make-migrations` dumps each schema version
+          # to drift_schemas/ and writes the migration tests to test/drift/.
+          databases:
+            app_database: lib/storage/database.dart
+          schema_dir: drift_schemas/
+          test_dir: test/drift/

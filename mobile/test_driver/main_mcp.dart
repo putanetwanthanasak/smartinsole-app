@@ -10,6 +10,8 @@
 import 'package:flutter_driver/driver_extension.dart';
 import 'package:smartinsole/ble/ble_providers.dart';
 import 'package:smartinsole/main.dart' as app;
+import 'package:smartinsole/storage/database.dart';
+import 'package:smartinsole/storage/storage_providers.dart';
 
 import '../test/ble/fake_ble_central.dart';
 
@@ -32,6 +34,12 @@ void main() {
     overrides: [
       bleCentralProvider.overrideWithValue(central),
       blePermissionsProvider.overrideWithValue(FakePermissions()),
+      // Fake insoles' readings never go into the emulator's real file.
+      databaseProvider.overrideWith((ref) {
+        final db = AppDatabase.memory();
+        ref.onDispose(db.close);
+        return db;
+      }),
     ],
   );
 }
