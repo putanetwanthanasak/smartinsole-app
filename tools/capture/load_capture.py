@@ -455,6 +455,13 @@ def selftest() -> bool:
     expect(alert_problems([{**good, "code": "TEMP_DELTA", "level": "4", "zone": "",
                             "site": "forefoot"}]) == [],
            "alerts.csv: a TEMP_DELTA row with a site passes")
+    # Since S6B a pressure alert's details also hold both feet's foot map.
+    with_map = json.dumps({"walking": True, "map": {
+        "left": {"kpa": [20.0, 236.5, 85.0, 20.0, 20.0, 60.0],
+                 "levels": ["low", "high", "medium", "low", "low", "low"]},
+        "right": None}})
+    expect(alert_problems([{**good, "details": with_map}]) == [],
+           "alerts.csv: details with a nested foot map passes")
     old = Session(session.path, session.meta, [], None, None)
     expect(check_alerts(old)[0][0] == "WARN", "alerts.csv missing (pre-S7 export) is a WARN")
 

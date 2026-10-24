@@ -271,7 +271,7 @@ class MockDataSource implements InsoleDataSource {
   /// How long the mock spends "connecting", so that state is reachable.
   static const connectDelay = Duration(milliseconds: 600);
   static const packetPeriod = Duration(milliseconds: 160);
-  static const tempPeriod = Duration(seconds: 30);
+  static const tempPeriod = TempLayout.notifyPeriod;
   static const samplesPerPacket = 8;
 
   @override

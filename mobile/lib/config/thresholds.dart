@@ -30,6 +30,7 @@ class Thresholds {
     required this.stepContactKpa,
     required this.minStanceMs,
     required this.maxStanceMs,
+    this.sources = const {},
   });
 
   factory Thresholds.parse(String json) {
@@ -60,6 +61,11 @@ class Thresholds {
       stepContactKpa: d('steps', 'contactKpa'),
       minStanceMs: i('steps', 'minStanceMs'),
       maxStanceMs: i('steps', 'maxStanceMs'),
+      sources: {
+        for (final e
+            in ((m['sources'] as Map<String, dynamic>?) ?? const {}).entries)
+          e.key: e.value as String,
+      },
     );
   }
 
@@ -129,6 +135,21 @@ class Thresholds {
   final double stepContactKpa;
   final int minStanceMs;
   final int maxStanceMs;
+
+  /// Where each alert code's boundary comes from, keyed by its wire name
+  /// (`TEMP_DELTA`, …): the "ที่มา" column of DATA-CONTRACT §8.3, word for
+  /// word. Shown under "ที่มาของเกณฑ์" on the alert detail.
+  final Map<String, String> sources;
+
+  /// The source of [wireCode], or null when it has none ("—" in the
+  /// contract, or missing).
+  String? sourceOf(String wireCode) {
+    final s = sources[wireCode];
+    return s == null || s == noSource ? null : s;
+  }
+
+  /// The contract's "no source" mark.
+  static const noSource = '—';
 }
 
 /// Loaded once in `runSmartInsole` and injected with an override; tests

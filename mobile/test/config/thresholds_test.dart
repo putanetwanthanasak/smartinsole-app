@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smartinsole/config/thresholds.dart';
+import 'package:smartinsole/storage/models.dart';
 
 void main() {
   test('the bundled copy is byte-identical to shared/thresholds.json', () {
@@ -40,5 +41,22 @@ void main() {
     expect(t.stepContactKpa, 10);
     expect(t.minStanceMs, 250);
     expect(t.maxStanceMs, 2500);
+  });
+
+  test('sources: one per alert code, from DATA-CONTRACT §8.3', () {
+    final t = Thresholds.parse(
+      File('../shared/thresholds.json').readAsStringSync(),
+    );
+    expect(t.sources.keys.toSet(), {
+      for (final k in AlertKind.values)
+        if (k.code != null) k.wireName,
+    });
+    expect(t.sourceOf('TEMP_DELTA'), 'Lavery et al. (2004)');
+    expect(t.sourceOf('PRESSURE_PEAK'), 'Owings et al. (2009)');
+    expect(t.sourceOf('PRESSURE_PTI'), 'Waaijman et al. (2014)');
+    expect(t.sourceOf('LOAD_CONCENTRATION'), 'ตัวชี้วัดของโครงงาน');
+    // "—" in the contract: no row on the detail screen.
+    expect(t.sourceOf('DEVICE_LOST'), isNull);
+    expect(t.sourceOf('BATTERY_LOW'), isNull);
   });
 }

@@ -89,6 +89,9 @@ abstract final class MtuLayout {
 abstract final class TempLayout {
   static const packetBytes = 12;
 
+  /// The device sends one temperature reading every 30 s (1/30 Hz).
+  static const notifyPeriod = Duration(seconds: 30);
+
   /// Wire value meaning "could not read".
   static const unreadableRaw = -32768;
 }

@@ -10,12 +10,14 @@ import '../config/thresholds.dart';
 import '../device/device_manager.dart';
 import '../device/display_snapshot.dart';
 import '../device/foot_sample.dart';
+import '../device/rolling_peaks.dart';
 import '../storage/alert_repository.dart';
 import '../storage/models.dart' show AlertKind, NewAlert;
 import 'alert_code.dart';
 import 'asymmetry.dart';
 import 'gait_note.dart';
 import 'patient_status.dart';
+import 'pressure_level.dart';
 import 'step_detector.dart';
 import 'walking_gate.dart';
 
@@ -136,6 +138,13 @@ class AlertEngine {
   late final _feet = {
     for (final side in FootSide.values) side: _FootRules(side, thresholds),
   };
+
+  /// Home's foot-map window per foot, so a pressure alert stores the map
+  /// the patient saw when it was raised (`details.map`).
+  final _mapPeaks = {
+    for (final side in FootSide.values)
+      side: RollingPeaks(windowMs: mapPeakWindowMs),
+  };
   final _subs = <StreamSubscription<Object?>>[];
   Timer? _timer;
 
@@ -250,6 +259,9 @@ class AlertEngine {
 
   void _onBatch(FootBatch b) {
     _lastArrival[b.side] = b.receivedAt;
+    // Before the rules, so an alert this batch raises stores a map that
+    // includes it.
+    _mapPeaks[b.side]!.add(b);
     for (final step in _feet[b.side]!.add(b)) {
       _onStep(step);
     }
@@ -441,6 +453,29 @@ class AlertEngine {
     }
   }
 
+  /// [c]'s detail numbers; a pressure code also gets both feet's foot
+  /// map at [s] (`map`: `left` / `right` → `{kpa: [...], levels: [...]}`,
+  /// null for a foot that is not usable), the same values Home's map
+  /// shows ([mapPeaksOf], [pressureLevel]).
+  Map<String, Object?>? _detailsOf(AlertCondition c, DisplaySnapshot s) {
+    final out = {...c.details};
+    if (pressureCodes.contains(c.code)) {
+      out['map'] = {
+        for (final side in FootSide.values) side.name: _mapOf(s.of(side)),
+      };
+    }
+    return out.isEmpty ? null : out;
+  }
+
+  Map<String, Object?>? _mapOf(FootView f) {
+    final kpa = mapPeaksOf(f, _mapPeaks[f.side]!.channelPeaks());
+    if (kpa == null) return null;
+    return {
+      'kpa': List<double>.of(kpa),
+      'levels': [for (final k in kpa) pressureLevel(k, thresholds).name],
+    };
+  }
+
   int get _repeatMs => Duration(minutes: thresholds.repeatMin).inMilliseconds;
 
   static int? _channelOf(String zoneId) {
@@ -469,7 +504,7 @@ class AlertEngine {
       threshold: c.threshold,
       gaitClass: estimate?.gaitClass,
       gaitConfidence: estimate?.confidence,
-      details: c.details.isEmpty ? null : c.details,
+      details: _detailsOf(c, s),
       captureStamp: captureStamp?.call(),
     );
     final write = alerts
