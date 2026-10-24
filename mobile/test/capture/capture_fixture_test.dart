@@ -5,9 +5,12 @@ import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smartinsole/ble/insole_data_source.dart';
 import 'package:smartinsole/ble/packets.dart';
+import 'package:smartinsole/capture/alerts_csv.dart';
 import 'package:smartinsole/capture/export.dart';
 import 'package:smartinsole/device/foot_sample.dart';
 import 'package:smartinsole/device/model_channels.dart';
+import 'package:smartinsole/rules/patient_status.dart';
+import 'package:smartinsole/storage/models.dart';
 
 import 'capture_rig.dart';
 
@@ -72,7 +75,30 @@ void main() {
       ];
       final pairs = pairFeet(side(FootSide.left), side(FootSide.right));
       s.noteExport();
-      stageExport(s.dir, generated);
+      // One alert raised during the trial (BACKLOG 40), as the export
+      // writes it.
+      stageExport(
+        s.dir,
+        generated,
+        extra: {
+          alertsCsvName: alertsCsv([
+            StoredAlert(
+              id: 1,
+              kind: AlertKind.pressurePeak,
+              level: AlertKind.pressurePeak.level,
+              patientLevel: PatientLevel.careful,
+              atMs: (start + 1000).round(),
+              localDate: '2026-11-10',
+              side: FootSide.left,
+              zone: 'meta1',
+              measuredValue: 236.5,
+              threshold: 200,
+              details: const {'walking': true},
+              captureStamp: captureStampOf(s.sessionId),
+            ),
+          ]),
+        },
+      );
       File('${generated.path}/expected.json').writeAsStringSync(
         '${const JsonEncoder.withIndent('  ').convert({
           'about': 'Rows from mobile pairFeet + modelRow on the samples of '

@@ -5,6 +5,8 @@ A session folder (as exported by the app, see docs/STUDY-CAPTURE.md) holds:
   session.json               subject code + coded data, trial order, trials
   <code>_<nn>_<label>_a<k>.csv   one per attempt: one row per sample per foot
   <code>_<nn>_<label>_a<k>.json  its sidecar: timing, gaps, calibration, ...
+  alerts.csv                 alerts raised while the session screen was
+                             open (S7, export only; older exports lack it)
   manifest.json              size + SHA-256 of every file (from the export)
 
 Standard library only; numpy is used for model_matrix(as_numpy=True) if
@@ -44,6 +46,25 @@ INT_COLUMNS = {
 }
 TEXT_COLUMNS = {"side", "temp_quality"}
 TEMP_COLUMNS = ("temp_unix_ms", "temp_forefoot_c", "temp_heel_c", "temp_quality")
+
+# alerts.csv (mobile/lib/capture/alerts_csv.dart). The levels are the
+# contract §8.3 level column (mobile/lib/rules/alert_code.dart); zones are
+# the foot layout's ids in FSR channel order.
+ALERTS_CSV = "alerts.csv"
+ALERT_COLUMNS = [
+    "at_ms", "code", "level", "patient_status", "side", "zone", "site",
+    "measured_value", "threshold", "gait_class", "gait_confidence",
+    "read_at_ms", "details",
+]
+ALERT_LEVELS = {
+    "TEMP_DELTA": 4, "PRESSURE_WATCH": 2, "PRESSURE_PEAK": 3,
+    "PRESSURE_PTI": 3, "ASYMMETRY_PEAK": 2, "LOAD_CONCENTRATION": 3,
+    "DEVICE_LOST": 1, "BATTERY_LOW": 1,
+}
+ZONE_CODES = {"PRESSURE_WATCH", "PRESSURE_PEAK", "PRESSURE_PTI", "LOAD_CONCENTRATION"}
+ZONES = ("hallux", "meta1", "meta3", "meta5", "midfoot", "heel")
+SITES = ("forefoot", "heel")
+PATIENT_STATUSES = ("noData", "safe", "careful", "rest")
 
 
 def load_model_input(path: Path = MODEL_INPUT) -> dict:
@@ -104,6 +125,10 @@ class Session:
     path: Path
     meta: dict
     trials: list[Trial]
+    # alerts.csv rows as dicts (text values), or None when the export has
+    # no alerts.csv (exports from before S7).
+    alerts: list[dict] | None = None
+    alert_columns: list[str] | None = None
 
 
 def _parse(column: str, text: str):
@@ -146,8 +171,16 @@ def load_session(session_dir: Path, verify: bool = True) -> Session:
         if problems:
             raise ValueError(f"{session_dir.name}: " + "; ".join(problems))
     meta = json.loads((session_dir / "session.json").read_text(encoding="utf-8"))
-    trials = [load_trial(p) for p in sorted(session_dir.glob("*.csv"))]
-    return Session(session_dir, meta, trials)
+    trials = [load_trial(p) for p in sorted(session_dir.glob("*.csv"))
+              if p.name != ALERTS_CSV]
+    session = Session(session_dir, meta, trials)
+    alerts_path = session_dir / ALERTS_CSV
+    if alerts_path.exists():
+        with alerts_path.open(newline="", encoding="utf-8") as f:
+            reader = csv.reader(f)
+            session.alert_columns = next(reader, [])
+            session.alerts = [dict(zip(session.alert_columns, r)) for r in reader]
+    return session
 
 
 def pair_feet(left: list[dict], right: list[dict], tolerance_ms: float) -> list[tuple[dict, dict]]:
@@ -273,6 +306,68 @@ def check_trial(trial: Trial, meta: dict) -> list[tuple[str, str]]:
     return out
 
 
+def check_alerts(session: Session) -> list[tuple[str, str]]:
+    """(level, message) for alerts.csv."""
+    if session.alerts is None:
+        return [("WARN", "no alerts.csv (exported before S7?)")]
+    if session.alert_columns != ALERT_COLUMNS:
+        return [("FAIL", f"header {session.alert_columns} != {ALERT_COLUMNS}")]
+    out: list[tuple[str, str]] = []
+    created = session.meta["createdUnixMs"]
+    last = None
+    for n, a in enumerate(session.alerts, start=1):
+        def bad(msg: str):
+            out.append(("FAIL", f"row {n} ({a.get('code')}): {msg}"))
+        code = a["code"]
+        if code not in ALERT_LEVELS:
+            bad("unknown code")
+            continue
+        try:
+            at = int(a["at_ms"])
+            level = int(a["level"])
+        except ValueError:
+            bad("at_ms / level not integers")
+            continue
+        if level != ALERT_LEVELS[code]:
+            bad(f"level {level} != {ALERT_LEVELS[code]}")
+        if at < created:
+            bad(f"at_ms {at} before the session was created ({created})")
+        if last is not None and at < last:
+            bad("not sorted by at_ms")
+        last = at
+        if a["patient_status"] not in PATIENT_STATUSES:
+            bad(f"patient_status {a['patient_status']!r}")
+        if a["side"] not in SIDES:
+            bad(f"side {a['side']!r}")
+        if code in ZONE_CODES:
+            if a["zone"] not in ZONES:
+                bad(f"zone {a['zone']!r}")
+        elif a["zone"]:
+            bad("a zone on a code without one")
+        if code == "TEMP_DELTA":
+            if a["site"] not in SITES:
+                bad(f"site {a['site']!r}")
+        elif a["site"]:
+            bad("a site on a code without one")
+        for col in ("measured_value", "threshold", "gait_confidence"):
+            if a[col]:
+                try:
+                    float(a[col])
+                except ValueError:
+                    bad(f"{col} {a[col]!r} is not a number")
+        if a["details"]:
+            try:
+                if not isinstance(json.loads(a["details"]), dict):
+                    bad("details is not a JSON object")
+            except json.JSONDecodeError:
+                bad("details is not JSON")
+    if not out:
+        kinds = sorted({a["code"] for a in session.alerts})
+        out.append(("OK", f"{len(session.alerts)} alert(s)"
+                    + (f": {', '.join(kinds)}" if kinds else "")))
+    return out
+
+
 def check_session(session: Session) -> list[tuple[str, str, str]]:
     """(trial, level, message)."""
     out = []
@@ -290,6 +385,8 @@ def check_session(session: Session) -> list[tuple[str, str, str]]:
             out.append((f"trial {n} {label}", level, "no valid attempt"))
         elif len(valid) > 1:
             out.append((f"trial {n} {label}", "FAIL", f"{len(valid)} valid attempts"))
+    for level, msg in check_alerts(session):
+        out.append((ALERTS_CSV, level, msg))
     return out
 
 
@@ -338,6 +435,28 @@ def selftest() -> bool:
     expect(any("R: 1 packet(s) missing" in m for m in fails), "the fixture's seq gap is a FAIL")
     expect(any("gap R seq_gap" in m for m in fails), "the sidecar's seq gap is reported")
     expect(not any(m.startswith("L:") for m in fails), "the left foot passes 50 Hz with no gaps")
+    alerts = [(level, m) for name, level, m in report if name == ALERTS_CSV]
+    expect(alerts == [("OK", "1 alert(s): PRESSURE_PEAK")],
+           f"alerts.csv: one PRESSURE_PEAK, no problems ({alerts})")
+    expect(session.alerts[0]["zone"] == "meta1" and session.alerts[0]["side"] == "L",
+           "alerts.csv row: left meta1")
+
+    def alert_problems(rows: list[dict]) -> list[str]:
+        s2 = Session(session.path, session.meta, [], rows, ALERT_COLUMNS)
+        return [m for level, m in check_alerts(s2) if level == "FAIL"]
+    good = dict(session.alerts[0])
+    expect(alert_problems([{**good, "level": "4"}]) != [], "alerts.csv: a wrong level fails")
+    expect(alert_problems([{**good, "code": "PRESSURE_HIGH"}]) != [], "alerts.csv: an unknown code fails")
+    expect(alert_problems([{**good, "zone": "toe"}]) != [], "alerts.csv: an unknown zone fails")
+    expect(alert_problems([{**good, "at_ms": str(session.meta["createdUnixMs"] - 1)}]) != [],
+           "alerts.csv: an alert before the session fails")
+    expect(alert_problems([good, {**good, "at_ms": str(int(good["at_ms"]) - 1)}]) != [],
+           "alerts.csv: unsorted rows fail")
+    expect(alert_problems([{**good, "code": "TEMP_DELTA", "level": "4", "zone": "",
+                            "site": "forefoot"}]) == [],
+           "alerts.csv: a TEMP_DELTA row with a site passes")
+    old = Session(session.path, session.meta, [], None, None)
+    expect(check_alerts(old)[0][0] == "WARN", "alerts.csv missing (pre-S7 export) is a WARN")
 
     # Pairing rule edge cases (same as model_channels_test.dart).
     def times_of(l, r):
@@ -357,6 +476,13 @@ def selftest() -> bool:
         data[-5] = ord("9") if data[-5] != ord("9") else ord("8")
         csv_file.write_bytes(bytes(data))
         expect(any("SHA-256" in p for p in verify_manifest(bad)), "a changed byte fails the checksum")
+        csv_file.write_bytes((session_dir / csv_file.name).read_bytes())
+        alerts_file = bad / ALERTS_CSV
+        data = bytearray(alerts_file.read_bytes())
+        data[-5] = ord("9") if data[-5] != ord("9") else ord("8")
+        alerts_file.write_bytes(bytes(data))
+        expect(verify_manifest(bad) == [f"{ALERTS_CSV}: SHA-256 mismatch"],
+               "a changed byte in alerts.csv fails the checksum")
         try:
             load_session(bad)
             expect(False, "load_session refuses a bad checksum")

@@ -10,6 +10,7 @@ import '../../../capture/capture_providers.dart';
 import '../../../capture/capture_session.dart';
 import '../../../device/device_providers.dart';
 import '../../../device/display_snapshot.dart';
+import '../../../storage/models.dart' show captureStampOf;
 import '../../theme/colors.dart';
 import '../../theme/dimens.dart';
 import '../../theme/typography.dart';
@@ -60,11 +61,19 @@ class _CaptureHomeScreenState extends ConsumerState<CaptureHomeScreen> {
       double.tryParse(c.text.trim().replaceAll(',', '.'));
 
   Future<void> _open(CaptureSession session) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => CaptureFlowScreen(session: session),
-      ),
-    );
+    // While the session screen is open, alerts carry its stamp
+    // (BACKLOG 40). Recording and its timing never depend on this.
+    final stamp = captureStampOf(session.sessionId);
+    final active = ref.read(activeCaptureProvider.notifier)..open(stamp);
+    try {
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => CaptureFlowScreen(session: session),
+        ),
+      );
+    } finally {
+      active.close(stamp);
+    }
     if (mounted) setState(() {});
   }
 

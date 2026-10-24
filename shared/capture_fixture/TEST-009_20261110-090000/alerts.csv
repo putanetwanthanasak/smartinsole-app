@@ -1,0 +1,2 @@
+at_ms,code,level,patient_status,side,zone,site,measured_value,threshold,gait_class,gait_confidence,read_at_ms,details
+1794276001007,PRESSURE_PEAK,3,careful,L,meta1,,236.5,200.0,,,,"{""walking"":true}"

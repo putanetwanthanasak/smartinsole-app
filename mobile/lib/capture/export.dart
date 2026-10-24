@@ -1,8 +1,13 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
 
+import '../storage/alert_repository.dart';
+import '../storage/models.dart';
+import 'alerts_csv.dart';
 import 'capture_files.dart';
+import 'capture_session.dart';
 
 /// One file in an export manifest.
 class ManifestEntry {
@@ -32,7 +37,15 @@ String sha256Of(File f) => sha256.convert(f.readAsBytesSync()).toString();
 ///
 /// Each copy is hashed again after writing and compared with the
 /// original's hash, so a bad copy fails here rather than at the laptop.
-List<ManifestEntry> stageExport(Directory sessionDir, Directory exportRoot) {
+///
+/// [extra] are files made for the export only (name → text), such as
+/// `alerts.csv` (BACKLOG 40): written next to the copies and listed and
+/// hashed in the manifest the same way.
+List<ManifestEntry> stageExport(
+  Directory sessionDir,
+  Directory exportRoot, {
+  Map<String, String> extra = const {},
+}) {
   final id = sessionDir.uri.pathSegments.lastWhere((s) => s.isNotEmpty);
   final dest = Directory('${exportRoot.path}/$id');
   if (dest.existsSync()) dest.deleteSync(recursive: true);
@@ -44,16 +57,21 @@ List<ManifestEntry> stageExport(Directory sessionDir, Directory exportRoot) {
           .where((f) => !f.path.endsWith('.tmp'))
           .toList()
         ..sort((a, b) => a.path.compareTo(b.path));
+  final sources = <String, List<int> Function()>{
+    for (final f in files) f.uri.pathSegments.last: f.readAsBytesSync,
+    for (final e in extra.entries) e.key: () => utf8.encode(e.value),
+  };
+  final names = sources.keys.toList()..sort();
   final entries = <ManifestEntry>[];
-  for (final f in files) {
-    final name = f.uri.pathSegments.last;
-    final hash = sha256Of(f);
+  for (final name in names) {
+    final bytes = sources[name]!();
+    final hash = sha256.convert(bytes).toString();
     // A new file, not copySync: a copy keeps the private original's mode
     // (0600), which the adb shell can't read; a new file in the external
     // folder gets 0660 for group ext_data_rw, which adb can (checked on
     // the emulator, API 37).
     final copy = File('${dest.path}/$name')
-      ..writeAsBytesSync(f.readAsBytesSync(), flush: true);
+      ..writeAsBytesSync(bytes, flush: true);
     final copyHash = sha256Of(copy);
     if (copyHash != hash) {
       throw FileSystemException('copy does not match original', copy.path);
@@ -67,4 +85,33 @@ List<ManifestEntry> stageExport(Directory sessionDir, Directory exportRoot) {
     'files': [for (final e in entries) e.toJson()],
   });
   return entries;
+}
+
+/// Stages [session]'s export with `alerts.csv`: the alerts raised while
+/// its session screen was open (BACKLOG 40). Records the export in
+/// `session.json` first, so the copy carries it. Returns the manifest
+/// entries and how many alerts went in.
+Future<(List<ManifestEntry>, int)> exportSession(
+  CaptureSession session,
+  Directory exportRoot,
+  AlertRepository alerts,
+) async {
+  final rows = await alerts.forCapture(captureStampOf(session.sessionId));
+  session.noteExport();
+  final entries = stageExport(
+    session.dir,
+    exportRoot,
+    extra: {alertsCsvName: alertsCsv(rows)},
+  );
+  return (entries, rows.length);
+}
+
+/// "Delete from phone": the session's files and its alerts (BACKLOG 40).
+/// The caller has confirmed twice and the export has been checked.
+Future<void> deleteSession(
+  CaptureSession session,
+  AlertRepository alerts,
+) async {
+  session.dir.deleteSync(recursive: true);
+  await alerts.deleteForCapture(captureStampOf(session.sessionId));
 }
