@@ -292,6 +292,7 @@ Additional info: [optional]
   - **Walking gate statistic** (BACKLOG 42, user decision 2026-10-24). Record the gate statistic (mean |‖a‖ − 1 g| over `motion.walkingWindowMs`) in the standing calibration and in each normal-gait trial, and adjust `motion.walkingAccelG` in `thresholds.json` if standing and walking do not sit clearly on either side of it.
   - **How often `PRESSURE_PTI` and `LOAD_CONCENTRATION` fire** during the normal-gait trials (from each session's `alerts.csv`). Both use provisional readings (BACKLOG 31); frequent firing on healthy volunteers' normal gait means the values need review before the study.
   - The warm-compress step is done with the session screen open, so its `TEMP_DELTA` lands in that session's `alerts.csv` (`docs/STUDY-CAPTURE.md`).
+- **Clear the test data before 2026-11-10 (added in S6B).** On the study phone, Research capture → **4 · App database (test data)** → *Clear app database (test data)* (2 confirmations; see `docs/STUDY-CAPTURE.md`). It deletes untagged alerts, temperature readings, daily summaries, foot checks and foot photos; it never deletes capture-tagged alerts, capture session folders or the export folder. Then restart the app and confirm on the BLE debug screen that "alerts N" equals "capture-tagged N".
 - **Done when:** the user is confident to run the study on 2026-11-10.
 
 ### S8A — Gait screen
@@ -313,6 +314,7 @@ Additional info: [optional]
 
 ### S9 — Integration + APK
 - **Do:** integration checklist; 30 minutes with 2 boards on the phone (simulator boards; real boards are SR); battery and smoothness; reduce-motion; release APK. **User checkpoint** also covers: press sensors and watch the right dots change, warm one temperature sensor and watch ΔT, connect both insoles unaided.
+- **DEVICE_LOST check (added in S6B):** with both boards streaming, power off one board for more than 5 minutes (`alerts.deviceLostAfterMin`). `DEVICE_LOST` is raised for that foot, appears on the Alerts list, and its card opens the right detail (`เรื่องอุปกรณ์`, "เชื่อมต่อได้ครั้งล่าสุด", "เชื่อมต่ออีกครั้ง" → Connection).
 - **Done when:** the APK works for 30 minutes with no serious issues.
 
 ### S10 — Wrap-up

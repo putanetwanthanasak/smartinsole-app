@@ -48,7 +48,7 @@ From `docs/FLUTTER-PLAN.md` section 6:
 | `flutter test --update-goldens test/goldens` | Regenerate goldens after an intended UI change; review the PNG diff before committing |
 | `flutter run -d <emulator-id> -t test_driver/main_mcp.dart --print-dtd` | Run on the emulator with the Flutter Driver extension, for Dart MCP UI checks |
 | … add `--dart-define=BLE_FAKE=true` | Same, with the scripted fake BLE (two streaming insoles plus one with MTU 23) instead of the real plugin |
-| … add `--dart-define=MOCK=<preset>` | Same, with `MockDataSource` for both feet (debug builds only): `safe`, `safeOrangeDot`, `watch`, `rest`, `noData`, `oneFootMissing`, `lowBattery`; Settings → "Mock preset (debug)" switches live |
+| … add `--dart-define=MOCK=<preset>` | Same, with `MockDataSource` for both feet (debug builds only): `safe`, `safeOrangeDot`, `watch`, `rest`, `noData`, `oneFootMissing`, `lowBattery`; Settings → "Mock preset (debug)" switches live, and "Seed sample alerts (debug)" stores the design boards' sample alerts (in-memory database) |
 | `flutter run -d <device-id>` | Plain debug run (e.g. the Note 10) |
 | `dart format lib test test_driver` | Formatting |
 | `dart run build_runner build` | Regenerate drift code (`lib/storage/database.g.dart`) after a table change |
@@ -87,9 +87,13 @@ lib/
                        empty until their session (see each README.md)
   ui/
     app.dart           MaterialApp, named routes
-    routes.dart        route names
+    routes.dart        route names; `/alert` takes the alert id,
+                       `/foot-check-found` the foot check id (placeholder
+                       until S8C); My feet sub-tabs open through
+                       `openMyFeet(context, ref, MyFeetTab.x)`
     motion.dart        ALL animation durations and curves
     clock.dart         clockProvider (override in tests) + Thai date
+                       (Buddhist year `thaiDateTimeBE`, `relativeDayTh`)
     theme/             colors, typography, dimens, app_theme
     shell/             4-tab shell (IndexedStack: วันนี้ / เท้าของฉัน /
                        ตรวจเท้า / แจ้งเตือน) + bottom bar with unread badge
@@ -98,7 +102,11 @@ lib/
                        home/ = Home view model and draft copy;
                        capture/ = Settings → hold "ส่วนผู้วิจัย" 2 s
                        (English, researcher-only, release builds too)
-    widgets/           shared widgets
+    widgets/           shared widgets; S6B added status_tag, new_chip,
+                       details_expander (DetailRow), numbered_steps,
+                       disclaimer_line, back_link, detail_status_card,
+                       temp_site_map; FootMap takes null levels ("not
+                       recorded"), `ringChannel` and `pulse`
 assets/fonts/          Figtree 600/700, Noto Sans Thai 600/700 (headings);
                        Noto Sans + Noto Sans Thai Looped 400–700 (body);
                        static TTFs, OFL, never downloaded at runtime

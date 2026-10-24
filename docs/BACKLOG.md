@@ -1097,3 +1097,14 @@ simulator's default output), or leave it until real-board data sets
 simulator does, so this is a simulator limit, not evidence the gate is
 too strict.
 
+## 43. The PTI threshold's source does not confirm 80 kPa·s **(found in S6B, deadline 2026-11-05)** — OPEN
+
+The alert detail shows "ที่มาของเกณฑ์" from `shared/thresholds.json`
+`sources` (S6B), copied word for word from DATA-CONTRACT §8.3. For
+`PRESSURE_PTI` that is "Waaijman et al. (2014)", but that paper does not
+confirm the 80 kPa·s value (`pressure.ptiKpaS`). Before the medical
+expert review (2026-11-05): find a verified source for 80 kPa·s, or
+change the value to one the source supports, and update §8.3,
+`thresholds.json` and its `sources` line together. Until then the screen
+keeps the contract's text unchanged; nothing on screen says it is
+unverified.

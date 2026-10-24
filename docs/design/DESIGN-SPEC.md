@@ -307,6 +307,12 @@ Details rows (label / board value). Thresholds come from `thresholds.json`; the 
 | `TEMP_DELTA` | "รหัส" `TEMP_DELTA` · "ส้นเท้า" "ซ้าย 31.4 °C · ขวา 34.0 °C" · "ผลต่างที่ส้นเท้า" "2.6 °C (เกณฑ์ 2.2 °C)" · "วัดเกินเกณฑ์ติดกัน" "3 ครั้ง (เกณฑ์ 2 ครั้ง วัดทุก 30 วินาที)" · "ผลต่างที่หน้าเท้า" "0.4 °C" · "ระดับภายในระบบ" "4 จาก 5" · "เวลาที่พบ" "21 ต.ค. 2569 14:32:10" · "ที่มาของเกณฑ์" "Lavery et al. (2004)" |
 | `PRESSURE_PEAK` | "รหัส" `PRESSURE_PEAK` · "ค่าที่วัดได้" "236 kPa ที่โคนนิ้วหัวแม่เท้าซ้าย" · "เกณฑ์" "200 kPa ขณะเดิน" · "ขณะนั้น" "กำลังเดิน (ตรวจจากความเร่ง)" · "รูปแบบการเดิน" "เดินเขย่งปลายเท้า · ความมั่นใจ 78%" · "ระดับภายในระบบ" "3 จาก 5" · "เวลาที่พบ" "21 ต.ค. 2569 11:05:42" · "ที่มาของเกณฑ์" "Owings et al. (2009)" |
 | `DEVICE_LOST` | "รหัส" `DEVICE_LOST` · "เชื่อมต่อได้ครั้งล่าสุด" "20 ต.ค. 2569 16:14:05" · "หลุดการเชื่อมต่อนาน" "6 นาที (เกณฑ์ 5 นาที)" · "แบตเตอรี่ครั้งล่าสุด" "43%" · "ระดับภายในระบบ" "1 จาก 5" |
+| `PRESSURE_PTI` (S6B, draft) | "รหัส" `PRESSURE_PTI` · "ค่าที่วัดได้" "92 kPa·s เฉลี่ยต่อก้าว ที่โคนนิ้วหัวแม่เท้าซ้าย" · "เกณฑ์" "80 kPa·s เฉลี่ยต่อก้าว ขณะเดิน" · "จำนวนก้าวที่ใช้" "24 ก้าว ใน 60 นาทีล่าสุด" · "ขณะนั้น" "กำลังเดิน (ตรวจจากความเร่ง)" · "รูปแบบการเดิน" (only with a stored class) · "ระดับภายในระบบ" "3 จาก 5" · "เวลาที่พบ" · "ที่มาของเกณฑ์" "Waaijman et al. (2014)" (BACKLOG 43) |
+| `LOAD_CONCENTRATION` (S6B, draft) | "รหัส" `LOAD_CONCENTRATION` · "ค่าที่วัดได้" "46% ของแรงกดทั้งฝ่าเท้า ที่ส้นเท้าขวา" · "เกณฑ์" "40% ติดกัน 20 ก้าว" · "จำนวนก้าวที่ใช้" "20 ก้าวติดกัน" · "ขณะนั้น" · "รูปแบบการเดิน" (only with a stored class) · "ระดับภายในระบบ" "3 จาก 5" · "เวลาที่พบ" · "ที่มาของเกณฑ์" "ตัวชี้วัดของโครงงาน" |
+
+How the rows are filled (S6B): values come from the stored alert; the threshold stored with it wins over today's `thresholds.json`. kPa, kPa·s and % are whole numbers; °C one decimal; thresholds without a trailing ".0". "ที่มาของเกณฑ์" is `thresholds.json` `sources` for the code and is hidden when it is "—" (as on the `DEVICE_LOST` board). "ขณะนั้น" and "รูปแบบการเดิน" appear only when the alert stored them. "หลุดการเชื่อมต่อนาน" rounds the stored minutes up. Dates use the Buddhist year. The detail time for days before yesterday is "{weekday d MMM} HH:mm" (e.g. "อังคาร 20 ต.ค. 16:20").
+
+**Pressure map (S6B).** The map shows the levels at the moment the alert was raised: the alert engine stores both feet's 2 s rolling-peak map with every pressure alert (`details.map`, the same rule as Home's map). A foot that was not usable then is drawn as No data; its label is Home's ("เท้าขวา แรงกดกระจายดี" etc.). Alerts stored before S6B have no map: only the ringed zone is filled (`PRESSURE_PEAK`: its kPa level; `PRESSURE_PTI` / `LOAD_CONCENTRATION`: a plain outline, since their values are not kPa) and every other zone is a plain outline circle (`inkMuted` 2 px, no fill, no dashes) that means "not recorded", never the No-data style.
 
 `PRESSURE_PTI` and `LOAD_CONCENTRATION` follow the `PRESSURE_PEAK` layout (map with the ringed zone, action "ดูแรงกดที่เท้า"). Until S7 settles what PTI means (BACKLOG 31), PTI values appear only in the details (decision 4); the `PRESSURE_PTI` alert itself is raised as the contract defines it (decision 1).
 
@@ -550,8 +556,8 @@ Earlier design-chat decisions: style D for the whole app; plain Thai first with 
 
 ### Proposed defaults (not on the boards; confirm or change before the session that builds them)
 
-- **Alerts (S6B):** the "ยังไม่ได้อ่าน {n} รายการ" line is hidden when nothing is unread.
-- **Details expander:** starts closed each time a screen opens (the boards only show fixed open and closed versions).
+- **Alerts (S6B, built):** the "ยังไม่ได้อ่าน {n} รายการ" line is hidden when nothing is unread. Its live region stays in the tree (empty at 0), so TalkBack also announces the change from none to one.
+- **Details expander (S6B, built):** starts closed each time a screen opens (the boards only show fixed open and closed versions).
 - **Gait balance warning (S8A):** while `ASYMMETRY_PEAK` is active, the balance number and note use `#5E3E00` with a `triangle-alert` icon, as on Home.
 - **Foot check (S8C):** "บันทึก" is enabled after all 3 answers. Answer-only uses Compare & answer without the view picker and photos.
 - **Switch off state (S8B):** "ปิด", knob on the left, `track` fill with a 2 px `inkSubtle` border.
@@ -603,6 +609,7 @@ Every string below is a draft (decision 5). Changes from the expert go into the 
 | `PRESSURE_WATCH` (S7, draft; level 2, stored, never listed) | Title "{ส่วนเท้า}{ข้าง}รับน้ำหนักค่อนข้างมาก" · detail "{จุด}{ข้าง}รับแรงกดสูงกว่าปกติ" · step / ควรทำ "ลองขยับเท้า หรือเปลี่ยนท่า" · why "แอปเฝ้าดูจุดที่รับแรงกดสูง เพื่อเตือนก่อนที่แรงกดจะสูงจนเสี่ยงเกิดแผล" |
 | `ASYMMETRY_PEAK` (S7, draft; level 2, never listed; Home's orange balance note) | Title / balance note "ลงน้ำหนักเท้า{ข้าง}มากกว่า" · detail "ตอนเดิน เท้า{ข้าง}รับแรงกดสูงกว่าเท้า{อีกข้าง}ติดต่อกันหลายก้าว" · step / ควรทำ "ลองเดินช้าลง และลงน้ำหนักให้เท่ากันทั้งสองข้าง" · why "เมื่อเท้าข้างหนึ่งรับแรงมากกว่าอีกข้างต่อเนื่อง เท้าข้างนั้นมีโอกาสเกิดแผลมากขึ้น" |
 | Home, No data with one foot connected (S7, draft) | "ยังไม่ได้เชื่อมต่อแผ่นรองเท้า{ขวา} จึงยังบอกไม่ได้ว่าเท้า{ขวา}ปลอดภัยหรือไม่" |
+| Alert detail rows (S6B, draft; not health advice but shown to patients) | PTI: "{v} kPa·s เฉลี่ยต่อก้าว ที่{จุด}{ข้าง}" · "{t} kPa·s เฉลี่ยต่อก้าว ขณะเดิน" · "จำนวนก้าวที่ใช้" "{n} ก้าว ใน {m} นาทีล่าสุด". LOAD_CONCENTRATION: "{v}% ของแรงกดทั้งฝ่าเท้า ที่{จุด}{ข้าง}" · "{t}% ติดกัน {n} ก้าว" · "{n} ก้าวติดกัน". Foot-map label of a pressure alert's foot: "เท้า{ข้าง} {จุด}รับน้ำหนักมาก" |
 | Gait notes | DATA-CONTRACT §8.3.1 (5 texts, owned by the contract) |
 | Daily foot check | Reason "แผ่นรองเท้าวัดได้เฉพาะใต้ฝ่าเท้า การดูเท้าทุกวันช่วยให้เห็นแผลที่ปลายนิ้วหรือหลังเท้า ซึ่งอาจเกิดขึ้นโดยไม่รู้สึกตัว" · the 3 questions (§11.3) · note "แอปไม่ได้ตรวจรูปให้ ถ้าเห็นอะไรผิดปกติหรือไม่แน่ใจ ให้ตอบว่า \"มี / ไม่แน่ใจ\"" |
 | Something found | Steps "ล้างเท้าด้วยน้ำสะอาด แล้วซับให้แห้ง" / "ถ้ามีแผล ปิดด้วยผ้าก๊อซสะอาด" / "เดินให้น้อยลง และอย่าเดินเท้าเปล่า" / "ไปพบแพทย์หรือพยาบาลภายใน 1–2 วัน และนำรูปที่ถ่ายไว้ไปให้ดู" · urgent "ไปโรงพยาบาลทันที ถ้ามีไข้ เท้าบวมแดงลามออกไป มีหนอง หรือมีกลิ่น" |
