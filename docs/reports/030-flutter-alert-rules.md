@@ -6,8 +6,9 @@ Spec: DATA-CONTRACT v1.5 §8.2–§8.5, FLUTTER-PLAN §6 and §7, DESIGN-SPEC
 §6, §7 and Appendix A. Plan approved 2026-10-24, with the user's
 additions on the ΔT boundary, phone step 3 and the SR checklist.
 
-**Status: everything automated passes; the Note 10 check is waiting for
-the user** (checklist at the end). Not accepted yet.
+**Status: everything automated passes, and the Note 10 checkpoint ran
+on 2026-10-24 with all 7 steps passing (section "Note 10 checkpoint").
+Waiting for the user to accept it.**
 
 ## Summary
 
@@ -286,8 +287,13 @@ Rule check against FLUTTER-PLAN §6:
 without noise. So with the normal walk:
 
 - the gate is on only briefly in each stride;
-- the app counts few steps;
-- PEAK, PTI, concentration and asymmetry can't be shown.
+- PEAK can't be shown, because it needs the gate on at the high sample.
+
+*Corrected after the Note 10 run:* the first version of this report said
+the app "counts few steps" and that PTI, concentration and asymmetry
+can't be shown. That was wrong. A step needs the gate on at only one of
+its samples, and in the recorded normal trial 6 of 6 left and 5 of 6
+right steps passed. That is why `ASYMMETRY_PEAK` fired on the phone.
 
 The old native test passes because it checks the SD of ‖a‖, not the
 contract's statistic. Changing the normal walk is outside the approved
@@ -324,7 +330,7 @@ says, and PEAK fires there from the `p` motion.
   preset test was not added as a separate file. The Home goldens and
   `home_model_test` already run every preset through the real engine.
 
-## Note 10 checkpoint (for the user to run with me; not accepted)
+## Note 10 checkpoint (run 2026-10-24; waiting for the user to accept)
 
 Plug in the Note 10 and both boards, then tell me. I will:
 
@@ -350,6 +356,54 @@ Step 4 differs from the plan's order. The plan sent `t` after the export
 and the session. I moved it inside the session so it rehearses the
 warm-compress step the way `docs/STUDY-CAPTURE.md` now describes, and so
 the export proves a TEMP_DELTA row too.
+
+### Results
+
+**Setup.**
+- The left board was not on the USB bus at first; you plugged it into
+  port 6.
+- I identified each board by its boot line before flashing: right on
+  port 7, left on port 6. Both flashed with the S7 firmware.
+- Loggers started at 18:39:43, both reading cleanly, and both boards
+  answered `?` through the pipes.
+- The release APK (63,789,331 bytes, from the PR code) was installed with
+  `adb install -r`.
+- Commands and board replies: `030-flutter-alert-rules/note10-scenario-log.txt`.
+
+| # | Result |
+|---|---|
+| 1 | **Pass.** Both STREAMING; Home green "ตอนนี้เท้าปลอดภัย"; Storage "alerts 0 · capture-tagged 0". Board logs: one central each, MTU 247, 8/pkt, synced, no MTU drops |
+| 2 | **Pass.** `TEST-004` session, 10 s calibration recorded, no alert |
+| 3 | **Pass**, with a corrected expectation (below).<br>• `p` sent at 18:44:55.42; the left board confirmed at 18:44:55.43, about 6 s into the normal-gait recording.<br>• The trial: 1500 samples per foot, no gaps; both boards stayed on their connection with no notify failures.<br>• Alerts, all tagged:<br>  – `PRESSURE_PEAK` (and `PRESSURE_WATCH`), left meta1, 247.0 kPa, walking, at 18:44:56.48 (1.05 s after `p`);<br>  – `ASYMMETRY_PEAK`, left, 247.0 vs 48.5 kPa, 20 steps, at 18:45:07.39;<br>  – `LOAD_CONCENTRATION`, left meta1, 56.6 %, 20 steps, at 18:45:17.93.<br>• **No `PRESSURE_PTI`** (see below) |
+| 4 | **Pass.** `n` left and `t` right at 18:45:55.7.<br>• `TEMP_DELTA` right forefoot at 18:46:36.10, 40 s later: ΔT 3.42 °C (L 31.52, R 34.94), 2 consecutive pairs, heel ΔT 0.25 °C, patient status rest.<br>• Home: red "ควรพักเท้าตอนนี้".<br>• Storage: "alerts 5 · capture-tagged 5" |
+| 5 | **Pass.** "Staged 14 files (5 alerts) with manifest.json…". `export_capture.py` found every SHA-256 matching; `load_capture.py`:<br>• all 6 attempts at 20 ± 0.25 ms;<br>• "alerts.csv: 5 alert(s): ASYMMETRY_PEAK, LOAD_CONCENTRATION, PRESSURE_PEAK, PRESSURE_WATCH, TEMP_DELTA";<br>• PASS.<br>You also recorded the other 4 gaits, so the session is `done`. The staged copy was left on the phone. `alerts.csv`: `030-flutter-alert-rules/note10-alerts.csv` (no subject data in it) |
+| 6 | **Pass.** `n` to both at 18:56:54; Home back to green "ตอนนี้เท้าปลอดภัย" |
+| 7 | **Pass.** TEST-004 deleted from the phone; Storage "alerts 0 · capture-tagged 0" (all 5 alerts were tagged, so none remain) |
+
+**Why no `PRESSURE_PTI`: the engine was right, my expectation was wrong.**
+I reran the app's gate and step rules in Python on the recorded normal
+trial:
+- after `p`, 20 of 20 left steps passed, with a mean meta1 PTI of
+  108.3 kPa·s per step, above `ptiKpaS` 80;
+- before `p`, the steps were about 5 kPa·s each.
+
+Decision 1 makes PTI the mean over **all walking steps in the last 60
+minutes**, and that window held about 2.5 minutes of normal walking from
+when the phone connected (around 140 steps at about 5 kPa·s). With about
+55 `p` steps, the mean was about 34 kPa·s. At these numbers `p` would
+need about 7 minutes of walking before the mean passed 80.
+
+So the table's "PTI after about 22 s" was wrong: I forgot the earlier
+steps in the window. The unit tests cover the boundary exactly, but they
+start walking with high PTI from the first step. For SR: PTI responds
+over minutes, not seconds, by design. A short high-pressure episode
+inside a long normal walk does not raise it.
+
+**Other observation for SR.** On the right foot (normal walk), 43
+stances crossed `steps.contactKpa`, but only 27 were within the length
+limits. The other 16 were short blips around the 10 kPa contact line,
+which the limits rejected. The real-board step count check (SR) should
+look at this.
 
 ## Decisions (user, 2026-10-24, after the PR)
 

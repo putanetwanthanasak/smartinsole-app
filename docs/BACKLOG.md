@@ -1082,8 +1082,10 @@ The app's gate (contract §8.3.2) is the mean of |‖a‖ − 1 g| over
 `motion.walkingWindowMs` ≥ `walkingAccelG` (0.15 g). The simulator's
 normal walk (`synth::gaitSample`) gives a lowest window mean of about
 0.07 g and a highest of about 0.16 g, so with the simulator the gate is
-mostly off: few steps are counted, and `PRESSURE_PEAK`, PTI,
-concentration and asymmetry cannot be shown from the normal walk. The
+on only briefly in each stride. Steps still count, because a step needs
+the gate at one of its samples (S7 Note 10 run: 6 of 6 left and 5 of 6
+right normal steps passed). But `PRESSURE_PEAK` cannot be shown from the
+normal walk, because it needs the gate on at the high-pressure sample. The
 existing native test (`test_accel_moves_enough_to_be_walking`) checks
 the standard deviation of ‖a‖ (> 0.15), not the contract's statistic.
 S7 worked around it inside its approved scope: the `p` serial scenario

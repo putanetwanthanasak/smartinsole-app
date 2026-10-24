@@ -92,9 +92,9 @@ Each board takes one-character serial commands, read without blocking the
 50 Hz task: `n` normal walk, `t` this board's forefoot +3.0 °C (TEMP_DELTA
 after two temperature readings, about 60–90 s), `p` meta1 about 250 kPa
 with a long stance plateau and stronger walking motion (PRESSURE_PEAK at
-once; PRESSURE_PTI and LOAD_CONCENTRATION after 20 steps; not
-ASYMMETRY_PEAK, which also needs the other board's steps), `?` show
-the current one. The board prints `[scenario] ...` on each change. Packets, BLE and the contract do not change. Because a second
+once; LOAD_CONCENTRATION and ASYMMETRY_PEAK after 20 steps; PRESSURE_PTI
+only once `p` steps dominate the app's 60-minute mean, about 7 minutes
+after a few minutes of normal walking), `?` show the current one. The board prints `[scenario] ...` on each change. Packets, BLE and the contract do not change. Because a second
 open would reset the board, send them through the logger's pipe:
 
 ```
@@ -104,8 +104,9 @@ echo p > left.cmd
 
 The normal walk's IMU is gentler than the app's walking gate (contract
 §8.3.2: the lowest mean |a| − 1 g over 800 ms is about 0.07 g against
-0.15 g), so in the normal walk the app counts few steps; `p` scales its
-motion ×4 so the gate stays on (`test/test_scenario`).
+0.15 g). The gate is on only briefly in each stride: steps still count,
+but PRESSURE_PEAK can't fire. `p` scales its motion ×4 so the gate stays
+on (`test/test_scenario`); BACKLOG 42 raises the normal walk in S8A.
 
 `webapp_csv_check.py` checks a CSV exported by the laptop web app's
 research capture (the study fallback, `docs/STUDY-FALLBACK.md`). The CSV

@@ -1,0 +1,16 @@
+right.log:148:18:39:43.549 [scenario] n (normal walk)  (commands: n t p ?)
+right.log:152:18:39:50.516 > ?
+right.log:153:18:39:50.535 [scenario] n (normal walk)  (commands: n t p ?)
+right.log:232:18:45:55.736 > t
+right.log:233:18:45:55.790 [scenario] t (forefoot +3.0 degC)
+right.log:369:18:56:54.266 > n
+right.log:370:18:56:54.301 [scenario] n (normal walk)
+left.log:14:18:39:43.553 [scenario] n (normal walk)  (commands: n t p ?)
+left.log:18:18:39:50.516 > ?
+left.log:19:18:39:50.541 [scenario] n (normal walk)  (commands: n t p ?)
+left.log:85:18:44:55.422 > p
+left.log:86:18:44:55.432 [scenario] p (meta1 ~250 kPa plateau, strong walking motion)
+left.log:99:18:45:55.736 > n
+left.log:100:18:45:55.778 [scenario] n (normal walk)
+left.log:236:18:56:54.266 > n
+left.log:237:18:56:54.308 [scenario] n (normal walk)
