@@ -4,9 +4,9 @@ Branch `work/flutter-storage` (from `main` at the PR #24 merge, `c4766fa`)
 · 2026-10-24 · Session S6A (`docs/SESSIONS.md` §3)
 Spec: DESIGN-SPEC §4, §7, §8.2, §11, §14; DATA-CONTRACT v1.5 §8.3.
 
-**Status: everything automated passes. The Note 10 check was run by Claude
-on 2026-10-24 and passes (temperature rows survive killing the app);
-waiting for the user's acceptance.**
+**Status: accepted by the user (2026-10-24).** Everything automated
+passes, and the Note 10 check (temperature rows survive killing the app)
+passes.
 
 ## Summary
 
@@ -239,7 +239,7 @@ the alert or foot-check write. Max |ΔT| is updated by the recorder.
 | `flutter test` | **437 passed** |
 | Emulator, real-BLE build | The file is created and is schema v1 (`PRAGMA user_version` 1, all tables and indexes); no runtime errors |
 | Emulator, `MOCK=safe` | The debug card shows L 3 / R 3 rows after ~60 s and updates live; written 6, failed 0; the phone file still has 0 rows |
-| **Note 10: rows survive killing the app** | **Pass** (see "Note 10 checkpoint"); waiting for the user's acceptance |
+| **Note 10: rows survive killing the app** | **Pass** (see "Note 10 checkpoint"); accepted by the user |
 
 Emulator screenshots: `029-flutter-storage/emulator-debug-storage-mock.png`
 (1 row per foot just after start) and `emulator-storage-card-60s.png`
@@ -266,7 +266,7 @@ Rule check against FLUTTER-PLAN §6:
 - Split per-ABI APKs would remove the difference if size ever matters. Not
   changed now.
 
-## Note 10 checkpoint (run by Claude, 2026-10-24; user accepts)
+## Note 10 checkpoint (run by Claude, 2026-10-24; accepted by the user)
 
 Short check: one simulator, 2 minutes, kill, reopen. The steps as planned:
 
