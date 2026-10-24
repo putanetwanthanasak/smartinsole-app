@@ -1,0 +1,6 @@
+at_ms,code,level,patient_status,side,zone,site,measured_value,threshold,gait_class,gait_confidence,read_at_ms,details
+1792842296481,PRESSURE_WATCH,2,careful,L,meta1,,247.04619458072813,75.0,,,,
+1792842296481,PRESSURE_PEAK,3,careful,L,meta1,,247.04619458072813,200.0,,,,"{""walking"":true}"
+1792842307386,ASYMMETRY_PEAK,2,careful,L,,,134.3808193336405,15.0,,,,"{""leftPeakKpa"":247.04619458072813,""rightPeakKpa"":48.48055850642058,""steps"":20}"
+1792842317934,LOAD_CONCENTRATION,3,careful,L,meta1,,56.59405957483909,40.0,,,,"{""steps"":20}"
+1792842396100,TEMP_DELTA,4,rest,R,,forefoot,3.419999999999998,2.2,,,,"{""leftC"":31.52,""rightC"":34.94,""consecutive"":2,""otherSiteDeltaC"":0.25}"

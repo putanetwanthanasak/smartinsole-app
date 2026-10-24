@@ -14,6 +14,11 @@
       "sha256": "d42db6f3bc8a42a4399ffe71dd819aacc7e7e3e59f159bbe3e21034880dbc067"
     },
     {
+      "name": "alerts.csv",
+      "size": 201,
+      "sha256": "7e35f224e77d88924db0ea5db09d1c022b2fcaf083e56da97bcbfeb64630cd14"
+    },
+    {
       "name": "session.json",
       "size": 2155,
       "sha256": "b97bc9b24e33ad7324b9ada525e2228d60c859f8589e3b170c3235dcddbe1d1a"

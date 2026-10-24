@@ -1,7 +1,9 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:smartinsole/capture/capture_providers.dart';
 import 'package:smartinsole/ble/link_state.dart';
 import 'package:smartinsole/capture/capture_files.dart';
 import 'package:smartinsole/capture/capture_session.dart';
@@ -85,6 +87,12 @@ void main() {
       await tester.pump(const Duration(milliseconds: 500));
       expect(find.text('Standing still'), findsOneWidget);
       expect(rig.wakelock, [true]);
+      // Alerts raised while the session screen is open carry its stamp
+      // (BACKLOG 40), never the subject code.
+      String? active() =>
+          ProviderScope.containerOf(tester.element(find.byType(Scaffold).last))
+              .read(activeCaptureProvider);
+      expect(active(), '20261110-090000');
       final j = readJson(
         File('${rig.research.path}/SI-003_20261110-090000/session.json'),
       );
@@ -100,6 +108,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(seconds: 1));
       expect(rig.wakelock, [true, false]);
+      expect(active(), isNull);
       expect(
         find.byKey(const ValueKey('capture-session-SI-003_20261110-090000')),
         findsOneWidget,

@@ -1,6 +1,9 @@
 /// The 8 alert codes of DATA-CONTRACT v1.5 §8.3, with their internal level
-/// (1–5). S7 implements the rules that raise them; S5 only needs the names
-/// and levels for the patient status seam.
+/// (1–5). `alert_engine.dart` holds the rules that raise them.
+///
+/// This file and the FLUTTER-PLAN §7 boundaries below are the contract's
+/// level column, not thresholds: the threshold-literal test
+/// (`test/rules/no_threshold_literals_test.dart`) skips this file only.
 enum AlertCode {
   tempDelta(4),
   pressureWatch(2),
@@ -16,3 +19,8 @@ enum AlertCode {
   /// Internal level 1–5 (stored for reporting and expert review).
   final int level;
 }
+
+/// FLUTTER-PLAN §7: the lowest internal level shown as Be careful, and the
+/// lowest shown as Rest your feet. Lower levels never set the status card.
+const carefulLevel = 3;
+const restLevel = 4;

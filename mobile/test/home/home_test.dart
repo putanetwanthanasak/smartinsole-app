@@ -80,7 +80,8 @@ void main() {
       (
         MockPreset.oneFootMissing,
         'ยังไม่ได้รับข้อมูล',
-        'ยังไม่ได้เชื่อมต่อแผ่นรองเท้า จึงยังบอกไม่ได้ว่าเท้าปลอดภัยหรือไม่',
+        // The missing foot is named (BACKLOG 38).
+        'ยังไม่ได้เชื่อมต่อแผ่นรองเท้าขวา จึงยังบอกไม่ได้ว่าเท้าขวาปลอดภัยหรือไม่',
         null,
       ),
       (
@@ -220,23 +221,40 @@ void main() {
     await unmount(tester);
   });
 
+  // Both presets walk with a left peak far above the right one, so
+  // ASYMMETRY_PEAK (level 2) holds after its steps: the note turns orange
+  // and names the higher foot, and the card stays as it was (BACKLOG 37).
   for (final preset in [MockPreset.watch, MockPreset.safeOrangeDot]) {
-    testWidgets('${preset.name}: balance note in ink, no icon, before S7', (
-      tester,
-    ) async {
+    testWidgets('${preset.name}: balance note orange while ASYMMETRY_PEAK '
+        'holds', (tester) async {
       await pumpHome(tester, preset);
       final note = tester.widget<Text>(
         inCard('balance-card', find.text('ลงน้ำหนักเท้าซ้ายมากกว่า')),
       );
-      expect(note.style!.color, isNot(StatusColors.careful.text));
+      expect(note.style!.color, StatusColors.careful.text);
       expect(
-        inCard('balance-card', find.byType(Icon)),
+        inCard('balance-card', find.byIcon(LucideIcons.triangle_alert)),
         findsOneWidget,
-        reason: 'only the card title icon',
       );
       await unmount(tester);
     });
   }
+
+  testWidgets('safe: balance note in ink, no icon (no ASYMMETRY_PEAK)', (
+    tester,
+  ) async {
+    await pumpHome(tester, MockPreset.safe);
+    final note = tester.widget<Text>(
+      inCard('balance-card', find.text('ซ้ายและขวาพอ ๆ กัน')),
+    );
+    expect(note.style!.color, isNot(StatusColors.careful.text));
+    expect(
+      inCard('balance-card', find.byType(Icon)),
+      findsOneWidget,
+      reason: 'only the card title icon',
+    );
+    await unmount(tester);
+  });
 
   testWidgets('safeOrangeDot: Safe card, orange dot on the left map', (
     tester,

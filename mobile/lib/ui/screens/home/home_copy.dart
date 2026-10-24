@@ -1,21 +1,16 @@
-import '../../../ble/packets.dart';
 import '../../../config/foot_layout.dart';
-import '../../../rules/alert_code.dart';
+import '../../../rules/alert_copy.dart';
 import '../../../rules/patient_status.dart';
 import '../../../rules/pressure_level.dart';
 import 'home_model.dart';
 
+export '../../../rules/alert_copy.dart' show formatDelta, nbsp, sideTh;
+
 // Home copy (DESIGN-SPEC §6). The detail and advice strings are DRAFT
 // health copy until the medical expert reviews them (DESIGN-SPEC
-// Appendix A, decision 5). Never use the terms or units kPa, ΔT or PAI on
-// Home; the temperature difference appears only as "{x.x}°".
-
-String sideTh(FootSide s) => s == FootSide.left ? 'ซ้าย' : 'ขวา';
-
-/// Non-breaking space: keeps a number with its unit ("2.6 องศา").
-const nbsp = ' ';
-
-String formatDelta(double c) => c.toStringAsFixed(1);
+// Appendix A, decision 5); a rule's detail and advice come from
+// `alertCopyFor`. Never use the terms or units kPa, ΔT or PAI on Home; the
+// temperature difference appears only as "{x.x}°".
 
 class StatusCopy {
   const StatusCopy({required this.title, required this.detail, this.advice});
@@ -30,9 +25,14 @@ class StatusCopy {
 StatusCopy statusCopy(PatientStatus status) {
   switch (status.level) {
     case PatientLevel.noData:
-      return const StatusCopy(
+      final missing = status.missingSide;
+      return StatusCopy(
         title: 'ยังไม่ได้รับข้อมูล',
-        detail: 'ยังไม่ได้เชื่อมต่อแผ่นรองเท้า จึงยังบอกไม่ได้ว่าเท้าปลอดภัยหรือไม่',
+        // One foot missing names it (BACKLOG 38; S7 draft).
+        detail: missing == null
+            ? 'ยังไม่ได้เชื่อมต่อแผ่นรองเท้า จึงยังบอกไม่ได้ว่าเท้าปลอดภัยหรือไม่'
+            : 'ยังไม่ได้เชื่อมต่อแผ่นรองเท้า${sideTh(missing)} '
+                  'จึงยังบอกไม่ได้ว่าเท้า${sideTh(missing)}ปลอดภัยหรือไม่',
       );
     case PatientLevel.safe:
       return const StatusCopy(
@@ -44,50 +44,20 @@ StatusCopy statusCopy(PatientStatus status) {
       final title = status.level == PatientLevel.rest
           ? 'ควรพักเท้าตอนนี้'
           : 'ควรระวัง';
-      final cause = status.cause!;
-      final (detail, advice) = _causeCopy(cause);
+      final c = status.cause!;
+      final copy = alertCopyFor(
+        c.code,
+        side: c.side,
+        channel: c.channel,
+        site: c.site,
+        value: c.deltaC,
+      );
+      final detail = copy.homeDetail;
+      final advice = copy.homeAdvice;
+      if (detail == null || advice == null) {
+        throw ArgumentError('${c.code} does not set a Be-careful/Rest status');
+      }
       return StatusCopy(title: title, detail: detail, advice: advice);
-  }
-}
-
-/// Detail + advice from the rule that set the status (alert code + side +
-/// zone). Patterns from the boards (DESIGN-SPEC §6, §7.1).
-(String, String) _causeCopy(StatusCause c) {
-  final side = sideTh(c.side);
-  final where = c.channel == null
-      ? 'เท้า'
-      : footLayout.zones[c.channel!].region.th;
-  switch (c.code) {
-    case AlertCode.tempDelta:
-      final other = sideTh(
-        c.side == FootSide.left ? FootSide.right : FootSide.left,
-      );
-      return (
-        'เท้า$sideอุ่นกว่าเท้า$other ${formatDelta(c.deltaC!)}$nbspองศา '
-            'ติดต่อกันมาสักพัก',
-        'นั่งพักเท้า แล้วตรวจดูว่ามีรอยแดงหรือแผลไหม '
-            'ถ้าพรุ่งนี้ยังเป็นอยู่ ควรไปพบแพทย์',
-      );
-    case AlertCode.pressurePti:
-      return (
-        '$where$sideรับน้ำหนักมากต่อเนื่องนานเกินไป',
-        'ลองขยับเท้า เปลี่ยนท่ายืน หรือนั่งพักสักครู่',
-      );
-    case AlertCode.pressurePeak:
-      return (
-        '$where$sideรับน้ำหนักมากตอนเดิน',
-        'ลองเดินช้าลง ก้าวให้สั้นลง หรือนั่งพักสักครู่',
-      );
-    case AlertCode.loadConcentration:
-      return (
-        'น้ำหนักลงที่$where$sideจุดเดียวมากเกินไป',
-        'ลองยืนให้น้ำหนักลงทั้งฝ่าเท้า หรือเปลี่ยนท่ายืน',
-      );
-    case AlertCode.pressureWatch ||
-        AlertCode.asymmetryPeak ||
-        AlertCode.deviceLost ||
-        AlertCode.batteryLow:
-      throw ArgumentError('${c.code} does not set a Be-careful/Rest status');
   }
 }
 
@@ -131,8 +101,11 @@ String tempNote(HomeView v) {
   return 'สองข้างอุ่นใกล้เคียงกัน';
 }
 
-/// Balance card note.
+/// Balance card note. While `ASYMMETRY_PEAK` holds it names the rule's
+/// foot (and Home draws it in the Be-careful colour, BACKLOG 37).
 String balanceNote(HomeView v) {
+  final asym = v.asymmetrySide;
+  if (asym != null) return 'ลงน้ำหนักเท้า${sideTh(asym)}มากกว่า';
   final heavy = v.heavierSide;
   if (v.uneven && heavy != null) {
     return 'ลงน้ำหนักเท้า${sideTh(heavy)}มากกว่า';

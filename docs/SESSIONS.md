@@ -80,7 +80,7 @@ If real boards are not ready by 2 Nov, SR runs on the simulator and the real-boa
 - **S4 checkpoint:** the left board's USB (laptop port 3-6, old cable) re-enumerated 4 times at plug-in and dropped once in S3B; replace that cable or use another port before the next serial log. (Done in S4: new cable, port 6, no drops.)
 - **Note 10 checkpoints:** restart adb (`adb kill-server`) if it loses the phone while USB stays attached; serial output can be garbage for the first minutes after plugging in a board, so check it reads cleanly before a test; if it stays garbled, kill that logger by PID and reopen it before the phone connects (S4).
 - **S4C:** read `DeviceManager.batches` (50 Hz, unix-timed, raw ADC kept) and take the column order from `shared/model_input.json`; write `seq`.
-- **S7:** `thresholds.json` has no battery threshold (BACKLOG 30); confirm with the contract owner that PTI and concentration are per step, as the mock presets assume (BACKLOG 31).
+- **S7:** `thresholds.json` has no battery threshold (BACKLOG 30); confirm with the contract owner that PTI and concentration are per step, as the mock presets assume (BACKLOG 31). (Done in S7: per step, user decision; still to send to the contract owner.)
 - **S9:** the L/R timing check needs both boards' serial logs on one laptop; real insoles have no serial port, so it needs another reference (report 026).
 - **S5 / S7:** zero load reads ≈ 0.01 kPa (display rounding); ADC 4095 ≈ 37,000 kPa (saturation; flags bit0).
 - **S8B:** REBOOT/TARE guard (BACKLOG 21).
@@ -280,17 +280,25 @@ Additional info: [optional]
 - **Do:** 8 codes per contract §8.3, walking gate, ΔT 2 consecutive readings, 30-minute repeat suppression, level 1–5 (max), 3-level mapping per FLUTTER-PLAN section 7, plain-Thai advice for every code, thresholds from `thresholds.json`.
 - **Verify:** unit tests for every code (trigger / no trigger / boundary) and every row of the mapping table.
 - **Done when:** every rule passes; no threshold numbers in code.
+- **Result (report 030):** `AlertEngine` with all 8 codes on the 50 Hz path, walking gate and step detection (per-step PTI, concentration and asymmetry, user decision); suppression read back from the alerts table (holds across a restart); Home status from the engine (BACKLOG 37/38); research alerts tagged, exported as `alerts.csv` and deleted with their capture (BACKLOG 40); simulator serial scenarios `t`/`p`/`n`/`?`. Note 10 checkpoint 7/7 passed; **accepted by the user 2026-10-24**. `PRESSURE_PTI` (60-min mean) is not expected to fire in 3-min study trials; its evaluation relies on the unit tests.
 
 ### SR — Study readiness (new, decided 2026-10-21)
 - **Requires:** S4C, S5, S6A, S7, S6B merged; real boards from Phumirapee (fall back to the simulator if not ready).
 - **Do:** run the full protocol from proposal doc 03 end to end on the phone (about 75 minutes): device checklist, calibration, 5 trials, warm-compress alert check, the 3 usability tasks, export. Confirm the alert text the volunteers will see is the version the medical expert reviewed. Install the final build.
 - **Verify (user runs it, sends results):** all trial files complete at 50 Hz with no unexplained gaps; alerts appear with times recorded; nothing on the phone needs the laptop.
+- **Also check with the real boards (added in S7):**
+  - **Step detection.** In one normal-gait trial, count the volunteer's steps by hand (per foot) and compare with the app's count of walking steps (`steps.contactKpa`, `minStanceMs`, `maxStanceMs` and the walking gate `motion.*` are provisional). Adjust `thresholds.json` if they disagree. Also note how many stances are rejected as too short (in the S7 simulator run, 16 of 43 right-foot stances were blips around `contactKpa`).
+  - **Peak hold** (`pressure.peakHoldMs` 2500, provisional, user decision 2026-10-24). In the same trial, check that `PRESSURE_WATCH` / `PRESSURE_PEAK` hold steadily through a walk rather than ending and restarting between steps (one alert per walk, not one per stride), and that they end within a few seconds of stopping. Adjust it in `thresholds.json` if not.
+  - **Walking gate statistic** (BACKLOG 42, user decision 2026-10-24). Record the gate statistic (mean |‖a‖ − 1 g| over `motion.walkingWindowMs`) in the standing calibration and in each normal-gait trial, and adjust `motion.walkingAccelG` in `thresholds.json` if standing and walking do not sit clearly on either side of it.
+  - **How often `PRESSURE_PTI` and `LOAD_CONCENTRATION` fire** during the normal-gait trials (from each session's `alerts.csv`). Both use provisional readings (BACKLOG 31); frequent firing on healthy volunteers' normal gait means the values need review before the study.
+  - The warm-compress step is done with the session screen open, so its `TEMP_DELTA` lands in that session's `alerts.csv` (`docs/STUDY-CAPTURE.md`).
 - **Done when:** the user is confident to run the study on 2026-11-10.
 
 ### S8A — Gait screen
 - **Do:** PAI, CoP, step count, label "estimate, not a diagnosis", animations. `GaitClassifier` interface with a rule-based implementation and a TFLite implementation in an isolate per DATA-CONTRACT §7: loads `assets/models/model_a.tflite` + `normalization.json` when present, input `[1,100,24]` (2 s window, 1 s stride, channel order §7.1, units as in S4C), outputs `gait_probs` [1,5] and `gait_embedding` [1,32]; falls back to the rules when the model is missing or confidence < 0.60. Prove the slot with a dummy model of the right shapes generated by a committed Python script (untrained weights): loads, channel order correct, inference ≤ 100 ms on the Note 10. Swapping in the real model in December must need only the two asset files. Model B stays out of scope (S7 rules give the status level).
 - **Verify:** unit + golden tests · **You:** emulator + mock presets, screenshots via Dart MCP.
 - **Done when:** values shown from mock data; classifier swappable without touching the screen.
+- **Also (BACKLOG 42, user decision 2026-10-24; the step count depends on it):** raise the simulator's normal-walk motion so the walking-gate statistic (contract §8.3.2: mean |‖a‖ − 1 g| over `walkingWindowMs`) is on for most of each stride, aiming for a mean around 0.3 g (typical of a heel-mounted IMU). Test it with the contract's statistic (not the SD), and keep `t` / `p` / `n` working.
 
 ### S8B — Connection + Settings
 - **Do:** connect left/right separately, per-side status, battery, firmware, scanning/success animations · Settings: text size, sound, TARE (with confirmation; BACKLOG 21 guard), foot-check reminder time, app info · hide the debug screen.

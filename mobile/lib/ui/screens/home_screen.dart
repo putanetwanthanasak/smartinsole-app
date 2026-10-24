@@ -561,12 +561,13 @@ class _BalanceCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final (share, note, noLoad) = ref.watch(
+    final (share, note, noLoad, asymmetry) = ref.watch(
       homeViewProvider.select(
         (v) => (
           v.leftSharePct,
           v.leftSharePct == null ? '' : balanceNote(v),
           v.balanceNoLoad,
+          v.asymmetrySide != null,
         ),
       ),
     );
@@ -587,9 +588,15 @@ class _BalanceCard extends ConsumerWidget {
                 ),
               ),
               _BalanceBar(leftSharePct: share.toDouble()),
-              // `ink`, no icon, until S7: orange only while ASYMMETRY_PEAK
-              // is active (user decision 2026-10-23, BACKLOG 37).
-              _Note(text: note),
+              // Orange with an icon only while ASYMMETRY_PEAK holds (user
+              // decision 2026-10-23, BACKLOG 37).
+              asymmetry
+                  ? _Note(
+                      text: note,
+                      palette: StatusColors.careful,
+                      icon: LucideIcons.triangle_alert,
+                    )
+                  : _Note(text: note),
             ],
     );
   }

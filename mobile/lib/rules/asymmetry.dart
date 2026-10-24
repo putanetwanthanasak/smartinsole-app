@@ -5,20 +5,18 @@ import '../config/thresholds.dart';
 ///     PAI = |L − R| / ((L + R) / 2) × 100
 ///
 /// where L and R are each foot's **peak** pressure (kPa). `ASYMMETRY_PEAK`
-/// (§8.3) is "PAI > `asymmetry.peakPct` sustained for ≥ 20 steps".
+/// (§8.3) is "PAI > `asymmetry.peakPct` sustained for ≥ `asymmetry.peakSteps`
+/// steps".
 ///
-/// This is the definition S7's `ASYMMETRY_PEAK` rule starts from. Home
-/// does not use it: the balance card shows weight share ([WeightShare],
-/// user decision 2026-10-23), and its note turns orange only once S7
-/// reports `ASYMMETRY_PEAK` active.
+/// `ASYMMETRY_PEAK` (`alert_engine.dart`, BACKLOG 37 settled in S7): L and
+/// R are each foot's highest zone peak over one walking step
+/// (`StepDetector`); each completed step of either foot compares the two
+/// feet's latest steps, and the rule is active after `asymmetry.peakSteps`
+/// such steps in a row above `asymmetry.peakPct`.
 ///
-/// **INTERIM (S5), BACKLOG 37.** The contract gives the formula and that it
-/// uses peaks, but not what a peak is taken over. Until S7 settles it:
-/// - a foot's peak is its highest channel over [peakWindowMs] of samples
-///   (the same 2 s window as the web app's PAI, report 003), not per step;
-/// - it is computed while walking and while standing alike;
-/// - "sustained ≥ 20 steps" is not checked: the note turns orange as soon
-///   as one window's PAI is above `peakPct`.
+/// Home's balance card does not show PAI: it shows weight share
+/// ([WeightShare], user decision 2026-10-23), and its note turns orange
+/// only while `ASYMMETRY_PEAK` is active.
 class PeakAsymmetry {
   const PeakAsymmetry._(this.leftPeakKpa, this.rightPeakKpa);
 
@@ -30,10 +28,6 @@ class PeakAsymmetry {
     if (leftPeakKpa + rightPeakKpa == 0) return null;
     return PeakAsymmetry._(leftPeakKpa, rightPeakKpa);
   }
-
-  /// Interim window length (see the class comment). Not a clinical
-  /// threshold; S7 replaces it with the contract's step-based window.
-  static const peakWindowMs = 2000;
 
   final double leftPeakKpa;
   final double rightPeakKpa;
@@ -52,5 +46,8 @@ class PeakAsymmetry {
 /// |L − R| / ((L + R) / 2) × 100, in percent (0–200). The contract's PAI
 /// formula (§8.2), shared by [PeakAsymmetry] and `WeightShare`. Not
 /// defined when both are 0.
+///
+/// Multiplied before dividing, so a ratio that is exact in decimals stays
+/// exact (|107.5 − 92.5| → 15 %, not 15.000000000000002).
 double paiPercent(double left, double right) =>
-    (left - right).abs() / ((left + right) / 2) * 100;
+    (left - right).abs() * 100 / ((left + right) * 0.5);

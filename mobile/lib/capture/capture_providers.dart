@@ -51,6 +51,26 @@ final wakelockProvider = Provider<Future<void> Function(bool on)>(
 /// tests fix it so the plan shown on screen is stable.
 final orderSeedProvider = Provider<int Function()>((ref) => newOrderSeed);
 
+/// The research capture whose session screen is open now, as its stamp
+/// (`captureStampOf`, no subject code), or null. Alerts raised meanwhile
+/// carry it, so they go into that session's export and leave the phone
+/// with it (BACKLOG 40). Capture recording itself never reads it.
+class ActiveCapture extends Notifier<String?> {
+  @override
+  String? build() => null;
+
+  void open(String stamp) => state = stamp;
+
+  /// Clears it only if [stamp] is still the open one.
+  void close(String stamp) {
+    if (state == stamp) state = null;
+  }
+}
+
+final activeCaptureProvider = NotifierProvider<ActiveCapture, String?>(
+  ActiveCapture.new,
+);
+
 /// Everything a [CaptureSession] needs from the app.
 final captureDepsProvider = FutureProvider<CaptureDeps>((ref) async {
   return CaptureDeps(

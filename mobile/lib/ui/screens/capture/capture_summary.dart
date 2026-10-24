@@ -6,6 +6,7 @@ import '../../../ble/packets.dart';
 import '../../../capture/capture_providers.dart';
 import '../../../capture/capture_session.dart';
 import '../../../capture/export.dart';
+import '../../../storage/storage_providers.dart';
 import '../../routes.dart';
 import '../../theme/colors.dart';
 import '../../theme/dimens.dart';
@@ -65,11 +66,15 @@ class _CaptureSummaryState extends ConsumerState<CaptureSummary> {
         setState(() => _exportResult = 'No app-specific external storage.');
         return;
       }
-      s.noteExport();
-      final entries = stageExport(s.dir, root);
+      final (entries, alerts) = await exportSession(
+        s,
+        root,
+        ref.read(alertRepositoryProvider),
+      );
       setState(
         () => _exportResult =
-            'Staged ${entries.length} files with manifest.json in\n'
+            'Staged ${entries.length} files ($alerts alerts) with '
+            'manifest.json in\n'
             '${root.path}/${s.sessionId}\n'
             'On the laptop: tools/capture/export_capture.py',
       );
@@ -120,7 +125,8 @@ class _CaptureSummaryState extends ConsumerState<CaptureSummary> {
     )) {
       return;
     }
-    s.dir.deleteSync(recursive: true);
+    // Its alerts leave the phone with it (BACKLOG 40).
+    await deleteSession(s, ref.read(alertRepositoryProvider));
     // Back to the capture home, whose list no longer has this session.
     if (mounted) {
       Navigator.of(context).popUntil(ModalRoute.withName(Routes.capture));

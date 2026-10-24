@@ -5,6 +5,12 @@ Files shared between the Flutter app (`mobile/`) and the new simulator
 
 - **`thresholds.json`** — the source-of-truth threshold file for the Flutter
   app. It started as a byte-for-byte copy of `public/thresholds.json`.
+  Later additions, all additive with `"version"` 1 (DATA-CONTRACT §8.3
+  addenda): `battery` (S5); in S7 `pressure.ptiWindowMin` / `ptiMinSteps`
+  / `peakHoldMs`, `asymmetry.peakSteps` / `concentrationSteps`, `device`,
+  `alerts` and `steps` (step detection, provisional). The app bundles a
+  byte-identical copy (`mobile/assets/config/`, a test checks it); the
+  simulator's native tests read this file directly.
 - **`test_vectors/`** — BLE wire-format test vectors generated from the web
   app's TS parser; the Flutter parser is tested against them. See
   `test_vectors/README.md` (regenerate with
@@ -21,7 +27,8 @@ Files shared between the Flutter app (`mobile/`) and the new simulator
 - **`capture_fixture/`** — one rehearsal capture session written by the
   app's own capture code, with its export `manifest.json`, plus
   `expected.json` (the 24-channel rows the app's `pairFeet` + `modelRow`
-  make). `mobile/test/capture/capture_fixture_test.dart` checks the code
+  make), and since S7 the export's `alerts.csv` with one alert.
+  `mobile/test/capture/capture_fixture_test.dart` checks the code
   still writes exactly these files; `load_capture.py --selftest` must
   reproduce `expected.json` from them. Regenerate only after an intended
   format change: `UPDATE_CAPTURE_FIXTURE=1 flutter test

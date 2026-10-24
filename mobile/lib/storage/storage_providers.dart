@@ -102,3 +102,8 @@ final temperatureRecorderProvider = Provider<TemperatureRecorder>((ref) {
 final temperatureStatsProvider = StreamProvider.autoDispose<TemperatureStats>(
   (ref) => ref.watch(temperatureRepositoryProvider).watchStats(),
 );
+
+/// The alerts table's figures for the BLE debug screen (S7 phone check).
+final alertStatsProvider = StreamProvider.autoDispose<AlertStats>(
+  (ref) => ref.watch(alertRepositoryProvider).watchStats(),
+);

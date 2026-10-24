@@ -1,9 +1,12 @@
 {
   "version": 1,
-  "pressure": { "watchKpa": 75, "alertKpa": 200, "ptiKpaS": 80 },
+  "pressure": { "watchKpa": 75, "alertKpa": 200, "ptiKpaS": 80, "ptiWindowMin": 60, "ptiMinSteps": 20, "peakHoldMs": 2500 },
   "temperature": { "deltaC": 2.2, "consecutiveReadings": 2 },
-  "asymmetry": { "peakPct": 15, "ptiPct": 20, "concentrationPct": 40 },
+  "asymmetry": { "peakPct": 15, "ptiPct": 20, "concentrationPct": 40, "peakSteps": 20, "concentrationSteps": 20 },
   "model": { "minConfidence": 0.60 },
   "motion": { "walkingAccelG": 0.15, "walkingWindowMs": 800 },
-  "battery": { "lowPct": 15 }
+  "battery": { "lowPct": 15 },
+  "device": { "lostAfterMin": 5 },
+  "alerts": { "repeatMin": 30 },
+  "steps": { "contactKpa": 10, "minStanceMs": 250, "maxStanceMs": 2500 }
 }

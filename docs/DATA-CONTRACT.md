@@ -563,7 +563,25 @@ Model A ต้องเสร็จก่อน Model B เสมอ เนื�
 }
 ```
 
+S7 adds keys to the same file (local addendum below):
+
+```json
+{
+  "pressure":  { "ptiWindowMin": 60, "ptiMinSteps": 20, "peakHoldMs": 2500 },
+  "asymmetry": { "peakSteps": 20, "concentrationSteps": 20 },
+  "device":    { "lostAfterMin": 5 },
+  "alerts":    { "repeatMin": 30 },
+  "steps":     { "contactKpa": 10, "minStanceMs": 250, "maxStanceMs": 2500 }
+}
+```
+
 > **`battery` added 2026-10-23 (S5), a local addendum to v1.5.** `lowPct` is the `BATTERY_LOW` boundary from the table above (below 15 %), moved into the file so the app does not hardcode it (FLUTTER-PLAN rule 12; `docs/BACKLOG.md` item 30). Additive only: no existing key changed, so the file's `"version"` stays 1. This applies to `shared/thresholds.json`; the frozen web app keeps its own `public/thresholds.json` without this key. Like `motion`, it is an addition outside the original document and has not been sent back to the contract owner.
+
+> **S7 keys and readings, added 2026-10-24, a local addendum to v1.5.** Additive only (the file's `"version"` stays 1); outside the original document and not yet sent back to the contract owner.
+> - **Numbers moved into the file** (FLUTTER-PLAN rule 12), each from the table above or §8.5: `pressure.ptiWindowMin` 60 (the PTI "1 ชม." window), `asymmetry.peakSteps` 20 ("≥ 20 ก้าว"), `device.lostAfterMin` 5 ("> 5 นาที"), `alerts.repeatMin` 30 (§8.5).
+> - **Local readings of rules the table does not fully define** (user decision 2026-10-24, `docs/BACKLOG.md` items 31 and 37), all on **walking steps**: a step is a stance whose summed kPa goes above `steps.contactKpa` and back, lasting `steps.minStanceMs`–`maxStanceMs`, with the §8.3.2 walking gate on during it. `PRESSURE_PTI`: per zone, PTI = ∫kPa dt over each step; it holds while the mean per-step PTI over the steps of the last `ptiWindowMin` is > `ptiKpaS`, once there are ≥ `pressure.ptiMinSteps` (20) steps. `LOAD_CONCENTRATION`: per step, the top zone's peak ÷ the sum of the zone peaks > `concentrationPct`, with the same zone on top for `asymmetry.concentrationSteps` (20) steps in a row. `ASYMMETRY_PEAK`: PAI (§8.2) of the two feet's latest step peaks > `peakPct` for `peakSteps` steps in a row, both feet usable.
+> - **Provisional technical values** (like `motion`): `steps.*` (to be checked against a manual step count with the real boards in SR) and `pressure.peakHoldMs` (how long `PRESSURE_WATCH` / `PRESSURE_PEAK` keep holding after the last sample above their boundary, so a rule that is true at every step does not end and restart between steps).
+> - **`TEMP_DELTA` boundary.** The rule stays |ΔT| > `deltaC` (Lavery et al. 2004), compared at the sensors' 0.01 °C resolution. Proposal doc 03 counts a warm-compress event as qualifying when the reference thermometer shows ≥ 2.2 °C. The two differ only at exactly 2.20 °C; the study analysis uses doc 03's definition for qualifying events.
 
 > **`motion` เพิ่มใน v1.5 — ดูข้อ 8.3.2.** สี่บล็อกแรก (`pressure`/`temperature`/`asymmetry`/`model`) มาจากเจ้าของสัญญา; `motion` เป็นการเพิ่มเติมนอกเอกสารต้นฉบับ ยังไม่ส่งกลับให้เจ้าของสัญญา — เหมือนสถานะของสูตร §5.1 ที่แก้ไขในรีโปนี้แต่ยังไม่อัปสตรีม
 
@@ -668,3 +686,4 @@ users/{uid}
 | 1.4 | — | — | เพิ่มข้อ 8.0 พื้นหลังทางคลินิกเรื่องกลไกการเกิดแผลกดทับ (LOPS → โครงสร้างเท้าเปลี่ยนรูป → แรงกดสะสม) พร้อมระบุข้อจำกัดสำคัญว่าอาสาสมัครสุขภาพดีในโปรโตคอลยังรับรู้ความรู้สึกและปรับท่าเดินได้ปกติ ต่างจากกลไกจริงในผู้ป่วยที่สูญเสียการรับความรู้สึก |
 | 1.5 | — | — | เพิ่มข้อ 8.3.2 อธิบายเกณฑ์ตรวจจับ "ขณะเดิน" (walking gate) ของ `PRESSURE_PEAK` — ค่าเฉลี่ยส่วนเบี่ยงเบนของขนาดเวกเตอร์ความเร่งจาก 1g เทียบกับเกณฑ์ในหน้าต่างเวลาหนึ่ง — และเพิ่มบล็อก `motion` (`walkingAccelG`, `walkingWindowMs`) ในโครงสร้าง `thresholds.json` ของข้อ 8.3 ให้ตรงกับสิ่งที่ implement แล้วจริงใน `AlertStore.ts`/`constants.ts` (`docs/BACKLOG.md` ข้อ 10, `docs/reports/017-*.md`) เป็นการเพิ่มเติมนอกเอกสารต้นฉบับ ยังไม่ส่งกลับให้เจ้าของสัญญา ทั้งสองค่าเป็น PROVISIONAL รอการตรวจสอบกับฮาร์ดแวร์จริง สถานะเดียวกับ `PRESSURE_WATCH_KPA`/`PRESSURE_ALERT_KPA` — ยืนยันแล้วว่าฟิลด์ `pressure.ptiKpaS`/`asymmetry.ptiPct`/`asymmetry.concentrationPct` ที่มีอยู่แล้วในบล็อก JSON ตรงกับค่าที่ใช้จริงในโค้ด ไม่มีการเปลี่ยนค่าทั้งสามนี้ |
 | 1.5 addendum | 2026-10-23 | — | Added the `battery` block (`lowPct`: 15, the `BATTERY_LOW` boundary from §8.3) to the `thresholds.json` structure in §8.3. Additive: the file's `"version"` stays 1. Addition outside the original document, not yet sent back to the contract owner. |
+| 1.5 addendum | 2026-10-24 | — | S7: added `pressure.ptiWindowMin`/`ptiMinSteps`/`peakHoldMs`, `asymmetry.peakSteps`/`concentrationSteps`, `device.lostAfterMin`, `alerts.repeatMin` and the `steps` block to `thresholds.json` (§8.3), and recorded the app's per-step readings of `PRESSURE_PTI`, `LOAD_CONCENTRATION` and `ASYMMETRY_PEAK` and the `TEMP_DELTA` / doc 03 boundary note. Additive: the file's `"version"` stays 1. Not yet sent back to the contract owner. |

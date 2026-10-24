@@ -12,8 +12,9 @@ are in `docs/STUDY-CAPTURE.md`; the decisions are in
 | `trial_recorder.dart` | `TrialRecorder`: one attempt from `DeviceManager.batches` / `temps` to a CSV; gaps, invalid segments, per-foot counts |
 | `capture_session.dart` | `CaptureSession`: the state machine, `session.json`, sidecars, redo, resume; `missingForStudy` (fields an `SI-` code requires); `precheckIssues`; `listSessions` |
 | `cues.dart` | `Cue` (sound + vibration pattern), `CaptureCues`, `DeviceCues` (audioplayers + vibration) |
-| `export.dart` | `stageExport`: copy + `manifest.json` (SHA-256) to the app-specific external folder |
-| `capture_providers.dart` | Platform seams: research root, export root, app version, cues, wakelock, `captureDepsProvider` |
+| `export.dart` | `stageExport`: copy + `manifest.json` (SHA-256) to the app-specific external folder; `exportSession` (adds `alerts.csv`) and `deleteSession` (files and alerts) |
+| `alerts_csv.dart` | `alerts.csv`: the session's alerts (BACKLOG 40), export only |
+| `capture_providers.dart` | Platform seams: research root, export root, app version, cues, wakelock, `captureDepsProvider`; `activeCaptureProvider` (the open session's stamp, for the AlertEngine) |
 
 Screens: `lib/ui/screens/capture/` (home, flow, summary, `HoldButton`).
 
