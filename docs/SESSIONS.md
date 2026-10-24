@@ -166,9 +166,9 @@ Additional info: [optional]
 | 21–22 Oct | S3B ✅ | Claude Code + user | Web app fallback check (laptop only) | `work/webapp-fallback-check` |
 | 22 Oct | S4 ✅ | Claude Code + user | DeviceManager + timing checks | `work/flutter-device-manager` |
 | 22–23 Oct | S4C | Claude Code + user | Research capture mode | `work/flutter-capture` |
-| 23 Oct | S5 | Claude Code | Heatmap + Home + animation | `work/flutter-home` |
+| 23 Oct | S5 ◐ | Claude Code | Heatmap + Home + animation (style D; phone checkpoint open) | `work/s5-home-style-d` |
 | 23 Oct | S6A | Claude Code | SQLite | `work/flutter-storage` |
-| 24 Oct | S7 | Claude Code | 9 alert rules + risk level + 3-level mapping | `work/flutter-rules` |
+| 24 Oct | S7 | Claude Code | 8 alert rules + risk level + 3-level mapping | `work/flutter-rules` |
 | 24 Oct | S6B | Claude Code | Temperature + Alerts screens | `work/flutter-temp-alerts` |
 | 2–5 Nov | SR | User + Claude Code | Study rehearsal with real boards | `work/study-readiness` |
 | 25 Oct | S8A | Claude Code | Gait screen + model slot | `work/flutter-gait` |
@@ -276,7 +276,7 @@ Additional info: [optional]
 - **Done when:** both screens show mock data correctly in every state.
 
 ### S7 — Alert rules
-- **Do:** 9 codes per contract §8.3, walking gate, ΔT 2 consecutive readings, 30-minute repeat suppression, level 1–5 (max), 3-level mapping per FLUTTER-PLAN section 7, plain-Thai advice for every code, thresholds from `thresholds.json`.
+- **Do:** 8 codes per contract §8.3, walking gate, ΔT 2 consecutive readings, 30-minute repeat suppression, level 1–5 (max), 3-level mapping per FLUTTER-PLAN section 7, plain-Thai advice for every code, thresholds from `thresholds.json`.
 - **Verify:** unit tests for every code (trigger / no trigger / boundary) and every row of the mapping table.
 - **Done when:** every rule passes; no threshold numbers in code.
 

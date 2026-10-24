@@ -31,7 +31,10 @@ enum MockPreset {
 
   /// Level 3 `PRESSURE_PTI` (Be careful): the left forefoot carries a high
   /// load for most of a slow, long stance, "ปลายเท้าซ้ายรับน้ำหนักมาก
-  /// ต่อเนื่องนานเกินไป". Peaks stay below `alertKpa`.
+  /// ต่อเนื่องนานเกินไป". Zone levels match board HomeDWatch: left
+  /// [medium, high, medium, low, low, medium], right [low, medium, low,
+  /// low, low, medium]. The left meta1 peak is above `alertKpa`, so S7's
+  /// `PRESSURE_PEAK` can fire here too (BACKLOG 37 note).
   watch,
 
   /// Level 4 `TEMP_DELTA` (Rest your feet): the right forefoot is 2.6 °C
@@ -173,7 +176,7 @@ class MockFootProfile {
             ? const MockGait(
                 strideMs: 1600,
                 stanceMs: 1200,
-                peakKpa: [70, 150, 140, 60, 30, 60],
+                peakKpa: [120, 240, 140, 50, 30, 110],
                 windows: [
                   (0.60, 1.00),
                   (0.20, 0.98),
@@ -187,7 +190,7 @@ class MockFootProfile {
             : const MockGait(
                 strideMs: 1600,
                 stanceMs: 960,
-                peakKpa: [40, 45, 50, 30, 25, 60],
+                peakKpa: [45, 120, 50, 30, 25, 100],
               ),
       ),
       MockPreset.rest => MockFootProfile(

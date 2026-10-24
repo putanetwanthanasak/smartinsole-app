@@ -19,9 +19,8 @@ void main() {
 
   group('tabs', () {
     for (final (tab, name) in [
-      ('home', 'home'),
-      ('gait', 'gait'),
-      ('temperature', 'temperature'),
+      ('myFeet', 'my_feet'),
+      ('footCheck', 'foot_check'),
       ('alerts', 'alerts'),
     ]) {
       testWidgets(name, (tester) async {
@@ -37,7 +36,6 @@ void main() {
     for (final (route, name) in [
       (Routes.connection, 'connection'),
       (Routes.settings, 'settings'),
-      (Routes.footCheck, 'foot_check'),
     ]) {
       testWidgets(name, (tester) async {
         await pumpApp(tester, initialRoute: route);

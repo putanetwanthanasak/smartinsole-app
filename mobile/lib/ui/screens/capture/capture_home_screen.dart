@@ -182,7 +182,7 @@ class _CaptureHomeScreenState extends ConsumerState<CaptureHomeScreen> {
                 '${CaptureTimings.minBatteryPct} %, firmware and '
                 'calibration read. Connect both insoles first '
                 '(for now: Settings → BLE debug).',
-                style: AppText.small,
+                style: AppText.secondary,
               ),
             ],
           ),
@@ -206,7 +206,7 @@ class _CaptureHomeScreenState extends ConsumerState<CaptureHomeScreen> {
                 ),
                 onChanged: (_) => setState(() {}),
               ),
-              Text('Sex$optional', style: AppText.small),
+              Text('Sex$optional', style: AppText.secondary),
               SegmentedButton<Sex>(
                 key: const ValueKey('capture-sex'),
                 emptySelectionAllowed: true,
@@ -257,7 +257,7 @@ class _CaptureHomeScreenState extends ConsumerState<CaptureHomeScreen> {
                   'Does not meet the inclusion criteria '
                   '(foot length $range).',
                   key: const ValueKey('capture-foot-ineligible'),
-                  style: AppText.small.copyWith(
+                  style: AppText.secondary.copyWith(
                     color: StatusColors.careful.text,
                   ),
                 ),
@@ -273,7 +273,7 @@ class _CaptureHomeScreenState extends ConsumerState<CaptureHomeScreen> {
                 Text(
                   'Required for SI- codes: ${missing.join(', ')}.',
                   key: const ValueKey('capture-missing'),
-                  style: AppText.small,
+                  style: AppText.secondary,
                 ),
               FilledButton(
                 key: const ValueKey('capture-start'),
@@ -295,7 +295,7 @@ class _CaptureHomeScreenState extends ConsumerState<CaptureHomeScreen> {
             title: '3 · On this phone',
             children: [
               if (sessions.isEmpty)
-                Text('No sessions yet.', style: AppText.small),
+                Text('No sessions yet.', style: AppText.secondary),
               for (final s in sessions)
                 _SessionTile(
                   key: ValueKey('capture-session-${s.sessionId}'),
@@ -376,8 +376,8 @@ class _Plan extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.info,
-        borderRadius: BorderRadius.circular(Dimens.radiusTip),
+        color: AppColors.bg,
+        borderRadius: BorderRadius.circular(Dimens.radiusCard),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -426,7 +426,7 @@ class _SessionTile extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(listing.sessionId, style: AppText.bodyStrong),
-              Text(status, style: AppText.small),
+              Text(status, style: AppText.secondary),
             ],
           ),
         ),

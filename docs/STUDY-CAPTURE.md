@@ -37,8 +37,9 @@ Built in S4C (`docs/reports/027-flutter-capture.md`). Code:
 3. Connect the left and the right insole. Until Home has its own connect
    flow, this is Settings → **BLE debug (temporary)** → Scan → connect
    each insole as LEFT / RIGHT, then Back.
-4. Settings → **Research capture**. Under **1 · Pre-check**, both feet must
-   be green: streaming, battery ≥ 80 %, firmware and calibration read.
+4. Settings (gear, top right of Home) → under **สำหรับผู้วิจัย**, press
+   and hold **ส่วนผู้วิจัย** for 2 seconds. Research capture opens. Under
+   **1 · Pre-check**, both feet must be green: streaming, battery ≥ 80 %, firmware and calibration read.
 
 ## The session
 
@@ -89,7 +90,8 @@ Built in S4C (`docs/reports/027-flutter-capture.md`). Code:
 7. After the last gait, the summary shows every trial. Any done trial can
    still be redone from there.
 
-**If the app closes mid-session**, open Settings → Research capture → the
+**If the app closes mid-session**, open Settings → hold **ส่วนผู้วิจัย**
+for 2 s → the
 session under **3 · On this phone** → **Resume**. A recording that was
 running is kept, marked `interrupted`, and that trial must be recorded
 again.

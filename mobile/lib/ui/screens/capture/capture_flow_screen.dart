@@ -139,7 +139,7 @@ class _TrialHeader extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('$title · attempt $attempt', style: AppText.secondary),
-        Text(g?.th ?? 'ยืนนิ่ง', style: AppText.screenTitle),
+        Text(g?.th ?? 'ยืนนิ่ง', style: AppText.pageTitle),
         Text(g?.en ?? 'Standing still', style: AppText.cardTitle),
         const SizedBox(height: 6),
         Text(
@@ -225,7 +225,7 @@ class _Ready extends ConsumerWidget {
         if (snap != null && !bothUsable)
           Text(
             'Both feet must be streaming to start.',
-            style: AppText.small.copyWith(fontWeight: FontWeight.w600),
+            style: AppText.secondary.copyWith(fontWeight: FontWeight.w600),
           ),
         if (calibration)
           FilledButton(
@@ -253,7 +253,7 @@ class _Ready extends ConsumerWidget {
         Text(
           'Recording lasts ${mmss(s.plannedDuration)} and stops on its own. '
           'Cues: start · 10 s left · end · link lost.',
-          style: AppText.small,
+          style: AppText.secondary,
         ),
       ],
     );
@@ -275,7 +275,7 @@ class _Timer extends StatelessWidget {
           child: Text(
             mmss(remaining),
             key: const ValueKey('capture-timer'),
-            style: AppText.captureTimer,
+            style: AppText.countdown,
           ),
         ),
         Text(caption, style: AppText.secondary, textAlign: TextAlign.center),

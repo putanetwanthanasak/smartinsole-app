@@ -24,9 +24,9 @@ final concentrationPct = th('asymmetry', 'concentrationPct');
 final walkingAccelG = th('motion', 'walkingAccelG');
 final walkingWindowMs = th('motion', 'walkingWindowMs');
 
-/// Contract §8.3 `BATTERY_LOW`: below 15 %. Not in thresholds.json yet
-/// (noted for S7).
-const batteryLowPct = 15;
+/// Contract §8.3 `BATTERY_LOW` (added to thresholds.json in S5,
+/// BACKLOG 30).
+final batteryLowPct = th('battery', 'lowPct');
 
 const sampleS = 0.02;
 
@@ -59,6 +59,12 @@ class FootRun {
   }
 
   double get maxPeak => kpa.expand((k) => k).reduce(math.max);
+
+  /// Highest kPa per channel over the run.
+  List<double> get channelPeaks => [
+    for (var ch = 0; ch < kpa.first.length; ch++)
+      kpa.map((k) => k[ch]).reduce(math.max),
+  ];
 
   /// Per-step PTI, kPa·s: as max-over-channels, and per channel.
   double get maxStepPti => stances
@@ -170,8 +176,22 @@ void main() {
       final (l, r) = runPreset(MockPreset.watch);
       expect(l.maxChannelPti, greaterThan(ptiKpaS));
       expect(l.maxStepPti, greaterThan(ptiKpaS));
-      expect(l.maxPeak, lessThan(alertKpa)); // not PRESSURE_PEAK
       expect(l.maxConcentration, lessThan(concentrationPct));
+      // Zone bands of board HomeDWatch (DESIGN-SPEC §6).
+      const low = 0, medium = 1, high = 2;
+      int band(double k) => k > alertKpa ? high : (k > watchKpa ? medium : low);
+      expect(
+        [for (final k in l.channelPeaks) band(k)],
+        [
+          medium, high, medium, low, low, medium, //
+        ],
+      );
+      expect(
+        [for (final k in r.channelPeaks) band(k)],
+        [
+          low, medium, low, low, low, medium, //
+        ],
+      );
       // It is the forefoot: meta1 (channel 1) carries the highest PTI.
       final st = l.stances.first;
       final pti = [
@@ -179,7 +199,7 @@ void main() {
           st.fold(0.0, (a, k) => a + k[ch] * sampleS),
       ];
       expect(pti.indexOf(pti.reduce(math.max)), 1);
-      expectSafe(r, 'right');
+      expectNothingLevel3(r, 'right'); // orange dots only
       expectDeltaBelow(l, r);
     });
 

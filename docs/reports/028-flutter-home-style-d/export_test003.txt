@@ -1,0 +1,20 @@
+
+## TEST-003_20261023-215802
+  ok    every SHA-256 matches manifest.json
+== TEST-003_20261023-215802  (TEST-003, rehearsal, done)
+  OK    TEST-003_00_calibration_a1: L: 500 samples, steps 20 +- 0.25 ms
+  OK    TEST-003_00_calibration_a1: R: 500 samples, steps 20 +- 0.00 ms
+  OK    TEST-003_01_normal_a1: L: 1500 samples, steps 20 +- 0.25 ms
+  OK    TEST-003_01_normal_a1: R: 1499 samples, steps 20 +- 0.25 ms
+  OK    TEST-003_02_toe_walking_a1: L: 1500 samples, steps 20 +- 0.11 ms
+  OK    TEST-003_02_toe_walking_a1: R: 1500 samples, steps 20 +- 0.25 ms
+  OK    TEST-003_03_heel_walking_a1: L: 1500 samples, steps 20 +- 0.25 ms
+  OK    TEST-003_03_heel_walking_a1: R: 1500 samples, steps 20 +- 0.25 ms
+  OK    TEST-003_04_antalgic_a1: L: 1500 samples, steps 20 +- 0.25 ms
+  OK    TEST-003_04_antalgic_a1: R: 1500 samples, steps 20 +- 0.25 ms
+  OK    TEST-003_05_rotated_foot_a1: L: 1500 samples, steps 20 +- 0.25 ms
+  OK    TEST-003_05_rotated_foot_a1: R: 1500 samples, steps 20 +- 0.25 ms
+  -> PASS
+  saved /home/pumon/smartinsole-data/TEST-003_20261023-215802
+  remove the staged copy /sdcard/Android/data/th.ac.kmutt.smartinsole/files/export/TEST-003_20261023-215802 from the phone? [y/N] 
+Next: back up /home/pumon/smartinsole-data to a second place, then delete the session in the app.
