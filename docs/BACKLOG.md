@@ -566,6 +566,11 @@ between them. **Low battery comes from here**: `walking()` never drops
 below 50 %, so `BATTERY_LOW` (< 15 %) never fires during long test runs.
 The opcode isn't in the Data Contract §3.4 yet.
 
+S7 note: a serial-command subset exists now (`n`/`t`/`p`/`?`,
+`firmware/simulator/lib/insole_core/src/scenario.*`, for the S7 phone
+check), each a pure `DataSource` as planned here. There is still no BLE
+opcode, and still no low-battery, sensor-fault or `-32768` scenario.
+
 ## 19. `seq` / `t0_ms` behaviour across connections is not in the Data Contract **(found in S2B)**
 
 Contract §3.1 only says `seq` "wraps at 65535, used to detect dropped
@@ -834,7 +839,27 @@ Contract §8.3 defines `BATTERY_LOW` as below 15 %, but
 preset (left foot 10 %) and its test cite the contract value directly. S7
 should add it to `thresholds.json` (rule 12) and point the test at it.
 
-## 31. How to read the PTI and concentration rules **(found in S4, for S7)**
+## 31. How to read the PTI and concentration rules **(found in S4, for S7)** — RESOLVED (S7)
+
+Resolved in S7 (user decision 2026-10-24, `docs/reports/030-*.md`):
+- **PTI:** per zone, per walking step, PTI = ∫kPa dt over that stance.
+  `PRESSURE_PTI` holds while a zone's **mean per-step PTI over the steps
+  of the last `pressure.ptiWindowMin` (60) minutes** is above `ptiKpaS`,
+  once the window holds at least `ptiMinSteps` (20) steps, and only while
+  the foot is still walking.
+- **Concentration:** per walking step, the top zone's peak divided by the
+  sum of the six zone peaks is above `concentrationPct`, with the **same
+  zone on top for `asymmetry.concentrationSteps` (20) steps in a row**.
+  Quiet standing never fires it.
+- Steps come from `mobile/lib/rules/step_detector.dart`
+  (`steps.contactKpa`, `minStanceMs`, `maxStanceMs`, provisional; the SR
+  session checks them against a manual step count).
+The mock presets kept the per-step reading, so they needed no change.
+Still to confirm with the contract owner (as a local reading, noted in
+DATA-CONTRACT §8.3).
+
+Original note:
+
 
 Contract §8.3 gives `ptiKpaS` and `concentrationPct` without saying what
 they are computed over. Read literally:
@@ -909,7 +934,27 @@ Connection placeholder (S8B). Research capture moved behind a 2 s long
 press (Settings → "ส่วนผู้วิจัย"); the debug screen is still the only
 connect path, so this item stays open for S8B.
 
-## 37. Balance and peak asymmetry: interim definitions **(found in S5, for S7)**
+## 37. Balance and peak asymmetry: interim definitions **(found in S5, for S7)** — RESOLVED (S7)
+
+Resolved in S7:
+- **`ASYMMETRY_PEAK`:** on every completed walking step, with both feet
+  usable, PAI of the two feet's latest step peaks (each the highest zone
+  of that step; the other foot's step must be recent). It holds after
+  `asymmetry.peakSteps` (20) steps in a row above `peakPct`, and clears on
+  the first step at or below it or when a foot is unusable. Its side is
+  the foot with the higher peak. `PeakAsymmetry` (2 s window) is gone.
+- **Balance note:** orange with the `triangle-alert` icon only while
+  `ASYMMETRY_PEAK` holds, naming the rule's foot; otherwise `ink` as
+  before. The 10 s weight share stays display only; its window moved to
+  Home (`balanceWindowMs`), out of `lib/rules/`.
+- **`watch` preset:** PEAK fires at once; after 20 steps PTI also holds
+  and names the status (order TEMP_DELTA > PTI > PEAK >
+  LOAD_CONCENTRATION, user decision), matching board HomeDWatch.
+- `safeOrangeDot` also gets the orange note: its PAI (≈ 45 %) is a real
+  level-2 `ASYMMETRY_PEAK`; the preset was kept as it is.
+
+Original note:
+
 
 **Home's balance card (user decision 2026-10-23, replaces the first D6
 change).** "{L} : {R}" means weight share:
@@ -941,7 +986,16 @@ left first metatarsal head peaks above `alertKpa` (240 kPa), so S7's
 3). S7 decides which cause the status detail names; the board's detail is
 the PTI one ("…รับน้ำหนักมากต่อเนื่องนานเกินไป").
 
-## 38. One foot missing: the connected foot's level 3+ must win **(found in S5, for S7)**
+## 38. One foot missing: the connected foot's level 3+ must win **(found in S5, for S7)** — RESOLVED (S7)
+
+Resolved in S7: `AlertEngine.status` picks a level-3+ rule from a usable
+foot over No data; otherwise No data names the missing foot
+(`PatientStatus.missing`, detail "ยังไม่ได้เชื่อมต่อแผ่นรองเท้า{ขวา}
+จึงยังบอกไม่ได้ว่าเท้า{ขวา}ปลอดภัยหรือไม่", draft). Two-foot values stay
+"—" (rule 4).
+
+Original note:
+
 
 S5 shows No data whenever either foot is not usable (decision D7). With
 the rules engine (S7): when one foot is missing and the connected foot
@@ -967,7 +1021,23 @@ Also: the dots show each zone's peak over the last 2 s (the same window
 as the balance card), so a zone touched once during a step stays
 coloured for 2 s instead of flickering at walking pace.
 
-## 40. Research capture: its alerts go into the export, and leave with it **(user request in S6A, for S7/SR)**
+## 40. Research capture: its alerts go into the export, and leave with it **(user request in S6A, for S7/SR)** — RESOLVED (S7)
+
+Resolved in S7, all three parts:
+1. While a session's flow screen is open (`activeCaptureProvider`, set
+   by capture home around the push), every alert carries its stamp.
+2. The export writes `alerts.csv` (export folder only, hashed in
+   `manifest.json`; header only when there are none). Columns: `at_ms`,
+   `code`, `level`, `patient_status`, `side`, `zone`, `site`,
+   `measured_value`, `threshold`, `gait_class`, `gait_confidence`,
+   `read_at_ms`, `details`. The planned "ISO local" column was dropped:
+   a local time without its offset is ambiguous, and `at_ms` is exact.
+   `tools/capture/load_capture.py` checks it; `--selftest` covers it
+   (the shared fixture has one alert).
+3. "Delete from phone" deletes the session's alerts too.
+
+Original note:
+
 
 The warm-compress test (proposal doc 03) needs the alert times of each
 study session. S6A stores them: `alerts.capture_stamp` holds the running
@@ -988,3 +1058,31 @@ What is still missing:
    alerts go only when their capture goes. Not wired in S6A because the
    capture flow was out of scope; until it is, deleting a capture leaves
    its alerts in the database (harmless, but they are never cleaned up).
+
+## 41. `rotated_foot` has no in/out-toeing direction for the gait note **(found in S7, for S8A)**
+
+Contract §8.3.1 gives the `rotated_foot` note different zones for
+in-toeing and out-toeing, but Model A's class is just `rotated_foot`.
+`gaitNoteTh` (`mobile/lib/rules/gait_note.dart`) therefore gives no note
+for it. When Model A (S8A) or the capture labels provide the direction,
+add it to `GaitEstimate` and to the note's zone match.
+
+## 42. The simulator's normal walk is gentler than the app's walking gate **(found in S7)**
+
+The app's gate (contract §8.3.2) is the mean of |‖a‖ − 1 g| over
+`motion.walkingWindowMs` ≥ `walkingAccelG` (0.15 g). The simulator's
+normal walk (`synth::gaitSample`) gives a lowest window mean of about
+0.07 g and a highest of about 0.16 g, so with the simulator the gate is
+mostly off: few steps are counted, and `PRESSURE_PEAK`, PTI,
+concentration and asymmetry cannot be shown from the normal walk. The
+existing native test (`test_accel_moves_enough_to_be_walking`) checks
+the standard deviation of ‖a‖ (> 0.15), not the contract's statistic.
+S7 worked around it inside its approved scope: the `p` serial scenario
+scales the walk's dynamic accel ×4 (lowest window mean > 0.19 g,
+`test/test_scenario`). Options, for the user: raise the normal walk's
+motion and test it with the contract's statistic (a change to the
+simulator's default output), or leave it until real-board data sets
+`walkingAccelG` (SR). Real feet move far more at heel strike than the
+simulator does, so this is a simulator limit, not evidence the gate is
+too strict.
+

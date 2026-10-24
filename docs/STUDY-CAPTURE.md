@@ -96,6 +96,25 @@ session under **3 · On this phone** → **Resume**. A recording that was
 running is kept, marked `interrupted`, and that trial must be recorded
 again.
 
+## Alerts during the session (S7)
+
+Every alert the app raises **while this session's screen is open** (any
+phase: calibration, a trial, rest or the summary) is tied to the session
+by its time stamp, never by the subject code. It goes into the export as
+`alerts.csv` and is deleted from the phone with the session.
+
+- **Do the warm-compress step (doc 03) with the session open**, so its
+  `TEMP_DELTA` alert lands in this session's `alerts.csv`. An alert raised
+  after you leave the session screen is not part of the export.
+- The app counts a temperature difference as an alert when it is
+  **above** 2.2 °C on two readings in a row (readings come every 30 s).
+  Doc 03 counts a warm-compress event as qualifying at **≥ 2.2 °C** on
+  the reference thermometer. The two differ only at exactly 2.20 °C; the
+  analysis uses doc 03's definition for qualifying events.
+- The same alert (code + foot + zone or site) is raised at most once per
+  30 minutes, so a second warm compress within 30 minutes on the same
+  foot and site gives no second row.
+
 ## Export (right after the session)
 
 1. Summary (the list icon at the top right, or the screen after the last
@@ -137,6 +156,10 @@ line per check; `PASS` at the end means no FAIL.
   just shown.
 - **INFO**: problems in attempts already marked invalid (e.g. a redone
   one).
+- **`alerts.csv`**: FAIL on an unknown code, a level that does not match
+  its code, a zone / site / side that is not valid for the code, rows
+  out of time order, or an alert from before the session was created.
+  WARN when the file is missing (an export from before S7).
 
 ## Files (one session folder)
 
@@ -145,6 +168,7 @@ line per check; `PASS` at the end means no FAIL.
 | `session.json` | Code, coded subject data, room temperature, trial order and seed, pain side, timings, calibration summary (resting kPa per channel, starting temperatures, starting ΔT), every attempt, exports |
 | `<code>_<nn>_<label>_a<k>.csv` | One row per sample per foot: unix time, device time, side, connection session, seq, sample index, missing packets, flags, `valid`, raw ADC ×6, kPa ×6, accel g ×3, gyro °/s ×3, temperature on the first row after each reading |
 | `<code>_<nn>_<label>_a<k>.json` | Sidecar: gait and model index, pain side / rotation, planned and actual duration, end reason, valid / invalid reason, marked segments, gaps, per foot calibration table, firmware, battery, counts, temperature readings, app version |
+| `alerts.csv` | Export only: the alerts raised while the session screen was open, oldest first (header only if none). `at_ms` (unix ms), `code`, `level` (1–5), `patient_status` (what Home showed), `side`, `zone`, `site`, `measured_value`, `threshold`, `gait_class`, `gait_confidence`, `read_at_ms`, `details` (JSON) |
 | `manifest.json` | Size and SHA-256 of every file (from the export) |
 
 `nn` is 00 for calibration, then 01–05 in the subject's order. For
