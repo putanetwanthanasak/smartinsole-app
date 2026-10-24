@@ -4,8 +4,9 @@ Branch `work/flutter-storage` (from `main` at the PR #24 merge, `c4766fa`)
 · 2026-10-24 · Session S6A (`docs/SESSIONS.md` §3)
 Spec: DESIGN-SPEC §4, §7, §8.2, §11, §14; DATA-CONTRACT v1.5 §8.3.
 
-**Status: everything automated passes; the Note 10 check (temperature rows
-survive killing the app) is waiting for the user.**
+**Status: everything automated passes. The Note 10 check was run by Claude
+on 2026-10-24 and passes (temperature rows survive killing the app);
+waiting for the user's acceptance.**
 
 ## Summary
 
@@ -203,9 +204,8 @@ the alert or foot-check write. Max |ΔT| is updated by the recorder.
   - The Note 10 uses Android **file-based encryption**: Android 10 and later
     require FBE on every device that launches with that version, and the
     Note 10 runs Android 12.
-  - *To confirm on the phone during the checkpoint*: `adb shell getprop
-    ro.crypto.type` should read `file`, and the result goes in the
-    checkpoint section below.
+  - Confirmed on the phone: `ro.crypto.type` = `file`,
+    `ro.crypto.state` = `encrypted`.
   - No SQLCipher was added.
 - **Backup and transfer are now off (decision 3).**
   - Before this change, `allowBackup` was not set, so it defaulted to *on*.
@@ -239,7 +239,7 @@ the alert or foot-check write. Max |ΔT| is updated by the recorder.
 | `flutter test` | **437 passed** |
 | Emulator, real-BLE build | The file is created and is schema v1 (`PRAGMA user_version` 1, all tables and indexes); no runtime errors |
 | Emulator, `MOCK=safe` | The debug card shows L 3 / R 3 rows after ~60 s and updates live; written 6, failed 0; the phone file still has 0 rows |
-| **Note 10: rows survive killing the app** | **Waiting for the user** (checklist below) |
+| **Note 10: rows survive killing the app** | **Pass** (see "Note 10 checkpoint"); waiting for the user's acceptance |
 
 Emulator screenshots: `029-flutter-storage/emulator-debug-storage-mock.png`
 (1 row per foot just after start) and `emulator-storage-card-60s.png`
@@ -266,10 +266,9 @@ Rule check against FLUTTER-PLAN §6:
 - Split per-ABI APKs would remove the difference if size ever matters. Not
   changed now.
 
-## Note 10 checkpoint (user)
+## Note 10 checkpoint (run by Claude, 2026-10-24; user accepts)
 
-Short check: one simulator, 2 minutes, kill, reopen. I will run the adb
-steps when you plug in, and you accept the result.
+Short check: one simulator, 2 minutes, kill, reopen. The steps as planned:
 
 1. Plug in the Note 10 and power **one** ESP32 simulator (left is enough).
 2. I record the installed build's research sessions and `firstInstallTime`
@@ -284,7 +283,28 @@ steps when you plug in, and you accept the result.
    connecting**. Pass if the Storage card still shows the same LEFT count
    and latest time, with "this run: written 0".
 
-Results: _waiting_.
+**Results:** phone `RF8M83P4STZ` (SM-N975F, Android 12), left simulator
+board `88:57:21:B7:74:9E` only.
+
+| Step | Result |
+|---|---|
+| Data safety before install | The installed build had `firstInstallTime` 2026-10-18 19:20:47 and the export staging folder `TEST-003_20261023-215802` (S5 checkpoint). Its flags still included `ALLOW_BACKUP` |
+| `adb install -r` (release, the S6A code) | Success. `firstInstallTime` unchanged; `lastUpdateTime` 2026-10-24 16:39:37; the `TEST-003` folder still there; flags now `[ HAS_CODE ALLOW_CLEAR_USER_DATA ]`, **no `ALLOW_BACKUP`** |
+| Encryption | `ro.crypto.type` = `file`, `ro.crypto.state` = `encrypted` (FBE) |
+| Home after install | "ยังไม่ได้รับข้อมูล", **no badge** (empty alert table → 0) |
+| Connect LEFT (BLE debug) | First attempt `ANDROID_SPECIFIC_ERROR (code 133)` at 16:41:50.9; the automatic retry connected (MTU 247, 8/pkt, N 6) at 16:41:54.0. This is the existing S3A retry path, not a storage issue |
+| Streamed about 2.5 min | Storage card at 16:44:46: **LEFT 6 rows, latest 16:44:24, written 6, failed 0**. One reading at connect and one every 30 s. `note10-before-kill.png` |
+| `am force-stop` at 16:44:56 | Process gone (`pidof` empty) |
+| Reopen → Settings → BLE debug, **no connect** | **LEFT 7 rows, latest 16:44:54, "this run: written 0 · failed 0"**; the log shows only adapter/permission, no connection. `note10-after-restart.png` |
+
+**Pass.** All rows written before the kill are still in the file. The 7th
+row is the next 30 s reading (16:44:24 + 30 s), written at 16:44:54, after
+the last screenshot (16:44:46) and before the force-stop (16:44:56). No row
+was written after the restart.
+
+The phone keeps this build (S6A release, debug-key signed, data kept). The
+7 rows of simulator readings from this check stay in its database. They
+are deleted by retention after 30 days, or by clearing the app's data.
 
 ## Leftovers and notes for later sessions
 
