@@ -315,6 +315,7 @@ Additional info: [optional]
 ### S9 — Integration + APK
 - **Do:** integration checklist; 30 minutes with 2 boards on the phone (simulator boards; real boards are SR); battery and smoothness; reduce-motion; release APK. **User checkpoint** also covers: press sensors and watch the right dots change, warm one temperature sensor and watch ΔT, connect both insoles unaided.
 - **DEVICE_LOST check (added in S6B):** with both boards streaming, power off one board for more than 5 minutes (`alerts.deviceLostAfterMin`). `DEVICE_LOST` is raised for that foot, appears on the Alerts list, and its card opens the right detail (`เรื่องอุปกรณ์`, "เชื่อมต่อได้ครั้งล่าสุด", "เชื่อมต่ออีกครั้ง" → Connection).
+- **Auto-reconnect check (added after S6B, BACKLOG 45, before SR):** keep both serial loggers running. While both boards stream, reset one board (EN button) twice: once with the phone screen on, and once with the screen off and the app in the background. Each time, record the time from the reset to streaming again, from the board's log and the BLE debug event log. Expected: it reconnects well within `alerts.deviceLostAfterMin` and raises no DEVICE_LOST. If it does not reconnect, find why (BACKLOG 45) and fix it before SR.
 - **Done when:** the APK works for 30 minutes with no serious issues.
 
 ### S10 — Wrap-up
