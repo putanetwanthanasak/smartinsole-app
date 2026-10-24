@@ -351,7 +351,17 @@ and the session. I moved it inside the session so it rehearses the
 warm-compress step the way `docs/STUDY-CAPTURE.md` now describes, and so
 the export proves a TEMP_DELTA row too.
 
-## Decisions needed
+## Decisions (user, 2026-10-24, after the PR)
+
+1. **`pressure.peakHoldMs` 2500: keep it (provisional).** Added to the
+   SR checklist next to the step-detection check.
+2. **BACKLOG 42: not in S7; scheduled for S8A.** Raise the normal walk's
+   motion (gate mean around 0.3 g), test with the contract's statistic,
+   keep `t` / `p` / `n`. SR also records the gate statistic with the real
+   boards and adjusts `motion.walkingAccelG` if needed. Both added to
+   `docs/SESSIONS.md`.
+
+## Decisions needed (as first written)
 
 1. **`pressure.peakHoldMs` = 2500 (new key, provisional).** It replaces
    the plan's "clears after the next step at or below `alertKpa`" for

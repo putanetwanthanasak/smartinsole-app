@@ -1067,7 +1067,16 @@ in-toeing and out-toeing, but Model A's class is just `rotated_foot`.
 for it. When Model A (S8A) or the capture labels provide the direction,
 add it to `GaitEstimate` and to the note's zone match.
 
-## 42. The simulator's normal walk is gentler than the app's walking gate **(found in S7)**
+## 42. The simulator's normal walk is gentler than the app's walking gate **(found in S7)** — SCHEDULED for S8A
+
+**User decision 2026-10-24:** not in S7; do it in S8A, since the step
+count depends on it. Raise the normal walk's motion so the gate statistic
+is on for most of each stride, aiming for a mean around 0.3 g (typical of
+a heel-mounted IMU); test it with the contract's statistic; keep `t` / `p`
+/ `n` working. Separately, SR records the gate statistic with the real
+boards (standing calibration and each normal-gait trial) and adjusts
+`motion.walkingAccelG` if needed.
+
 
 The app's gate (contract §8.3.2) is the mean of |‖a‖ − 1 g| over
 `motion.walkingWindowMs` ≥ `walkingAccelG` (0.15 g). The simulator's
