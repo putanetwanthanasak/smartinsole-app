@@ -280,7 +280,7 @@ Additional info: [optional]
 - **Do:** 8 codes per contract §8.3, walking gate, ΔT 2 consecutive readings, 30-minute repeat suppression, level 1–5 (max), 3-level mapping per FLUTTER-PLAN section 7, plain-Thai advice for every code, thresholds from `thresholds.json`.
 - **Verify:** unit tests for every code (trigger / no trigger / boundary) and every row of the mapping table.
 - **Done when:** every rule passes; no threshold numbers in code.
-- **Result (report 030):** `AlertEngine` with all 8 codes on the 50 Hz path, walking gate and step detection (per-step PTI, concentration and asymmetry, user decision); suppression read back from the alerts table (holds across a restart); Home status from the engine (BACKLOG 37/38); research alerts tagged, exported as `alerts.csv` and deleted with their capture (BACKLOG 40); simulator serial scenarios `t`/`p`/`n`/`?`. Note 10 check pending the user.
+- **Result (report 030):** `AlertEngine` with all 8 codes on the 50 Hz path, walking gate and step detection (per-step PTI, concentration and asymmetry, user decision); suppression read back from the alerts table (holds across a restart); Home status from the engine (BACKLOG 37/38); research alerts tagged, exported as `alerts.csv` and deleted with their capture (BACKLOG 40); simulator serial scenarios `t`/`p`/`n`/`?`. Note 10 checkpoint 7/7 passed; **accepted by the user 2026-10-24**. `PRESSURE_PTI` (60-min mean) is not expected to fire in 3-min study trials; its evaluation relies on the unit tests.
 
 ### SR — Study readiness (new, decided 2026-10-21)
 - **Requires:** S4C, S5, S6A, S7, S6B merged; real boards from Phumirapee (fall back to the simulator if not ready).

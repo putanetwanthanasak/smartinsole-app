@@ -111,6 +111,13 @@ by its time stamp, never by the subject code. It goes into the export as
   Doc 03 counts a warm-compress event as qualifying at **≥ 2.2 °C** on
   the reference thermometer. The two differ only at exactly 2.20 °C; the
   analysis uses doc 03's definition for qualifying events.
+- **`PRESSURE_PTI` is not expected to fire during data collection.** It
+  is the mean per-step pressure-time integral over the last 60 minutes of
+  walking, and the trials are 3 minutes each, so a session never builds
+  that window up. Its evaluation relies on the unit tests
+  (`mobile/test/rules/alert_engine_test.dart`), not on study data. A
+  `PRESSURE_PTI` row in a study export would be unexpected and worth a
+  look.
 - The same alert (code + foot + zone or site) is raised at most once per
   30 minutes, so a second warm compress within 30 minutes on the same
   foot and site gives no second row.

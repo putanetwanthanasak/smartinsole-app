@@ -6,9 +6,10 @@ Spec: DATA-CONTRACT v1.5 §8.2–§8.5, FLUTTER-PLAN §6 and §7, DESIGN-SPEC
 §6, §7 and Appendix A. Plan approved 2026-10-24, with the user's
 additions on the ΔT boundary, phone step 3 and the SR checklist.
 
-**Status: everything automated passes, and the Note 10 checkpoint ran
-on 2026-10-24 with all 7 steps passing (section "Note 10 checkpoint").
-Waiting for the user to accept it.**
+**Status: accepted by the user (2026-10-24).** Everything automated
+passes, and the Note 10 checkpoint passed all 7 steps (section "Note 10
+checkpoint"). The optional 8-minute on-phone PTI check was skipped by the
+user's decision; the unit tests cover PTI.
 
 ## Summary
 
@@ -330,7 +331,7 @@ says, and PEAK fires there from the `p` motion.
   preset test was not added as a separate file. The Home goldens and
   `home_model_test` already run every preset through the real engine.
 
-## Note 10 checkpoint (run 2026-10-24; waiting for the user to accept)
+## Note 10 checkpoint (run 2026-10-24; accepted by the user)
 
 Plug in the Note 10 and both boards, then tell me. I will:
 
@@ -394,7 +395,18 @@ when the phone connected (around 140 steps at about 5 kPa·s). With about
 need about 7 minutes of walking before the mean passed 80.
 
 So the table's "PTI after about 22 s" was wrong: I forgot the earlier
-steps in the window. The unit tests cover the boundary exactly, but they
+steps in the window.
+
+**Consequence for the study (user, 2026-10-24).** The trials are 3
+minutes each, against a 60-minute mean, so `PRESSURE_PTI` is not
+expected to fire during data collection. Its evaluation relies on the
+unit tests (`alert_engine_test.dart`: the exact 80 kPa·s boundary,
+19 vs 20 steps, steps leaving the window), not on study data. This note
+is also in `docs/STUDY-CAPTURE.md`.
+
+**Clean-up after the run.** Both serial loggers were stopped. The staged
+TEST-004 copy was removed from the phone's export folder; it was test
+data, and the laptop copy had passed. The unit tests cover the boundary exactly, but they
 start walking with high PTI from the first step. For SR: PTI responds
 over minutes, not seconds, by design. A short high-pressure episode
 inside a long normal walk does not raise it.
