@@ -4,6 +4,7 @@ The SmartInsole Android app (Flutter). Read the repo-root `CLAUDE.md` first,
 then `docs/FLUTTER-PLAN.md`, `docs/SESSIONS.md` (section 0 is the per-session
 workflow) and `docs/design/DESIGN-SPEC.md`. Wire format and thresholds:
 `docs/DATA-CONTRACT.md` and `docs/BLE-INTERFACE.md` win over everything else.
+Start each session with `/session <ID> [notes]` (`.claude/skills/session/SKILL.md`).
 
 ## Ground rules
 
