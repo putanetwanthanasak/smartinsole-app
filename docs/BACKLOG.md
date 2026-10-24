@@ -1108,3 +1108,13 @@ change the value to one the source supports, and update §8.3,
 `thresholds.json` and its `sources` line together. Until then the screen
 keeps the contract's text unchanged; nothing on screen says it is
 unverified.
+
+## 44. Icon stroke is Lucide's 2, not the spec's 2.25 **(found in the S6B review)** — OPEN, for S10
+
+DESIGN-SPEC §5 gives `stroke 2.25` for the back link's `chevron-left` and
+the status tag's icon (and the boards draw every Lucide icon at 2.25).
+The app draws icons with `flutter_lucide`'s font glyphs, whose stroke is
+fixed at Lucide's default 2 and cannot be set, on every screen since S5.
+Options for S10: accept 2 and change §5, or draw the icons from the Lucide
+SVGs (e.g. `flutter_svg`, stroke 2.25) everywhere. Not changed per screen,
+so the app stays consistent.

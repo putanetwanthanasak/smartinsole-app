@@ -119,10 +119,21 @@ DateTime localTimeOf(StoredAlert a) =>
     DateTime.fromMillisecondsSinceEpoch(a.atMs);
 
 /// TalkBack label of a list card (§13): status + time + title + read
-/// state, e.g. "ควรพักเท้า 14:32 เท้าขวาอุ่นกว่าเท้าซ้าย ยังไม่ได้อ่าน".
-String cardLabel(StoredAlert a) =>
-    '${lookOf(a.kind).tag} ${hhmm(localTimeOf(a))} ${copyOf(a).title} '
-    '${a.isRead ? 'อ่านแล้ว' : 'ยังไม่ได้อ่าน'}';
+/// state, then the source line and the advice the card shows (rule 13),
+/// e.g. "ควรพักเท้า 14:32 เท้าขวาอุ่นกว่าเท้าซ้าย ยังไม่ได้อ่าน ควรทำ:
+/// นั่งพักเท้า แล้วตรวจดูว่ามีรอยแดงหรือแผลไหม".
+String cardLabel(StoredAlert a) {
+  final copy = copyOf(a);
+  final source = sourceLineOf(a);
+  return [
+    lookOf(a.kind).tag,
+    hhmm(localTimeOf(a)),
+    copy.title,
+    a.isRead ? 'อ่านแล้ว' : 'ยังไม่ได้อ่าน',
+    ?source,
+    'ควรทำ: ${copy.todo}',
+  ].join(' ');
+}
 
 /// Alerts-list group title for the local date [localDate] (`YYYY-MM-DD`)
 /// at [now]: "วันนี้", "เมื่อวาน · อังคาร 20 ต.ค.", or "อังคาร 20 ต.ค.".

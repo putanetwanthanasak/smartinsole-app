@@ -79,6 +79,22 @@ void main() {
       expect(find.text('จากการดูเท้าประจำวัน'), findsOneWidget);
     });
 
+    testWidgets('a finding\'s label carries its source line and advice', (
+      tester,
+    ) async {
+      final handle = tester.ensureSemantics();
+      await pumpAlerts(tester, size: const Size(390, 2000));
+      expect(
+        find.bySemanticsLabel(
+          'ควรระวัง 09:30 พบสิ่งที่ควรให้แพทย์ดู ยังไม่ได้อ่าน '
+          'จากการดูเท้าประจำวัน ควรทำ: ไปพบแพทย์หรือพยาบาลภายใน 1–2 วัน '
+          'และนำรูปที่ถ่ายไว้ไปให้ดู',
+        ),
+        findsOneWidget,
+      );
+      handle.dispose();
+    });
+
     testWidgets('empty state', (tester) async {
       await pumpAlerts(tester, seed: false);
       expect(byKey('alerts-empty'), findsOneWidget);
@@ -126,7 +142,8 @@ void main() {
       final ids = await pumpAlerts(tester, read: {AlertKind.deviceLost});
       expect(
         find.bySemanticsLabel(
-          'ควรพักเท้า 09:00 เท้าขวาอุ่นกว่าเท้าซ้าย ยังไม่ได้อ่าน',
+          'ควรพักเท้า 09:00 เท้าขวาอุ่นกว่าเท้าซ้าย ยังไม่ได้อ่าน '
+          'ควรทำ: นั่งพักเท้า แล้วตรวจดูว่ามีรอยแดงหรือแผลไหม',
         ),
         findsOneWidget,
       );
@@ -140,7 +157,8 @@ void main() {
       );
       expect(
         find.bySemanticsLabel(
-          'อุปกรณ์ 16:20 แผ่นรองเท้าซ้ายหลุดการเชื่อมต่อ อ่านแล้ว',
+          'อุปกรณ์ 16:20 แผ่นรองเท้าซ้ายหลุดการเชื่อมต่อ อ่านแล้ว '
+          'ควรทำ: ตรวจว่าแผ่นรองเท้าเปิดอยู่ แล้วเชื่อมต่อใหม่',
         ),
         findsOneWidget,
       );

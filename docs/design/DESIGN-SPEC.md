@@ -255,6 +255,8 @@ Codes follow DATA-CONTRACT v1.5 §8.3: **8 codes** (user decision; an earlier "9
 | `BATTERY_LOW` (1) | Status unchanged; low-battery style (§5) | Yes | "อุปกรณ์" (`battery-low`) | "แบตเตอรี่แผ่นรองเท้าขวาเหลือน้อย" / "ชาร์จแบตเตอรี่ก่อนใช้ครั้งต่อไป" | Connection |
 | Foot-check finding (not a contract code) | — | Yes | "ควรระวัง" | "พบสิ่งที่ควรให้แพทย์ดู" + line "จากการดูเท้าประจำวัน" / "ไปพบแพทย์หรือพยาบาลภายใน 1–2 วัน และนำรูปที่ถ่ายไว้ไปให้ดู" | Foot check › Something found |
 
+The board examples above are the design's; the app's copy is `alertCopyFor` and follows Appendix A where S7 changed it (`LOAD_CONCENTRATION`'s ควรทำ is now the walking advice "ลองเดินช้าลงให้น้ำหนักลงทั้งฝ่าเท้า หรือนั่งพักสักครู่"; §7.3's `PRESSURE_PEAK` detail is "…รับแรงกดสูงมากตอนเดิน"). Where they differ, Appendix A wins.
+
 ### 7.2 Alerts list
 
 - Title "แจ้งเตือน" with "ยังไม่ได้อ่าน {n} รายการ" under it (16 `inkMuted`, polite live region).
@@ -266,6 +268,7 @@ Codes follow DATA-CONTRACT v1.5 §8.3: **8 codes** (user decision; an earlier "9
   3. Optional source line 16 `inkMuted` (foot-check findings: "จากการดูเท้าประจำวัน")
   4. "ควรทำ: " (16/700) + advice (16, `ink`)
   - `chevron-right` 24 `primary` at the right edge.
+- TalkBack label of a card (S6B): "{tag} {HH:mm} {title} ยังไม่ได้อ่าน|อ่านแล้ว", then the source line if any and "ควรทำ: {advice}", so the advice is heard too (rule 13).
 - Footer "แสดงย้อนหลัง 30 วัน" (16 `inkMuted`, centred), matching the 30-day retention in S6A.
 - **Empty:** 88 circle `primarySoft` with `bell` 40 `primary`; "ยังไม่มีการแจ้งเตือน" (22/700); "เมื่อแอปพบเรื่องที่ควรระวัง จะแสดงที่นี่ พร้อมคำแนะนำว่าควรทำอะไร" (18 `inkMuted`, max width 300); centred, 96 below the title (24 page gap + 72).
 
