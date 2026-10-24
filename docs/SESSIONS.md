@@ -1,6 +1,6 @@
 # Claude Code Session Plan — SmartInsole Flutter App (v2.4)
 
-> Updated 2026-10-22 (v2.4: two sessions a day, all sessions finish by 2026-10-27. v2.3, 2026-10-22: all sessions finish by 2026-10-31; model-input units fixed for S4C/S8A. v2.2: the phone app becomes the research capture tool; new sessions S4C and SR) · Use together with `docs/FLUTTER-PLAN.md` and `docs/design/DESIGN-SPEC.md`
+> Updated 2026-10-24 (v2.5: S6A + S7 on Sat 24, S6B now includes the My feet shell and the Pressure tab. v2.4, 2026-10-22: two sessions a day, all sessions finish by 2026-10-27. v2.3, 2026-10-22: all sessions finish by 2026-10-31; model-input units fixed for S4C/S8A. v2.2: the phone app becomes the research capture tool; new sessions S4C and SR) · Use together with `docs/FLUTTER-PLAN.md` and `docs/design/DESIGN-SPEC.md`
 > Run Claude Code on the Ubuntu machine in `~/smartinsole-app`
 
 ---
@@ -39,14 +39,14 @@ What the study protocol (proposal doc 03) needs from the app:
 | Volunteer usability tasks: pressure map, alert list, explain an alert message | Home with heatmap, Alerts screen, plain-Thai advice | S5 + S6B + S7 |
 | Alert text shown to volunteers | Reviewed by the medical expert | before 2026-11-05 |
 
-Schedule (v2.4, user decision 2026-10-22: two sessions a day, every session finished by 27 Oct):
+Schedule (v2.5, user decision 2026-10-24; v2.4 2026-10-22: two sessions a day, every session finished by 27 Oct):
 
 | Date | Session 1 | Session 2 | Design needed (Claude chat) |
 |---|---|---|---|
 | Thu 22 Oct | S4 ✅ | S4C | user picks Home style A/B/C → Home, 4 states |
-| Fri 23 Oct | S4C Note 10 checkpoint + S5 | S6A | Alerts + Temperature |
-| Sat 24 Oct | S7 | S6B | My feet (gait) + Connection + Settings |
-| Sun 25 Oct | S8A | S8B | Foot check (4 screens, new style) · advisor slides |
+| Fri 23 Oct | S4C Note 10 checkpoint | S5 | Alerts + Temperature |
+| Sat 24 Oct | S6A | S7 | My feet (gait) + Connection + Settings |
+| Sun 25 Oct | S6B (incl. My feet shell + Pressure tab) | S8A + S8B | Foot check (4 screens, new style) · advisor slides |
 | **Mon 26 Oct** | advisor meeting | S8C | — |
 | Tue 27 Oct | S9 (simulator boards) | S10 | — |
 | Wed 28 Oct – Sun 1 Nov | buffer · changes from the advisor · send alert text to the medical expert | | — |
@@ -166,10 +166,10 @@ Additional info: [optional]
 | 21–22 Oct | S3B ✅ | Claude Code + user | Web app fallback check (laptop only) | `work/webapp-fallback-check` |
 | 22 Oct | S4 ✅ | Claude Code + user | DeviceManager + timing checks | `work/flutter-device-manager` |
 | 22–23 Oct | S4C | Claude Code + user | Research capture mode | `work/flutter-capture` |
-| 23 Oct | S5 ◐ | Claude Code | Heatmap + Home + animation (style D; phone checkpoint open) | `work/s5-home-style-d` |
-| 23 Oct | S6A | Claude Code | SQLite | `work/flutter-storage` |
+| 23 Oct | S5 ✅ | Claude Code | Heatmap + Home + animation (style D) | `work/s5-home-style-d` |
+| 24 Oct | S6A | Claude Code | SQLite (drift) | `work/flutter-storage` |
 | 24 Oct | S7 | Claude Code | 8 alert rules + risk level + 3-level mapping | `work/flutter-rules` |
-| 24 Oct | S6B | Claude Code | Temperature + Alerts screens | `work/flutter-temp-alerts` |
+| 25 Oct | S6B | Claude Code | My feet shell + Pressure, Temperature and Alerts screens | `work/flutter-temp-alerts` |
 | 2–5 Nov | SR | User + Claude Code | Study rehearsal with real boards | `work/study-readiness` |
 | 25 Oct | S8A | Claude Code | Gait screen + model slot | `work/flutter-gait` |
 | 25 Oct | S8B | Claude Code | Connection + Settings screens | `work/flutter-connect-settings` |
@@ -268,10 +268,11 @@ Additional info: [optional]
 - **Do:** tables for alerts, temperature history, daily summary, foot-check entries (date, answers, photo paths) with `drift`, behind a repository pattern.
 - **Verify:** unit tests for write/read/delete of data older than 30 days.
 - **Done when:** data survives an app restart.
+- **Result (report 029):** drift schema v1 behind 4 repository interfaces; 30-day retention (alerts of a research capture are kept); app backup and device transfer turned off.
 
-### S6B — Temperature + Alerts
+### S6B — My feet shell + Pressure, Temperature + Alerts
 - **Requires:** S5 and S6A merged; these two designs approved.
-- **Do:** per DESIGN-SPEC + animations.
+- **Do:** per DESIGN-SPEC + animations: the My feet shell with its sub-tabs and the Pressure tab (DESIGN-SPEC §8, §8.1), the Temperature tab (§8.2) and the Alerts list and detail (§7). Read alerts, temperatures and summaries only through the S6A repositories; the list uses `AlertRepository.watchVisible` (same visibility rule as the badge).
 - **Verify:** widget + golden tests · **You:** emulator + mock presets (including ΔT above threshold and one foot missing), screenshots via Dart MCP.
 - **Done when:** both screens show mock data correctly in every state.
 

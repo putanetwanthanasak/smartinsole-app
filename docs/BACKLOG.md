@@ -262,6 +262,8 @@ fires) but should be deleted or corrected next time that file is touched.
 
 ## 9. `AlertStore` implements 2 of the contract's 9 alert codes **(found reconciling against Data Contract v1.1, §8.3)**
 
+> Note (2026-10-24): v1.1 had 9 codes; v1.2 removed `GAIT_ABNORMAL`, so the current contract (v1.5) has **8**. The Flutter app follows the 8.
+
 `AlertStore.evaluate()` currently raises two families of alert:
 `pressure.watch`/`pressure.alert` (→ contract's `PRESSURE_WATCH` /
 `PRESSURE_PEAK`) and `temp.delta` (→ `TEMP_DELTA`). The contract specifies
@@ -964,3 +966,25 @@ style. Review with the rest of the draft health copy (Appendix A):
 Also: the dots show each zone's peak over the last 2 s (the same window
 as the balance card), so a zone touched once during a step stays
 coloured for 2 s instead of flickering at walking pace.
+
+## 40. Research capture: its alerts go into the export, and leave with it **(user request in S6A, for S7/SR)**
+
+The warm-compress test (proposal doc 03) needs the alert times of each
+study session. S6A stores them: `alerts.capture_stamp` holds the running
+capture's time stamp (`captureStampOf(sessionId)`, e.g. `20261110-093000`;
+never the subject code), and retention never deletes an alert that has one.
+What is still missing:
+
+1. **S7:** while a research capture is running, every alert the AlertEngine
+   raises carries that capture's stamp (`NewAlert.captureStamp`).
+2. **S7/SR:** the capture export writes the session's alerts
+   (`AlertRepository.forCapture(stamp)`: code, level, side, site/zone,
+   measured value, threshold, time UTC ms + ISO local) as one file in the
+   export bundle. That file is listed in the SHA-256 manifest, and
+   `tools/capture/load_capture.py` loads and checks it (and its `--selftest`
+   covers it).
+3. **"Delete from phone"** (`capture_summary.dart`) also calls
+   `AlertRepository.deleteForCapture(captureStampOf(sessionId))`, so the
+   alerts go only when their capture goes. Not wired in S6A because the
+   capture flow was out of scope; until it is, deleting a capture leaves
+   its alerts in the database (harmless, but they are never cleaned up).
