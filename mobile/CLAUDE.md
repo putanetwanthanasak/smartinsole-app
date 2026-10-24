@@ -70,13 +70,15 @@ lib/
                        mock presets, timing check
   capture/             research capture (S4C): protocol (doc 03), trial
                        recorder on the 50 Hz path, session state machine,
-                       cues, export staging (see its README.md and
-                       docs/STUDY-CAPTURE.md)
+                       cues, export staging with alerts.csv (see its
+                       README.md and docs/STUDY-CAPTURE.md)
   config/              thresholds.json loader (thresholdsProvider) and the
                        placeholder foot layout (S5)
-  rules/               alert codes, pressure level, PeakAsymmetry (one
-                       definition, interim, BACKLOG 37), InterimStatus
-                       (S5 only; S7 replaces it)
+  rules/               AlertEngine (S7): the 8 contract alert rules on
+                       the 50 Hz path, walking gate, step detector,
+                       status (FLUTTER-PLAN §7), 30-min suppression from
+                       the alerts table, plain-Thai copy, gait note (see
+                       its README.md); no numeric literals (a test checks)
   storage/             drift database (S6A), schema v1: alerts,
                        temperature readings, daily summary, foot checks;
                        one repository interface each (see its README.md);

@@ -13,6 +13,7 @@ import '../../ble/packets.dart';
 import '../../device/device_manager.dart';
 import '../../device/device_providers.dart';
 import '../../device/timing_check.dart';
+import '../../storage/alert_repository.dart';
 import '../../storage/storage_providers.dart';
 import '../../storage/temperature_repository.dart';
 import '../clock.dart';
@@ -147,6 +148,7 @@ class _DebugBleScreenState extends ConsumerState<DebugBleScreen> {
                 TemperatureStats.empty,
             written: ref.read(temperatureRecorderProvider).written,
             failed: ref.read(temperatureRecorderProvider).failed,
+            alerts: ref.watch(alertStatsProvider).value,
           ),
           _LogCard(lines: ref.read(bleLogProvider).entries, onCopy: _copyLog),
         ],
@@ -545,16 +547,19 @@ class _FootCard extends StatelessWidget {
 /// S4 checkpoint: starts the timing log (SYNC_TIME every 10 s, a file in
 /// the app's private storage) and shows each foot's clock figures.
 /// S6A phone check: temperature rows in the database survive a restart.
+/// S7 phone check: alerts raised, tagged to a capture, and the latest.
 class _StorageCard extends StatelessWidget {
   const _StorageCard({
     required this.stats,
     required this.written,
     required this.failed,
+    required this.alerts,
   });
 
   final TemperatureStats stats;
   final int written;
   final int failed;
+  final AlertStats? alerts;
 
   @override
   Widget build(BuildContext context) {
@@ -585,6 +590,14 @@ class _StorageCard extends StatelessWidget {
             Text(
               'this run: written $written · failed $failed',
               style: AppText.secondary.copyWith(color: AppColors.inkMuted),
+            ),
+            Text(
+              'alerts ${alerts?.count ?? 0} · capture-tagged '
+              '${alerts?.tagged ?? 0} · latest '
+              '${alerts?.latest?.kind.wireName ?? '—'} '
+              '${time(alerts?.latest?.atMs)}',
+              key: const ValueKey('storage-alerts'),
+              style: AppText.secondary,
             ),
           ],
         ),

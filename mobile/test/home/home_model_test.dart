@@ -3,6 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:smartinsole/ble/insole_data_source.dart';
 import 'package:smartinsole/ble/packets.dart';
 import 'package:smartinsole/device/device_manager.dart';
+import 'package:smartinsole/rules/alert_code.dart';
+import 'package:smartinsole/rules/alert_engine.dart';
 import 'package:smartinsole/rules/patient_status.dart';
 import 'package:smartinsole/rules/pressure_level.dart';
 import 'package:smartinsole/ui/screens/home/home_copy.dart';
@@ -10,6 +12,8 @@ import 'package:smartinsole/ui/screens/home/home_model.dart';
 
 import '../device/fake_source.dart';
 import '../helpers/pump_app.dart';
+
+const safeRules = RulesView(status: PatientStatus.safe, conditions: []);
 
 void main() {
   test('the pressure caption comes from the live dot levels, not the '
@@ -40,7 +44,7 @@ void main() {
       final v = homeViewOf(
         manager.snapshot(),
         thresholds: testThresholds,
-        status: PatientStatus.safe,
+        rules: safeRules,
         channelPeaks: const {},
         meanLoads: const {},
       );
@@ -70,7 +74,7 @@ void main() {
       HomeView view(double l, double r) => homeViewOf(
         manager.snapshot(),
         thresholds: testThresholds,
-        status: PatientStatus.safe,
+        rules: safeRules,
         channelPeaks: const {},
         meanLoads: {FootSide.left: l, FootSide.right: r},
       );
@@ -83,7 +87,7 @@ void main() {
       HomeView shown(double l, int was) => homeViewOf(
         manager.snapshot(),
         thresholds: testThresholds,
-        status: PatientStatus.safe,
+        rules: safeRules,
         channelPeaks: const {},
         meanLoads: {FootSide.left: l, FootSide.right: 100 - l},
         shownSharePct: was,
@@ -92,6 +96,30 @@ void main() {
       expect(shown(49.2, 50).leftSharePct, 50);
       expect(shown(48.8, 50).leftSharePct, 49);
       expect(shown(53.4, 50).leftSharePct, 53);
+
+      // ASYMMETRY_PEAK names its own foot, even when the weight share
+      // says the other one or nothing (BACKLOG 37).
+      HomeView asym(double l, double r) => homeViewOf(
+        manager.snapshot(),
+        thresholds: testThresholds,
+        rules: const RulesView(
+          status: PatientStatus.safe,
+          conditions: [
+            AlertCondition(
+              code: AlertCode.asymmetryPeak,
+              side: FootSide.right,
+              value: 30,
+              threshold: 15,
+            ),
+          ],
+        ),
+        channelPeaks: const {},
+        meanLoads: {FootSide.left: l, FootSide.right: r},
+      );
+      expect(asym(205, 195).asymmetrySide, FootSide.right);
+      expect(balanceNote(asym(205, 195)), 'ลงน้ำหนักเท้าขวามากกว่า');
+      expect(balanceNote(asym(300, 200)), 'ลงน้ำหนักเท้าขวามากกว่า');
+      expect(view(300, 200).asymmetrySide, isNull);
     });
   });
 }

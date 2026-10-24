@@ -4,15 +4,15 @@ import 'asymmetry.dart';
 /// How the weight is shared between the feet: Home's balance card
 /// "{L} : {R}" and its note.
 ///
-/// **INTERIM (S5), BACKLOG 37** (user decision 2026-10-23). The numbers are
-/// each foot's share of the summed kPa over all zones, averaged over a
-/// rolling [windowMs] (`RollingLoad`). The note says the heavier foot when
-/// the two mean loads differ by more than `asymmetry.peakPct`, computed with
-/// the PAI formula ([paiPercent]); otherwise "พอ ๆ กัน".
+/// User decision 2026-10-23 (BACKLOG 37). The numbers are each foot's
+/// share of the summed kPa over all zones, averaged over a rolling window
+/// (`RollingLoad`, Home's `balanceWindowMs`). The note says the heavier
+/// foot when the two mean loads differ by more than `asymmetry.peakPct`,
+/// computed with the PAI formula ([paiPercent]); otherwise "พอ ๆ กัน".
 ///
-/// This is not `ASYMMETRY_PEAK`: that rule (S7) uses peaks
-/// ([PeakAsymmetry]). Before S7 the note is always `ink` with no icon; S7
-/// turns it orange only while `ASYMMETRY_PEAK` is active.
+/// This is not `ASYMMETRY_PEAK`: that rule uses per-step peaks
+/// ([PeakAsymmetry]). The note is `ink` with no icon, and turns orange
+/// (naming the rule's foot) only while `ASYMMETRY_PEAK` is active.
 class WeightShare {
   const WeightShare._(this.leftLoad, this.rightLoad);
 
@@ -24,10 +24,6 @@ class WeightShare {
     if (leftLoad + rightLoad == 0) return null;
     return WeightShare._(leftLoad, rightLoad);
   }
-
-  /// Interim window length (see the class comment). Not a clinical
-  /// threshold.
-  static const windowMs = 10000;
 
   final double leftLoad;
   final double rightLoad;

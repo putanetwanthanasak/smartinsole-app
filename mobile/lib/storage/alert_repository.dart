@@ -32,6 +32,27 @@ abstract interface class AlertRepository {
   /// Removes one capture's alerts. Only for "Delete from phone" of that
   /// capture; retention never removes them. Returns how many went.
   Future<int> deleteForCapture(String captureStamp);
+
+  /// Every alert raised at or after [fromMs], all levels, oldest first:
+  /// the AlertEngine's repeat-suppression memory after a restart.
+  Future<List<StoredAlert>> since(int fromMs);
+
+  /// Row counts for the BLE debug screen.
+  Stream<AlertStats> watchStats();
+}
+
+/// What the BLE debug screen shows about the alerts table.
+class AlertStats {
+  const AlertStats({required this.count, required this.tagged, this.latest});
+
+  /// All rows, every level.
+  final int count;
+
+  /// Rows with a research-capture stamp.
+  final int tagged;
+
+  /// The newest row.
+  final StoredAlert? latest;
 }
 
 class DriftAlertRepository implements AlertRepository {
@@ -94,6 +115,39 @@ class DriftAlertRepository implements AlertRepository {
   Future<int> deleteForCapture(String captureStamp) => (_db.delete(
     _db.alerts,
   )..where((t) => t.captureStamp.equals(captureStamp))).go();
+
+  @override
+  Future<List<StoredAlert>> since(int fromMs) async {
+    final rows =
+        await (_db.select(_db.alerts)
+              ..where((t) => t.atMs.isBiggerOrEqualValue(fromMs))
+              ..orderBy([(t) => OrderingTerm.asc(t.atMs)]))
+            .get();
+    return rows.map(_toModel).toList();
+  }
+
+  @override
+  Stream<AlertStats> watchStats() {
+    final a = _db.alerts;
+    final count = a.id.count();
+    final tagged = a.captureStamp.count();
+    final counts = _db.selectOnly(a)..addColumns([count, tagged]);
+    return counts.watchSingle().asyncMap((r) async {
+      final latest =
+          await (_db.select(a)
+                ..orderBy([
+                  (t) => OrderingTerm.desc(t.atMs),
+                  (t) => OrderingTerm.desc(t.id),
+                ])
+                ..limit(1))
+              .getSingleOrNull();
+      return AlertStats(
+        count: r.read(count) ?? 0,
+        tagged: r.read(tagged) ?? 0,
+        latest: latest == null ? null : _toModel(latest),
+      );
+    });
+  }
 
   /// The patient-visibility rule, the one place both queries take it from:
   /// a kind the patient sees ([AlertKind.patientVisible]) inside the
