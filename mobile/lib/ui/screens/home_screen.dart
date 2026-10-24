@@ -393,9 +393,7 @@ class _SeeMoreRow extends ConsumerWidget {
       ),
       child: InkWell(
         key: const ValueKey('see-more'),
-        // My feet opens on "แรงกด" when its sub-tabs exist (S6B).
-        onTap: () =>
-            ref.read(selectedTabProvider.notifier).select(AppTab.myFeet),
+        onTap: () => openMyFeet(context, ref, MyFeetTab.pressure),
         child: ConstrainedBox(
           constraints: const BoxConstraints(minHeight: Dimens.linkRowHeight),
           child: Row(

@@ -97,6 +97,11 @@ class _StaggeredEntranceState extends State<StaggeredEntrance>
         for (var i = 0; i < widget.children.length; i++) ...[
           if (i > 0) SizedBox(height: widget.gap),
           _Rise(
+            // Keyed like its child, so a row inserted later (a new alert)
+            // does not take over another row's state.
+            key: widget.children[i].key == null
+                ? null
+                : ValueKey(widget.children[i].key),
             animation: i < _items.length ? _items[i] : kAlwaysCompleteAnimation,
             child: widget.children[i],
           ),
@@ -109,8 +114,11 @@ class _StaggeredEntranceState extends State<StaggeredEntrance>
 /// Always the same widget structure, so children keep their state when the
 /// entrance ends.
 class _Rise extends AnimatedWidget {
-  const _Rise({required Animation<double> animation, required this.child})
-    : super(listenable: animation);
+  const _Rise({
+    super.key,
+    required Animation<double> animation,
+    required this.child,
+  }) : super(listenable: animation);
 
   final Widget child;
 

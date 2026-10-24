@@ -35,6 +35,7 @@ class BottomBar extends StatelessWidget {
     required this.selected,
     required this.unreadAlerts,
     required this.onSelect,
+    this.animateBadge = true,
   });
 
   final List<BottomBarItem> items;
@@ -42,6 +43,10 @@ class BottomBar extends StatelessWidget {
 
   /// Unread alerts: the badge count; hidden at 0.
   final int unreadAlerts;
+
+  /// False until the count is real: a rise from the placeholder 0 to the
+  /// stored count at start-up is not a new alert.
+  final bool animateBadge;
   final ValueChanged<AppTab> onSelect;
 
   @override
@@ -68,6 +73,7 @@ class BottomBar extends StatelessWidget {
                         item: item,
                         selected: item.tab == selected,
                         badge: item.tab == AppTab.alerts ? unreadAlerts : 0,
+                        animateBadge: animateBadge,
                         onTap: () => onSelect(item.tab),
                       ),
                     ),
@@ -88,11 +94,13 @@ class _TabButton extends StatefulWidget {
     required this.selected,
     required this.badge,
     required this.onTap,
+    this.animateBadge = true,
   });
 
   final BottomBarItem item;
   final bool selected;
   final int badge;
+  final bool animateBadge;
   final VoidCallback onTap;
 
   @override
@@ -119,7 +127,10 @@ class _TabButtonState extends State<_TabButton> with TickerProviderStateMixin {
   @override
   void didUpdateWidget(_TabButton old) {
     super.didUpdateWidget(old);
-    if (widget.badge > old.badge && !Motion.reduced(context)) {
+    if (widget.badge > old.badge &&
+        old.animateBadge &&
+        widget.animateBadge &&
+        !Motion.reduced(context)) {
       _wiggle.forward(from: 0);
       _pop.forward(from: 0);
     }

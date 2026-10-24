@@ -4,7 +4,11 @@ import 'package:flutter_lucide/flutter_lucide.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../device/device_providers.dart';
+import '../../config/thresholds.dart';
 import '../../device/mock_data_source.dart';
+import '../../storage/sample_alerts.dart';
+import '../../storage/storage_providers.dart';
+import '../clock.dart';
 import '../routes.dart';
 import '../theme/colors.dart';
 import '../theme/dimens.dart';
@@ -38,6 +42,7 @@ class SettingsScreen extends ConsumerWidget {
             child: const Text('BLE debug (temporary)'),
           ),
           if (mock != null) _MockPresetButton(mock: mock),
+          if (mock != null) const _SeedAlertsButton(),
         ],
       ),
     );
@@ -84,6 +89,33 @@ class _MockPresetButton extends StatelessWidget {
       ),
     );
     if (picked != null) mock.preset = picked;
+  }
+}
+
+/// Debug builds with the mock only (an in-memory database): writes one
+/// alert of each listed kind with the design boards' values, for the
+/// design screenshots (S6B). Not from the alert engine.
+class _SeedAlertsButton extends ConsumerWidget {
+  const _SeedAlertsButton();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return OutlinedButton(
+      key: const ValueKey('seed-alerts-button'),
+      onPressed: () async {
+        await seedSampleAlerts(
+          alerts: ref.read(alertRepositoryProvider),
+          footChecks: ref.read(footCheckRepositoryProvider),
+          thresholds: ref.read(thresholdsProvider),
+          now: ref.read(clockProvider)(),
+        );
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Seeded sample alerts')));
+      },
+      child: const Text('Seed sample alerts (debug)'),
+    );
   }
 }
 

@@ -70,6 +70,27 @@ abstract final class AppText {
     color: AppColors.ink,
   );
 
+  /// Empty-state title (Alerts empty, "no gait result").
+  static const emptyTitle = TextStyle(
+    fontFamily: AppFonts.heading,
+    fontFamilyFallback: AppFonts.headingFallback,
+    fontSize: 22,
+    fontWeight: FontWeight.w700,
+    height: _headingHeight,
+    color: AppColors.ink,
+  );
+
+  /// The number in a numbered-step circle.
+  static const stepNumber = TextStyle(
+    fontFamily: AppFonts.heading,
+    fontFamilyFallback: AppFonts.headingFallback,
+    fontSize: 18,
+    fontWeight: FontWeight.w700,
+    height: 1.0,
+    color: AppColors.ink,
+    fontFeatures: _tabular,
+  );
+
   /// Card title (h2).
   static const cardTitle = TextStyle(
     fontFamily: AppFonts.heading,
@@ -98,6 +119,16 @@ abstract final class AppText {
     fontSize: 18,
     fontWeight: FontWeight.w400,
     height: _bodyHeight,
+    color: AppColors.ink,
+  );
+
+  /// Numbered-step text (DESIGN-SPEC §5: line height 1.55).
+  static const step = TextStyle(
+    fontFamily: AppFonts.body,
+    fontFamilyFallback: AppFonts.bodyFallback,
+    fontSize: 18,
+    fontWeight: FontWeight.w400,
+    height: 1.55,
     color: AppColors.ink,
   );
 

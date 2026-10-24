@@ -30,6 +30,10 @@ abstract final class Motion {
   static const stagger = Duration(milliseconds: 40);
   static const staggerRise = 12.0;
 
+  /// A new alert's row on the Alerts list opens at the top (height + fade,
+  /// [enter]) and slides down from this far above (logical pixels).
+  static const newRowSlide = 8.0;
+
   /// `pop`: badge count, connected disc (scale [popFrom] → 1, overshoot).
   static const popDuration = Duration(milliseconds: 300);
   static const Curve pop = Cubic(0.34, 1.3, 0.64, 1.0);

@@ -11,17 +11,21 @@ class PrimaryButton extends StatelessWidget {
     required this.label,
     required this.onPressed,
     this.icon,
+    this.trailingIcon,
   });
 
   final String label;
   final VoidCallback? onPressed;
   final IconData? icon;
 
+  /// After the label, e.g. `chevron-right` on the alert detail's action.
+  final IconData? trailingIcon;
+
   @override
   Widget build(BuildContext context) {
     return FilledButton(
       onPressed: onPressed,
-      child: _ButtonLabel(label: label, icon: icon),
+      child: _ButtonLabel(label: label, icon: icon, trailingIcon: trailingIcon),
     );
   }
 }
@@ -50,10 +54,11 @@ class SecondaryButton extends StatelessWidget {
 
 /// Icon + label that wraps instead of clipping at large text.
 class _ButtonLabel extends StatelessWidget {
-  const _ButtonLabel({required this.label, this.icon});
+  const _ButtonLabel({required this.label, this.icon, this.trailingIcon});
 
   final String label;
   final IconData? icon;
+  final IconData? trailingIcon;
 
   @override
   Widget build(BuildContext context) {
@@ -67,6 +72,10 @@ class _ButtonLabel extends StatelessWidget {
             const SizedBox(width: Dimens.tightGap),
           ],
           Flexible(child: Text(label, textAlign: TextAlign.center)),
+          if (trailingIcon != null) ...[
+            const SizedBox(width: Dimens.tightGap),
+            Icon(trailingIcon, size: Dimens.iconButtonIcon),
+          ],
         ],
       ),
     );

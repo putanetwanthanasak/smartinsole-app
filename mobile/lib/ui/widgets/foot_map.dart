@@ -26,6 +26,10 @@ FootDotStyle dotStyleOf(PressureLevel? level) => switch (level) {
 /// keeps its rhythm whatever the data does; under reduce motion the ring
 /// is still (§12.3). The whole map is one screen-reader image with
 /// [semanticLabel].
+///
+/// The alert detail (§7.3) draws a past moment: [ringChannel] rings the
+/// zone that triggered, [pulse] is off, and a null entry in [levels] is a
+/// zone whose level was not recorded (a plain outline circle).
 class FootMap extends StatelessWidget {
   const FootMap({
     super.key,
@@ -34,26 +38,40 @@ class FootMap extends StatelessWidget {
     required this.semanticLabel,
     required this.width,
     required this.height,
+    this.ringChannel,
+    this.pulse = true,
   });
 
   final FootSide side;
 
-  /// A level per FSR channel, or null when this foot has no data.
-  final List<PressureLevel>? levels;
+  /// A level per FSR channel, or null when this foot has no data. A null
+  /// entry is a zone whose level was not recorded.
+  final List<PressureLevel?>? levels;
   final String semanticLabel;
   final double width;
   final double height;
+
+  /// FSR channel to ring (alert detail), or null.
+  final int? ringChannel;
+
+  /// Whether "high" dots get the pulse ring (Home, My feet).
+  final bool pulse;
 
   @override
   Widget build(BuildContext context) {
     final zones = footLayout.zones;
     final styles = [
       for (var c = 0; c < zones.length; c++)
-        dotStyleOf(levels == null || c >= levels!.length ? null : levels![c]),
+        levels == null || c >= levels!.length
+            ? FootDotColors.noData
+            : levels![c] == null
+            ? FootDotColors.notRecorded
+            : dotStyleOf(levels![c]),
     ];
     final high = [
       for (var c = 0; c < zones.length; c++)
-        levels != null &&
+        pulse &&
+            levels != null &&
             c < levels!.length &&
             levels![c] == PressureLevel.high,
     ];
@@ -71,6 +89,7 @@ class FootMap extends StatelessWidget {
               child: _AnimatedDots(
                 side: side,
                 styles: _DotStyles(styles),
+                ringChannel: ringChannel,
                 // Reduce motion: jump to the end state (rule 16).
                 duration: Motion.duration(context, Motion.enterDuration),
               ),
@@ -121,11 +140,13 @@ class _AnimatedDots extends ImplicitlyAnimatedWidget {
   const _AnimatedDots({
     required this.side,
     required this.styles,
+    required this.ringChannel,
     required super.duration,
   }) : super(curve: Motion.enter);
 
   final FootSide side;
   final _DotStyles styles;
+  final int? ringChannel;
 
   @override
   AnimatedWidgetBaseState<_AnimatedDots> createState() => _AnimatedDotsState();
@@ -149,13 +170,14 @@ class _AnimatedDotsState extends AnimatedWidgetBaseState<_AnimatedDots> {
       painter: _FootPainter(
         side: widget.side,
         styles: _styles!.evaluate(animation).list,
+        ringChannel: widget.ringChannel,
       ),
     );
   }
 }
 
 /// Maps view-box units to the widget, keeping the aspect ratio.
-(double, Offset) _fit(Size size) {
+(double, Offset) fitFootViewBox(Size size) {
   final box = footLayout.viewBox;
   final scale = (size.width / box.width) < (size.height / box.height)
       ? size.width / box.width
@@ -165,38 +187,47 @@ class _AnimatedDotsState extends AnimatedWidgetBaseState<_AnimatedDots> {
   return (scale, Offset(dx, dy));
 }
 
+/// The foot outline paths, parsed once.
+final footOutlines = {
+  for (final s in FootSide.values) s: parseOutline(footLayout.outline(s)),
+};
+
+/// Draws [side]'s outline (fill `bg`, stroke `divider` 2.5) on a canvas
+/// already in view-box units (DESIGN-SPEC §5).
+void paintFootOutline(Canvas canvas, FootSide side) {
+  final outline = footOutlines[side]!;
+  canvas
+    ..drawPath(outline, Paint()..color = AppColors.bg)
+    ..drawPath(
+      outline,
+      Paint()
+        ..color = AppColors.divider
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = _outlineWidth,
+    );
+}
+
+/// Outline stroke, view-box units (DESIGN-SPEC §5).
+const _outlineWidth = 2.5;
+
 class _FootPainter extends CustomPainter {
-  _FootPainter({required this.side, required this.styles});
+  _FootPainter({required this.side, required this.styles, this.ringChannel});
 
   final FootSide side;
   final List<FootDotStyle> styles;
+  final int? ringChannel;
 
-  static final _outlines = {
-    for (final s in FootSide.values) s: parseOutline(footLayout.outline(s)),
-  };
-
-  /// Outline stroke, view-box units (DESIGN-SPEC §5).
-  static const _outlineWidth = 2.5;
   static const _dash = [4.0, 3.0];
 
   @override
   void paint(Canvas canvas, Size size) {
-    final (scale, offset) = _fit(size);
+    final (scale, offset) = fitFootViewBox(size);
     canvas
       ..save()
       ..translate(offset.dx, offset.dy)
       ..scale(scale);
 
-    final outline = _outlines[side]!;
-    canvas
-      ..drawPath(outline, Paint()..color = AppColors.bg)
-      ..drawPath(
-        outline,
-        Paint()
-          ..color = AppColors.divider
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = _outlineWidth,
-      );
+    paintFootOutline(canvas, side);
 
     for (var c = 0; c < styles.length; c++) {
       final style = styles[c];
@@ -217,6 +248,17 @@ class _FootPainter extends CustomPainter {
       } else {
         canvas.drawCircle(center, style.radius, stroke);
       }
+    }
+    final ring = ringChannel;
+    if (ring != null && ring < styles.length) {
+      canvas.drawCircle(
+        footLayout.zones[ring].position(side),
+        styles[ring].radius + FootDotColors.triggerRingExtra,
+        Paint()
+          ..color = FootDotColors.triggerRing
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = FootDotColors.triggerRingWidth,
+      );
     }
     canvas.restore();
   }
@@ -240,7 +282,9 @@ class _FootPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_FootPainter old) =>
-      old.side != side || !listEquals(old.styles, styles);
+      old.side != side ||
+      old.ringChannel != ringChannel ||
+      !listEquals(old.styles, styles);
 }
 
 /// The ring on "high" dots: grows from radius + 1 to + 12 while fading
@@ -329,7 +373,7 @@ class _PulsePainter extends CustomPainter {
       extra = ui.lerpDouble(Motion.pulseFromRadius, Motion.pulseToRadius, p)!;
       opacity = Motion.pulseFromOpacity * (1 - p);
     }
-    final (scale, offset) = _fit(size);
+    final (scale, offset) = fitFootViewBox(size);
     canvas
       ..save()
       ..translate(offset.dx, offset.dy)
