@@ -38,7 +38,10 @@ const referenceSize = Size(390, 844);
 /// fake stack ([central], [permissions]) and storage on an in-memory
 /// database; no test reaches the real plugins or the phone's file.
 /// Pass [settle] false for screens with a periodic display tick (the BLE
-/// debug screen), which `pumpAndSettle` would wait on forever.
+/// debug screen), which `pumpAndSettle` would wait on forever. Pass
+/// [database] to start with rows already stored (write them before this
+/// call: with the app's watchers running, several writes in one
+/// `tester.runAsync` deadlock).
 Future<void> pumpApp(
   WidgetTester tester, {
   String initialRoute = Routes.shell,
@@ -49,6 +52,7 @@ Future<void> pumpApp(
   Size size = referenceSize,
   bool settle = true,
   DateTime Function()? now,
+  AppDatabase? database,
   List<Override> overrides = const [],
 }) async {
   tester.view.physicalSize = size * 2;
@@ -70,7 +74,7 @@ Future<void> pumpApp(
           permissions ?? FakePermissions(),
         ),
         databaseProvider.overrideWith((ref) {
-          final db = AppDatabase.memory();
+          final db = database ?? AppDatabase.memory();
           ref.onDispose(db.close);
           return db;
         }),

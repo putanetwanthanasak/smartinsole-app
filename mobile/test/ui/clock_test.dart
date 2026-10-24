@@ -15,7 +15,10 @@ void main() {
       thaiDateTimeBE(DateTime(2026, 10, 21, 14, 32, 10)),
       '21 ต.ค. 2569 14:32:10',
     );
-    expect(thaiDateTimeBE(DateTime(2027, 1, 2, 7, 5, 9)), '2 ม.ค. 2570 07:05:09');
+    expect(
+      thaiDateTimeBE(DateTime(2027, 1, 2, 7, 5, 9)),
+      '2 ม.ค. 2570 07:05:09',
+    );
   });
 
   test('today / yesterday across midnight and month ends', () {
