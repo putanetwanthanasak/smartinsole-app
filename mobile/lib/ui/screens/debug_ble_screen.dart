@@ -13,6 +13,8 @@ import '../../ble/packets.dart';
 import '../../device/device_manager.dart';
 import '../../device/device_providers.dart';
 import '../../device/timing_check.dart';
+import '../../storage/storage_providers.dart';
+import '../../storage/temperature_repository.dart';
 import '../clock.dart';
 import '../theme/colors.dart';
 import '../theme/dimens.dart';
@@ -138,6 +140,13 @@ class _DebugBleScreenState extends ConsumerState<DebugBleScreen> {
             mock: ref.read(mockInsolesProvider) != null,
             now: now,
             onToggle: _toggleTiming,
+          ),
+          _StorageCard(
+            stats:
+                ref.watch(temperatureStatsProvider).value ??
+                TemperatureStats.empty,
+            written: ref.read(temperatureRecorderProvider).written,
+            failed: ref.read(temperatureRecorderProvider).failed,
           ),
           _LogCard(lines: ref.read(bleLogProvider).entries, onCopy: _copyLog),
         ],
@@ -535,6 +544,55 @@ class _FootCard extends StatelessWidget {
 
 /// S4 checkpoint: starts the timing log (SYNC_TIME every 10 s, a file in
 /// the app's private storage) and shows each foot's clock figures.
+/// S6A phone check: temperature rows in the database survive a restart.
+class _StorageCard extends StatelessWidget {
+  const _StorageCard({
+    required this.stats,
+    required this.written,
+    required this.failed,
+  });
+
+  final TemperatureStats stats;
+  final int written;
+  final int failed;
+
+  @override
+  Widget build(BuildContext context) {
+    String time(int? ms) {
+      if (ms == null) return '—';
+      final t = DateTime.fromMillisecondsSinceEpoch(ms);
+      String two(int v) => v.toString().padLeft(2, '0');
+      return '${t.month}/${t.day} '
+          '${two(t.hour)}:${two(t.minute)}:${two(t.second)}';
+    }
+
+    return Card(
+      key: const ValueKey('storage-card'),
+      child: Padding(
+        padding: const EdgeInsets.all(Dimens.cardPadding),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Storage', style: AppText.cardTitle),
+            for (final side in FootSide.values)
+              Text(
+                '${side.name.toUpperCase()}  temperature rows '
+                '${stats.count[side] ?? 0} · latest '
+                '${time(stats.latestMs[side])}',
+                key: ValueKey('storage-${side.name}'),
+                style: AppText.secondary,
+              ),
+            Text(
+              'this run: written $written · failed $failed',
+              style: AppText.secondary.copyWith(color: AppColors.inkMuted),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _TimingCard extends StatelessWidget {
   const _TimingCard({
     required this.check,

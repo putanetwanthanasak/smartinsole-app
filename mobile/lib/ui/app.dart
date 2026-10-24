@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import '../storage/storage_host.dart';
+
 import 'routes.dart';
 import 'screens/capture/capture_home_screen.dart';
 import 'screens/connection_screen.dart';
@@ -17,21 +19,23 @@ class SmartInsoleApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'SmartInsole',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.light(),
-      locale: const Locale('th', 'TH'),
-      supportedLocales: const [Locale('th', 'TH')],
-      localizationsDelegates: GlobalMaterialLocalizations.delegates,
-      initialRoute: initialRoute,
-      routes: {
-        Routes.shell: (_) => const AppShell(),
-        Routes.connection: (_) => const ConnectionScreen(),
-        Routes.settings: (_) => const SettingsScreen(),
-        Routes.bleDebug: (_) => const DebugBleScreen(),
-        Routes.capture: (_) => const CaptureHomeScreen(),
-      },
+    return StorageHost(
+      child: MaterialApp(
+        title: 'SmartInsole',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.light(),
+        locale: const Locale('th', 'TH'),
+        supportedLocales: const [Locale('th', 'TH')],
+        localizationsDelegates: GlobalMaterialLocalizations.delegates,
+        initialRoute: initialRoute,
+        routes: {
+          Routes.shell: (_) => const AppShell(),
+          Routes.connection: (_) => const ConnectionScreen(),
+          Routes.settings: (_) => const SettingsScreen(),
+          Routes.bleDebug: (_) => const DebugBleScreen(),
+          Routes.capture: (_) => const CaptureHomeScreen(),
+        },
+      ),
     );
   }
 }
