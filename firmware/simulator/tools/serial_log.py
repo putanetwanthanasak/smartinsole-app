@@ -15,6 +15,11 @@ dev laptop is an LTE modem.
     /usr/bin/python3 tools/serial_log.py \
         /dev/serial/by-path/pci-0000:00:14.0-usb-0:6:1.0-port0 left.log
 
+`--commands FIFO` makes a named pipe; each line written to it is sent to
+the board over the same open port (no second open, so no reset), e.g. the
+S7 scenario commands: `echo p > left.cmd` (n normal, t forefoot +3 degC,
+p meta1 ~250 kPa, ? show). Sent commands are logged as `> p`.
+
 Uses pyserial, which /usr/bin/python3 has (the bleak venv does not).
 """
 
@@ -24,7 +29,9 @@ import argparse
 import glob
 import os
 import signal
+import stat
 import sys
+import threading
 from datetime import datetime
 
 import serial
@@ -41,11 +48,30 @@ def clean(raw: bytes) -> str:
     return "".join(ch for ch in text if ch == "\t" or ch >= " ").rstrip()
 
 
+def forward_commands(fifo: str, ser: serial.Serial, log) -> None:
+    """Sends every line written to [fifo] to the board, forever."""
+    while True:
+        with open(fifo, "rb") as pipe:  # blocks until a writer opens it
+            for line in pipe:
+                cmd = line.strip()
+                if cmd:
+                    ser.write(cmd)
+                    log(f"> {clean(cmd)}")
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("port", help="/dev/serial/by-path/... or by-id/... of the CP2102")
     ap.add_argument("out", help="log file (appended)")
+    ap.add_argument("--commands", metavar="FIFO",
+                    help="named pipe (created if missing) whose lines are sent to the board")
     args = ap.parse_args()
+    if args.commands:
+        if not os.path.exists(args.commands):
+            os.mkfifo(args.commands)
+        elif not stat.S_ISFIFO(os.stat(args.commands).st_mode):
+            print(f"{args.commands} exists and is not a named pipe", file=sys.stderr)
+            return 2
 
     if "/dev/serial/" not in args.port:
         print("refusing a bare ttyUSB name; use /dev/serial/by-path/ or by-id/", file=sys.stderr)
@@ -67,21 +93,30 @@ def main() -> int:
     ser.reset_input_buffer()
 
     with open(args.out, "a", encoding="utf-8") as f:
+        lock = threading.Lock()
+
+        def log(text: str) -> None:
+            with lock:
+                f.write(f"{stamp()} {text}\n")
+                f.flush()
+
         f.write(f"# {datetime.now():%Y-%m-%d %H:%M:%S} logging {args.port}\n")
         f.flush()
+        if args.commands:
+            threading.Thread(target=forward_commands, args=(args.commands, ser, log),
+                             daemon=True).start()
         buf = b""
         try:
             while True:
                 buf += ser.read(ser.in_waiting or 1)
                 while b"\n" in buf:
                     line, buf = buf.split(b"\n", 1)
-                    f.write(f"{stamp()} {clean(line)}\n")
-                    f.flush()
+                    log(clean(line))
         except KeyboardInterrupt:
             pass
         finally:
             if buf:
-                f.write(f"{stamp()} {clean(buf)}\n")
+                log(clean(buf))
             ser.close()
     return 0
 

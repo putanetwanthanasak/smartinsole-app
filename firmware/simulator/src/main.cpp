@@ -2,14 +2,18 @@
 // chosen at build time (platformio.ini envs `left` / `right`).
 #include <Arduino.h>
 
+#include <atomic>
+
 #include "ble_server.h"
 #include "config.h"
+#include "scenario.h"
 #include "synth.h"
 
 namespace {
 
-// The only place the data source is chosen; a scenario mode replaces this.
-const insole::DataSource& gSource = insole::synth::walking();
+// The data source: the normal walk unless a serial command (loop()) picks
+// another scenario. Swapped whole, so a sample never mixes two scenarios.
+std::atomic<insole::scenario::Id> gScenario{insole::scenario::Id::normal};
 
 constexpr uint32_t kTicksPerSecond = 1000 / insole::kSamplePeriodMs;
 constexpr uint32_t kLogEverySeconds = 10;
@@ -22,6 +26,7 @@ void tickTask(void*) {
   uint32_t tMs = millis();
   uint32_t tick = 0;
   for (;;) {
+    const insole::DataSource& gSource = insole::scenario::source(gScenario.load());
     insole::Sample s = gSource.sample(tMs, config::kFootSide, config::kFsrCount);
     insole::TemperatureReading t = gSource.temperature(tMs, config::kFootSide);
     ble::pushSample(s, t, tMs);
@@ -43,8 +48,25 @@ void setup() {
   Serial.printf("\n[boot] SmartInsole simulator fw %u.%u, side %s, fsr_count %u\n",
                 config::kFwMajor, config::kFwMinor, config::kFootSide == 0 ? "L" : "R",
                 config::kFsrCount);
+  Serial.printf("[scenario] %s  (commands: n t p ?)\n",
+                insole::scenario::name(gScenario.load()));
   ble::begin(config::kFsrCount);
   xTaskCreatePinnedToCore(tickTask, "tick", 6144, nullptr, 5, nullptr, 1);
 }
 
-void loop() { vTaskDelay(portMAX_DELAY); }
+// Serial commands (S7 phone check): n normal, t forefoot +3 degC,
+// p meta1 ~250 kPa, ? show. Non-blocking; the 50 Hz task never waits.
+void loop() {
+  while (Serial.available() > 0) {
+    char c = static_cast<char>(Serial.read());
+    insole::scenario::Id id;
+    if (insole::scenario::fromCommand(c, &id)) {
+      gScenario.store(id);
+      Serial.printf("[scenario] %s\n", insole::scenario::name(id));
+    } else if (c == '?') {
+      Serial.printf("[scenario] %s  (commands: n t p ?)\n",
+                    insole::scenario::name(gScenario.load()));
+    }
+  }
+  vTaskDelay(pdMS_TO_TICKS(50));
+}

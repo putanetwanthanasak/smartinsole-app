@@ -86,6 +86,27 @@ bare `ttyUSB` names and the LTE modem. Both scripts run on
     --serial-left left.log --serial-right right.log --single-take
 ```
 
+### Scenario commands (S7)
+
+Each board takes one-character serial commands, read without blocking the
+50 Hz task: `n` normal walk, `t` this board's forefoot +3.0 °C (TEMP_DELTA
+after two temperature readings, about 60–90 s), `p` meta1 about 250 kPa
+with a long stance plateau and stronger walking motion (PRESSURE_PEAK at
+once; PRESSURE_PTI and LOAD_CONCENTRATION after 20 steps; not
+ASYMMETRY_PEAK, which also needs the other board's steps), `?` show
+the current one. The board prints `[scenario] ...` on each change. Packets, BLE and the contract do not change. Because a second
+open would reset the board, send them through the logger's pipe:
+
+```
+/usr/bin/python3 tools/serial_log.py <port> left.log --commands left.cmd
+echo p > left.cmd
+```
+
+The normal walk's IMU is gentler than the app's walking gate (contract
+§8.3.2: the lowest mean |a| − 1 g over 800 ms is about 0.07 g against
+0.15 g), so in the normal walk the app counts few steps; `p` scales its
+motion ×4 so the gate stays on (`test/test_scenario`).
+
 `webapp_csv_check.py` checks a CSV exported by the laptop web app's
 research capture (the study fallback, `docs/STUDY-FALLBACK.md`). The CSV
 has no `seq` column, so it infers lost packets from the 20 ms `tUnixMs`
@@ -159,9 +180,11 @@ sample steps and the boards' notify failures. Standard library only:
 - `lib/insole_core/`: plain C++, no Arduino or NimBLE, built for the board
   and the host. `packets` (encoders), `stream_session` (per-connection
   streaming state), `synth` (pure synthetic walking, temperature, battery),
+  `scenario` (the serial-command scenarios, each a pure `DataSource`),
   `calibration`, `control` (opcode parsing), `tare`, `protocol` (UUIDs,
   sizes).
-- `src/`: `ble_server` (NimBLE glue) and `main` (50 Hz tick).
+- `src/`: `ble_server` (NimBLE glue) and `main` (50 Hz tick, serial
+  scenario commands).
 - Data generation is reached only through a `DataSource`
   (`data_source.h`), so a scenario mode can swap it out (BACKLOG 18).
   Streaming state is per connection (BACKLOG 17, done in S2C).
