@@ -108,7 +108,7 @@ class _TitledCard extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.fromLTRB(
                   Dimens.smallCardPadding,
-                  0,
+                  Dimens.tightGap,
                   Dimens.smallCardPadding,
                   Dimens.smallCardPadding,
                 ),
@@ -258,7 +258,6 @@ class _DeviceCard extends ConsumerWidget {
               ? () => showConfirmSheet<void>(context, const RebootSheet())
               : null,
         ),
-        _rowDivider,
       ],
     );
   }
@@ -279,14 +278,18 @@ class _DeviceInfoCard extends ConsumerWidget {
       ('เฟิร์มแวร์', perFoot((s) => snap?.of(s).firmware)),
       (
         'ขนาดแพ็กเก็ต (MTU)',
-        perFoot((s) {
+        agreedOrPerFoot((s) {
           final l = links[s];
           return l == null ? null : mtuOf(l)?.toString();
         }),
       ),
       (
         'อัตราข้อมูล',
-        '${perFoot((s) => meter.rate(s)?.toStringAsFixed(0))} ครั้ง/วินาที',
+        agreedOrPerFoot(
+          (s) => meter.rate(s)?.toStringAsFixed(0),
+          unit: ' ครั้ง/วินาที',
+          bothNote: ' ต่อข้าง',
+        ),
       ),
     ];
     return _TitledCard(

@@ -120,8 +120,15 @@ class ListRow extends StatelessWidget {
   /// Key on the value text, for tests.
   final Key? valueKey;
 
+  /// Above this text scale a [trailing] switch goes under the title
+  /// instead of squeezing it (the same breakpoint as Home and My feet).
+  static const stackAboveScale = 1.3;
+
   @override
   Widget build(BuildContext context) {
+    final stacked =
+        trailing != null &&
+        MediaQuery.textScalerOf(context).scale(1) > stackAboveScale;
     final content = ConstrainedBox(
       constraints: const BoxConstraints(minHeight: Dimens.listRowHeight),
       child: Padding(
@@ -151,10 +158,16 @@ class ListRow extends StatelessWidget {
                   ),
                   if (value != null)
                     Text(value!, key: valueKey, style: AppText.secondary),
+                  if (stacked) ...[
+                    const SizedBox(height: Dimens.tightGap),
+                    trailing!,
+                  ],
                 ],
               ),
             ),
-            if (trailing != null) ...[
+            if (stacked)
+              const SizedBox.shrink()
+            else if (trailing != null) ...[
               const SizedBox(width: Dimens.buttonGap),
               trailing!,
             ] else if (onTap != null && chevron) ...[

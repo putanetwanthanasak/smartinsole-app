@@ -311,6 +311,7 @@ class _TextSizeCard extends StatelessWidget {
       button: true,
       label: o.label,
       excludeSemantics: true,
+      onTap: () => onSelect(o),
       child: Material(
         color: on ? AppColors.primary : AppColors.surface,
         shape: RoundedRectangleBorder(

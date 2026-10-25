@@ -99,5 +99,18 @@ String perFoot(String? Function(FootSide) value) =>
     [for (final s in FootSide.values) '${_side(s)} ${value(s) ?? '—'}']
         .join(' · ');
 
+/// One value when both feet agree, as on the board ("247", "50
+/// ครั้ง/วินาที ต่อข้าง"), else [perFoot] ("ซ้าย 50 · ขวา 31 ครั้ง/วินาที").
+/// [unit] follows the value(s); [bothNote] follows only the single value.
+String agreedOrPerFoot(
+  String? Function(FootSide) value, {
+  String unit = '',
+  String bothNote = '',
+}) {
+  final l = value(FootSide.left);
+  if (l != null && l == value(FootSide.right)) return '$l$unit$bothNote';
+  return '${perFoot(value)}$unit';
+}
+
 /// The negotiated MTU of a streaming link.
 int? mtuOf(LinkState s) => s is LinkStreaming ? s.mtu : null;
