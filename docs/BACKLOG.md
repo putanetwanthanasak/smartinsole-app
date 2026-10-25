@@ -1198,7 +1198,8 @@ general case).
 
 `tflite_flutter` 0.12.1 bundles LiteRT's native libraries for every ABI
 (arm64: `libtensorflowlite_jni.so` 4.3 MB + `libtensorflowlite_gpu_jni.so`
-2.5 MB uncompressed); the S8A release APK is 84.6 MB. The study phone has
+2.5 MB uncompressed); the release APK went from 64.6 MB to 84.6 MB
+(S8A spike). The study phone has
 room, so nothing is needed for the study. Options for S9: per-ABI APKs
 (`--split-per-abi`, arm64 only for the Note 10) or an app bundle. The
 dummy model (`assets/models_dummy/`, 266 KB with `check.json`) is also in
@@ -1220,7 +1221,7 @@ never give `rotated_foot`. The gait result never changes a level
 
 At 24/700 the "ตอนนี้" value "ยืนหรือนั่งอยู่" needs two lines in its
 half-width card at the 390 dp reference width even at 100 % text:
-"ยืนหรือนั่ง / อยู่" (golden `gait_idle_100`). On the 412 dp emulator it
+"ยืนหรือนั่ง / อยู่" (golden `gait_idle_100`). On the 411 dp emulator it
 fits on one line. The break falls between words and the card grows to
 fit, so nothing is cut, but the steps card beside it is half empty. Options for S10: a smaller value style
 for this card, or the user's OK on a shorter label.
