@@ -7,6 +7,7 @@ import '../../device/device_providers.dart';
 import '../../config/thresholds.dart';
 import '../../device/mock_data_source.dart';
 import '../../storage/sample_alerts.dart';
+import '../../storage/sample_day.dart';
 import '../../storage/storage_providers.dart';
 import '../clock.dart';
 import '../routes.dart';
@@ -43,6 +44,7 @@ class SettingsScreen extends ConsumerWidget {
           ),
           if (mock != null) _MockPresetButton(mock: mock),
           if (mock != null) const _SeedAlertsButton(),
+          if (mock != null) _SeedDayButton(mock: mock),
         ],
       ),
     );
@@ -211,6 +213,36 @@ class _ResearcherGroup extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Debug builds with the mock only (an in-memory database): writes a day
+/// of temperature readings shaped by the current preset, for the My feet
+/// screenshots (S6B part 2, `seedSampleDay`).
+class _SeedDayButton extends ConsumerWidget {
+  const _SeedDayButton({required this.mock});
+
+  final MockInsoles mock;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return OutlinedButton(
+      key: const ValueKey('seed-day-button'),
+      onPressed: () async {
+        final n = await seedSampleDay(
+          temperatures: ref.read(temperatureRepositoryProvider),
+          dates: ref.read(localDatesProvider),
+          thresholds: ref.read(thresholdsProvider),
+          preset: mock.preset,
+          now: ref.read(clockProvider)(),
+        );
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Seeded $n temperature readings')),
+        );
+      },
+      child: const Text('Seed sample day (debug)'),
     );
   }
 }

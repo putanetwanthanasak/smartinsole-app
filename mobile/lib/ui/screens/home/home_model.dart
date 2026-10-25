@@ -275,21 +275,7 @@ HomeView homeViewOf(
         f.batteryPct! < thresholds.batteryLowPct,
   );
 
-  FootMapView map(FootView f) {
-    final peaks = peaksOf(f);
-    if (peaks == null) return FootMapView(side: f.side);
-    final levels = [for (final k in peaks) pressureLevel(k, thresholds)];
-    int? top;
-    for (var c = 0; c < levels.length; c++) {
-      if (levels[c] == PressureLevel.low) continue;
-      if (top == null ||
-          levels[c].index > levels[top].index ||
-          (levels[c] == levels[top] && peaks[c] > peaks[top])) {
-        top = c;
-      }
-    }
-    return FootMapView(side: f.side, levels: levels, topChannel: top);
-  }
+  FootMapView map(FootView f) => footMapViewOf(f.side, peaksOf(f), thresholds);
 
   final both = s.left.usable && s.right.usable;
 
@@ -335,6 +321,27 @@ HomeView homeViewOf(
     balanceNoLoad: both && share == null,
     asymmetrySide: both ? rules.asymmetry?.side : null,
   );
+}
+
+/// One foot map from its zone [peaks] (kPa; null = no data): the level
+/// per zone and the zone the caption names. Home and My feet share it.
+FootMapView footMapViewOf(
+  FootSide side,
+  List<double>? peaks,
+  Thresholds thresholds,
+) {
+  if (peaks == null) return FootMapView(side: side);
+  final levels = [for (final k in peaks) pressureLevel(k, thresholds)];
+  int? top;
+  for (var c = 0; c < levels.length; c++) {
+    if (levels[c] == PressureLevel.low) continue;
+    if (top == null ||
+        levels[c].index > levels[top].index ||
+        (levels[c] == levels[top] && peaks[c] > peaks[top])) {
+      top = c;
+    }
+  }
+  return FootMapView(side: side, levels: levels, topChannel: top);
 }
 
 /// Balance-number deadband, percentage points (see [homeViewOf]).

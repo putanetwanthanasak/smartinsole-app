@@ -121,6 +121,15 @@ final temperatureRecorderProvider = Provider<TemperatureRecorder>((ref) {
   return recorder;
 });
 
+/// Both feet's temperature readings on one local day, oldest first: the
+/// My feet chart (DESIGN-SPEC §8.2). Keyed by `YYYY-MM-DD`, so the chart
+/// moves to the new day once the screen asks for it.
+final dayTemperaturesProvider = StreamProvider.autoDispose
+    .family<List<TemperatureReading>, String>(
+      (ref, localDate) =>
+          ref.watch(temperatureRepositoryProvider).watchDay(localDate),
+    );
+
 /// Row counts for the BLE debug screen.
 final temperatureStatsProvider = StreamProvider.autoDispose<TemperatureStats>(
   (ref) => ref.watch(temperatureRepositoryProvider).watchStats(),

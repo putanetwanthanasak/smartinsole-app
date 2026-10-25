@@ -190,6 +190,47 @@ abstract final class TempSiteColors {
   static const otherStroke = AppColors.inkMuted;
 }
 
+/// The temperature-site icon on the My feet site cards (DESIGN-SPEC §8.2):
+/// the site dot, view-box units, and its colours.
+abstract final class SiteIconColors {
+  static const dotRadius = 26.0;
+  static const normal = AppColors.primary;
+  static final alerting = StatusColors.rest.icon;
+  static const missing = AppColors.inkSubtle;
+}
+
+/// "ความต่างของความอุ่นวันนี้" chart (DESIGN-SPEC §1, §8.2). Widths and
+/// dashes in logical pixels.
+abstract final class TempChartColors {
+  static final band = StatusColors.rest.background;
+  static final bandLabel = StatusColors.rest.text;
+  static final threshold = StatusColors.rest.icon;
+  static const thresholdWidth = 1.5;
+  static const thresholdDash = [5.0, 4.0];
+  static const grid = AppColors.track;
+  static const baseline = AppColors.divider;
+  static const axisLabel = AppColors.inkMuted;
+
+  static const heel = AppColors.primary;
+  static const heelWidth = 3.5;
+  static const forefoot = AppColors.inkMuted;
+  static const forefootWidth = 2.5;
+  static const forefootDash = [6.0, 5.0];
+
+  /// Last-reading dot: radius 5.5 with a 2 px white ring; red while that
+  /// site's ΔT is above the threshold.
+  static const lastDot = AppColors.primary;
+  static final lastDotAlert = StatusColors.rest.icon;
+  static const lastDotRadius = 5.5;
+  static const lastDotRing = 2.0;
+
+  /// Connection gap: dashed vertical line and its label.
+  static const gap = AppColors.inkMuted;
+  static const gapWidth = 1.5;
+  static const gapDash = [3.0, 4.0];
+  static final gapLabel = StatusColors.noData.text;
+}
+
 /// Daily foot check camera screen (DESIGN-SPEC §1).
 abstract final class CameraColors {
   static const background = Color(0xFF0F1D22);

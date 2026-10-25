@@ -75,6 +75,27 @@ abstract final class Dimens {
   static const homeFootHeight = 188.0;
   static const homeFootGap = 48.0;
 
+  // My feet foot maps (DESIGN-SPEC §5: 108×241, 40 apart).
+  static const feetFootWidth = 108.0;
+  static const feetFootHeight = 241.0;
+  static const feetFootGap = 40.0;
+
+  /// A top-zone row's dot is the level's radius × this (§8.1).
+  static const zoneRowDotScale = 0.8;
+
+  // Summary banner (§5): padding 16 20, gap 12, 44 circle, 26 icon.
+  static const bannerCircle = 44.0;
+  static const bannerIcon = 26.0;
+
+  // Segmented control (§5): padding 4, gap 4, options min height 48.
+  static const segmentPadding = 4.0;
+
+  // Temperature tab (§8.2): site icon 22×48; chart 294×220.
+  static const siteIconWidth = 22.0;
+  static const siteIconHeight = 48.0;
+  static const chartWidth = 294.0;
+  static const chartHeight = 220.0;
+
   // Balance bar (Home).
   static const balanceBarHeight = 10.0;
   static const balanceTickWidth = 2.0;

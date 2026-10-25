@@ -30,6 +30,9 @@ FootDotStyle dotStyleOf(PressureLevel? level) => switch (level) {
 /// The alert detail (§7.3) draws a past moment: [ringChannel] rings the
 /// zone that triggered, [pulse] is off, and a null entry in [levels] is a
 /// zone whose level was not recorded (a plain outline circle).
+///
+/// On My feet a foot with no data also gets a dashed `inkSubtle` outline
+/// ([dashOutlineWhenNoData], §5); Home keeps the solid outline.
 class FootMap extends StatelessWidget {
   const FootMap({
     super.key,
@@ -40,6 +43,7 @@ class FootMap extends StatelessWidget {
     required this.height,
     this.ringChannel,
     this.pulse = true,
+    this.dashOutlineWhenNoData = false,
   });
 
   final FootSide side;
@@ -56,6 +60,9 @@ class FootMap extends StatelessWidget {
 
   /// Whether "high" dots get the pulse ring (Home, My feet).
   final bool pulse;
+
+  /// My feet: a foot with no data ([levels] null) gets a dashed outline.
+  final bool dashOutlineWhenNoData;
 
   @override
   Widget build(BuildContext context) {
@@ -90,6 +97,7 @@ class FootMap extends StatelessWidget {
                 side: side,
                 styles: _DotStyles(styles),
                 ringChannel: ringChannel,
+                dashedOutline: dashOutlineWhenNoData && levels == null,
                 // Reduce motion: jump to the end state (rule 16).
                 duration: Motion.duration(context, Motion.enterDuration),
               ),
@@ -141,12 +149,14 @@ class _AnimatedDots extends ImplicitlyAnimatedWidget {
     required this.side,
     required this.styles,
     required this.ringChannel,
+    required this.dashedOutline,
     required super.duration,
   }) : super(curve: Motion.enter);
 
   final FootSide side;
   final _DotStyles styles;
   final int? ringChannel;
+  final bool dashedOutline;
 
   @override
   AnimatedWidgetBaseState<_AnimatedDots> createState() => _AnimatedDotsState();
@@ -171,6 +181,7 @@ class _AnimatedDotsState extends AnimatedWidgetBaseState<_AnimatedDots> {
         side: widget.side,
         styles: _styles!.evaluate(animation).list,
         ringChannel: widget.ringChannel,
+        dashedOutline: widget.dashedOutline,
       ),
     );
   }
@@ -193,29 +204,53 @@ final footOutlines = {
 };
 
 /// Draws [side]'s outline (fill `bg`, stroke `divider` 2.5) on a canvas
-/// already in view-box units (DESIGN-SPEC §5).
-void paintFootOutline(Canvas canvas, FootSide side) {
+/// already in view-box units (DESIGN-SPEC §5). [dashed]: My feet with no
+/// data, `inkSubtle` dashed 6 5.
+void paintFootOutline(Canvas canvas, FootSide side, {bool dashed = false}) {
   final outline = footOutlines[side]!;
+  final stroke = Paint()
+    ..color = dashed ? AppColors.inkSubtle : AppColors.divider
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = _outlineWidth;
   canvas
     ..drawPath(outline, Paint()..color = AppColors.bg)
-    ..drawPath(
-      outline,
-      Paint()
-        ..color = AppColors.divider
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = _outlineWidth,
-    );
+    ..drawPath(dashed ? dashedPath(outline, _outlineDash) : outline, stroke);
 }
 
 /// Outline stroke, view-box units (DESIGN-SPEC §5).
 const _outlineWidth = 2.5;
+const _outlineDash = [6.0, 5.0];
+
+/// [source] cut into dashes of [pattern] (on, off, …).
+Path dashedPath(Path source, List<double> pattern) {
+  final out = Path();
+  for (final metric in source.computeMetrics()) {
+    var d = 0.0;
+    var on = true;
+    var i = 0;
+    while (d < metric.length) {
+      final len = pattern[i % pattern.length];
+      if (on) out.addPath(metric.extractPath(d, d + len), Offset.zero);
+      d += len;
+      on = !on;
+      i++;
+    }
+  }
+  return out;
+}
 
 class _FootPainter extends CustomPainter {
-  _FootPainter({required this.side, required this.styles, this.ringChannel});
+  _FootPainter({
+    required this.side,
+    required this.styles,
+    this.ringChannel,
+    this.dashedOutline = false,
+  });
 
   final FootSide side;
   final List<FootDotStyle> styles;
   final int? ringChannel;
+  final bool dashedOutline;
 
   static const _dash = [4.0, 3.0];
 
@@ -227,7 +262,7 @@ class _FootPainter extends CustomPainter {
       ..translate(offset.dx, offset.dy)
       ..scale(scale);
 
-    paintFootOutline(canvas, side);
+    paintFootOutline(canvas, side, dashed: dashedOutline);
 
     for (var c = 0; c < styles.length; c++) {
       final style = styles[c];
@@ -239,9 +274,10 @@ class _FootPainter extends CustomPainter {
         ..strokeWidth = FootDotColors.outlineWidth;
       if (style.dashed) {
         canvas.drawPath(
-          _dashed(
+          dashedPath(
             Path()
               ..addOval(Rect.fromCircle(center: center, radius: style.radius)),
+            _dash,
           ),
           stroke,
         );
@@ -263,26 +299,10 @@ class _FootPainter extends CustomPainter {
     canvas.restore();
   }
 
-  static Path _dashed(Path source) {
-    final out = Path();
-    for (final metric in source.computeMetrics()) {
-      var d = 0.0;
-      var on = true;
-      var i = 0;
-      while (d < metric.length) {
-        final len = _dash[i % _dash.length];
-        if (on) out.addPath(metric.extractPath(d, d + len), Offset.zero);
-        d += len;
-        on = !on;
-        i++;
-      }
-    }
-    return out;
-  }
-
   @override
   bool shouldRepaint(_FootPainter old) =>
       old.side != side ||
+      old.dashedOutline != dashedOutline ||
       old.ringChannel != ringChannel ||
       !listEquals(old.styles, styles);
 }
