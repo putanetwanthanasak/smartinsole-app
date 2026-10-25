@@ -1194,15 +1194,15 @@ with the user's OK. The bottom bar labels behave the same at 200 %
 "ติดกัน"; on the emulator it breaks correctly (BACKLOG 46 covers the
 general case).
 
-## 48. Model A's runtime adds about 20 MB to the release APK **(found in S8A)** — OPEN, for S9
+## 48. Model A's runtime makes the release APK bigger **(found in S8A)** — OPEN, for S9
 
-`tflite_flutter` 0.12.1 bundles LiteRT's native libraries for every ABI;
-the release APK went from about 64 MB to 84.6 MB. The study phone has
-room, so nothing is needed for the study. Options for S9: build per-ABI
-APKs (`--split-per-abi`, arm64 only for the Note 10) or an app bundle.
-The dummy model in `assets/models_dummy/` is also bundled in release
-builds (it is never loaded there); move it out of the release assets if
-its size matters.
+`tflite_flutter` 0.12.1 bundles LiteRT's native libraries for every ABI
+(arm64: `libtensorflowlite_jni.so` 4.3 MB + `libtensorflowlite_gpu_jni.so`
+2.5 MB uncompressed); the S8A release APK is 84.6 MB. The study phone has
+room, so nothing is needed for the study. Options for S9: per-ABI APKs
+(`--split-per-abi`, arm64 only for the Note 10) or an app bundle. The
+dummy model (`assets/models_dummy/`, 266 KB with `check.json`) is also in
+release builds, never loaded there.
 
 ## 49. Rule-based gait classes are provisional **(found in S8A, before 2026-11-10)** — OPEN, for SR
 
