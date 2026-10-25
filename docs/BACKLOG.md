@@ -1299,3 +1299,30 @@ PTI per step, `LOAD_CONCENTRATION`, `ASYMMETRY_PEAK` and the gait rules.
   one step per stance.
 - Two real steps separated by a genuine swing still count as two.
 - SR's manual step count stays, and it now also checks the new keys.
+
+## 52. Auto-reconnect searches without a time limit **(found in S8B)** — OPEN, for S9
+
+At app start, a remembered insole is reconnected by `BleDataSource`'s own
+retry loop (S3A), which keeps scanning until the insole advertises. The
+20 s window and "ไม่พบแผ่นรองเท้า" apply only to a search the user starts
+on Connection. An insole that stays off therefore keeps the phone scanning
+in the background. S9 (battery and background run) should measure what it
+costs and decide whether to back off, e.g. stop after a few minutes and
+retry when the app comes to the foreground. Each attempt is logged
+(BACKLOG 45), so the Reconnects card shows it.
+
+## 53. The Diagnostics "Connect as" path does not remember the insole **(found in S8B)** — OPEN, minor
+
+Diagnostics' scan list connects through `BleDataSource.connectTo`
+directly, not through `FootFinder`, so an insole connected there is not
+remembered for auto-reconnect at the next start. Researchers should use
+Connection. Either route Diagnostics' connect through the finder, or
+leave it as a raw tool and say so on the card.
+
+## 54. Home's two foot tiles stay side by side at 1.3 × "ใหญ่มาก" **(found in S8B)** — OPEN, for S10
+
+At the Note 10's phone scale 1.3 with "ใหญ่มาก" (≈ 1.88) nothing clips
+(golden `home_safe_130xl`), but the foot tiles stay in two columns with
+short lines, and the tab bar labels wrap to two lines ("เท้า / ของฉัน").
+S10's large-text pass should decide whether the tiles stack above 1.3 like
+the other two-column rows, and how the bar handles two-line labels.
