@@ -1,0 +1,67 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(flutter analyze)",
+      "Bash(flutter analyze *)",
+      "Bash(flutter test)",
+      "Bash(flutter test *)",
+      "Bash(flutter build apk)",
+      "Bash(flutter build apk *)",
+      "Bash(dart format *)",
+      "Bash(adb devices)",
+      "Bash(adb devices *)",
+      "Bash(adb install -r *)",
+      "Bash(adb exec-out *)",
+      "Bash(adb pull *)",
+      "Bash(adb logcat)",
+      "Bash(adb logcat *)",
+      "Bash(adb shell getprop)",
+      "Bash(adb shell getprop *)",
+      "Bash(adb shell dumpsys *)",
+      "Bash(adb shell screencap *)",
+      "Bash(adb shell screenrecord *)",
+      "Bash(adb shell input *)",
+      "Bash(adb shell am start *)",
+      "Bash(adb shell am force-stop *)",
+      "Bash(adb shell settings get *)",
+      "Bash(adb shell ls)",
+      "Bash(adb shell ls *)",
+      "Bash(adb shell pm list *)",
+      "Bash(adb shell pm dump *)",
+      "Bash(pio run)",
+      "Bash(pio run *)",
+      "Bash(pio test)",
+      "Bash(pio test *)",
+      "Bash(python3 tools/capture/*)",
+      "Bash(python3 firmware/simulator/tools/*)"
+    ],
+    "ask": [
+      "Bash(git push)",
+      "Bash(git push *)",
+      "Bash(gh pr merge)",
+      "Bash(gh pr merge *)",
+      "Bash(adb push *)",
+      "Bash(adb shell settings put *)"
+    ],
+    "deny": [
+      "Bash(adb uninstall *)",
+      "Bash(adb shell pm clear *)",
+      "Bash(adb shell pm uninstall *)",
+      "Bash(adb shell rm *)",
+      "Bash(adb shell run-as *)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/adb_guard.py\""
+          }
+        ]
+      }
+    ]
+  }
+}
