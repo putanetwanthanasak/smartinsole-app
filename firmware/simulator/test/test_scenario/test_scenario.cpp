@@ -16,6 +16,9 @@ namespace {
 
 JsonDocument gThresholds;
 
+// Headroom over motion.walkingAccelG for the lowest gate window.
+constexpr double kGateMarginG = 0.01;
+
 double th(const char* block, const char* key) { return gThresholds[block][key].as<double>(); }
 
 // Contract §5.1 with the served calibration, as in test_synth.cpp.
@@ -124,11 +127,12 @@ void test_high_meta1_peak_pti_and_gate() {
       }
     }
     TEST_ASSERT_TRUE(steps >= 50);
-    // The walking gate is on through every window, with margin.
+    // The walking gate is on through every window: the walk's own motion
+    // since S8A (BACKLOG 42), no longer scaled up here.
     double lowest = lowestGateMean(scenario::highMeta1Sample, side);
     char msg[64];
     snprintf(msg, sizeof msg, "side %u lowest gate mean %.3f g", side, lowest);
-    TEST_ASSERT_TRUE_MESSAGE(lowest > gateG + 0.04, msg);
+    TEST_ASSERT_TRUE_MESSAGE(lowest >= gateG + kGateMarginG, msg);
     // Accel stays inside the +-8 g range (no clamping).
     for (uint32_t t = 0; t < 1100; t += 20) {
       Sample s = scenario::highMeta1Sample(t, side, 6);
@@ -148,14 +152,35 @@ void test_high_meta1_other_channels_unchanged() {
   }
 }
 
-void test_normal_walk_gate_figure() {
-  // Not a pass/fail: records the normal walk's lowest gate mean for the
-  // S7 report (the normal walk is gentler than the app's gate).
-  char msg[80];
-  snprintf(msg, sizeof msg, "normal walk lowest gate mean: L %.3f g, R %.3f g (gate %.2f g)",
-           lowestGateMean(synth::gaitSample, 0), lowestGateMean(synth::gaitSample, 1),
-           th("motion", "walkingAccelG"));
-  TEST_MESSAGE(msg);
+// Mean |a| - 1 g over a minute's walk.
+double meanGate(Sample (*sample)(uint32_t, uint8_t, uint8_t), uint8_t side) {
+  double sum = 0;
+  int n = 0;
+  for (uint32_t t = 0; t < 60000; t += kSamplePeriodMs, ++n) sum += accelDev(sample(t, side, 6));
+  return sum / n;
+}
+
+void test_normal_walk_keeps_the_gate_on() {
+  // BACKLOG 42 (S8A): the normal walk now keeps the app's walking gate on
+  // through every window, so steps are counted and PRESSURE_PEAK can apply.
+  // Its mean is about 0.34 g, its lowest window about 0.17 g; the lowest
+  // window was 0.07 g before.
+  const double gateG = th("motion", "walkingAccelG");
+  for (uint8_t side : {0, 1}) {
+    double lowest = lowestGateMean(synth::gaitSample, side);
+    double mean = meanGate(synth::gaitSample, side);
+    char msg[96];
+    snprintf(msg, sizeof msg, "side %u: lowest window %.3f g, mean %.3f g (gate %.2f g)", side,
+             lowest, mean, gateG);
+    TEST_MESSAGE(msg);
+    TEST_ASSERT_TRUE_MESSAGE(lowest >= gateG + kGateMarginG, msg);
+    TEST_ASSERT_TRUE_MESSAGE(mean >= 0.25 && mean <= 0.35, msg);
+    // Inside the +-8 g range (no clamping).
+    for (uint32_t t = 0; t < synth::kGaitCycleMs; t += kSamplePeriodMs) {
+      Sample s = synth::gaitSample(t, side, 6);
+      for (int a = 0; a < 3; ++a) TEST_ASSERT_TRUE(std::abs(s.accel[a]) < 32000);
+    }
+  }
 }
 
 }  // namespace
@@ -172,6 +197,6 @@ int main() {
   RUN_TEST(test_warm_forefoot_is_above_delta_c);
   RUN_TEST(test_high_meta1_peak_pti_and_gate);
   RUN_TEST(test_high_meta1_other_channels_unchanged);
-  RUN_TEST(test_normal_walk_gate_figure);
+  RUN_TEST(test_normal_walk_keeps_the_gate_on);
   return UNITY_END();
 }

@@ -92,18 +92,34 @@ void test_feet_alternate() {
 }
 
 void test_accel_moves_enough_to_be_walking() {
-  // shared/thresholds.json motion.walkingAccelG = 0.15 (the app's gate).
-  double sum = 0, sq = 0;
-  int n = 0;
-  for (uint32_t t = 0; t < 800; t += 20, ++n) {
-    Sample s = synth::gaitSample(t, 0, 6);
-    double g = std::sqrt(double(s.accel[0]) * s.accel[0] + double(s.accel[1]) * s.accel[1] +
-                         double(s.accel[2]) * s.accel[2]) / 4096.0;
-    sum += g;
-    sq += g * g;
+  // The app's walking gate (contract 8.3.2, mobile/lib/rules/
+  // walking_gate.dart): mean |a| - 1 g over motion.walkingWindowMs must
+  // reach motion.walkingAccelG. Every window of a minute's walk, both feet.
+  std::ifstream in(THRESHOLDS_JSON);
+  JsonDocument doc;
+  TEST_ASSERT_FALSE(deserializeJson(doc, in));
+  const double gate = doc["motion"]["walkingAccelG"].as<double>();
+  const int window = doc["motion"]["walkingWindowMs"].as<int>() / 20;
+  TEST_ASSERT_TRUE(gate > 0 && window > 0);
+  for (uint8_t side : {0, 1}) {
+    double dev[3000];
+    int n = 0;
+    for (uint32_t t = 0; t < 60000; t += 20, ++n) {
+      Sample s = synth::gaitSample(t, side, 6);
+      double g = std::sqrt(double(s.accel[0]) * s.accel[0] + double(s.accel[1]) * s.accel[1] +
+                           double(s.accel[2]) * s.accel[2]) / 4096.0;
+      dev[n] = std::fabs(g - 1);
+    }
+    double lowest = 1e9;
+    for (int i = 0; i + window <= n; ++i) {
+      double sum = 0;
+      for (int k = 0; k < window; ++k) sum += dev[i + k];
+      lowest = std::fmin(lowest, sum / window);
+    }
+    char msg[64];
+    snprintf(msg, sizeof msg, "side %u lowest gate mean %.3f g", side, lowest);
+    TEST_ASSERT_TRUE_MESSAGE(lowest >= gate, msg);
   }
-  double sd = std::sqrt(sq / n - (sum / n) * (sum / n));
-  TEST_ASSERT_TRUE(sd > 0.15);
 }
 
 void test_temperature_plausible_and_below_delta_threshold() {

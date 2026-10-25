@@ -78,7 +78,7 @@ Sample gaitSample(uint32_t tMs, uint8_t footSide, uint8_t fsrCount) {
   }
 
   // IMU: about 1 g down while standing; a heel-strike jolt at stance start;
-  // forward swing in the swing phase. Enough motion to pass a walking gate.
+  // forward swing in the swing phase; scaled by kWalkMotionScale.
   float sw = stance ? 0 : (ph - kStanceFraction) / (1 - kStanceFraction);
   float az = 1.0f, ax = 0, ay = 0, gy = 0;
   if (stance) {
@@ -90,9 +90,10 @@ Sample gaitSample(uint32_t tMs, uint8_t footSide, uint8_t fsrCount) {
     gy = 220.0f * std::sin(kPi * sw);  // deg/s, shank swing
   }
   ay = 0.05f * std::sin(2 * kPi * ph);
-  s.accel[0] = clampI16((ax + 0.02f * noise(tMs, 100)) * 4096);
-  s.accel[1] = clampI16((ay + 0.02f * noise(tMs, 101)) * 4096);
-  s.accel[2] = clampI16((az + 0.02f * noise(tMs, 102)) * 4096);
+  const float k = kWalkMotionScale;
+  s.accel[0] = clampI16((k * ax + 0.02f * noise(tMs, 100)) * 4096);
+  s.accel[1] = clampI16((k * ay + 0.02f * noise(tMs, 101)) * 4096);
+  s.accel[2] = clampI16((1 + k * (az - 1) + 0.02f * noise(tMs, 102)) * 4096);
   s.gyro[0] = clampI16((15.0f * std::sin(2 * kPi * ph) + 2 * noise(tMs, 103)) * 32.8f);
   s.gyro[1] = clampI16((gy + 2 * noise(tMs, 104)) * 32.8f);
   s.gyro[2] = clampI16((8.0f * std::cos(2 * kPi * ph) + 2 * noise(tMs, 105)) * 32.8f);
