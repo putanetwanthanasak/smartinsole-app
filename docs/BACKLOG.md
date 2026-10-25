@@ -1219,7 +1219,8 @@ never give `rotated_foot`. The gait result never changes a level
 ## 50. "ยืนหรือนั่งอยู่" wraps in the Gait tab's half-width card **(found in S8A)** — OPEN, for S10
 
 At 24/700 the "ตอนนี้" value "ยืนหรือนั่งอยู่" needs two lines in its
-half-width card even at 100 % text: "ยืนหรือนั่ง / อยู่" (golden
-`gait_idle_100`). The break falls between words and the card grows to
+half-width card at the 390 dp reference width even at 100 % text:
+"ยืนหรือนั่ง / อยู่" (golden `gait_idle_100`). On the 412 dp emulator it
+fits on one line. The break falls between words and the card grows to
 fit, so nothing is cut, but the steps card beside it is half empty. Options for S10: a smaller value style
 for this card, or the user's OK on a shorter label.
