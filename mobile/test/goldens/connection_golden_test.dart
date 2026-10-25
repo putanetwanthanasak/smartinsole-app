@@ -77,9 +77,7 @@ void main() {
         insoles: [leftBoard(), rightBoard()],
         textScale: s.scale,
         size: Size(390, s.h),
-        settings: MemorySettingsStore(
-          settings: AppSettings(textSize: s.size),
-        ),
+        settings: MemorySettingsStore(settings: AppSettings(textSize: s.size)),
       );
       await tapAndRun(
         tester,
@@ -102,9 +100,7 @@ void main() {
         insoles: [board],
         textScale: s.scale,
         size: Size(390, s.h),
-        settings: MemorySettingsStore(
-          settings: AppSettings(textSize: s.size),
-        ),
+        settings: MemorySettingsStore(settings: AppSettings(textSize: s.size)),
       );
       await tapAndRun(
         tester,
@@ -126,7 +122,10 @@ void main() {
     // Two right insoles: the right foot takes one, the left finds the other.
     await pumpConnection(
       tester,
-      insoles: [rightBoard(), rightBoard(id: 'R2')],
+      insoles: [
+        rightBoard(),
+        rightBoard(id: 'R2'),
+      ],
       size: const Size(390, 1100),
     );
     await tapAndRun(tester, 'connect-action-right', const Duration(seconds: 2));

@@ -5,6 +5,7 @@ import 'package:path_provider/path_provider.dart';
 import '../ble/ble_providers.dart';
 import '../ble/foot_connector.dart';
 import '../ble/foot_finder.dart';
+import '../ble/insole_control.dart';
 import '../ble/insole_data_source.dart';
 import '../ble/packets.dart';
 import '../settings/settings_providers.dart';
@@ -115,4 +116,14 @@ final timingCheckProvider = Provider<TimingCheck>((ref) {
   );
   ref.onDispose(check.stop);
   return check;
+});
+
+/// TARE / REBOOT of one foot: the mock in a mock-preset run, BLE otherwise.
+final insoleControlProvider = Provider.family<InsoleControl, FootSide>((
+  ref,
+  side,
+) {
+  final mock = ref.watch(mockInsolesProvider);
+  if (mock != null) return mock.source(side);
+  return ref.watch(insoleSourceProvider(side));
 });

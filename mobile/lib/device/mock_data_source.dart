@@ -7,6 +7,7 @@ import '../ble/ble_protocol.dart';
 import '../ble/calibration.dart';
 import '../ble/fsr_conversion.dart';
 import '../ble/insole_data_source.dart';
+import '../ble/insole_control.dart';
 import '../ble/link_state.dart';
 import '../ble/packets.dart';
 import '../ble/seq_tracker.dart';
@@ -303,7 +304,7 @@ class MockInsoles extends ChangeNotifier {
 /// One mock insole: 8-sample packets every 160 ms (6.25 Hz = 50 Hz), raw
 /// ADC converted to kPa by the real `sampleKpa`, temperature at START and
 /// every 30 s, status at START and on every preset change.
-class MockDataSource implements InsoleDataSource {
+class MockDataSource implements InsoleDataSource, InsoleControl {
   MockDataSource._(this.side, this._owner, {required int bootDeviceMs})
     : _bootUnixMs = _owner.now().millisecondsSinceEpoch - bootDeviceMs,
       calibration = Calibration(
@@ -338,6 +339,15 @@ class MockDataSource implements InsoleDataSource {
   final _statuses = StreamController<StatusFrame>.broadcast();
 
   bool _want = false;
+
+  /// Packets still flagged calibrating after a TARE (the simulator's
+  /// one-stride window: 55 samples ≈ 7 packets).
+  int _tarePackets = 0;
+  static const tareWindowPackets = 7;
+
+  /// How long a mock REBOOT keeps the insole away.
+  static const rebootDelay = Duration(seconds: 2);
+  Timer? _rebootTimer;
   Timer? _connectTimer;
   Timer? _packetTimer;
   Timer? _tempTimer;
@@ -376,6 +386,26 @@ class MockDataSource implements InsoleDataSource {
     _want = false;
     _stop();
     _set(LinkIdle(deviceId: _id));
+  }
+
+  @override
+  bool get canCommand => _state is LinkStreaming;
+
+  @override
+  Future<void> sendTare() async {
+    if (!canCommand) throw StateError('not streaming');
+    _tarePackets = tareWindowPackets;
+  }
+
+  /// The link drops, and the insole is back after [rebootDelay].
+  @override
+  Future<void> sendReboot() async {
+    if (!canCommand) throw StateError('not streaming');
+    _stop();
+    _set(LinkSearching(deviceId: _id));
+    _rebootTimer = Timer(rebootDelay, () {
+      if (_want) _start();
+    });
   }
 
   /// Brings this foot in line with the current preset.
@@ -417,6 +447,7 @@ class MockDataSource implements InsoleDataSource {
   }
 
   void _stop() {
+    _rebootTimer?.cancel();
     _connectTimer?.cancel();
     _packetTimer?.cancel();
     _tempTimer?.cancel();
@@ -487,6 +518,8 @@ class MockDataSource implements InsoleDataSource {
     _nextT0 += samplesPerPacket * SensorLayout.sampleSpacingMs;
     final seq = _seq;
     _seq = (_seq + 1) & 0xFFFF;
+    final calibrating = _tarePackets > 0;
+    if (calibrating) _tarePackets--;
     if (_frames.isClosed) return;
     _frames.add(
       SensorFrame(
@@ -496,7 +529,7 @@ class MockDataSource implements InsoleDataSource {
         missingBefore: _seqTracker.accept(seq),
         receivedAt: _owner.now(),
         saturated: raw.any((s) => s.fsrAdc.contains(Scaling.adcMax)),
-        calibrating: false,
+        calibrating: calibrating,
         samples: [
           for (final s in raw)
             SensorSample(

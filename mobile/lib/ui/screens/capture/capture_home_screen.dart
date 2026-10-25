@@ -266,7 +266,7 @@ class _CaptureHomeScreenState extends ConsumerState<CaptureHomeScreen> {
                 'Both feet streaming, battery ≥ '
                 '${CaptureTimings.minBatteryPct} %, firmware and '
                 'calibration read. Connect both insoles first '
-                '(for now: Settings → BLE debug).',
+                '(Settings → เชื่อมต่อแผ่นรองเท้า).',
                 style: AppText.secondary,
               ),
             ],

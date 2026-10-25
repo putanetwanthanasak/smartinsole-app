@@ -9,6 +9,7 @@ import 'alert_repository.dart';
 import 'daily_summary_repository.dart';
 import 'database.dart';
 import 'foot_check_repository.dart';
+import 'foot_photos.dart';
 import 'local_date.dart';
 import 'models.dart';
 import 'retention.dart';
@@ -138,4 +139,18 @@ final temperatureStatsProvider = StreamProvider.autoDispose<TemperatureStats>(
 /// The alerts table's figures for the BLE debug screen (S7 phone check).
 final alertStatsProvider = StreamProvider.autoDispose<AlertStats>(
   (ref) => ref.watch(alertRepositoryProvider).watchStats(),
+);
+
+/// Foot photos on the phone now (Settings). Refresh after a delete.
+final footPhotoCountProvider = FutureProvider.autoDispose<int>(
+  (ref) async => countFootPhotos(await ref.watch(footPhotoDirProvider)()),
+);
+
+/// Settings › "ลบรูปถ่ายเท้าทั้งหมด" ([deleteAllFootPhotos]).
+final deleteFootPhotosProvider = Provider<Future<int> Function()>(
+  (ref) =>
+      () => deleteAllFootPhotos(
+        ref.read(databaseProvider),
+        photoDir: ref.read(footPhotoDirProvider),
+      ),
 );

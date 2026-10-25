@@ -280,12 +280,10 @@ class _NumberedLines extends StatelessWidget {
                 // outgrow its circle.
                 Container(
                   constraints: BoxConstraints.tightFor(
-                    width: MediaQuery.textScalerOf(
-                      context,
-                    ).scale(ConnectDimens.notFoundNumber),
-                    height: MediaQuery.textScalerOf(
-                      context,
-                    ).scale(ConnectDimens.notFoundNumber),
+                    width: MediaQuery.textScalerOf(context)
+                        .scale(ConnectDimens.notFoundNumber),
+                    height: MediaQuery.textScalerOf(context)
+                        .scale(ConnectDimens.notFoundNumber),
                   ),
                   alignment: Alignment.center,
                   decoration: const BoxDecoration(

@@ -83,7 +83,8 @@ void main() {
         findsOneWidget,
       );
 
-      await tester.tap(find.byTooltip('กลับ'));
+      // The §5 back link ("‹ กลับ"), read as "กลับ" by TalkBack.
+      await tester.tap(byKey('back-link'));
       await tester.pumpAndSettle();
       expect(find.byType(screen), findsNothing);
       expect(find.byType(HomeScreen), findsOneWidget);

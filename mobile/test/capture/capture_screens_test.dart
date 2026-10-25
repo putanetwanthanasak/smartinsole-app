@@ -8,6 +8,7 @@ import 'package:smartinsole/ble/link_state.dart';
 import 'package:smartinsole/capture/capture_files.dart';
 import 'package:smartinsole/capture/capture_session.dart';
 import 'package:smartinsole/ui/routes.dart';
+import 'package:smartinsole/ui/screens/researcher_screen.dart';
 import 'package:smartinsole/ui/screens/capture/capture_flow_screen.dart';
 
 import '../helpers/pump_app.dart';
@@ -28,7 +29,7 @@ void main() {
         overrides: rig.overrides,
         settle: false,
       );
-      await tester.ensureVisible(byKey('researcher-row'));
+      await tester.scrollUntilVisible(byKey('researcher-row'), 300);
       await tester.pump();
       // A tap and a normal long press do nothing.
       await tester.tap(byKey('researcher-row'));
@@ -44,6 +45,14 @@ void main() {
       expect(find.text('Research capture'), findsNothing);
       await tester.pump(const Duration(milliseconds: 200));
       await g.up();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      // S8B: it opens Researcher; its export row opens capture as before.
+      expect(find.byType(ResearcherScreen), findsOneWidget);
+      expect(find.text('Research capture'), findsNothing);
+      await tester.scrollUntilVisible(byKey('researcher-export'), 300);
+      await tester.pump();
+      await tester.tap(byKey('researcher-export'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 500));
       expect(find.text('Research capture'), findsOneWidget);

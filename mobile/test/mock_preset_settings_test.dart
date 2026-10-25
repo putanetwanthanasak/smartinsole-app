@@ -22,6 +22,7 @@ void main() {
       initialRoute: Routes.settings,
       overrides: [mockPresetProvider.overrideWithValue(MockPreset.safe)],
     );
+    await tester.scrollUntilVisible(byKey('mock-preset-button'), 300);
     expect(find.text('Mock preset (debug): safe'), findsOneWidget);
     await tester.tap(byKey('mock-preset-button'));
     await tester.pumpAndSettle();

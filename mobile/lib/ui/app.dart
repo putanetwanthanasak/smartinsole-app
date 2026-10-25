@@ -14,6 +14,7 @@ import 'screens/capture/capture_home_screen.dart';
 import 'screens/connection_screen.dart';
 import 'screens/debug_ble_screen.dart';
 import 'screens/foot_check_found_screen.dart';
+import 'screens/researcher_screen.dart';
 import 'screens/settings_screen.dart';
 import 'shell/app_shell.dart';
 import 'theme/app_theme.dart';
@@ -57,6 +58,7 @@ class SmartInsoleApp extends ConsumerWidget {
             Routes.footCheckFound: (context) => FootCheckFoundScreen(
               footCheckId: ModalRoute.of(context)!.settings.arguments as int?,
             ),
+            Routes.researcher: (_) => const ResearcherScreen(),
             Routes.bleDebug: (_) => const DebugBleScreen(),
             Routes.capture: (_) => const CaptureHomeScreen(),
           },

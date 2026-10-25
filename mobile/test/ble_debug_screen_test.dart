@@ -48,12 +48,34 @@ Future<void> tapKey(WidgetTester tester, String key) async {
 }
 
 void main() {
-  testWidgets('Settings opens the BLE debug screen', (tester) async {
+  testWidgets('Settings has no debug button', (tester) async {
     await pumpApp(tester, initialRoute: Routes.settings);
-    await tester.tap(byKey('ble-debug-button'));
+    expect(byKey('ble-debug-button'), findsNothing);
+    expect(find.text('Diagnostics'), findsNothing);
+  });
+
+  testWidgets('Researcher opens Diagnostics', (tester) async {
+    await pumpApp(tester, initialRoute: Routes.researcher, settle: false);
+    await settleBle(tester);
+    await tester.scrollUntilVisible(
+      byKey('diagnostics-row'),
+      300,
+      scrollable: find.descendant(
+        of: byKey('researcher-scroll'),
+        matching: find.byType(Scrollable),
+      ),
+    );
+    await tester.pump();
+    await tester.tap(byKey('diagnostics-row'));
     await settleBle(tester);
     expect(find.byType(DebugBleScreen), findsOneWidget);
-    expect(find.text('BLE debug'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(AppBar),
+        matching: find.text('Diagnostics'),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('scan lists insoles by id; Connect as LEFT streams', (

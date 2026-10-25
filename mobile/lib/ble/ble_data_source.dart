@@ -10,6 +10,7 @@ import 'ble_protocol.dart';
 import 'calibration.dart';
 import 'control_commands.dart';
 import 'fsr_conversion.dart';
+import 'insole_control.dart';
 import 'insole_data_source.dart';
 import 'link_state.dart';
 import 'link_stats.dart';
@@ -41,7 +42,7 @@ import 'parse_result.dart';
 /// While streaming, `SYNC_TIME` is sent again every [syncInterval]
 /// (contract §4). It is only sent and reported on [syncs]; the app's unix
 /// time per sample does not come from it (BACKLOG 28, `DeviceClock`).
-class BleDataSource implements InsoleDataSource {
+class BleDataSource implements InsoleDataSource, InsoleControl {
   BleDataSource({
     required this.side,
     required this.hub,
@@ -200,6 +201,29 @@ class BleDataSource implements InsoleDataSource {
     if (_deviceId != null) hub.release(_deviceId!, side);
     if (_state is! LinkIdle) _log.add('disconnected by user', side: side);
     _set(LinkIdle(deviceId: _deviceId));
+  }
+
+  // --- Device-wide commands (S8B, BACKLOG 21) -------------------------------
+
+  @override
+  bool get canCommand => _link != null && _startAcked;
+
+  @override
+  Future<void> sendTare() => _sendDeviceCommand(tareCommand(), 'TARE');
+
+  @override
+  Future<void> sendReboot() => _sendDeviceCommand(rebootCommand(), 'REBOOT');
+
+  /// Writes a device-wide command on the streaming link. The connect
+  /// sequence is not involved: TARE shows up as calibrating packets (and a
+  /// calibration re-read), REBOOT as a lost link that reconnects.
+  Future<void> _sendDeviceCommand(Uint8List command, String name) async {
+    final link = _link;
+    if (link == null || !_startAcked) {
+      throw const BleException('not streaming');
+    }
+    _log.add('$name sent', side: side);
+    await link.write(BleUuids.control, command);
   }
 
   void dispose() {
