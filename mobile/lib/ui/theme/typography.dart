@@ -60,11 +60,42 @@ abstract final class AppText {
     color: AppColors.ink,
   );
 
+  /// Steps today on the Gait tab: the status-title size, tabular.
+  static const steps = TextStyle(
+    fontFamily: AppFonts.heading,
+    fontFamilyFallback: AppFonts.headingFallback,
+    fontSize: 32,
+    fontWeight: FontWeight.w700,
+    height: _headingHeight,
+    color: AppColors.ink,
+    fontFeatures: _tabular,
+  );
+
   /// Page title, greeting.
   static const pageTitle = TextStyle(
     fontFamily: AppFonts.heading,
     fontFamilyFallback: AppFonts.headingFallback,
     fontSize: 28,
+    fontWeight: FontWeight.w700,
+    height: _headingHeight,
+    color: AppColors.ink,
+  );
+
+  /// Gait class name on the Gait tab.
+  static const gaitClass = TextStyle(
+    fontFamily: AppFonts.heading,
+    fontFamilyFallback: AppFonts.headingFallback,
+    fontSize: 26,
+    fontWeight: FontWeight.w700,
+    height: _headingHeight,
+    color: AppColors.ink,
+  );
+
+  /// Bottom-sheet title; the current activity on the Gait tab.
+  static const sheetTitle = TextStyle(
+    fontFamily: AppFonts.heading,
+    fontFamilyFallback: AppFonts.headingFallback,
+    fontSize: 24,
     fontWeight: FontWeight.w700,
     height: _headingHeight,
     color: AppColors.ink,

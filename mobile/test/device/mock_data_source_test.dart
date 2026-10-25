@@ -222,6 +222,26 @@ void main() {
       expectSafe(r, 'right');
     });
 
+    test('standing: loaded, below watch, never walking (S8A)', () {
+      final (l, r) = runPreset(MockPreset.standing);
+      for (final (f, foot) in [(l, 'left'), (r, 'right')]) {
+        expect(f.maxPeak, lessThan(watchKpa), reason: foot);
+        expect(f.maxWalkingAccel, lessThan(walkingAccelG), reason: foot);
+        expect(f.channelPeaks.every((k) => k > 0), isTrue, reason: foot);
+      }
+      expectDeltaBelow(l, r);
+    });
+
+    test('toeWalk: walking, safe, no heel load (S8A)', () {
+      final (l, r) = runPreset(MockPreset.toeWalk);
+      for (final (f, foot) in [(l, 'left'), (r, 'right')]) {
+        expectSafe(f, foot);
+        expect(f.maxWalkingAccel, greaterThanOrEqualTo(walkingAccelG));
+        // 0 kPa comes back through the ADC as a hair above 0.
+        expect(f.channelPeaks[5], lessThan(1), reason: '$foot heel');
+      }
+    });
+
     test('noData: neither foot connects', () {
       final (l, r) = runPreset(MockPreset.noData, seconds: 5);
       for (final f in [l, r]) {

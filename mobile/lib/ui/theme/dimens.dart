@@ -101,6 +101,25 @@ abstract final class Dimens {
   static const balanceTickWidth = 2.0;
   static const balanceTickHeight = 16.0;
 
+  // Balance bar (My feet › Gait, §8.3): 12 tall, radius 6, 2×18 tick.
+  static const feetBalanceBarHeight = 12.0;
+  static const feetBalanceTickHeight = 18.0;
+
+  // Gait tab (§8.3).
+  static const estimateChipPaddingV = 6.0;
+  static const estimateChipPaddingH = 12.0;
+  static const resultCircle = 56.0;
+  static const resultIcon = 28.0;
+  static const confidenceSegmentWidth = 36.0;
+  static const confidenceSegmentHeight = 10.0;
+  static const confidenceSegmentGap = 4.0;
+  static const probabilityBarHeight = 8.0;
+  static const gaitFooterPaddingTop = 12.0;
+
+  // CoP foot (§5: 60×134).
+  static const copFootWidth = 60.0;
+  static const copFootHeight = 134.0;
+
   // Pills (DESIGN-SPEC §5): status tag padding 4 10 with an 18 px icon;
   // "ใหม่" chip padding 2 10.
   static const tagPaddingV = 4.0;

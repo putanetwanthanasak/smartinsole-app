@@ -20,16 +20,15 @@ Finder _inBanner(Finder f) =>
 
 void main() {
   group('tabs', () {
-    testWidgets('the sub-tabs switch the panel; gait stays a placeholder', (
-      tester,
-    ) async {
+    testWidgets('the sub-tabs switch the panel', (tester) async {
       await pumpMyFeet(tester, MockPreset.safe);
       expect(byKey('pressure-tab'), findsOneWidget);
       await openSubTab(tester, MyFeetTab.temperature);
       expect(byKey('temperature-tab'), findsOneWidget);
       expect(byKey('pressure-tab'), findsNothing);
       await openSubTab(tester, MyFeetTab.gait);
-      expect(byKey('my-feet-target-gait'), findsOneWidget);
+      expect(byKey('gait-tab'), findsOneWidget);
+      expect(byKey('temperature-tab'), findsNothing);
       await unmount(tester);
     });
 

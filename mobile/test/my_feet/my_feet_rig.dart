@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smartinsole/device/mock_data_source.dart';
 import 'package:smartinsole/storage/database.dart';
@@ -46,6 +47,7 @@ Future<void> pumpMyFeet(
   double textScale = 1.0,
   bool reduceMotion = false,
   Size size = referenceSize,
+  List<Override> overrides = const [],
 }) async {
   final db = seedDay ? await sampleDayDatabase(tester, preset) : null;
   await pumpHome(
@@ -56,6 +58,7 @@ Future<void> pumpMyFeet(
     textScale: textScale,
     reduceMotion: reduceMotion,
     size: size,
+    overrides: overrides,
   );
   await tester.tap(byKey('tab-myFeet'));
   await tester.pump(const Duration(seconds: 1));

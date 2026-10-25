@@ -6,8 +6,8 @@ import '../shell/app_shell.dart';
 import '../theme/dimens.dart';
 import '../theme/typography.dart';
 import '../widgets/page_title.dart';
-import '../widgets/placeholder_body.dart';
 import '../widgets/segmented_tabs.dart';
+import 'my_feet/gait_tab.dart';
 import 'my_feet/my_feet_model.dart';
 import 'my_feet/pressure_tab.dart';
 import 'my_feet/my_feet_widgets.dart' show TwoColumns;
@@ -15,7 +15,7 @@ import 'my_feet/temperature_tab.dart';
 
 /// Bottom-bar tab "เท้าของฉัน" (DESIGN-SPEC §8): title, the sub-tabs, and
 /// the selected panel. Home's "ดูเพิ่ม" and the alert details pick the
-/// sub-tab through [myFeetTabProvider]. Gait is built in S8A.
+/// sub-tab through [myFeetTabProvider].
 ///
 /// Motion (§12.2): the tab indicator slides; the old panel fades out
 /// (`exit`) and the new one fades in (`enter`, 80 ms later). Reduce
@@ -111,10 +111,7 @@ class _MyFeetScreenState extends ConsumerState<MyFeetScreen> {
                 child: switch (tab) {
                   MyFeetTab.pressure => const PressureTab(),
                   MyFeetTab.temperature => TemperatureTab(drawInKey: _entries),
-                  MyFeetTab.gait => const PlaceholderBody(
-                    key: ValueKey('my-feet-target-gait'),
-                    session: 'S8A · tab: gait',
-                  ),
+                  MyFeetTab.gait => GaitTab(drawInKey: _entries),
                 },
               ),
             ),
