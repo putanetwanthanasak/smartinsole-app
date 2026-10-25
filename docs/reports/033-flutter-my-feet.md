@@ -9,8 +9,8 @@ and the Be-careful banner copy.
 
 **Status: the user compared all 9 Note 10 screenshots with the boards:
 they match (2026-10-25). The user asked for one fix before accepting,
-the chart's gap label (section "Follow-up: gap label"); it is done and
-waiting for the user's acceptance.** Everything automated passes.
+the chart's gap label (section "Follow-up: gap label"). With it done, the
+user accepted S6B part 2 (2026-10-25).** Everything automated passes.
 
 ## Summary
 
