@@ -31,7 +31,9 @@ Branch `work/flutter-connect-settings` · 2026-10-25 · DESIGN-SPEC §9, §10.1,
     with a new Reconnects card (BACKLOG 45).
 - `flutter analyze` is clean and `flutter test` passes 786 tests. The emulator checks pass. The spec review found 1 major and
   3 minor issues; all are fixed or explained below.
-- **Note 10 checkpoint: waiting on user** (checklist below).
+- **Note 10 checkpoint: run done on 2026-10-25, every step passed or is
+  explained; acceptance waiting on user** (results below). The run found
+  one small defect, fixed in 4f05d1f (the Researcher rate row).
 
 ## What changed
 
@@ -108,8 +110,12 @@ The reviewer also listed spec gaps:
 
 What the reviewer confirmed:
 - connect from Connection alone;
-- rule 8 (the side is checked before MTU and calibration, and never
-  remembered);
+- rule 8 (the side is checked before calibration, subscribe and start, and
+  never remembered). The reviewer wrote "before MTU", which is imprecise:
+  the unchanged S3A sequence is connect → MTU → priority → discover →
+  status (side) → calibration → subscribe → start. The Note 10 run shows
+  it: the RIGHT board logged MTU 247 on the wrong-side link, then the
+  release 1.8 s later, and no data was taken;
 - Diagnostics only from Researcher, with storage, Gait model, timing and
   Reconnects;
 - TARE/REBOOT guarded twice;
@@ -192,47 +198,57 @@ What the reviewer confirmed:
 - The release APK builds: `build/app/outputs/flutter-apk/app-release.apk`,
   87.9 MB (84.6 MB in S8A, +3.3 MB).
 
-## Note 10 checkpoint — **waiting on user**
+## Note 10 checkpoint — run done, **acceptance waiting on user**
 
-**What to plug in, before starting:**
-- The Note 10 (`RF8M83P4STZ`) by USB, unlocked, with USB debugging allowed.
-  It isn't attached right now.
-- Both ESP32 simulator boards, running the current `firmware/simulator/`
-  build: LEFT and RIGHT, each on its own USB port. I start the serial
-  loggers on `/dev/serial/by-id/usb-Silicon_Labs_CP2102…` before the phone
-  connects. Opening a port resets that board.
+Run on 2026-10-25, 21:46–22:10. Setup:
+- Note 10 `RF8M83P4STZ` (SM-N975F, Android 12). Release build of 94c4db9
+  installed with `adb install -r` at 21:47:26, then 4f05d1f at 22:10:22.
+  No uninstall and no `pm clear`.
+- Both simulator boards (fw 0.1): LEFT on `/dev/serial/by-path/…usb-0:6…`,
+  RIGHT on `…usb-0:7…`. Their loggers started before the phone connected.
+  Both CP2102s report serial `0001`, so `by-id` shows only one link;
+  `by-path` names each board.
+- Phone font scale 1.0 for the screenshots, then back to 1.3.
+- Screenshots are in `docs/reports/035-flutter-connect-settings/phone/`,
+  serial logs in `…/serial/`. Times are laptop time; the phone clock runs
+  about 2.7 s ahead.
 
-I install the release build with `adb install -r` only (no uninstall, no
-`pm clear`; the phone keeps the study data). Then, on the phone:
+The phone had no remembered insoles at the start: earlier builds connected
+only through the debug screen.
 
-1. **Connect from Connection alone.** Home → a foot tile → "เชื่อมต่อเท้าซ้าย",
-   then "เชื่อมต่อเท้าขวา". Both turn green, and "เสร็จแล้ว กลับหน้าวันนี้"
-   goes to Today. Screenshot at 100 % text vs **ConnectD** (while searching)
-   and **ConnectDDone**.
-2. **Wrong side.** "ยกเลิกการเชื่อมต่อ" on both feet. Unplug the LEFT
-   board and keep only the RIGHT board powered, then tap
-   "เชื่อมต่อเท้าซ้าย". Expect the wrong-side message within ~3 s.
-   Screenshot vs **ConnectDWrong**.
-3. **Not found.** One board unplugged, "เชื่อมต่อ…" for that foot → after
-   20 s, "ไม่พบแผ่นรองเท้า" with the 3 steps. Screenshot vs
-   **ConnectDNotFound**.
-4. **Bluetooth off.** Turn Bluetooth off in quick settings while on
-   Connection → the panel, and both cards read "รอเปิดบลูทูธ". "เปิดบลูทูธ"
-   → the system prompt → both reconnect. Screenshot vs **ConnectDBtOff**.
-5. **Restart.** Close the app from Recents and open it → both feet
-   reconnect on their own. In Settings → hold "ส่วนผู้วิจัย" 2 s →
-   Diagnostics → Reconnects, read the duration.
-6. **TARE on a simulator board.** Researcher → "ตั้งค่าศูนย์เซนเซอร์ (TARE)"
-   → the sheet → "ตั้งค่าศูนย์" → "กำลังตั้งค่าศูนย์…" → "ตั้งค่าศูนย์เสร็จแล้ว"
-   (the simulator's one-stride window). The serial log shows the TARE.
-   Screenshot vs **SettingsDTare**. Then open Research capture, start a
-   session screen, go back to Researcher: TARE and reboot are disabled.
-7. **Text size.** Settings → "ใหญ่" and "ใหญ่มาก": every screen grows, and
-   switches move under their titles at "ใหญ่มาก". Settings persist after
-   a restart.
-8. **Screenshots at 100 % text** of Settings vs **SettingsD**, and
-   Researcher vs **SettingsDResearch**.
-9. The release build stays on the phone.
+| # | Step | Result | Evidence |
+|---|---|---|---|
+| 1 | Connect from Connection alone | **pass.** Left tile → Connection → "เชื่อมต่อเท้าซ้าย": searching → "พบแล้ว กำลังเชื่อมต่อ…" with the step bar → connected. Then the same for the right. "เสร็จแล้ว กลับหน้าวันนี้" goes to Today, both tiles green. | `01`–`04`; vs ConnectD and ConnectDDone |
+| 2 | Wrong side (LEFT unplugged, right forgotten) | **pass.** "แผ่นที่พบเป็นของเท้าขวา" with the hint and "ค้นหาอีกครั้ง", about 7 s after the tap (search, side check, 3 s grace). The RIGHT board logged the short link and its release. "เชื่อมต่อเท้าขวา" then connected it normally. | `27`; vs ConnectDWrong |
+| 3 | Not found (LEFT unplugged, right connected) | **pass.** "หยุดค้นหา" stops the remembered insole's retry. A new "เชื่อมต่อเท้าซ้าย" then ends in "ไม่พบแผ่นรองเท้า" with the 3 steps after the 20 s window. The RIGHT board, held by the right foot, is skipped. | `25`, `26`; vs ConnectDNotFound |
+| 4 | Bluetooth off | **pass.** `svc bluetooth disable` → the panel "บลูทูธของโทรศัพท์ปิดอยู่", both cards "รอเปิดบลูทูธ", no info box. "เปิดบลูทูธ" → the system prompt "smartinsole กำลังขอให้เปิด Bluetooth" → on (enable log: `com.android.settings`). The boards reconnected 1.3 s (R) and 3.8 s (L) later. | `18`–`20`; vs ConnectDBtOff |
+| 5 | Restart → auto-reconnect | **pass.** Force-stop, then relaunch. Reconnects card: "LEFT #1 21:52:39 app start → streaming in 5.6 s, 0 failed tries", "RIGHT … 2.0 s". The event log has the same lines. Text size also survived a later restart. | `12`–`14`, `23` |
+| 6 | TARE via the sheet | **pass.** Sheet as SettingsDTare → "ตั้งค่าศูนย์" → "กำลังตั้งค่าศูนย์…" (no buttons) → "ตั้งค่าศูนย์เสร็จแล้ว / เท้าซ้าย และ เท้าขวา ตั้งค่าศูนย์เรียบร้อย". Both boards logged "TARE, measuring one stride" at 21:56:49.8, then "TARE done, saved to NVS" about 1.1 s later. | `15`–`17`; serial logs |
+| 6b | TARE and reboot disabled during a capture | **not observable in the app, by design.** A capture is open only while `CaptureFlowScreen` is on top; leaving it closes the capture. Researcher is under it in the stack, so it can't be shown while a capture is open. The disabled state is a second guard. It is covered by `researcher_screen_test` (disabled, and announced disabled) and the golden `researcher_capture_open_100`. TEST-005 was approved for this check but **not created**, so nothing was added to or deleted from the phone. | — |
+| 7 | Text size | **pass.** "ใหญ่มาก" applies live to Settings and Home and persists after a restart. Reset to "ปกติ" at the end. At phone 1.0 × ใหญ่มาก, the "ใหญ่มาก" option and the tab label "เท้าของฉัน" wrap to two lines, and nothing clips (BACKLOG 54). | `21`–`24` |
+| 8 | Screenshots at 100 % | **taken.** Settings (`05`–`07`): groups, switches "เปิด", "ยังไม่ได้ตั้งชื่อ", "เชื่อมต่อแล้วทั้งสองข้าง", "1.0.0+1 · รุ่นทดสอบงานวิจัย". Researcher (`08`, `10`): the three checks pass at 50/s, device info "ซ้าย 0.1 · ขวา 0.1" / "247" / "50 ครั้ง/วินาที ต่อข้าง" as in §10.2. A tap on the researcher row does nothing; a 2.5 s hold opens it. | vs SettingsD, SettingsDResearch |
+| 9 | Release build on the phone | **done.** 4f05d1f, installed at 22:10:22 with `-r`. Both remembered insoles reconnected on its first start. | — |
+
+Found during the run:
+- **Fixed (4f05d1f):** during the rate's first 10 s, Researcher's
+  "อัตราข้อมูล" read "ซ้าย — · ขวา — ครั้ง/วินาที". It now shows a single
+  "—" when neither foot has a value. Unit test added; golden
+  `researcher_capture_open_100` regenerated.
+- **Export row:** "ยังไม่มีข้อมูลวิจัยในเครื่องนี้" matches Research
+  capture's "3 · On this phone: No sessions yet". Both read the same
+  `listSessions`. The phone's earlier data is elsewhere (database,
+  exports) and was not touched.
+- **Test rig, not the app:** after the LEFT board was plugged back in, its
+  log showed 19 "[scenario] p (meta1 ~250 kPa plateau)" commands right after
+  boot (22:06:46). The logger sent none: it logs every command it sends as
+  "> …". ModemManager had probed the newly attached `ttyUSB1` at 22:06:43,
+  and something on the host wrote bytes to it. The phone was not connected
+  to that board. The logger was stopped and restarted (board reset). This
+  time the boot was clean, and `n` then `?` confirmed "n (normal walk)"
+  before the phone reconnected. Next time, send `?` after every replug
+  before a phone connects. A `udev` rule, `ID_MM_DEVICE_IGNORE` for the
+  CP2102, would stop the probing; that is a change to the laptop, so it is
+  left to the user.
 
 ## Leftovers and notes for the next sessions
 
@@ -241,7 +257,8 @@ I install the release build with `adb install -r` only (no uninstall, no
 - **BACKLOG 53:** the Diagnostics "Connect as" path does not remember the
   insole. Researchers should use Connection.
 - **BACKLOG 54 (S10):** at 1.3 × ใหญ่มาก, Home's foot tiles stay
-  side by side and the tab labels wrap to two lines. Nothing clips.
+  side by side and the tab labels wrap to two lines. Nothing clips. The
+  Note 10 run shows the same wrap already at phone 1.0 × ใหญ่มาก.
 - **BACKLOG 45 (S9):** the Reconnects card is ready for the reset test.
 - **BACKLOG 21 note:** a *laptop* capture is invisible to the phone. Only
   the sheet's warning guards it.
@@ -263,4 +280,4 @@ I install the release build with `adb install -r` only (no uninstall, no
 
 ## Next session
 
-S8C: Daily foot check (§11), after this Note 10 checkpoint is accepted.
+S8C: Daily foot check (§11), once you accept this Note 10 checkpoint.

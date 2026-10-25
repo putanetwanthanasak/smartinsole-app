@@ -1324,5 +1324,7 @@ leave it as a raw tool and say so on the card.
 At the Note 10's phone scale 1.3 with "ใหญ่มาก" (≈ 1.88) nothing clips
 (golden `home_safe_130xl`), but the foot tiles stay in two columns with
 short lines, and the tab bar labels wrap to two lines ("เท้า / ของฉัน").
+The Note 10 run (report 035) shows the same wrap already at phone
+1.0 × ใหญ่มาก, as does the "ใหญ่มาก" option itself in Settings.
 S10's large-text pass should decide whether the tiles stack above 1.3 like
 the other two-column rows, and how the bar handles two-line labels.
