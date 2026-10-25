@@ -3,6 +3,7 @@ import 'package:smartinsole/ble/packets.dart';
 import 'package:smartinsole/config/foot_layout.dart';
 import 'package:smartinsole/device/rolling_peaks.dart';
 import 'package:smartinsole/rules/alert_code.dart';
+import 'package:smartinsole/rules/alert_engine.dart';
 import 'package:smartinsole/rules/gait_note.dart';
 import 'package:smartinsole/rules/patient_status.dart';
 import 'package:smartinsole/rules/pressure_level.dart';
@@ -683,6 +684,87 @@ void main() {
         isNull,
       );
       expect(await rig.alerts.forCapture('20261110-093000'), isNotEmpty);
+    });
+  });
+
+  group('My feet pressure figures (S6B part 2, display only)', () {
+    test('nothing before any sample', () {
+      final rig = RulesRig();
+      expect(rig.engine.pressureFigures(FootSide.left), PressureFigures.none);
+    });
+
+    test('walking peak counts walking samples only', () {
+      final rig = RulesRig()..stream();
+      rig.walkBoth(const Duration(seconds: 3), Gait(kpa: at(1, 120)));
+      final walked = rig.engine.pressureFigures(FootSide.left);
+      expect(walked.walkingPeakKpa, 120);
+      expect(walked.concentrationPct, 100, reason: 'one loaded zone');
+      expect(walked.ptiSteps, greaterThan(0));
+      expect(walked.ptiKpaS, isNotNull);
+      // Standing on more does not change the walking peak (after the
+      // gate's window has seen the walk end).
+      final still = Gait.standing(zero);
+      rig.run(
+        Duration(milliseconds: t.walkingWindowMs + 1000),
+        left: still,
+        right: still,
+      );
+      final high = Gait.standing(at(5, 300));
+      rig.run(const Duration(seconds: 3), left: high, right: high);
+      expect(rig.engine.pressureFigures(FootSide.left).walkingPeakKpa, 120);
+    });
+
+    test('peak and single point leave the window; PTI keeps its own', () {
+      final rig = RulesRig()..stream();
+      rig.walkBoth(const Duration(seconds: 3), light);
+      expect(
+        rig.engine.pressureFigures(FootSide.left).concentrationPct,
+        closeTo(100 / 6, 1e-9),
+      );
+      final stand = Gait.standing(zero);
+      rig.run(
+        Duration(milliseconds: walkingPeakWindowMs + 1000),
+        left: stand,
+        right: stand,
+      );
+      final f = rig.engine.pressureFigures(FootSide.left);
+      expect(f.walkingPeakKpa, isNull);
+      expect(f.concentrationPct, isNull);
+      expect(f.ptiKpaS, isNotNull, reason: 'ptiWindowMin is 60 min');
+    });
+
+    test("PTI is the rule's own number", () {
+      final g = Gait(strideMs: 1700, stanceMs: 1260, kpa: at(2, 64.5));
+      final rig = RulesRig()..stream();
+      rig.walkBoth(strides(25, g), g);
+      final c = rig.view().conditions.firstWhere(
+        (c) => c.code == AlertCode.pressurePti && c.side == FootSide.left,
+      );
+      final f = rig.engine.pressureFigures(FootSide.left);
+      expect(f.ptiKpaS, c.value);
+      expect(f.ptiSteps, c.details['steps']);
+    });
+
+    test('a new connection starts an empty walking window', () {
+      final rig = RulesRig()..stream();
+      rig.walkBoth(const Duration(seconds: 3), Gait(kpa: at(1, 120)));
+      rig.left.stream();
+      rig.walkBoth(const Duration(seconds: 3), light);
+      expect(rig.engine.pressureFigures(FootSide.left).walkingPeakKpa, 20);
+    });
+  });
+
+  group('RulesView.top', () {
+    test('picks with the status ranking among the given codes', () {
+      final rig = RulesRig()..stream();
+      rig.walkBoth(
+        const Duration(seconds: 3),
+        Gait(kpa: at(1, t.alertKpa + 10)),
+        right: light,
+      );
+      final v = rig.view();
+      expect(v.top(pressureCodes)!.code, AlertCode.pressurePeak);
+      expect(v.top({AlertCode.tempDelta}), isNull);
     });
   });
 

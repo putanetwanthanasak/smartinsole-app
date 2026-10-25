@@ -78,6 +78,48 @@ class AlertCondition {
   int get hashCode => Object.hash(key, value, threshold);
 }
 
+/// My feet's per-foot pressure numbers (DESIGN-SPEC §8.1 "ดูตัวเลขละเอียด"),
+/// from the engine's own walking gate and step detector (user decision
+/// 2026-10-25). Display only: none of them is compared with a threshold
+/// here. Null when the foot has no such figure yet.
+@immutable
+class PressureFigures {
+  const PressureFigures({
+    this.walkingPeakKpa,
+    this.ptiKpaS,
+    this.ptiSteps = 0,
+    this.concentrationPct,
+  });
+
+  static const none = PressureFigures();
+
+  /// Highest zone kPa of the samples taken while walking (the gate on) in
+  /// the last [walkingPeakWindowMs].
+  final double? walkingPeakKpa;
+
+  /// The highest zone's mean per-step PTI over the steps of the last
+  /// `pressure.ptiWindowMin`: the number `PRESSURE_PTI` compares
+  /// (decision 4: shown only in the details).
+  final double? ptiKpaS;
+  final int ptiSteps;
+
+  /// The highest per-step top-zone share (`LOAD_CONCENTRATION`'s
+  /// measure) among the walking steps of the last [walkingPeakWindowMs].
+  final double? concentrationPct;
+
+  @override
+  bool operator ==(Object other) =>
+      other is PressureFigures &&
+      other.walkingPeakKpa == walkingPeakKpa &&
+      other.ptiKpaS == ptiKpaS &&
+      other.ptiSteps == ptiSteps &&
+      other.concentrationPct == concentrationPct;
+
+  @override
+  int get hashCode =>
+      Object.hash(walkingPeakKpa, ptiKpaS, ptiSteps, concentrationPct);
+}
+
 /// What the rules say about one snapshot.
 @immutable
 class RulesView {
@@ -93,6 +135,17 @@ class RulesView {
       if (c.code == AlertCode.asymmetryPeak) return c;
     }
     return null;
+  }
+
+  /// The condition among [codes] that would name the status (the same
+  /// ranking as Home: [AlertEngine.ranksAbove]), or null when none holds.
+  AlertCondition? top(Set<AlertCode> codes) {
+    AlertCondition? best;
+    for (final c in conditions) {
+      if (!codes.contains(c.code)) continue;
+      if (best == null || AlertEngine.ranksAbove(c, best)) best = c;
+    }
+    return best;
   }
 }
 
@@ -122,6 +175,7 @@ class AlertEngine {
     this.captureStamp,
     this.gait,
     this.checkEvery = const Duration(seconds: 1),
+    this.figuresWindowMs = walkingPeakWindowMs,
   });
 
   final DeviceManager manager;
@@ -135,8 +189,12 @@ class AlertEngine {
   final GaitEstimateSource? gait;
   final Duration checkEvery;
 
+  /// The window of [pressureFigures]' walking peak and single-point share.
+  final int figuresWindowMs;
+
   late final _feet = {
-    for (final side in FootSide.values) side: _FootRules(side, thresholds),
+    for (final side in FootSide.values)
+      side: _FootRules(side, thresholds, figuresWindowMs),
   };
 
   /// Home's foot-map window per foot, so a pressure alert stores the map
@@ -211,6 +269,10 @@ class AlertEngine {
   }
 
   PatientStatus status(DisplaySnapshot s) => view(s).status;
+
+  /// My feet's pressure numbers for [side] ([PressureFigures]). The caller
+  /// shows them only while the foot is usable (rule 2).
+  PressureFigures pressureFigures(FootSide side) => _feet[side]!.figures();
 
   /// Every rule that holds at [s].
   List<AlertCondition> conditions(DisplaySnapshot s) {
@@ -401,7 +463,8 @@ class AlertEngine {
     AlertCode.loadConcentration,
   ];
 
-  static bool _ranksAbove(AlertCondition a, AlertCondition b) {
+  /// Whether [a] names the status rather than [b].
+  static bool ranksAbove(AlertCondition a, AlertCondition b) {
     if (a.code.level != b.code.level) return a.code.level > b.code.level;
     final ia = _textOrder.indexOf(a.code);
     final ib = _textOrder.indexOf(b.code);
@@ -416,7 +479,7 @@ class AlertEngine {
     AlertCondition? best;
     for (final c in all) {
       if (c.code.level < carefulLevel) continue;
-      if (best == null || _ranksAbove(c, best)) best = c;
+      if (best == null || ranksAbove(c, best)) best = c;
     }
     if (best != null) return PatientStatus.from(best.cause);
     if (!s.left.usable) return const PatientStatus.missing(FootSide.left);
@@ -520,8 +583,12 @@ class AlertEngine {
 
 /// The single-foot rules of one foot, fed from its 50 Hz samples.
 class _FootRules {
-  _FootRules(this.side, this.t)
-    : gate = WalkingGate(windowMs: t.walkingWindowMs, accelG: t.walkingAccelG),
+  _FootRules(this.side, this.t, this.figuresWindowMs)
+    : walkingPeaks = RollingPeaks(
+        windowMs: figuresWindowMs,
+        bucketMs: Duration.millisecondsPerSecond,
+      ),
+      gate = WalkingGate(windowMs: t.walkingWindowMs, accelG: t.walkingAccelG),
       steps = StepDetector(
         side: side,
         contactKpa: t.stepContactKpa,
@@ -533,6 +600,12 @@ class _FootRules {
   final Thresholds t;
   final WalkingGate gate;
   final StepDetector steps;
+
+  // My feet's figures (display only): the walking samples' peaks and the
+  // walking steps' top-zone shares of the last figuresWindowMs.
+  final int figuresWindowMs;
+  final RollingPeaks walkingPeaks;
+  final _shares = Queue<(double, double)>();
 
   int? _session;
 
@@ -578,6 +651,8 @@ class _FootRules {
       steps.reset();
       _concSteps = 0;
       latestStep = null;
+      walkingPeaks.clear();
+      _shares.clear();
     } else if (b.missingBefore > 0) {
       gate.reset();
       steps.reset();
@@ -586,6 +661,7 @@ class _FootRules {
     for (final s in b.samples) {
       final walking = gate.add(s.unixMs, s.accelG);
       _newestMs = s.unixMs;
+      if (walking) walkingPeaks.addSample(s.unixMs, s.fsrKpa);
       for (var c = 0; c < s.fsrKpa.length; c++) {
         final k = s.fsrKpa[c];
         if (k > t.watchKpa) _hit(_watchLast, _watchMax, c, s.unixMs, k);
@@ -628,6 +704,7 @@ class _FootRules {
       _ptiSum[c] += step.ptiKpaMs[c];
     }
     final (top, share) = step.topZoneShare;
+    if (share != null) _shares.add((step.endMs, share));
     if (share != null && share > t.concentrationPct) {
       _concSteps = _concZone == top ? _concSteps + 1 : 1;
       _concZone = top;
@@ -657,6 +734,32 @@ class _FootRules {
         _ptiSum[c] += s.ptiKpaMs[c];
       }
     }
+  }
+
+  PressureFigures figures() {
+    final newest = _newestMs;
+    if (newest == null) return PressureFigures.none;
+    _prunePti();
+    final n = _ptiSteps.length;
+    double? pti;
+    for (final sum in _ptiSum) {
+      final mean = sum / n / Duration.millisecondsPerSecond;
+      if (pti == null || mean > pti) pti = mean;
+    }
+    final from = newest - figuresWindowMs;
+    while (_shares.isNotEmpty && _shares.first.$1 < from) {
+      _shares.removeFirst();
+    }
+    double? share;
+    for (final (_, v) in _shares) {
+      if (share == null || v > share) share = v;
+    }
+    return PressureFigures(
+      walkingPeakKpa: walkingPeaks.footPeak(asOfMs: newest),
+      ptiKpaS: n == 0 ? null : pti,
+      ptiSteps: n,
+      concentrationPct: share,
+    );
   }
 
   List<AlertCondition> conditions() {
