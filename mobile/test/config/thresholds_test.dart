@@ -41,6 +41,13 @@ void main() {
     expect(t.stepContactKpa, 10);
     expect(t.minStanceMs, 250);
     expect(t.maxStanceMs, 2500);
+    // Added in S8A: the confidence meter's top segment and the provisional
+    // rule-based gait classifier.
+    expect(t.highConfidence, 0.85);
+    expect(t.gaitRuleSteps, 4);
+    expect(t.toeHeelPtiPct, 10);
+    expect(t.heelForefootPtiPct, 15);
+    expect(t.stanceAsymmetryPct, 15);
   });
 
   test('sources: one per alert code, from DATA-CONTRACT §8.3', () {

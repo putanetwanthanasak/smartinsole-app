@@ -1,12 +1,14 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../gait/gait_providers.dart';
 import '../rules/alert_providers.dart';
 import 'storage_providers.dart';
 
 /// Keeps storage's background work alive for the whole app, whatever
 /// screen is open: the temperature recorder, the alert engine (whose
-/// alerts it stores), and the retention schedule, which also gets a chance
+/// alerts it stores), the gait estimator and step counter (S8A), and the
+/// retention schedule, which also gets a chance
 /// to run each time the app comes back to the foreground. Draws nothing.
 class StorageHost extends ConsumerStatefulWidget {
   const StorageHost({super.key, required this.child});
@@ -38,6 +40,8 @@ class _StorageHostState extends ConsumerState<StorageHost> {
   Widget build(BuildContext context) {
     ref.watch(temperatureRecorderProvider);
     ref.watch(alertEngineProvider);
+    ref.watch(gaitEstimatorProvider);
+    ref.watch(stepCounterProvider);
     ref.watch(retentionScheduleProvider);
     return widget.child;
   }

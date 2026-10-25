@@ -11,6 +11,7 @@ import 'package:smartinsole/capture/export.dart';
 import 'package:smartinsole/config/foot_layout.dart';
 import 'package:smartinsole/config/thresholds.dart';
 import 'package:smartinsole/device/device_providers.dart';
+import 'package:smartinsole/gait/model_spec.dart';
 import 'package:smartinsole/rules/alert_providers.dart';
 import 'package:smartinsole/rules/patient_status.dart';
 import 'package:smartinsole/storage/database.dart';
@@ -128,6 +129,7 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         thresholdsProvider.overrideWithValue(testThresholds),
+        modelInputSpecProvider.overrideWithValue(testModelInput),
         deviceManagerProvider.overrideWithValue(rig.manager),
         databaseProvider.overrideWithValue(db),
       ],
