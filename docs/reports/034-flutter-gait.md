@@ -9,10 +9,12 @@ source and PTI asymmetry. The user also added two items: the drop-in
 release proof on the Note 10, and an SR confusion table for the
 rule-based classes.
 
-**Status: everything automated passes, and the emulator checks are done.
-The ESP32 reflash and all Note 10 checks are waiting on the user**
-(section "Note 10 checkpoint"). Neither board nor the phone was attached
-during the session.
+**Status: everything automated passes; the emulator and Note 10 checks
+have been run. The Note 10 comparison and acceptance are waiting on the
+user** (section "Note 10 checkpoint"). The phone check found one
+simulator defect (rules read the normal walk as antalgic), fixed in
+`2e2a326`. The user's four decisions on the review gaps are applied
+(`e94d55c`).
 
 ## Summary
 
@@ -42,8 +44,9 @@ during the session.
   - The untrained dummy (`tools/model/make_dummy_model.py`) lives in
     `assets/models_dummy/`. It loads only in debug or profile builds run
     with `--dart-define=GAIT_MODEL=dummy`.
-  - After data collection (late Nov), the real model needs only the two files in `assets/models/` (proof on the
-    Note 10: waiting on user).
+  - After data collection (late Nov), the real model needs only the two
+    files in `assets/models/`. Proved on the Note 10 with a release build
+    (item 4 below).
 - **The gait-note hook** now receives real estimates: only fresh Model A
   results with confidence ≥ `minConfidence`. Rule-based results add no
   note. Nothing in the gait path can change a level (rule 11, tested).
@@ -69,7 +72,10 @@ during the session.
 | `23b296e` | `model_input.json` added to `pubspec.yaml` assets (found on the emulator); DESIGN-SPEC §8.5, §14, Appendix A |
 | `ab5d426`, `4d6026f`, `4cbcd6f` | DATA-CONTRACT §8 S8A addendum; SESSIONS (SR gait table, S8A result); BACKLOG 41, 42, 48–50; `mobile/CLAUDE.md`; `shared/README.md`; emulator screenshots |
 | `73e6ca1`, `9324a4c` | Spec-review fix: the rules take over when a loaded model gives no answer; docs describe "walking" as the code does; format |
-| (this commit) | This report |
+| `b268609` | This report (first version) |
+| `e94d55c` | User decisions: no "ผลล่าสุด" in the no-data card; PAI detail by activity; `normalization.json` `version` checked against `model_input.json`; "December" → "after data collection (late Nov)" |
+| `2e2a326` | Simulator: midfoot load so each stance is one step (Note 10 found the rules reading the normal walk as antalgic); native test |
+| (this commit) | Report: Note 10 results, screenshots and serial logs |
 
 ## Decisions and how they were applied
 
@@ -134,18 +140,30 @@ The spec-reviewer agent ran on `git diff main...HEAD`.
   - copy word for word;
   - simulator `t`/`p`/`n`;
   - research capture untouched.
-- **Spec gaps it listed (left as is, for the user):**
-  - "ผลล่าสุด" also shows in the no-data card.
-  - The CoP's "เท้าซ้าย/ขวา เส้นทางของแรงกด" is a TalkBack label, and the
-    visible text is "ซ้าย"/"ขวา".
-  - The PAI detail has no freshness limit (it is the engine's last
-    step-pair PAI).
-  - `normalization.json` `"version"` is not checked.
+- **Spec gaps it listed, and the user's decisions (applied in
+  `e94d55c`):**
+  1. "ผลล่าสุด" also showed in the no-data card. → Hidden: no data shows
+     no data. `gaitViewOf` keeps the last result only while both feet are
+     usable, which also hides the "ผลประเมินล่าสุด" detail row. Test added.
+  2. The CoP's "เท้าซ้าย/ขวา เส้นทางของแรงกด" is a TalkBack label; the
+     visible text is "ซ้าย"/"ขวา". → Kept as built.
+  3. The PAI detail had no freshness limit. → The step-pair PAI shows
+     only while walking (`walkingRecently`); otherwise the standing PAI
+     with its standing label; "—" when a foot is not usable (rule 4).
+     Test added.
+  4. `normalization.json` `"version"` was not checked. → It must equal
+     `model_input.json`'s `version`; a mismatch makes the slot "not
+     ready", and BLE debug › "Gait model" shows the reason. Tests for the
+     parse (version +1, null, `"1"`) and for the slot's reason.
+- Appendix A drafts stay marked draft; they go to the medical expert with
+  the alert copy (user).
+- Model A is trained during November, after data collection; the docs no
+  longer say "December".
 
 ## Verify
 
-- `flutter analyze`: no issues. `flutter test`: **696 passed**, goldens
-  included.
+- `flutter analyze`: no issues. `flutter test`: **700 passed**, goldens
+  included (696 before the user-decision tests).
 - **Goldens:** 7 Gait states × 100 % and 200 % text in
   `mobile/test/goldens/screens/gait_*.png`:
   - walk_rules (FeetDGait), toe_model (FeetDGaitToe), idle (FeetDGaitIdle);
@@ -163,8 +181,8 @@ The spec-reviewer agent ran on `git diff main...HEAD`.
   - BACKLOG 41: a `rotated_foot` result stores its class and 0.9
     confidence and adds no note.
 - **No numeric literals:** the test now scans `lib/gait` too.
-- **Simulator:** `pio test -e native` 40/40, `pio run` left and right
-  both succeed. Normal-walk gate figures are in the Summary; a ×4 sweep
+- **Simulator:** `pio test -e native` 41/41 (40 before the stance fix),
+  `pio run` left and right both succeed. Normal-walk gate figures are in the Summary; a ×4 sweep
   gave a mean of 0.479 g.
 - **Emulator (Dart MCP, sdk_gphone16k, 1080×2400 at 420 dpi = 411 dp wide):** screenshots in
   `docs/reports/034-flutter-gait/`:
@@ -182,39 +200,103 @@ The spec-reviewer agent ran on `git diff main...HEAD`.
     `assets/config/model_input.json` was not in `pubspec.yaml` (tests
     read it from disk). A test now checks the entry.
 
-## Note 10 checkpoint — waiting on user
+## Note 10 checkpoint — results; comparison and acceptance waiting on user
 
-Run by me over adb when the phone is attached, using `adb install -r`
-only. Font scale is set to 1.0 for screenshots and restored to 1.3
-afterwards. The results are for the user to compare and accept.
+I ran everything over adb on the Note 10 (SM-N975F), using `adb install -r`
+only. Both boards were reflashed with the S8A simulator. Serial logs were
+started before the phone connected and are saved in
+`docs/reports/034-flutter-gait/serial/`. Font scale was set to 1.0 for the
+mock screenshots and then **restored to 1.3** (I read the setting back).
+Screenshots are in `docs/reports/034-flutter-gait/phone/`. The comparison
+and acceptance are the user's.
 
-1. **Timing:** profile build with `GAIT_MODEL=dummy`. In BLE debug ›
-   "Gait model", the check should pass with inference median and max
-   ≤ 100 ms (contract §7.5). — *waiting on user*
-2. **Screenshots at 100 % text vs the boards:**
-   - `MOCK=safe` (rules) vs FeetDGait;
-   - `MOCK=toeWalk GAIT_MODEL=demo-toe` with details open vs FeetDGaitToe;
-   - `MOCK=standing` vs FeetDGaitIdle.
-
-   — *waiting on user*
-3. **Real BLE with both boards reflashed** (S8A simulator; serial logs
-   started before the phone connects), about 2 minutes:
-   - "ตอนนี้ กำลังเดิน";
-   - steps rise at about 109 a minute (two feet, 1100 ms stride);
-   - "เดินปกติ" with the rules line;
-   - `p` then `n` on serial still work.
-
-   — *waiting on user*
-4. **Drop-in proof (user addition):**
-   - Release APK with the dummy's `model_a.tflite` and
-     `normalization.json` copied into `mobile/assets/models/` (not
-     committed, no define), installed with `adb install -r`.
-   - BLE debug › "Gait model" should show "ready (assets/models)" and
-     inference timing. There is no check line, because `check.json` is
-     not copied, as with a real model.
-   - Then remove the copy and rebuild. — *waiting on user*
-5. **Final release build** (empty slot) installed with `adb install -r`.
-   — *waiting on user*
+1. **Timing.** Profile build with `GAIT_MODEL=dummy` (108 MB APK), on real
+   BLE.
+   - BLE debug › "Gait model": "ready (assets/models_dummy)".
+   - Check **PASSED**: window 0.0e+0, probs 3.0e-8, embedding 1.2e-7.
+   - Inference: last 2.76, **median 3.14 ms, max 20.85 ms** over 111 runs.
+     Both are well under the 100 ms limit (contract §7.5).
+   - Timing check: L/R lost 0, step 19.75–20.25 ms.
+   - Screenshot: `phone-ble-debug-gait-model-dummy.png`.
+2. **Real BLE, about 2 minutes** (same profile build; the dummy is below
+   `minConfidence`, so the rules were shown).
+   - **Found:** before the fix, the normal walk read **antalgic**
+     ("now: antalgic · rules · lowConfidence").
+     - Cause: between heel and forefoot, the summed kPa dipped below
+       `steps.contactKpa`. Each stance therefore split into a ~150 ms blip
+       and a ~420 ms step.
+     - The boards' different TARE offsets (left 18–19, right 12) made the
+       mean stances 420 ms on the left and 491 ms on the right. That is a
+       stance PAI of 15.6 %, above the 15 % rule.
+     - Fixed in the simulator only (`2e2a326`): the midfoot load keeps
+       each stance one step. The new native test
+       `test_normal_walk_one_step_per_stance` checks offsets 12 and 19:
+       600 vs 600 ms, 0.0 %. Both boards were reflashed.
+     - The app's step detector has no hysteresis. This is noted in
+       BACKLOG 42; SR's manual step count covers real feet.
+   - After the fix:
+     - "ตอนนี้ กำลังเดิน", **เดินปกติ** with "ยังไม่มั่นใจพอ".
+     - Steps went from 628 at 19:32:46 to 865 at 19:34:56: **109.4 a
+       minute** (expected 109.1 for two feet at an 1100 ms stride).
+     - Screenshots: `phone-real-ble-steps-t0.png` and `-t1.png`.
+   - **`p` on the left board** (19:35:12):
+     - Two alerts were raised (badge 2), and steps kept counting (942).
+     - The rules then read **เดินเขย่งปลายเท้า**. This is expected from
+       the scenario, not a defect: the 250 kPa meta1 plateau drops the
+       heel's share of PTI below `gait.toeHeelPtiPct` (10 %).
+     - Screenshot: `phone-real-ble-scenario-p.png`.
+     - The two test alerts are untagged rows in the phone's database. SR
+       clears test data.
+   - **`n`** (19:35:49): back to เดินปกติ, 999 steps. Screenshot:
+     `phone-real-ble-scenario-n.png`.
+3. **Mock screenshots at 100 % text, against the boards** (debug builds,
+   in-memory database):
+   - **FeetDGait**, `MOCK=safe`, rules:
+     - `phone-100-feetdgait-walk-rules.png`: กำลังเดิน, steps, เดินปกติ,
+       "ประเมินด้วยกฎพื้นฐาน เพราะโมเดล AI ยังไม่พร้อม";
+     - `phone-100-feetdgait-walk-rules-balance.png`: the balance card.
+   - **FeetDGaitIdle**, `MOCK=standing`, switched live from walking:
+     - `phone-100-feetdgaitidle-standing.png`: ยืนหรือนั่งอยู่,
+       "ยังไม่มีผลตอนนี้", "ผลล่าสุด 19:38 · เดินปกติ", and the
+       standing balance 47 : 53;
+     - `phone-100-feetdgaitidle-details.png`: details with "ผลประเมินล่าสุด
+       19:38 · เดินปกติ (กฎพื้นฐาน)" and "ความไม่สมดุลของแรงกดขณะยืน 13%".
+       This is user decision 3 on a real device.
+   - **FeetDGaitToe**, `MOCK=toeWalk GAIT_MODEL=demo-toe`:
+     - `phone-100-feetdgaittoe-model.png`: เดินเขย่งปลายเท้า, 2 segments,
+       "ปานกลาง";
+     - `phone-100-feetdgaittoe-details.png`: details with PAI 0 %, PTI
+       asymmetry 0 % (ค่าอ้างอิง 20%), confidence 78 % (ใช้ผลเมื่อ 60%
+       ขึ้นไป), "โมเดล AI (Model A)" and "ช่วงละ 2 วินาที ประเมินทุก 1
+       วินาที";
+     - `phone-100-feetdgaittoe-probabilities-cop.png`: the probabilities
+       (6 / 4 / **78** / 7 / 5 %) and both CoP feet.
+   - At 411 dp, "ยืนหรือนั่งอยู่" fits on one line (BACKLOG 50 is about
+     390 dp).
+4. **Drop-in proof (user addition): passed.**
+   - I copied only `model_a.tflite` and `normalization.json` from
+     `assets/models_dummy/` into `mobile/assets/models/`. I did not copy
+     `check.json`, did not commit the copy, and used no define.
+   - `flutter build apk --release` built an 85.6 MB APK, installed with
+     `-r`. Real BLE, both boards.
+   - BLE debug › "Gait model":
+     - **"ready (assets/models)"**;
+     - inference **median 3.27 ms, max 11.30 ms** (65 runs);
+     - "check: no check.json", as a real model will show;
+     - "now: normal · rules · lowConfidence": the model ran, and the
+       untrained dummy fell below `minConfidence`.
+   - Screenshot: `phone-release-dropin-gait-model.png`.
+   - Then I removed the two copies. `mobile/assets/models/` holds only
+     its README, and `git status` showed nothing under `mobile/assets/`.
+5. **Final release build installed** (empty slot, 85.4 MB, `-r`):
+   - BLE debug: "no model in assets/models (rules)", inference "—",
+     "now: normal · rules · noModel";
+   - Gait tab: กำลังเดิน, 1,374 steps, เดินปกติ with "ประเมินด้วยกฎพื้นฐาน
+     เพราะโมเดล AI ยังไม่พร้อม";
+   - screenshots: `phone-release-final-gait-model-empty.png` and
+     `phone-release-final-gait-tab.png`.
+   - The phone keeps the earlier study data. Nothing was uninstalled or
+     cleared.
 
 ## Leftovers and notes for the next sessions
 
@@ -235,9 +317,8 @@ afterwards. The results are for the user to compare and accept.
 
 ## Decisions needed
 
-- The four review spec gaps above: keep them as built, or change them?
-- Accept the Appendix A drafts (or send them to the medical expert with
-  the alert copy).
+- Compare the Note 10 screenshots with the boards and accept (or not)
+  items 1–5 of the Note 10 checkpoint.
 
 ## Next session
 
