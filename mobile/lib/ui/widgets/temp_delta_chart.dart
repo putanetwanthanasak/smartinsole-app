@@ -32,10 +32,10 @@ class TempDeltaChart extends StatefulWidget {
   final Object drawInKey;
 
   @override
-  State<TempDeltaChart> createState() => _TempDeltaChartState();
+  State<TempDeltaChart> createState() => TempDeltaChartState();
 }
 
-class _TempDeltaChartState extends State<TempDeltaChart>
+class TempDeltaChartState extends State<TempDeltaChart>
     with SingleTickerProviderStateMixin {
   late final _draw = AnimationController(
     vsync: this,
@@ -43,6 +43,10 @@ class _TempDeltaChartState extends State<TempDeltaChart>
   );
   late final _progress = CurvedAnimation(parent: _draw, curve: Motion.value);
   bool _started = false;
+
+  /// How far the lines have drawn in, 0–1.
+  @visibleForTesting
+  double get drawProgress => _draw.value;
 
   @override
   void didChangeDependencies() {
@@ -54,9 +58,9 @@ class _TempDeltaChartState extends State<TempDeltaChart>
   }
 
   @override
-  void didUpdateWidget(TempDeltaChart old) {
-    super.didUpdateWidget(old);
-    if (old.drawInKey != widget.drawInKey) _drawIn();
+  void didUpdateWidget(TempDeltaChart oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.drawInKey != widget.drawInKey) _drawIn();
   }
 
   void _drawIn() {
@@ -78,6 +82,7 @@ class _TempDeltaChartState extends State<TempDeltaChart>
   Widget build(BuildContext context) {
     final scaler = MediaQuery.textScalerOf(context);
     return Semantics(
+      container: true,
       image: true,
       label: widget.semanticLabel,
       excludeSemantics: true,
@@ -192,9 +197,20 @@ class _ChartPainter extends CustomPainter {
     }
     final band = label('ระดับที่ควรระวัง', _bandStyle);
     if (bandBottom - bandTop >= band.height) {
+      // Left of the band, or right when a gap line would cross it.
+      bool crossed(double from) => data.gaps.any((g) {
+        final gx = x(g.fromMs);
+        return gx >= from - Dimens.textGap &&
+            gx <= from + band.width + Dimens.textGap;
+      });
+      final atLeft = plot.left + Dimens.tightGap;
+      final atRight = plot.right - Dimens.tightGap - band.width;
       band.paint(
         canvas,
-        Offset(plot.left + Dimens.tightGap, bandTop + Dimens.textGap / 2),
+        Offset(
+          crossed(atLeft) && !crossed(atRight) ? atRight : atLeft,
+          bandTop + Dimens.textGap / 2,
+        ),
       );
     }
     canvas
@@ -218,27 +234,42 @@ class _ChartPainter extends CustomPainter {
           ..strokeWidth = Dimens.dividerWidth,
       );
 
-    // X labels: start, middle, end.
+    // X labels: start, middle, end. With large text the middle one goes
+    // first, then the start, rather than overlap.
     if (!data.isEmpty) {
       final mid = data.startMs + (data.endMs - data.startMs) ~/ 2;
       final xs = [data.startMs, mid, data.endMs];
+      final placed = <(TextPainter, double)>[];
       for (var i = 0; i < xs.length; i++) {
         final p = label(
           hhmm(DateTime.fromMillisecondsSinceEpoch(xs[i])),
           _axisStyle,
         );
         final cx = x(xs[i]);
-        final dx = switch (i) {
-          0 => cx,
-          1 => cx - p.width / 2,
-          _ => cx - p.width,
-        };
+        placed.add((
+          p,
+          switch (i) {
+            0 => cx,
+            1 => cx - p.width / 2,
+            _ => cx - p.width,
+          },
+        ));
+      }
+      bool apart((TextPainter, double) a, (TextPainter, double) b) =>
+          a.$2 + a.$1.width + Dimens.tightGap <= b.$2;
+      final shown = apart(placed[0], placed[1]) && apart(placed[1], placed[2])
+          ? placed
+          : apart(placed[0], placed[2])
+          ? [placed[0], placed[2]]
+          : [placed[2]];
+      for (final (p, dx) in shown) {
         p.paint(canvas, Offset(dx, plot.bottom + Dimens.tightGap));
       }
     }
 
     // Connection gaps: a dashed vertical line each; the newest one is
-    // labelled "ขาดข้อมูล / ตั้งแต่ HH:mm".
+    // labelled "ขาดข้อมูล / ตั้งแต่ HH:mm", on a backdrop over the lines.
+    void Function()? gapLabel;
     for (var i = 0; i < data.gaps.length; i++) {
       final g = data.gaps[i];
       final gx = x(g.fromMs);
@@ -269,8 +300,22 @@ class _ChartPainter extends CustomPainter {
           plot.top,
           plot.bottom - a.height - b.height,
         );
-        a.paint(canvas, Offset(lx, ly));
-        b.paint(canvas, Offset(lx, ly + a.height));
+        gapLabel = () {
+          canvas.drawRRect(
+            RRect.fromRectAndRadius(
+              Rect.fromLTWH(
+                lx - Dimens.textGap,
+                ly,
+                w + Dimens.textGap * 2,
+                a.height + b.height,
+              ),
+              const Radius.circular(TempChartColors.gapLabelBackdropRadius),
+            ),
+            Paint()..color = TempChartColors.gapLabelBackdrop,
+          );
+          a.paint(canvas, Offset(lx, ly));
+          b.paint(canvas, Offset(lx, ly + a.height));
+        };
       }
     }
 
@@ -333,6 +378,7 @@ class _ChartPainter extends CustomPainter {
       }
     }
     canvas.restore();
+    gapLabel?.call();
   }
 
   @override

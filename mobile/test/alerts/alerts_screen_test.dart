@@ -240,7 +240,7 @@ void main() {
         await openAlert(tester, ids, kind);
         await tester.tap(byKey('detail-action'));
         await tester.pumpAndSettle();
-        expect(byKey('my-feet-target-$target'), findsOneWidget);
+        expect(byKey('$target-tab'), findsOneWidget);
         expect(byKey('detail-status-card'), findsNothing);
       });
     }
@@ -259,7 +259,7 @@ void main() {
       await tester.scrollUntilVisible(more, 200);
       await tester.tap(more);
       await tester.pumpAndSettle();
-      expect(byKey('my-feet-target-pressure'), findsOneWidget);
+      expect(byKey('pressure-tab'), findsOneWidget);
     });
   });
 

@@ -93,8 +93,9 @@ Future<int> seedSampleDay({
   final span = (endMs - startMs).toDouble();
 
   final high = thresholds.deltaC + 0.4;
-  // How the difference rises into and falls out of the period: 4 readings.
-  final ramp = period * 4 / span;
+  // How long the difference takes to rise into and fall out of the
+  // period: 15 minutes, as a warming foot would.
+  final ramp = const Duration(minutes: 15).inMilliseconds / span;
 
   double above(double f) {
     if (f < shape.aboveFrom - ramp || f > shape.aboveTo + ramp) return 0;
@@ -110,8 +111,10 @@ Future<int> seedSampleDay({
     final drift = 0.4 * math.sin(f * math.pi * 2);
     final small = 0.25 + 0.15 * math.sin(f * math.pi * 7);
     final a = above(f);
+    // Inside the period it wobbles by ±0.2 °C, staying above deltaC.
+    final top = high + 0.2 * math.sin(f * math.pi * 40);
     double diff(TempSite s) =>
-        s == shape.aboveSite ? small + (high - small) * a : small * 0.6;
+        s == shape.aboveSite ? small + (top - small) * a : small * 0.6;
     const leftForefoot = 30.6;
     const leftHeel = 31.2;
     await temperatures.add(

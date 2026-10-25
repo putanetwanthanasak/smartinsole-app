@@ -10,6 +10,7 @@ import '../widgets/placeholder_body.dart';
 import '../widgets/segmented_tabs.dart';
 import 'my_feet/my_feet_model.dart';
 import 'my_feet/pressure_tab.dart';
+import 'my_feet/my_feet_widgets.dart' show TwoColumns;
 import 'my_feet/temperature_tab.dart';
 
 /// Bottom-bar tab "เท้าของฉัน" (DESIGN-SPEC §8): title, the sub-tabs, and
@@ -132,20 +133,27 @@ class _Header extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final any = ref.watch(myFeetViewProvider.select((v) => v.anyUsable));
+    final updated = Text(
+      any ? 'อัปเดตเมื่อสักครู่' : 'ยังไม่มีข้อมูล',
+      key: const ValueKey('my-feet-updated'),
+      style: AppText.secondary,
+      textAlign: TextAlign.end,
+    );
+    // Large text: the line goes under the title instead of squeezing it.
+    if (MediaQuery.textScalerOf(context).scale(1) >
+        TwoColumns.stackAboveScale) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [const PageTitle('เท้าของฉัน'), updated],
+      );
+    }
     return Row(
       crossAxisAlignment: CrossAxisAlignment.baseline,
       textBaseline: TextBaseline.alphabetic,
       children: [
         const Expanded(child: PageTitle('เท้าของฉัน')),
         const SizedBox(width: Dimens.tightGap),
-        Flexible(
-          child: Text(
-            any ? 'อัปเดตเมื่อสักครู่' : 'ยังไม่มีข้อมูล',
-            key: const ValueKey('my-feet-updated'),
-            style: AppText.secondary,
-            textAlign: TextAlign.end,
-          ),
-        ),
+        Flexible(child: updated),
       ],
     );
   }

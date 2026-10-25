@@ -165,12 +165,16 @@ class _Expanding extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final body = child ?? const SizedBox(width: double.infinity);
+    // Reduce motion: no AnimatedSize at all. With a zero duration it
+    // finishes inside its own layout and asserts (found in S6B part 2).
+    if (enter == Duration.zero && exit == Duration.zero) return body;
     return AnimatedSize(
       duration: enter,
       reverseDuration: exit,
       curve: child == null ? Motion.exit : Motion.enter,
       alignment: Alignment.topCenter,
-      child: child ?? const SizedBox(width: double.infinity),
+      child: body,
     );
   }
 }

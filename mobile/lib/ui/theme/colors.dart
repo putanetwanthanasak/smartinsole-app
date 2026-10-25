@@ -229,6 +229,10 @@ abstract final class TempChartColors {
   static const gapWidth = 1.5;
   static const gapDash = [3.0, 4.0];
   static final gapLabel = StatusColors.noData.text;
+
+  /// Behind the gap label, over any line it crosses (85 % white).
+  static const gapLabelBackdrop = Color(0xD9FFFFFF);
+  static const gapLabelBackdropRadius = 4.0;
 }
 
 /// Daily foot check camera screen (DESIGN-SPEC §1).

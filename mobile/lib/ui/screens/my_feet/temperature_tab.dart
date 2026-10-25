@@ -227,7 +227,7 @@ class _ChartCard extends ConsumerWidget {
           const SizedBox(height: Dimens.buttonGap),
           Text(
             'แอปจะเตือนเมื่อเส้นขึ้นไปถึงแถบสีแดงติดกัน '
-            '${t.consecutiveReadings} ครั้ง',
+            '${t.consecutiveReadings}$nbspครั้ง',
             style: AppText.secondary,
           ),
         ],
