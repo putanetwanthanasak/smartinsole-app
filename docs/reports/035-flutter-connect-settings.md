@@ -31,8 +31,9 @@ Branch `work/flutter-connect-settings` · 2026-10-25 · DESIGN-SPEC §9, §10.1,
     with a new Reconnects card (BACKLOG 45).
 - `flutter analyze` is clean and `flutter test` passes 786 tests. The emulator checks pass. The spec review found 1 major and
   3 minor issues; all are fixed or explained below.
-- **Note 10 checkpoint: run done on 2026-10-25, every step passed or is
-  explained; acceptance waiting on user** (results below). The run found
+- **Note 10 checkpoint: accepted by the user (2026-10-25).** They compared
+  the phone screenshots with the boards and found that they match (results
+  below). The run found
   one small defect, fixed in 4f05d1f (the Researcher rate row).
 
 ## What changed
@@ -198,7 +199,7 @@ What the reviewer confirmed:
 - The release APK builds: `build/app/outputs/flutter-apk/app-release.apk`,
   87.9 MB (84.6 MB in S8A, +3.3 MB).
 
-## Note 10 checkpoint — run done, **acceptance waiting on user**
+## Note 10 checkpoint — accepted by the user (2026-10-25)
 
 Run on 2026-10-25, 21:46–22:10. Setup:
 - Note 10 `RF8M83P4STZ` (SM-N975F, Android 12). Release build of 94c4db9
@@ -280,4 +281,4 @@ Found during the run:
 
 ## Next session
 
-S8C: Daily foot check (§11), once you accept this Note 10 checkpoint.
+S8C: Daily foot check (§11). S8B was accepted on 2026-10-25.
