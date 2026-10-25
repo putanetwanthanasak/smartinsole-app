@@ -128,6 +128,8 @@ void main() {
       expect(b.title, copy.title);
       expect(b.line, copy.detail);
       expect(b.linkCode, AlertCode.pressurePeak);
+      expect(b.linkSide, FootSide.left);
+      expect(b.linkChannel, 1);
       expect(b.connect, isFalse);
     });
   });
@@ -212,6 +214,8 @@ void main() {
       expect(b.level, PatientLevel.rest);
       expect(b.title, 'หน้าเท้าขวาอุ่นกว่าซ้าย 2.6 องศา');
       expect(b.linkCode, AlertCode.tempDelta);
+      expect(b.linkSide, FootSide.right);
+      expect(b.linkSite, TempSite.forefoot);
       // Above once, not yet twice: still safe.
       expect(
         tempBanner(_temp(fore: -2.6), latestAt: at, since: noSince).level,
@@ -320,6 +324,23 @@ void main() {
     test('all good: "ดีทั้ง 4 จุด"', () {
       final rows = tempDetailRows(_temp(), t, latestAt: null, since: const {});
       expect(rows.last.value, 'ดีทั้ง 4 จุด');
+    });
+
+    test('no reading yet or a site not read: never "ดี" (rule 5)', () {
+      const left = TempFootView(side: FootSide.left, usable: true);
+      const right = TempFootView(
+        side: FootSide.right,
+        usable: true,
+        forefootC: 30.7,
+        quality: TempQuality.normal,
+      );
+      final rows = tempDetailRows(
+        TempTabView(left: left, right: right, minute: DateTime(2026)),
+        t,
+        latestAt: null,
+        since: const {},
+      );
+      expect(rows.last.value, 'เท้าซ้าย ยังวัดไม่ได้ · เท้าขวา ยังวัดไม่ได้');
     });
 
     test('one foot missing: no two-foot rows', () {

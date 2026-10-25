@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_lucide/flutter_lucide.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../config/foot_layout.dart';
 import '../../../storage/storage_providers.dart';
 import '../../routes.dart';
 import '../../theme/colors.dart';
@@ -12,9 +13,10 @@ import 'my_feet_copy.dart';
 
 /// The banner of a My feet tab (§8.1, §8.2) from its [BannerView].
 ///
-/// "ดูสิ่งที่ควรทำ" opens the newest stored alert of the banner's code
-/// (the list's visibility rule). It is left out until that row exists,
-/// e.g. for the moment while the engine is still writing it.
+/// "ดูสิ่งที่ควรทำ" opens the newest stored alert (the list's visibility
+/// rule) with the banner's code, foot and zone or site. It is left out
+/// until that row exists, e.g. for the moment while the engine is still
+/// writing it.
 class MyFeetBanner extends ConsumerWidget {
   const MyFeetBanner({super.key, required this.view});
 
@@ -23,11 +25,19 @@ class MyFeetBanner extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final code = view.linkCode;
+    final zone = view.linkChannel == null
+        ? null
+        : footLayout.zones[view.linkChannel!].id;
     int? alertId;
     if (code != null) {
+      // Newest first: the newest row about the same foot and zone or site,
+      // the key the engine suppresses repeats by.
       final alerts = ref.watch(visibleAlertsProvider).value ?? const [];
       for (final a in alerts) {
-        if (a.kind.code == code) {
+        if (a.kind.code == code &&
+            (view.linkSide == null || a.side == view.linkSide) &&
+            (zone == null || a.zone == zone) &&
+            (view.linkSite == null || a.site == view.linkSite)) {
           alertId = a.id;
           break;
         }

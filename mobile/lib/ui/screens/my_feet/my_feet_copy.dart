@@ -22,8 +22,9 @@ import 'my_feet_model.dart';
 // details rows.
 
 /// A summary banner (§5): its status look, title, line, and either the
-/// "ดูสิ่งที่ควรทำ" link (to the newest alert of [linkCode]) or the
-/// "เชื่อมต่อแผ่นรองเท้า" button.
+/// "ดูสิ่งที่ควรทำ" link or the "เชื่อมต่อแผ่นรองเท้า" button. The link
+/// opens the newest stored alert of [linkCode] about the same foot
+/// ([linkSide]) and zone ([linkChannel]) or site ([linkSite]).
 @immutable
 class BannerView {
   const BannerView({
@@ -31,6 +32,9 @@ class BannerView {
     required this.title,
     required this.line,
     this.linkCode,
+    this.linkSide,
+    this.linkChannel,
+    this.linkSite,
     this.connect = false,
   });
 
@@ -38,6 +42,9 @@ class BannerView {
   final String title;
   final String line;
   final AlertCode? linkCode;
+  final FootSide? linkSide;
+  final int? linkChannel;
+  final TempSite? linkSite;
   final bool connect;
 
   @override
@@ -47,10 +54,22 @@ class BannerView {
       other.title == title &&
       other.line == line &&
       other.linkCode == linkCode &&
+      other.linkSide == linkSide &&
+      other.linkChannel == linkChannel &&
+      other.linkSite == linkSite &&
       other.connect == connect;
 
   @override
-  int get hashCode => Object.hash(level, title, line, linkCode, connect);
+  int get hashCode => Object.hash(
+    level,
+    title,
+    line,
+    linkCode,
+    linkSide,
+    linkChannel,
+    linkSite,
+    connect,
+  );
 }
 
 const _noDataBanner = BannerView(
@@ -95,6 +114,8 @@ BannerView pressureBanner(PressureTabView v) {
       title: copy.title,
       line: copy.detail,
       linkCode: cause.code,
+      linkSide: cause.side,
+      linkChannel: cause.channel,
     );
   }
   final missing = _missingOf(v.left.usable, v.right.usable);
@@ -234,6 +255,8 @@ BannerView tempBanner(
           '${formatDelta(alert.deltaC)}$nbspองศา',
       line: 'ติดต่อกันมาสักพัก',
       linkCode: AlertCode.tempDelta,
+      linkSide: alert.warmerSide,
+      linkSite: alert.site,
     );
   }
   if (v.deltaForefootC == null && v.deltaHeelC == null) {
@@ -374,10 +397,15 @@ List<DetailRow> tempDetailRows(
 
   final period = TempLayout.notifyPeriod.inSeconds;
   final latest = latestAt == null ? '' : ' · ล่าสุด ${hhmmss(latestAt)}';
+  // "ดีทั้ง 4 จุด" only when all four sites have a normal reading; a foot
+  // with no reading yet, or a site the sensor could not read, is named
+  // (rule 5: no data never reads as good).
   final bad = [
     for (final f in [v.left, v.right])
       if (f.quality != null && f.quality != TempQuality.normal)
-        '${_foot(f.side)} ${_qualityTh(f.quality!)}',
+        '${_foot(f.side)} ${_qualityTh(f.quality!)}'
+      else if (f.quality == null || f.forefootC == null || f.heelC == null)
+        '${_foot(f.side)} ยังวัดไม่ได้',
   ];
   return [
     DetailRow('หน้าเท้าตอนนี้', sites(TempSite.forefoot)),
