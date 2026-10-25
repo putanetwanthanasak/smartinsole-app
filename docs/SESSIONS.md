@@ -287,7 +287,7 @@ Additional info: [optional]
 - **Do:** run the full protocol from proposal doc 03 end to end on the phone (about 75 minutes): device checklist, calibration, 5 trials, warm-compress alert check, the 3 usability tasks, export. Confirm the alert text the volunteers will see is the version the medical expert reviewed. Install the final build.
 - **Verify (user runs it, sends results):** all trial files complete at 50 Hz with no unexplained gaps; alerts appear with times recorded; nothing on the phone needs the laptop.
 - **Also check with the real boards (added in S7):**
-  - **Step detection.** In one normal-gait trial, count the volunteer's steps by hand (per foot) and compare with the app's count of walking steps (`steps.contactKpa`, `minStanceMs`, `maxStanceMs` and the walking gate `motion.*` are provisional). Adjust `thresholds.json` if they disagree. Also note how many stances are rejected as too short (in the S7 simulator run, 16 of 43 right-foot stances were blips around `contactKpa`).
+  - **Step detection.** In one normal-gait trial, count the volunteer's steps by hand (per foot) and compare with the app's count of walking steps. These keys are provisional: `steps.contactKpa`, `minStanceMs` and `maxStanceMs`, the dip keys added in S9 (BACKLOG 51) and the walking gate `motion.*`. Adjust `thresholds.json` if the counts disagree. Kept after S9's fix (user decision 2026-10-25): a real foot with a weak midfoot is the case the fix targets, and only a hand count shows it works. Also note how many stances are rejected as too short (in the S7 simulator run, 16 of 43 right-foot stances were blips around `contactKpa`).
   - **Peak hold** (`pressure.peakHoldMs` 2500, provisional, user decision 2026-10-24). In the same trial, check that `PRESSURE_WATCH` / `PRESSURE_PEAK` hold steadily through a walk rather than ending and restarting between steps (one alert per walk, not one per stride), and that they end within a few seconds of stopping. Adjust it in `thresholds.json` if not.
   - **Walking gate statistic** (BACKLOG 42, user decision 2026-10-24). Record the gate statistic (mean |‖a‖ − 1 g| over `motion.walkingWindowMs`) in the standing calibration and in each normal-gait trial, and adjust `motion.walkingAccelG` in `thresholds.json` if standing and walking do not sit clearly on either side of it.
   - **How often `PRESSURE_PTI` and `LOAD_CONCENTRATION` fire** during the normal-gait trials (from each session's `alerts.csv`). Both use provisional readings (BACKLOG 31); frequent firing on healthy volunteers' normal gait means the values need review before the study.
@@ -301,7 +301,7 @@ Additional info: [optional]
 - **Verify:** unit + golden tests · **You:** emulator + mock presets, screenshots via Dart MCP.
 - **Done when:** values shown from mock data; classifier swappable without touching the screen.
 - **Also (BACKLOG 42, user decision 2026-10-24; the step count depends on it):** raise the simulator's normal-walk motion so the walking-gate statistic (contract §8.3.2: mean |‖a‖ − 1 g| over `walkingWindowMs`) is on for most of each stride, aiming for a mean around 0.3 g (typical of a heel-mounted IMU). Test it with the contract's statistic (not the SD), and keep `t` / `p` / `n` working.
-- **Result (report 034):** Gait tab per DESIGN-SPEC §8.3 / §8.5; `lib/gait/` with the Model A slot (`tflite_flutter` 0.12.1 in its own long-lived isolate; release slot empty, dummy only in debug/profile with `GAIT_MODEL=dummy`), rule-based fallback (provisional `gait.*` keys), gait-note source (model results only), steps in `daily_summary.steps`; simulator walk gate lowest 0.17 g / mean 0.34 g, one step per stance. Note 10 (run 2026-10-25): dummy inference median 3.1 ms / max 21 ms, real BLE 109.4 steps a minute, drop-in release proof passed; comparison and acceptance waiting on the user (see the report).
+- **Result (report 034):** Gait tab per DESIGN-SPEC §8.3 / §8.5; `lib/gait/` with the Model A slot (`tflite_flutter` 0.12.1 in its own long-lived isolate; release slot empty, dummy only in debug/profile with `GAIT_MODEL=dummy`), rule-based fallback (provisional `gait.*` keys), gait-note source (model results only), steps in `daily_summary.steps`; simulator walk gate lowest 0.17 g / mean 0.34 g, one step per stance. Note 10 (run 2026-10-25): dummy inference median 3.1 ms / max 21 ms, real BLE 109.4 steps a minute, drop-in release proof passed; **accepted by the user 2026-10-25** (screenshots match FeetDGait, FeetDGaitToe and FeetDGaitIdle). Follow-up: the app's step detector splits a stance on a short dip, now S9's first item (BACKLOG 51).
 
 ### S8B — Connection + Settings
 - **Do:** connect left/right separately, per-side status, battery, firmware, scanning/success animations · Settings: text size, sound, TARE (with confirmation; BACKLOG 21 guard), foot-check reminder time, app info · hide the debug screen.
@@ -315,6 +315,22 @@ Additional info: [optional]
 - **Done when:** a full check takes about 1 minute and photos stay inside the app.
 
 ### S9 — Integration + APK
+- **First, before anything else in S9: one step per stance (BACKLOG 51, user decision 2026-10-25, must be done before SR).**
+  - **Problem:** the app's `StepDetector` (`mobile/lib/rules/step_detector.dart`) must not split one stance when the summed kPa dips briefly below `steps.contactKpa`.
+  - **Fix:** add hysteresis, or merge stances separated by a short dip.
+  - **Keys:** the fix uses new provisional keys in the `steps` block of `thresholds.json`.
+    - Keep both copies byte-identical.
+    - Add the keys to the DATA-CONTRACT §8 addendum, next to the step definition.
+    - `version` stays 1.
+  - **Tests replay the pre-fix simulator walk:** `synth.cpp` before `2e2a326`, which has midfoot channel `{0.40, 0.40, 860}` and a midfoot peak of about 18 kPa. Each walk is replayed at TARE offsets 12 and 19, the two boards' offsets. The tests expect:
+    - one step per stance;
+    - every stance between `minStanceMs` and `maxStanceMs`;
+    - the two feet's mean-stance PAI below `gait.stanceAsymmetryPct` / 2, so the rules read that walk as normal, not antalgic.
+  - **Must not change:**
+    - the current simulator walk, the existing step-detector tests and the alert rules that use steps;
+    - two real steps separated by a genuine swing must still count as two steps.
+  - If merging delays a step's end, the delay is at most the merge window; state it in the contract addendum.
+  - Do this before the 30-minute run, so the run uses the fixed detector.
 - **Do:** integration checklist; 30 minutes with 2 boards on the phone (simulator boards; real boards are SR); battery and smoothness; reduce-motion; release APK. **User checkpoint** also covers: press sensors and watch the right dots change, warm one temperature sensor and watch ΔT, connect both insoles unaided.
 - **DEVICE_LOST check (added in S6B):** with both boards streaming, power off one board for more than 5 minutes (`alerts.deviceLostAfterMin`). `DEVICE_LOST` is raised for that foot, appears on the Alerts list, and its card opens the right detail (`เรื่องอุปกรณ์`, "เชื่อมต่อได้ครั้งล่าสุด", "เชื่อมต่ออีกครั้ง" → Connection).
 - **Auto-reconnect check (added after S6B, BACKLOG 45, before SR):** keep both serial loggers running. While both boards stream, reset one board (EN button) twice: once with the phone screen on, and once with the screen off and the app in the background. Each time, record the time from the reset to streaming again, from the board's log and the BLE debug event log. Expected: it reconnects well within `alerts.deviceLostAfterMin` and raises no DEVICE_LOST. If it does not reconnect, find why (BACKLOG 45) and fix it before SR.

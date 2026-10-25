@@ -9,9 +9,9 @@ source and PTI asymmetry. The user also added two items: the drop-in
 release proof on the Note 10, and an SR confusion table for the
 rule-based classes.
 
-**Status: everything automated passes; the emulator and Note 10 checks
-have been run. The Note 10 comparison and acceptance are waiting on the
-user** (section "Note 10 checkpoint"). The phone check found one
+**Status: accepted by the user on 2026-10-25.** The user compared the
+Note 10 screenshots with FeetDGait, FeetDGaitToe and FeetDGaitIdle and
+found they match. Everything automated passes. The phone check found one
 simulator defect (rules read the normal walk as antalgic), fixed in
 `2e2a326`. The user's four decisions on the review gaps are applied
 (`e94d55c`).
@@ -200,12 +200,13 @@ The spec-reviewer agent ran on `git diff main...HEAD`.
     `assets/config/model_input.json` was not in `pubspec.yaml` (tests
     read it from disk). A test now checks the entry.
 
-## Note 10 checkpoint — results; comparison and acceptance waiting on user
+## Note 10 checkpoint — accepted by the user (2026-10-25)
 
 I ran everything over adb on the Note 10 (SM-N975F), using `adb install -r`
 only. Both boards were reflashed with the S8A simulator. Serial logs were
 started before the phone connected and are saved in
-`docs/reports/034-flutter-gait/serial/`. Font scale was set to 1.0 for the
+`docs/reports/034-flutter-gait/serial/`. The user compared the screenshots
+with the boards and accepted all five items. Font scale was set to 1.0 for the
 mock screenshots and then **restored to 1.3** (I read the setting back).
 Screenshots are in `docs/reports/034-flutter-gait/phone/`. The comparison
 and acceptance are the user's.
@@ -232,8 +233,9 @@ and acceptance are the user's.
        each stance one step. The new native test
        `test_normal_walk_one_step_per_stance` checks offsets 12 and 19:
        600 vs 600 ms, 0.0 %. Both boards were reflashed.
-     - The app's step detector has no hysteresis. This is noted in
-       BACKLOG 42; SR's manual step count covers real feet.
+     - The app's step detector has no hysteresis. The user raised this
+       to a pre-SR item: BACKLOG 51, scheduled as S9's first item. SR's
+       manual step count stays.
    - After the fix:
      - "ตอนนี้ กำลังเดิน", **เดินปกติ** with "ยังไม่มั่นใจพอ".
      - Steps went from 628 at 19:32:46 to 865 at 19:34:56: **109.4 a
@@ -317,8 +319,17 @@ and acceptance are the user's.
 
 ## Decisions needed
 
-- Compare the Note 10 screenshots with the boards and accept (or not)
-  items 1–5 of the Note 10 checkpoint.
+None. S8A was accepted on 2026-10-25.
+
+**Follow-up (user decision 2026-10-25), BACKLOG 51, S9's first item, before
+SR:**
+- The app's `StepDetector` must not split one stance when the summed kPa
+  dips briefly below `steps.contactKpa`.
+- Fix: hysteresis, or merging stances separated by a short dip, with new
+  provisional `steps` keys.
+- Tests replay the pre-fix simulator walk at offsets 12 and 19 and expect
+  one step per stance.
+- The SR manual step count stays.
 
 ## Next session
 

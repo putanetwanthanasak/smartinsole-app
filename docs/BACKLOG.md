@@ -1095,7 +1095,7 @@ stances of 420 vs 491 ms (15.6 % > `gait.stanceAsymmetryPct` 15). Fixed
 in the simulator (wider midfoot, peak 24 kPa); `test_scenario` now checks
 one step per stance at both offsets. The app's step detector has no
 hysteresis, so a real foot with a weak midfoot could split stances the
-same way: SR's manual step count (SESSIONS SR) covers it.
+same way: now BACKLOG 51 (S9, before SR); SR's manual step count stays.
 
 **User decision 2026-10-24:** not in S7; do it in S8A, since the step
 count depends on it. Raise the normal walk's motion so the gate statistic
@@ -1236,3 +1236,34 @@ half-width card at the 390 dp reference width even at 100 % text:
 fits on one line. The break falls between words and the card grows to
 fit, so nothing is cut, but the steps card beside it is half empty. Options for S10: a smaller value style
 for this card, or the user's OK on a shorter label.
+
+## 51. The app's step detector splits one stance on a short dip below `contactKpa` **(found at the S8A phone check)** — OPEN, S9's first item, before SR
+
+**Problem.** `StepDetector` (`mobile/lib/rules/step_detector.dart`) starts
+a stance when the summed kPa rises above `steps.contactKpa` and ends it
+when the sum falls back below. It has no hysteresis and no merge, so a
+brief dip in the hand-off from heel to forefoot ends the stance early.
+
+**What happened.** The S8A Note 10 run showed it with the simulator's old
+walk (`synth.cpp` before `2e2a326`, midfoot `{0.40, 0.40, 860}`, peak
+about 18 kPa):
+- Each stance split into a ~150 ms blip (rejected as shorter than
+  `minStanceMs`) and a ~420 ms step.
+- The TARE offsets (left 18–19, right 12) moved where the split fell.
+  Mean stances were 420 vs 491 ms, a stance PAI of 15.6 %.
+- The rule-based gait therefore read a normal walk as antalgic.
+
+**Why the simulator fix is not enough.** The simulator was fixed (a wider
+midfoot), but a real foot with little midfoot load can produce the same
+dip. Split steps would also skew every step-based figure: the step count,
+PTI per step, `LOAD_CONCENTRATION`, `ASYMMETRY_PEAK` and the gait rules.
+
+**User decision 2026-10-25: a pre-SR item, scheduled as S9's first item**
+(`docs/SESSIONS.md` S9).
+- Add hysteresis, or merge stances separated by a short dip.
+- Use new provisional keys in `thresholds.json` `steps`, recorded in the
+  DATA-CONTRACT §8 addendum.
+- Tests replay the pre-fix simulator walk at offsets 12 and 19 and expect
+  one step per stance.
+- Two real steps separated by a genuine swing still count as two.
+- SR's manual step count stays, and it now also checks the new keys.
