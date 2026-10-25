@@ -30,6 +30,13 @@ void main() {
       );
     });
 
+    test('pubspec.yaml bundles it (the app loads it at start)', () {
+      expect(
+        File('pubspec.yaml').readAsLinesSync().map((l) => l.trim()),
+        contains('- ${ModelInputSpec.assetPath}'),
+      );
+    });
+
     test('window 2 s, stride 1 s, the app\'s 24 channels', () {
       expect(spec.windowMs, 2000);
       expect(spec.strideMs, 1000);

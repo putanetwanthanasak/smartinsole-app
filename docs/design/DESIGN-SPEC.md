@@ -379,6 +379,23 @@ Banner by state:
   - "เส้นทางของแรงกดในก้าวล่าสุด (CoP)": both feet at 60×134 with the path in `primary` (7 SVG units); labels "เท้าซ้าย เส้นทางของแรงกด" / "เท้าขวา เส้นทางของแรงกด"
   - Not walking: "ผลประเมินล่าสุด" "10:58 · เดินปกติ (กฎพื้นฐาน)" · "ความไม่สมดุลของแรงกดขณะยืน" "2%"
 
+### 8.5 Built in S8A (decisions and defaults not on the boards)
+
+User decisions 2026-10-25 and the defaults approved with the plan; report 034.
+
+- **Where the estimate comes from:** Model A when its slot holds a valid model and the result is at or above `model.minConfidence`; otherwise the provisional rule-based classifier (DATA-CONTRACT §7.5). Strides are 1 s of sample time over a 2 s window (`shared/model_input.json`), never a timer. A result needs both feet usable and both walking (the engine's walking gate), and the rules need `gait.ruleSteps` steps per foot. The rules never say `rotated_foot`.
+- **Release builds have no model yet** (`mobile/assets/models/` holds only a README until December), so they show the rules with "ประเมินด้วยกฎพื้นฐาน เพราะโมเดล AI ยังไม่พร้อม". A model below `minConfidence` shows the rules with "ประเมินด้วยกฎพื้นฐาน เพราะโมเดล AI ยังไม่มั่นใจพอ" (draft); "ประเมินโดย" then reads "กฎพื้นฐาน (โมเดล AI ยังไม่มั่นใจพอ)".
+- **Confidence:** 2 segments "ปานกลาง" from `minConfidence`, 3 segments "สูง" from `model.highConfidence` (0.85, a new key).
+- **"ตอนนี้":** "กำลังเดิน" while either usable foot passes the walking gate; "ยืนหรือนั่งอยู่" otherwise; "—" in `inkMuted` when no foot is usable.
+- **"ก้าววันนี้":** both feet's walking steps (the engine's step detector) added together, stored in `daily_summary.steps` at most every 30 s, on a day change and on stop, and carried over a restart. It still shows today's number with no insole connected.
+- **No result now:** walking but too few steps yet uses the not-walking layout ("ยังไม่มีผลตอนนี้"). "ผลล่าสุด HH:mm · {ท่า}" shows the newest earlier result of this run (memory only) and is hidden when there is none.
+- **No data or one foot missing** (rule 4): the estimate card uses the not-walking layout with `bluetooth-off`, "ยังไม่มีข้อมูล" / "ต้องเชื่อมต่อแผ่นรองเท้าทั้งสองข้างก่อน" (draft) and "เชื่อมต่อแผ่นรองเท้า"; the balance card shows "—" with "ต้องเชื่อมต่อทั้งสองข้าง".
+- **Balance card:** the same share, note and deadband as Home's balance card (Home's view model), so the two screens always agree. While `ASYMMETRY_PEAK` holds, the number and note are `#5E3E00` with `triangle-alert` (§14 default, now built). The bar grows from 50 : 50 each time the bottom-bar tab or the sub-tab opens.
+- **Details:** "ความไม่สมดุลของแรงกด (PAI)" is the engine's latest step-pair PAI (what `ASYMMETRY_PEAK` compares), with "(เฝ้าระวังเมื่อเกิน {asymmetry.peakPct}%)". "ความไม่สมดุลของแรงกดสะสม" is the PTI asymmetry (DATA-CONTRACT §8 addendum, display only) with "(ค่าอ้างอิง {asymmetry.ptiPct}% · ยังไม่ใช้แจ้งเตือน)" (draft; the board's "(เฝ้าระวังเมื่อเกิน 20%)" would promise an alert that does not exist). "ความไม่สมดุลของแรงกดขณะยืน" is the PAI formula on the two feet's mean loads over Home's 10 s balance window. Window and stride come from `model_input.json`. A two-foot figure with a foot missing reads "— (ต้องเชื่อมต่อทั้งสองข้าง)".
+- **CoP:** per sample Σ kPa × zone position / Σ kPa over the latest step's samples, on the placeholder zone positions (§5), thinned for drawing; outline only until a step exists. Shown while walking.
+- **Large text:** "ยืนหรือนั่งอยู่" (24/700) wraps to two lines in its half-width card even at 100 % text; the cards stack above 1.3 like Home's.
+- **Motion:** balance bar `value` from 50 : 50; steps count with `value`; confidence segments change colour with `enter`; probability bars move with `value`. Reduce motion: all instant.
+
 ### 8.4 Built in S6B part 2 (decisions and defaults not on the boards)
 
 User decisions 2026-10-25 and the defaults applied with them; report 033.
@@ -578,7 +595,8 @@ Earlier design-chat decisions: style D for the whole app; plain Thai first with 
 
 - **Alerts (S6B, built):** the "ยังไม่ได้อ่าน {n} รายการ" line is hidden when nothing is unread. Its live region stays in the tree (empty at 0), so TalkBack also announces the change from none to one.
 - **Details expander (S6B, built):** starts closed each time a screen opens (the boards only show fixed open and closed versions).
-- **Gait balance warning (S8A):** while `ASYMMETRY_PEAK` is active, the balance number and note use `#5E3E00` with a `triangle-alert` icon, as on Home.
+- **Gait balance warning (S8A, built):** while `ASYMMETRY_PEAK` is active, the balance number and note use `#5E3E00` with a `triangle-alert` icon, as on Home (§8.5).
+- **Gait tab (S8A, built):** see §8.5.
 - **Foot check (S8C):** "บันทึก" is enabled after all 3 answers. Answer-only uses Compare & answer without the view picker and photos.
 - **Switch off state (S8B):** "ปิด", knob on the left, `track` fill with a 2 px `inkSubtle` border.
 - **Text size factors (S8B):** 22/18 for "ใหญ่" and 26/18 for "ใหญ่มาก" (from the preview sizes), multiplied with the phone's own text scale.
@@ -593,8 +611,8 @@ Earlier design-chat decisions: style D for the whole app; plain Thai first with 
 - Name editor, reminder time picker, the in-app evening reminder
 - TARE in progress and done states
 - Research capture flow and export screens (S4C)
-- `PRESSURE_PTI` alert copy (S7); descriptions for "เดินกะเผลก", "เดินลงส้นเท้า", "เดินบิดปลายเท้า"
-- Copy for the rule-based gait result when the model is present but below `minConfidence` (the board text says the model is not ready)
+- `PRESSURE_PTI` alert copy (S7, drafted)
+- Descriptions for "เดินกะเผลก", "เดินลงส้นเท้า", "เดินบิดปลายเท้า", and the rule-based line when the model is present but below `minConfidence` (S8A, drafted: Appendix A)
 - An in-app banner for new alerts while another screen is open (today only the bell and badge react)
 
 ### Waiting on others
@@ -633,6 +651,7 @@ Every string below is a draft (decision 5). Changes from the expert go into the 
 | Alert detail rows (S6B, draft; not health advice but shown to patients) | PTI: "{v} kPa·s เฉลี่ยต่อก้าว ที่{จุด}{ข้าง}" · "{t} kPa·s เฉลี่ยต่อก้าว ขณะเดิน" · "จำนวนก้าวที่ใช้" "{n} ก้าว ใน {m} นาทีล่าสุด". LOAD_CONCENTRATION: "{v}% ของแรงกดทั้งฝ่าเท้า ที่{จุด}{ข้าง}" · "{t}% ติดกัน {n} ก้าว" · "{n} ก้าวติดกัน". Foot-map label of a pressure alert's foot: "เท้า{ข้าง} {จุด}รับน้ำหนักมาก" |
 | My feet (S6B part 2, draft; §8.4) | Pressure, one foot missing: "ยังไม่ได้รับข้อมูลเท้า{ข้าง}" · "ต้องเชื่อมต่อแผ่นรองเท้า{ข้าง}ก่อน". Temperature: "เทียบความอุ่นไม่ได้" · "ตอนนี้แผ่นรองเท้ายังวัดความอุ่นไม่ได้" · "เท้า{ข้าง}ยังไม่ได้เชื่อมต่อ" · "รอผลการวัด" · site note "ยังวัดไม่ได้" · chart "ยังไม่มีข้อมูลวันนี้" · gap label "ขาดข้อมูล / ตั้งแต่ HH:mm" (open) and "ขาดข้อมูล / HH:mm–HH:mm" (ended) · chart summary (§8.4) · quality "สัมผัสไม่ดี" / "เซนเซอร์ผิดปกติ" / "เท้า{ข้าง} ยังวัดไม่ได้" · details "ยังไม่ได้เชื่อมต่อ" |
 | Gait notes | DATA-CONTRACT §8.3.1 (5 texts, owned by the contract) |
+| Gait tab (S8A, draft; §8.5) | Class descriptions: "เดินกะเผลก" "ลงน้ำหนักข้างหนึ่งสั้นกว่าอีกข้าง" · "เดินลงส้นเท้า" "น้ำหนักลงที่ส้นเท้า ปลายเท้าแตะพื้นน้อย" · "เดินบิดปลายเท้า" "ปลายเท้าหันเข้าด้านในหรือออกด้านนอกขณะเดิน". Model below `minConfidence`: "ประเมินด้วยกฎพื้นฐาน เพราะโมเดล AI ยังไม่มั่นใจพอ" · details "กฎพื้นฐาน (โมเดล AI ยังไม่มั่นใจพอ)". No data: "ยังไม่มีข้อมูล" · "ต้องเชื่อมต่อแผ่นรองเท้าทั้งสองข้างก่อน". PTI asymmetry detail "{n}% (ค่าอ้างอิง {asymmetry.ptiPct}% · ยังไม่ใช้แจ้งเตือน)" |
 | Daily foot check | Reason "แผ่นรองเท้าวัดได้เฉพาะใต้ฝ่าเท้า การดูเท้าทุกวันช่วยให้เห็นแผลที่ปลายนิ้วหรือหลังเท้า ซึ่งอาจเกิดขึ้นโดยไม่รู้สึกตัว" · the 3 questions (§11.3) · note "แอปไม่ได้ตรวจรูปให้ ถ้าเห็นอะไรผิดปกติหรือไม่แน่ใจ ให้ตอบว่า \"มี / ไม่แน่ใจ\"" |
 | Something found | Steps "ล้างเท้าด้วยน้ำสะอาด แล้วซับให้แห้ง" / "ถ้ามีแผล ปิดด้วยผ้าก๊อซสะอาด" / "เดินให้น้อยลง และอย่าเดินเท้าเปล่า" / "ไปพบแพทย์หรือพยาบาลภายใน 1–2 วัน และนำรูปที่ถ่ายไว้ไปให้ดู" · urgent "ไปโรงพยาบาลทันที ถ้ามีไข้ เท้าบวมแดงลามออกไป มีหนอง หรือมีกลิ่น" |
 | Saved | "เมื่อวานพบสิ่งที่ควรให้แพทย์ดู ถ้ายังไม่ได้ไป ควรไปพบแพทย์หรือพยาบาลภายใน 1–2 วัน" |
