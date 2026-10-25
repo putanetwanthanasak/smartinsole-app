@@ -1067,7 +1067,24 @@ in-toeing and out-toeing, but Model A's class is just `rotated_foot`.
 for it. When Model A (S8A) or the capture labels provide the direction,
 add it to `GaitEstimate` and to the note's zone match.
 
-## 42. The simulator's normal walk is gentler than the app's walking gate **(found in S7)** — SCHEDULED for S8A
+**S8A (user decision 2026-10-25): left as is.** The hook stores the class
+and its confidence for a `rotated_foot` result and adds no note
+(`test/gait/gait_estimator_test.dart` checks it). Revisit when the real
+model or the capture labels carry a direction.
+
+## 42. The simulator's normal walk is gentler than the app's walking gate **(found in S7)** — RESOLVED (S8A)
+
+**S8A:** `synth.h` `kWalkMotionScale` = 3.0 scales the walk's dynamic
+accel (ax, ay and az − 1 g). With the contract statistic over
+`walkingWindowMs`, the normal walk now gives lowest window / mean
+0.167 / 0.335 g (left) and 0.174 / 0.345 g (right), against 0.069 /
+0.071 g lowest before; ×4 gave a mean of 0.479 g. The `p` scenario's own
+×4 is gone (it is the new walk plus the meta1 plateau).
+`test_synth::test_accel_moves_enough_to_be_walking` now reads the gate
+from `thresholds.json` and uses the contract statistic;
+`test_scenario::test_normal_walk_keeps_the_gate_on` asserts the lowest
+window ≥ gate + 0.01 g and a mean of 0.25–0.35 g. SR still records the
+real boards' figures (SESSIONS SR).
 
 **User decision 2026-10-24:** not in S7; do it in S8A, since the step
 count depends on it. Raise the normal walk's motion so the gate statistic
@@ -1177,3 +1194,32 @@ with the user's OK. The bottom bar labels behave the same at 200 %
 "ติดกัน"; on the emulator it breaks correctly (BACKLOG 46 covers the
 general case).
 
+## 48. Model A's runtime adds about 20 MB to the release APK **(found in S8A)** — OPEN, for S9
+
+`tflite_flutter` 0.12.1 bundles LiteRT's native libraries for every ABI;
+the release APK went from about 64 MB to 84.6 MB. The study phone has
+room, so nothing is needed for the study. Options for S9: build per-ABI
+APKs (`--split-per-abi`, arm64 only for the Note 10) or an app bundle.
+The dummy model in `assets/models_dummy/` is also bundled in release
+builds (it is never loaded there); move it out of the release assets if
+its size matters.
+
+## 49. Rule-based gait classes are provisional **(found in S8A, before 2026-11-10)** — OPEN, for SR
+
+The `gait.*` keys (`ruleSteps` 4, `toeHeelPtiPct` 10,
+`heelForefootPtiPct` 15, `stanceAsymmetryPct` 15; DATA-CONTRACT §8 S8A
+addendum) were set from the app's mock walks and the simulator, not real
+feet. SR records the class shown for each instructed gait trial in a
+confusion table (SESSIONS SR) and tunes them in `thresholds.json`. Known
+from the mocks: the `watch` preset reads `antalgic` (its stance times
+are 1200 vs 960 ms, which the rule correctly calls asymmetric). The rules
+never give `rotated_foot`. The gait result never changes a level
+(rule 11).
+
+## 50. "ยืนหรือนั่งอยู่" wraps in the Gait tab's half-width card **(found in S8A)** — OPEN, for S10
+
+At 24/700 the "ตอนนี้" value "ยืนหรือนั่งอยู่" needs two lines in its
+half-width card even at 100 % text: "ยืนหรือนั่ง / อยู่" (golden
+`gait_idle_100`). The break falls between words and the card grows to
+fit, so nothing is cut, but the steps card beside it is half empty. Options for S10: a smaller value style
+for this card, or the user's OK on a shorter label.

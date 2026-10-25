@@ -49,7 +49,9 @@ From `docs/FLUTTER-PLAN.md` section 6:
 | `flutter test --update-goldens test/goldens` | Regenerate goldens after an intended UI change; review the PNG diff before committing |
 | `flutter run -d <emulator-id> -t test_driver/main_mcp.dart --print-dtd` | Run on the emulator with the Flutter Driver extension, for Dart MCP UI checks |
 | … add `--dart-define=BLE_FAKE=true` | Same, with the scripted fake BLE (two streaming insoles plus one with MTU 23) instead of the real plugin |
-| … add `--dart-define=MOCK=<preset>` | Same, with `MockDataSource` for both feet (debug builds only): `safe`, `safeOrangeDot`, `watch`, `rest`, `noData`, `oneFootMissing`, `lowBattery`; Settings → "Mock preset (debug)" switches live, "Seed sample alerts (debug)" stores the design boards' sample alerts, and "Seed sample day (debug)" stores today's temperature readings from 08:00 shaped by the preset (one period above ΔT, one connection gap; `lib/storage/sample_day.dart`). Both write only to the in-memory database |
+| … add `--dart-define=MOCK=<preset>` | Same, with `MockDataSource` for both feet (debug builds only): `safe`, `safeOrangeDot`, `watch`, `rest`, `noData`, `oneFootMissing`, `lowBattery`, and for the Gait tab `standing` (still IMU, both feet loaded) and `toeWalk` (no heel load); Settings → "Mock preset (debug)" switches live, "Seed sample alerts (debug)" stores the design boards' sample alerts, and "Seed sample day (debug)" stores today's temperature readings from 08:00 shaped by the preset (one period above ΔT, one connection gap; `lib/storage/sample_day.dart`). Both write only to the in-memory database |
+| … add `--dart-define=GAIT_MODEL=dummy` | Debug/profile only: load the untrained dummy Model A from `assets/models_dummy/` (shapes, channel order, timing; BLE debug › "Gait model" shows the check). `GAIT_MODEL=demo-toe` instead fakes a model answering toe walking at 78 % (the FeetDGaitToe board). Release builds ignore the define |
+| `uv run tools/model/make_dummy_model.py` (repo root) | Regenerate the dummy model, its `normalization.json` and `check.json` (TensorFlow via uv's cache, not the repo) |
 | `flutter run -d <device-id>` | Plain debug run (e.g. the Note 10) |
 | `dart format lib test test_driver` | Formatting |
 | `dart run build_runner build` | Regenerate drift code (`lib/storage/database.g.dart`) after a table change |
@@ -84,7 +86,14 @@ lib/
                        temperature readings, daily summary, foot checks;
                        one repository interface each (see its README.md);
                        30-day retention; TemperatureRecorder
-  gait/ footcheck/ notify/
+  gait/                Gait (S8A): rule-based classifier, Model A slot
+                       (tflite_flutter in its own isolate, only in
+                       tflite_classifier.dart), estimator on a 1 s stride
+                       of sample time, step counter (daily_summary.steps),
+                       CoP, PTI asymmetry (see its README.md); never sets
+                       a level (rule 11); no numeric literals (a test
+                       checks)
+  footcheck/ notify/
                        empty until their session (see each README.md)
   ui/
     app.dart           MaterialApp, named routes
@@ -104,7 +113,8 @@ lib/
                        my_feet/ = My feet (S6B part 2): view model
                        (MyFeetController: 2 s peaks + engine figures),
                        copy, chart model (pairing, gaps, summary),
-                       Pressure and Temperature tabs;
+                       Pressure and Temperature tabs; S8A added the
+                       Gait tab (gait_model, gait_copy, gait_tab);
                        capture/ = Settings → hold "ส่วนผู้วิจัย" 2 s
                        (English, researcher-only, release builds too)
     widgets/           shared widgets; S6B added status_tag, new_chip,
@@ -113,12 +123,19 @@ lib/
                        temp_site_map; FootMap takes null levels ("not
                        recorded"), `ringChannel` and `pulse`; S6B part 2
                        added summary_banner, segmented_tabs,
-                       temp_delta_chart (CustomPainter, draw-in)
+                       temp_delta_chart (CustomPainter, draw-in); S8A
+                       added estimate_chip, confidence_segments,
+                       balance_bar, cop_foot
 assets/fonts/          Figtree 600/700, Noto Sans Thai 600/700 (headings);
                        Noto Sans + Noto Sans Thai Looped 400–700 (body);
                        static TTFs, OFL, never downloaded at runtime
-assets/config/         thresholds.json, byte-identical copy of
-                       shared/thresholds.json (a test checks it)
+assets/config/         thresholds.json and model_input.json, byte-identical
+                       copies of the shared/ files (tests check both)
+assets/models/         the Model A slot: README only until the AI team's
+                       model_a.tflite + normalization.json arrive
+                       (December); dropping them in is the whole change
+assets/models_dummy/   untrained dummy + check.json (dev only, see
+                       GAIT_MODEL above)
 assets/sounds/         capture cue beeps, made by tool/make_cues.py
 test/                  flutter_test_config.dart loads the real fonts
   ble/                 parser tests; test_vectors_test.dart reads
@@ -127,6 +144,8 @@ test/                  flutter_test_config.dart loads the real fonts
   capture/             capture tests (fake_async rigs), widget tests, and
                        capture_fixture_test.dart (writes/checks
                        ../shared/capture_fixture/)
+  gait/                gait unit tests; gait_rig.dart (steps, windows,
+                       fake model runner)
   my_feet/             My feet unit and widget tests; my_feet_rig.dart
                        (pumpMyFeet: mock preset + optional sample day)
   storage/             repository, retention, recorder tests (in-memory
