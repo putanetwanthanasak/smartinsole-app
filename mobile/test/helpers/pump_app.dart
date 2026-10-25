@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smartinsole/ble/ble_providers.dart';
 import 'package:smartinsole/config/thresholds.dart';
+import 'package:smartinsole/gait/gait_providers.dart';
+import 'package:smartinsole/gait/model_spec.dart';
 import 'package:smartinsole/storage/database.dart';
 import 'package:smartinsole/storage/storage_providers.dart';
 import 'package:smartinsole/ui/app.dart';
@@ -21,6 +23,12 @@ final fixedNow = DateTime(2026, 10, 18, 9, 30);
 /// checked by test/config/thresholds_test.dart).
 final testThresholds = Thresholds.parse(
   File(Thresholds.assetPath).readAsStringSync(),
+);
+
+/// The app's bundled Model A input spec (identical to
+/// shared/model_input.json, checked by test/gait/model_spec_test.dart).
+final testModelInput = ModelInputSpec.parse(
+  File(ModelInputSpec.assetPath).readAsStringSync(),
 );
 
 /// A wall clock that starts at [start] and moves with the tester's fake
@@ -69,6 +77,11 @@ Future<void> pumpApp(
       overrides: [
         clockProvider.overrideWithValue(now ?? () => fixedNow),
         thresholdsProvider.overrideWithValue(testThresholds),
+        modelInputSpecProvider.overrideWithValue(testModelInput),
+        // No LiteRT on the test host: a model in the slot would fail here.
+        modelRunnerFactoryProvider.overrideWithValue(
+          (_, _) => throw UnsupportedError('no TFLite in widget tests'),
+        ),
         bleCentralProvider.overrideWithValue(central ?? FakeBleCentral()),
         blePermissionsProvider.overrideWithValue(
           permissions ?? FakePermissions(),

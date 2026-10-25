@@ -18,11 +18,14 @@ struct Channel {
 // Normal walking stays below the app's watch level (shared/thresholds.json
 // pressure.watchKpa = 75) with margin. With the served calibration (contract
 // §5.1 example) the peaks are about hallux 40, meta1 50, meta3 45, meta5 32,
-// midfoot 18 and heel 60 kPa, including baseline and noise. Higher pressure
-// belongs to a scenario (BACKLOG 18).
+// midfoot 24 and heel 60 kPa, including baseline and noise. Higher pressure
+// belongs to a scenario (BACKLOG 18). The midfoot is wide enough to carry
+// the load from heel to forefoot: the summed kPa stays above the app's
+// steps.contactKpa through the stance, so each stance is one step (S8A; a
+// narrower midfoot split it into a blip and a shorter step).
 constexpr Channel kSixChannels[6] = {
     {0.86f, 0.28f, 1500}, {0.70f, 0.36f, 1710}, {0.64f, 0.36f, 1610},
-    {0.55f, 0.36f, 1300}, {0.40f, 0.40f, 860},  {0.16f, 0.32f, 1880},
+    {0.55f, 0.36f, 1300}, {0.38f, 0.48f, 1100},  {0.16f, 0.32f, 1880},
 };
 
 constexpr float kBaselineAdc = 30;  // unloaded reading, just above offset_adc
@@ -78,7 +81,7 @@ Sample gaitSample(uint32_t tMs, uint8_t footSide, uint8_t fsrCount) {
   }
 
   // IMU: about 1 g down while standing; a heel-strike jolt at stance start;
-  // forward swing in the swing phase. Enough motion to pass a walking gate.
+  // forward swing in the swing phase; scaled by kWalkMotionScale.
   float sw = stance ? 0 : (ph - kStanceFraction) / (1 - kStanceFraction);
   float az = 1.0f, ax = 0, ay = 0, gy = 0;
   if (stance) {
@@ -90,9 +93,10 @@ Sample gaitSample(uint32_t tMs, uint8_t footSide, uint8_t fsrCount) {
     gy = 220.0f * std::sin(kPi * sw);  // deg/s, shank swing
   }
   ay = 0.05f * std::sin(2 * kPi * ph);
-  s.accel[0] = clampI16((ax + 0.02f * noise(tMs, 100)) * 4096);
-  s.accel[1] = clampI16((ay + 0.02f * noise(tMs, 101)) * 4096);
-  s.accel[2] = clampI16((az + 0.02f * noise(tMs, 102)) * 4096);
+  const float k = kWalkMotionScale;
+  s.accel[0] = clampI16((k * ax + 0.02f * noise(tMs, 100)) * 4096);
+  s.accel[1] = clampI16((k * ay + 0.02f * noise(tMs, 101)) * 4096);
+  s.accel[2] = clampI16((1 + k * (az - 1) + 0.02f * noise(tMs, 102)) * 4096);
   s.gyro[0] = clampI16((15.0f * std::sin(2 * kPi * ph) + 2 * noise(tMs, 103)) * 32.8f);
   s.gyro[1] = clampI16((gy + 2 * noise(tMs, 104)) * 32.8f);
   s.gyro[2] = clampI16((8.0f * std::cos(2 * kPi * ph) + 2 * noise(tMs, 105)) * 32.8f);

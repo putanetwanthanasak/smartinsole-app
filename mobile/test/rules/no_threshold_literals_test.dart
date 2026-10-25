@@ -4,14 +4,21 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Rule 12: thresholds come from `thresholds.json`, never from code. Every
-/// numeric literal in `lib/rules/` (code only: comments and string text
-/// are skipped, string interpolations are code) must be one of a few
-/// structural numbers, none of which is a threshold value.
+/// numeric literal in `lib/rules/` and `lib/gait/` (code only: comments
+/// and string text are skipped, string interpolations are code) must be
+/// one of a few structural numbers, none of which is a threshold value.
 ///
-/// `alert_code.dart` is skipped: it is the contract's level column (1–5)
-/// and the FLUTTER-PLAN §7 level boundaries, not thresholds.
+/// Skipped: `alert_code.dart` (the contract's level column 1–5 and the
+/// FLUTTER-PLAN §7 level boundaries), `gait_timing.dart` (technical
+/// constants: tensor sizes, check tolerances, write and drawing cadence)
+/// and `demo_model_runner.dart` (the debug-only demo's fixed outputs).
 final allowed = <num>{0, 0.5, 1, 100, 1000}; // zero, half, one, %, ms per s
-const skipped = {'alert_code.dart'};
+const skipped = {
+  'alert_code.dart',
+  'gait_timing.dart',
+  'demo_model_runner.dart',
+};
+const scanned = ['lib/rules', 'lib/gait'];
 
 void main() {
   test('no threshold value is among the allowed literals', () {
@@ -28,14 +35,16 @@ void main() {
     expect(values.intersection(allowed), isEmpty);
   });
 
-  test('lib/rules has no numeric literal outside $allowed', () {
-    final files = Directory('lib/rules')
-        .listSync(recursive: true)
-        .whereType<File>()
-        .where((f) => f.path.endsWith('.dart'))
-        .where((f) => !skipped.contains(f.uri.pathSegments.last))
-        .toList();
-    expect(files.length, greaterThan(5));
+  test('$scanned have no numeric literal outside $allowed', () {
+    final files = [
+      for (final dir in scanned)
+        ...Directory(dir)
+            .listSync(recursive: true)
+            .whereType<File>()
+            .where((f) => f.path.endsWith('.dart'))
+            .where((f) => !skipped.contains(f.uri.pathSegments.last)),
+    ];
+    expect(files.length, greaterThan(15));
     final found = <String>[];
     for (final f in files) {
       final code = dartCodeOnly(f.readAsStringSync());

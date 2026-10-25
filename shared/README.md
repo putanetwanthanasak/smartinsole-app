@@ -8,7 +8,9 @@ Files shared between the Flutter app (`mobile/`) and the new simulator
   Later additions, all additive with `"version"` 1 (DATA-CONTRACT §8.3
   addenda): `battery` (S5); in S7 `pressure.ptiWindowMin` / `ptiMinSteps`
   / `peakHoldMs`, `asymmetry.peakSteps` / `concentrationSteps`, `device`,
-  `alerts` and `steps` (step detection, provisional); in S6B `sources`,
+  `alerts` and `steps` (step detection, provisional); in S8A
+  `model.highConfidence` and `gait` (rule-based gait classes,
+  provisional); in S6B `sources`,
   the "ที่มา" column of §8.3 word for word, keyed by wire code ("—" =
   none; the alert detail's "ที่มาของเกณฑ์" row, hidden for "—"). The
   PTI source does not confirm its value (BACKLOG 43). The app bundles a
@@ -27,6 +29,9 @@ Files shared between the Flutter app (`mobile/`) and the new simulator
   into one row (left is the time base; nearest right sample within
   ±10 ms). The app (`pairFeet`) and `tools/capture/load_capture.py`
   implement the same rule.
+  The app bundles a byte-identical copy (`mobile/assets/config/`, a test
+  checks it and its pubspec entry) and reads the window and stride for
+  Model A from it (S8A).
 - **`capture_fixture/`** — one rehearsal capture session written by the
   app's own capture code, with its export `manifest.json`, plus
   `expected.json` (the 24-channel rows the app's `pairFeet` + `modelRow`

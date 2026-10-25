@@ -22,11 +22,6 @@ constexpr uint16_t kHighMeta1Adc = 3180;
 // step's pressure-time integral is well above pressure.ptiKpaS).
 constexpr float kPlateauRise = 0.12f, kPlateauStart = 0.22f;
 constexpr float kPlateauEnd = 0.82f, kPlateauFall = 0.92f;
-// The dynamic part of the accel (deviation from a still 1 g) is scaled by
-// this, so the app's walking gate (contract 8.3.2: mean |a| - 1 g over
-// motion.walkingWindowMs >= motion.walkingAccelG) is on through every
-// window. The normal walk's motion is gentler and does not keep it on.
-constexpr float kHighMeta1MotionScale = 4.0f;
 
 const DataSource& source(Id id);
 const char* name(Id id);

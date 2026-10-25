@@ -49,6 +49,14 @@ enum MockPreset {
 
   /// [safe], with the left battery at 10 % (contract `BATTERY_LOW` < 15 %).
   lowBattery,
+
+  /// Both feet stand still, loaded (the right a little more), the IMU at
+  /// rest: the Gait tab's not-walking state (board FeetDGaitIdle).
+  standing,
+
+  /// Both feet walk on their toes: no heel load, so the rule-based gait
+  /// classifier reads toe walking (DATA-CONTRACT §7.5, S8A).
+  toeWalk,
 }
 
 /// The preset named by `--dart-define=MOCK=<name>`, or null for the real
@@ -68,7 +76,15 @@ class MockGait {
     required this.peakKpa,
     this.windows = normalWindows,
     this.plateau = const {},
-  });
+  }) : moving = true;
+
+  /// Standing still with [peakKpa] under the foot all the time.
+  const MockGait.standing(this.peakKpa)
+    : strideMs = 1,
+      stanceMs = 1,
+      windows = normalWindows,
+      plateau = const {},
+      moving = false;
 
   final int strideMs;
   final int stanceMs;
@@ -83,6 +99,9 @@ class MockGait {
   /// Channels that hold their peak (with short ramps) instead of a bump.
   final Set<int> plateau;
 
+  /// False: standing still, [peakKpa] all the time and the IMU at rest.
+  final bool moving;
+
   /// Heel strike → midfoot → metatarsals → toe-off.
   static const normalWindows = [
     (0.60, 1.00),
@@ -95,6 +114,7 @@ class MockGait {
 
   /// kPa per channel at [ms] into the walk.
   List<double> kpaAt(double ms) {
+    if (!moving) return peakKpa;
     final inStride = ms % strideMs;
     if (inStride >= stanceMs) return List.filled(peakKpa.length, 0);
     final s = inStride / stanceMs;
@@ -106,12 +126,14 @@ class MockGait {
 
   /// The first 100 ms of stance (heel strike), 0–1, or −1 outside it.
   double strikePhase(double ms) {
+    if (!moving) return -1;
     final inStride = ms % strideMs;
     return inStride < 100 ? inStride / 100 : -1;
   }
 
   /// Swing (foot in the air) or stance, for the IMU.
   double swingPhase(double ms) {
+    if (!moving) return -1;
     final inStride = ms % strideMs;
     if (inStride < stanceMs) return -1;
     return (inStride - stanceMs) / (strideMs - stanceMs);
@@ -205,6 +227,32 @@ class MockFootProfile {
       MockPreset.lowBattery => MockFootProfile(
         forefootC: left ? 31.8 : 31.5,
         batteryPct: left ? 10 : 92,
+      ),
+      // Sums 142 and 162 kPa: 47 : 53, "พอ ๆ กัน" (PAI 13 %).
+      MockPreset.standing => MockFootProfile(
+        forefootC: left ? 31.8 : 31.5,
+        gait: MockGait.standing(
+          left
+              ? const [18, 24, 22, 14, 16, 48]
+              : const [20, 28, 26, 16, 18, 54],
+        ),
+      ),
+      // Forefoot loaded through most of stance, the heel never.
+      MockPreset.toeWalk => MockFootProfile(
+        forefootC: left ? 31.8 : 31.5,
+        gait: const MockGait(
+          strideMs: 1000,
+          stanceMs: 600,
+          peakKpa: [55, 60, 65, 40, 20, 0],
+          windows: [
+            (0.30, 1.00),
+            (0.05, 0.95),
+            (0.05, 0.95),
+            (0.05, 0.90),
+            (0.05, 0.50),
+            (0.00, 0.10),
+          ],
+        ),
       ),
     };
   }

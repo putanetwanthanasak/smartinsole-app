@@ -23,12 +23,21 @@ class DetailRow {
 ///   animation (§12.2). Under reduce motion the chevron jumps.
 /// - TalkBack hears the expanded / collapsed state (§13).
 class DetailsExpander extends StatefulWidget {
-  const DetailsExpander({super.key, required this.rows, this.leading});
+  const DetailsExpander({
+    super.key,
+    required this.rows,
+    this.leading,
+    this.trailing = const [],
+  });
 
   final List<DetailRow> rows;
 
   /// Shown above [rows] while open (My feet's kPa table, §8.1).
   final Widget? leading;
+
+  /// Shown below [rows] while open, each on a `divider` top border (the
+  /// Gait tab's class probabilities and CoP, §8.3).
+  final List<Widget> trailing;
 
   @override
   State<DetailsExpander> createState() => _DetailsExpanderState();
@@ -113,6 +122,18 @@ class _DetailsExpanderState extends State<DetailsExpander> {
                 children: [
                   ?widget.leading,
                   for (final r in widget.rows) _Row(row: r),
+                  for (final t in widget.trailing)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: Dimens.detailRowPaddingV,
+                      ),
+                      decoration: const BoxDecoration(
+                        border: Border(
+                          top: BorderSide(color: AppColors.divider),
+                        ),
+                      ),
+                      child: t,
+                    ),
                 ],
               ),
             ),

@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "about": "Model A input (DATA-CONTRACT 7.1): channel order and units. The Flutter app (mobile/lib/device/model_channels.dart) and the training scripts both read this order; a Dart test keeps them identical. Units decided 2026-10-22 (docs/SESSIONS.md S4C): FSR kPa, accel g, gyro deg/s.",
+  "sampleRateHz": 50,
+  "windowSamples": 100,
+  "strideSamples": 50,
+  "fsrChannelsPerFoot": 6,
+  "units": {
+    "fsr": "kPa",
+    "accel": "g",
+    "gyro": "deg/s"
+  },
+  "channels": [
+    "L_fsr0_kpa",
+    "L_fsr1_kpa",
+    "L_fsr2_kpa",
+    "L_fsr3_kpa",
+    "L_fsr4_kpa",
+    "L_fsr5_kpa",
+    "L_accel_x_g",
+    "L_accel_y_g",
+    "L_accel_z_g",
+    "L_gyro_x_dps",
+    "L_gyro_y_dps",
+    "L_gyro_z_dps",
+    "R_fsr0_kpa",
+    "R_fsr1_kpa",
+    "R_fsr2_kpa",
+    "R_fsr3_kpa",
+    "R_fsr4_kpa",
+    "R_fsr5_kpa",
+    "R_accel_x_g",
+    "R_accel_y_g",
+    "R_accel_z_g",
+    "R_gyro_x_dps",
+    "R_gyro_y_dps",
+    "R_gyro_z_dps"
+  ],
+  "pairing": {
+    "about": "How the two feet's samples form one 24-channel row (mobile/lib/device/model_channels.dart pairFeet; tools/capture/load_capture.py). The feet have separate clocks and sample instants, so rows are paired by unix time.",
+    "timeBase": "L",
+    "toleranceMs": 10,
+    "rule": "Each left sample (ascending unix_ms) takes the right sample nearest in unix_ms within +-toleranceMs inclusive, ties to the earlier one; each right sample is used at most once, in order; a left sample with none in reach gives no row."
+  }
+}

@@ -3,11 +3,12 @@
   "pressure": { "watchKpa": 75, "alertKpa": 200, "ptiKpaS": 80, "ptiWindowMin": 60, "ptiMinSteps": 20, "peakHoldMs": 2500 },
   "temperature": { "deltaC": 2.2, "consecutiveReadings": 2 },
   "asymmetry": { "peakPct": 15, "ptiPct": 20, "concentrationPct": 40, "peakSteps": 20, "concentrationSteps": 20 },
-  "model": { "minConfidence": 0.60 },
+  "model": { "minConfidence": 0.60, "highConfidence": 0.85 },
   "motion": { "walkingAccelG": 0.15, "walkingWindowMs": 800 },
   "battery": { "lowPct": 15 },
   "device": { "lostAfterMin": 5 },
   "alerts": { "repeatMin": 30 },
   "steps": { "contactKpa": 10, "minStanceMs": 250, "maxStanceMs": 2500 },
+  "gait": { "ruleSteps": 4, "toeHeelPtiPct": 10, "heelForefootPtiPct": 15, "stanceAsymmetryPct": 15 },
   "sources": { "TEMP_DELTA": "Lavery et al. (2004)", "PRESSURE_WATCH": "เกณฑ์เฝ้าระวังของโครงงาน", "PRESSURE_PEAK": "Owings et al. (2009)", "PRESSURE_PTI": "Waaijman et al. (2014)", "ASYMMETRY_PEAK": "ตัวชี้วัดของโครงงาน", "LOAD_CONCENTRATION": "ตัวชี้วัดของโครงงาน", "DEVICE_LOST": "—", "BATTERY_LOW": "—" }
 }

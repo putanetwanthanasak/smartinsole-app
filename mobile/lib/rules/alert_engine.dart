@@ -205,12 +205,14 @@ class AlertEngine {
   };
   final _subs = <StreamSubscription<Object?>>[];
   Timer? _timer;
+  final _steps = StreamController<Step>.broadcast(sync: true);
 
   // TEMP_DELTA: consecutive reading pairs above deltaC, per site (rule 6).
   final _tempFresh = {FootSide.left: false, FootSide.right: false};
   final _overCount = {TempSite.forefoot: 0, TempSite.heel: 0};
 
   // ASYMMETRY_PEAK: consecutive steps above peakPct.
+  double? _latestPai;
   int _asymSteps = 0;
   double _asymLeftKpa = 0;
   double _asymRightKpa = 0;
@@ -234,6 +236,21 @@ class AlertEngine {
   /// Consecutive steps above `asymmetry.peakPct` (for tests).
   int get asymmetrySteps => _asymSteps;
 
+  /// Every walking step either foot completes, as the rules count it (the
+  /// Gait tab's step count, gait classifier and CoP; S8A). Delivered
+  /// synchronously, after the rules have seen the step.
+  Stream<Step> get steps => _steps.stream;
+
+  /// [side] made a walking step no longer ago than a stance can last: the
+  /// Gait tab's "กำลังเดิน". Derived from sample times at read time (rule 2).
+  bool walkingNow(FootSide side) => _feet[side]!.walkingRecently;
+
+  /// The PAI (§8.2, percent) of the two feet's latest steps, as
+  /// `ASYMMETRY_PEAK` last compared it; null when the newest step had no
+  /// partner step from the other foot or a foot was not usable. Display
+  /// only (the Gait tab's details).
+  double? get latestPaiPct => _latestPai;
+
   /// Completes when every alert raised so far is stored.
   Future<void> flush() async {
     while (_writes.isNotEmpty) {
@@ -254,6 +271,7 @@ class AlertEngine {
   }
 
   void stop() {
+    // The step stream stays open: a stopped engine just sends no steps.
     for (final s in _subs) {
       s.cancel();
     }
@@ -326,6 +344,7 @@ class AlertEngine {
     _mapPeaks[b.side]!.add(b);
     for (final step in _feet[b.side]!.add(b)) {
       _onStep(step);
+      _steps.add(step);
     }
     check();
   }
@@ -341,6 +360,7 @@ class AlertEngine {
     final pai = s.left.usable && s.right.usable && recent
         ? PeakAsymmetry.of(step.maxPeakKpa, other.maxPeakKpa)
         : null;
+    _latestPai = pai?.paiPct;
     if (pai != null && pai.isUneven(thresholds)) {
       _asymSteps++;
       final left = step.side == FootSide.left;

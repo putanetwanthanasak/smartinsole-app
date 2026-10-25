@@ -8,13 +8,6 @@ namespace insole::scenario {
 namespace {
 
 constexpr float kPi = 3.14159265f;
-constexpr float kAccelLsbPerG = 4096;
-
-int16_t clampI16(float v) {
-  if (v > 32767) return 32767;
-  if (v < -32768) return -32768;
-  return static_cast<int16_t>(std::lround(v));
-}
 
 // 0..1 load of the meta1 plateau at stance fraction st.
 float plateau(float st) {
@@ -38,13 +31,7 @@ Sample highMeta1Sample(uint32_t tMs, uint8_t footSide, uint8_t fsrCount) {
     float adc = s.fsr[1] + (kHighMeta1Adc - s.fsr[1]) * plateau(st);
     if (adc > s.fsr[1]) s.fsr[1] = static_cast<uint16_t>(std::lround(adc));
   }
-  // Stronger walking motion: still 1 g (z) plus k x the normal deviation.
-  float x = s.accel[0] / kAccelLsbPerG, y = s.accel[1] / kAccelLsbPerG;
-  float z = s.accel[2] / kAccelLsbPerG;
-  const float k = kHighMeta1MotionScale;
-  s.accel[0] = clampI16(k * x * kAccelLsbPerG);
-  s.accel[1] = clampI16(k * y * kAccelLsbPerG);
-  s.accel[2] = clampI16((1 + k * (z - 1)) * kAccelLsbPerG);
+  // The walk's own motion keeps the walking gate on (synth.h, S8A).
   return s;
 }
 
@@ -68,7 +55,7 @@ const DataSource& source(Id id) {
 const char* name(Id id) {
   switch (id) {
     case Id::warmForefoot: return "t (forefoot +3.0 degC)";
-    case Id::highMeta1: return "p (meta1 ~250 kPa plateau, strong walking motion)";
+    case Id::highMeta1: return "p (meta1 ~250 kPa plateau)";
     case Id::normal: break;
   }
   return "n (normal walk)";

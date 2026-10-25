@@ -22,6 +22,7 @@ class Thresholds {
     required this.peakAsymmetrySteps,
     required this.concentrationSteps,
     required this.minConfidence,
+    required this.highConfidence,
     required this.walkingAccelG,
     required this.walkingWindowMs,
     required this.batteryLowPct,
@@ -30,6 +31,10 @@ class Thresholds {
     required this.stepContactKpa,
     required this.minStanceMs,
     required this.maxStanceMs,
+    required this.gaitRuleSteps,
+    required this.toeHeelPtiPct,
+    required this.heelForefootPtiPct,
+    required this.stanceAsymmetryPct,
     this.sources = const {},
   });
 
@@ -53,6 +58,7 @@ class Thresholds {
       peakAsymmetrySteps: i('asymmetry', 'peakSteps'),
       concentrationSteps: i('asymmetry', 'concentrationSteps'),
       minConfidence: d('model', 'minConfidence'),
+      highConfidence: d('model', 'highConfidence'),
       walkingAccelG: d('motion', 'walkingAccelG'),
       walkingWindowMs: i('motion', 'walkingWindowMs'),
       batteryLowPct: d('battery', 'lowPct'),
@@ -61,6 +67,10 @@ class Thresholds {
       stepContactKpa: d('steps', 'contactKpa'),
       minStanceMs: i('steps', 'minStanceMs'),
       maxStanceMs: i('steps', 'maxStanceMs'),
+      gaitRuleSteps: i('gait', 'ruleSteps'),
+      toeHeelPtiPct: d('gait', 'toeHeelPtiPct'),
+      heelForefootPtiPct: d('gait', 'heelForefootPtiPct'),
+      stanceAsymmetryPct: d('gait', 'stanceAsymmetryPct'),
       sources: {
         for (final e
             in ((m['sources'] as Map<String, dynamic>?) ?? const {}).entries)
@@ -110,8 +120,15 @@ class Thresholds {
   final double concentrationPct;
   final int concentrationSteps;
 
-  /// Model A confidence needed for a gait note (contract §8.3.1).
+  /// Model A confidence needed for a gait note (contract §8.3.1) and for
+  /// the Gait tab to show the model's result (contract §7.5; below it the
+  /// rules' result is shown).
   final double minConfidence;
+
+  /// The Gait tab's confidence meter: 3 segments "สูง" at or above this,
+  /// 2 segments "ปานกลาง" from [minConfidence] (DESIGN-SPEC §8.3). Display
+  /// only.
+  final double highConfidence;
 
   /// Walking gate (contract §8.3.2): mean |‖a‖ − 1 g| over
   /// [walkingWindowMs] at or above [walkingAccelG]. PROVISIONAL.
@@ -135,6 +152,19 @@ class Thresholds {
   final double stepContactKpa;
   final int minStanceMs;
   final int maxStanceMs;
+
+  /// The rule-based gait classifier (`lib/gait/rule_based_classifier.dart`,
+  /// contract §7.5's `RuleBasedEngine`). PROVISIONAL, display only: the
+  /// result never changes a level (rule 11). A result needs
+  /// [gaitRuleSteps] walking steps per foot; `toe_walking` when the heel's
+  /// share of the steps' summed PTI is below [toeHeelPtiPct],
+  /// `heel_walking` when the forefoot's share is below
+  /// [heelForefootPtiPct], `antalgic` when the PAI formula on the two
+  /// feet's mean stance times is above [stanceAsymmetryPct]. Tuned in SR.
+  final int gaitRuleSteps;
+  final double toeHeelPtiPct;
+  final double heelForefootPtiPct;
+  final double stanceAsymmetryPct;
 
   /// Where each alert code's boundary comes from, keyed by its wire name
   /// (`TEMP_DELTA`, …): the "ที่มา" column of DATA-CONTRACT §8.3, word for
