@@ -49,6 +49,7 @@ dependencies:
   path_provider: ^2.1.6
   permission_handler: ^12.0.3
   sqlite3: ^3.8.0
+  tflite_flutter: ^0.12.1
   vibration: ^3.2.1
   wakelock_plus: ^1.8.0
 
@@ -124,6 +125,12 @@ flutter:
     # Copy of shared/thresholds.json (Flutter can't bundle files outside
     # mobile/); test/config/thresholds_test.dart keeps it identical.
     - assets/config/thresholds.json
+    # Model A slot (S8A, DATA-CONTRACT §7): drop the AI team's
+    # model_a.tflite + normalization.json here; empty means rules only.
+    - assets/models/
+    # The untrained dummy (tools/model/make_dummy_model.py); loaded only by
+    # debug/profile builds run with --dart-define=GAIT_MODEL=dummy.
+    - assets/models_dummy/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

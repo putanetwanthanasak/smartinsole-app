@@ -1,3 +1,9 @@
+plugins {
+    // Only to put the Kotlin Gradle plugin's types on this script's classpath
+    // (version from settings.gradle.kts), for the tflite_flutter fix below.
+    id("org.jetbrains.kotlin.android") apply false
+}
+
 allprojects {
     repositories {
         google()
@@ -17,6 +23,17 @@ subprojects {
 }
 subprojects {
     project.evaluationDependsOn(":app")
+}
+
+// tflite_flutter 0.12.1 pins its Java target to 11 but leaves its Kotlin
+// target to follow the JDK, which fails Gradle's JVM-target check. Align its
+// Kotlin target with its Java one.
+subprojects {
+    if (name == "tflite_flutter") {
+        tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile>().configureEach {
+            compilerOptions.jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
+        }
+    }
 }
 
 tasks.register<Delete>("clean") {
