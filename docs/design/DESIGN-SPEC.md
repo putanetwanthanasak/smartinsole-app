@@ -451,7 +451,7 @@ Back link (→ Home), title "ตั้งค่า", then groups. Each group: la
 | "สำหรับผู้วิจัย" | Row with a No-data circle and `lock` `#55666E`: "ส่วนผู้วิจัย" / "กดค้าง 2 วินาทีเพื่อเปิด"; opens only after a 2-second long press. |
 | "เกี่ยวกับแอป" | "เวอร์ชัน" — "0.9.0 · รุ่นทดสอบงานวิจัย"; under a divider: "แอปนี้ช่วยดูแลเท้า ไม่ใช่เครื่องมือวินิจฉัยโรค ถ้ามีแผลหรืออาการผิดปกติ ให้ไปพบแพทย์". |
 
-The debug screen is hidden (S8B).
+The debug screen is hidden (S8B): it is "Diagnostics", reached only from Researcher (§10.2), in release builds too.
 
 ### 10.2 Researcher ("ส่วนผู้วิจัย")
 
@@ -598,18 +598,20 @@ Earlier design-chat decisions: style D for the whole app; plain Thai first with 
 - **Gait balance warning (S8A, built):** while `ASYMMETRY_PEAK` is active, the balance number and note use `#5E3E00` with a `triangle-alert` icon, as on Home (§8.5).
 - **Gait tab (S8A, built):** see §8.5.
 - **Foot check (S8C):** "บันทึก" is enabled after all 3 answers. Answer-only uses Compare & answer without the view picker and photos.
-- **Switch off state (S8B):** "ปิด", knob on the left, `track` fill with a 2 px `inkSubtle` border.
-- **Text size factors (S8B):** 22/18 for "ใหญ่" and 26/18 for "ใหญ่มาก" (from the preview sizes), multiplied with the phone's own text scale.
-- **Confirmations (S8B):** "ลบรูปถ่ายเท้าทั้งหมด" and "รีสตาร์ตแผ่นรองเท้า" use the TARE bottom-sheet pattern.
+- **Switch off state (S8B, built):** "ปิด", knob on the left, `track` fill with a 2 px `inkSubtle` border; the off knob is `inkSubtle` so it shows on the light track. Above text scale 1.3 a switch goes under its row title.
+- **Text size factors (S8B, built):** 22/18 for "ใหญ่" and 26/18 for "ใหญ่มาก" (from the preview sizes), multiplied with the phone's own text scale, never clamped.
+- **Confirmations (S8B, built):** "ลบรูปถ่ายเท้าทั้งหมด", "รีสตาร์ตแผ่นรองเท้า" and the name editor use the TARE bottom-sheet pattern. TARE in progress has no buttons (a sent TARE cannot be taken back); done and failed have one "ปิด" button.
 - **My feet (S6B part 2, built):** see §8.4.
-- **Research readiness (S8B/S4C):** a failed check shows `triangle-alert` in `#A86A00` with its text, and "เริ่มเก็บข้อมูลวิจัย" is disabled.
+- **Research readiness (S8B/S4C, built):** a failed check shows `triangle-alert` in `#A86A00` with its text and a reason in brackets (draft), and "เริ่มเก็บข้อมูลวิจัย" is disabled. The data-rate check passes at ≥ 49 samples/s per foot over 10 s (`CaptureTimings.minSampleRateHz`). "ส่งออกไฟล์" always opens capture.
+- **Device info (S8B, built):** MTU and data rate show one value when both feet agree, as on the board, else "ซ้าย … · ขวา …".
+- **Connection (S8B, built):** see §9 and report 035 (20 s search window, wrong side after 3 s with no other candidate, permission panel draft copy, "connected, no data" for stale / MTU too small / calibration rejected).
 
 ### Not designed yet (build from §5 components, or ask for a design)
 
 - Photo history ("ดูรูปที่บันทึกไว้"); Compare & answer when yesterday has no photo
 - The "ตรวจเท้า" tab after today's check found something; the Saved reminder for a finding older than yesterday
-- Name editor, reminder time picker, the in-app evening reminder
-- TARE in progress and done states
+- The in-app evening reminder (S8C/S9)
+- Built in S8B from §5 components with draft copy (report 035): name editor, reminder time picker (platform, 24 h), TARE in progress / done / failed, reboot confirmation, delete-photos confirmation
 - Research capture flow and export screens (S4C)
 - `PRESSURE_PTI` alert copy (S7, drafted)
 - Descriptions for "เดินกะเผลก", "เดินลงส้นเท้า", "เดินบิดปลายเท้า", and the rule-based line when the model is present but below `minConfidence` (S8A, drafted: Appendix A)

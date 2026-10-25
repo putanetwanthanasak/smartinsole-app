@@ -634,7 +634,23 @@ report 024). `seq` gaps are only counted; gap handling is S4.
 (`mobile/lib/ble/seq_tracker.dart`), and `DeviceManager` drops any batch
 from an older session as a second line of defence. See report 026.
 
-## 21. App: guard REBOOT and TARE (S8B Connection/Settings) **(found in S2C)**
+## 21. App: guard REBOOT and TARE (S8B Connection/Settings) **(found in S2C)** — RESOLVED (S8B)
+
+Resolved in S8B (report 035):
+- Both commands are only on Researcher (Settings → hold "ส่วนผู้วิจัย"
+  2 s), each behind the TARE bottom sheet, whose warning says what a
+  capture would lose.
+- They are disabled while a research capture session screen is open
+  (`activeCaptureProvider`), with the footer "ทั้งสองอย่างทำไม่ได้ระหว่าง
+  เก็บข้อมูลวิจัย". `InsoleCommands` (`lib/device/insole_commands.dart`)
+  refuses them too, in case a session opens while a sheet is up.
+- The TARE sheet tells the researcher to have the wearer sit and lift
+  both feet. Done = each foot's calibrating flag set and then cleared
+  (the calibration re-read follows from BACKLOG 23's handling); 10 s
+  timeout → "ไม่สำเร็จ".
+- Still open: a *laptop* capture is invisible to the phone, so the phone
+  cannot know one is running. The sheet's warning is the only guard there.
+
 
 `REBOOT` and `TARE` act on the whole insole, not on one connection
 (item 17). A `REBOOT` sent from the phone also disconnects the laptop's
@@ -918,7 +934,14 @@ from the web app's (long format, unix time per sample, `seq`, raw ADC,
 gaps), so `tools/capture/load_capture.py` does not read web-app exports.
 
 
-## 36. The study build needs a connect path that isn't the debug screen **(found in S4C)**
+## 36. The study build needs a connect path that isn't the debug screen **(found in S4C)** — RESOLVED (S8B)
+
+Resolved in S8B: the Connection screen (Home's foot tiles, the No-data
+card, Settings › "เชื่อมต่อแผ่นรองเท้า") connects each foot on its own,
+remembers it and reconnects it at app start. The debug screen is
+"Diagnostics", reachable only from Researcher. The capture pre-check hint
+and `docs/STUDY-CAPTURE.md` steps 3–4 point to Connection.
+
 
 Today the only way to connect the insoles is Settings → "BLE debug
 (temporary)", which S8B is meant to hide. Research capture's pre-check
@@ -1173,7 +1196,16 @@ Questions for S9:
 - Was the phone screen off, or the app in the background?
 - Did auto-reconnect give up?
 - Does the app retry at all after a link loss on that path? Check the
-  BLE debug card's "link losses / failed" and the event log.
+  Diagnostics foot card's "link losses / failed", the Reconnects card and
+  the event log.
+
+**S8B:** every automatic reconnect (at app start, and after a streaming
+link is lost) is now logged per foot: "auto-reconnect #n (app start | link
+lost) to <id>", then "→ streaming after X s (k failed tries)" or "→ failed:
+<kind>" / "→ cancelled". Researcher › Diagnostics has a **Reconnects**
+card (attempts, how many reached streaming, the last outcome and duration,
+the last 5 records per foot) and "Copy log" includes the lines. S9 reads
+the reset-to-streaming time from there.
 
 **S9 checklist step** (`docs/SESSIONS.md` §3, S9): reset one board while
 both stream, once with the screen on and once with it off. Keep both
