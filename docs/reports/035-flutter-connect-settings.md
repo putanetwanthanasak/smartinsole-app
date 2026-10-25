@@ -90,7 +90,7 @@ resolution column:
 |---|---|---|---|---|---|
 | 1 | major | `mobile/lib/ui/widgets/confirm_sheet.dart:13` | DESIGN-SPEC §12.3; FLUTTER-PLAN §6 rule 16; mobile/CLAUDE.md motion rules | `showConfirmSheet` calls `showModalBottomSheet` without a `sheetAnimationStyle`; Flutter's bottom sheet never checks `disableAnimations`, so the TARE, reboot, delete-photos and name sheets still slide under reduce motion. | **Fixed** (94c4db9): `sheetAnimationStyle: AnimationStyle.noAnimation` when `Motion.reduced`. Test: the name sheet is at its final position one frame after the tap under reduce motion, and moves without it. |
 | 2 | minor | `mobile/lib/ui/screens/settings_screen.dart:286` | mobile/CLAUDE.md theme rules; §10.1 | The text-size preview sets `fontSize: 18` / `height: 1.3` in the screen. | **Fixed:** `AppText.textSizePreview` in `typography.dart`. |
-| 3 | minor | `mobile/lib/ui/screens/settings_screen.dart:417` | §10.1 "เกี่ยวกับแอป" | The spec shows "0.9.0 · …"; the screen shows "1.0.0+1 · …" (`version+buildNumber`). | **Kept, by user decision 8A** (real app version via `appVersionProvider`, pubspec `1.0.0+1`). The board's "0.9.0" is a sample. If the build suffix should go, it's a one-line change; see Decisions needed. |
+| 3 | minor | `mobile/lib/ui/screens/settings_screen.dart:417` | §10.1 "เกี่ยวกับแอป" | The spec shows "0.9.0 · …"; the screen shows "1.0.0+1 · …" (`version+buildNumber`). | **Kept, by user decision 8A, confirmed 2026-10-25:** the build number identifies the frozen study build; STUDY-CAPTURE asks to log it per participant. The board's "0.9.0" is a sample. |
 | 4 | minor | `mobile/lib/ui/screens/connection_screen.dart:142` | §3 "Gap between sections 24" | Connection used 16 between sections; Settings and Researcher use 24. | **Fixed:** `Dimens.sectionGap`. The 16 had no recorded reason, and §3 is explicit. Connection goldens regenerated and reviewed. |
 
 The reviewer also listed spec gaps:
@@ -254,10 +254,12 @@ I install the release build with `adb install -r` only (no uninstall, no
   `main_mcp.dart` (bt-off / unplug-left) work only from `flutter drive`.
   Use `BLE_SCENARIO` instead.
 
-## Decisions needed
+## Decisions
 
-1. **Version line.** Keep "1.0.0+1 · รุ่นทดสอบงานวิจัย" (version + build,
-   as now), or show only "1.0.0"?
+- **Version line (user, 2026-10-25):** keep "1.0.0+1 · รุ่นทดสอบงานวิจัย".
+  The build number lets the team check that the frozen study build is in
+  use. `docs/STUDY-CAPTURE.md` "Before the volunteer arrives" step 5 now
+  says to record the version and build in each participant's session log.
 
 ## Next session
 

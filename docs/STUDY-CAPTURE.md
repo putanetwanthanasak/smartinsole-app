@@ -47,6 +47,11 @@ Built in S4C (`docs/reports/027-flutter-capture.md`). Code:
    be green: streaming, battery ≥ 80 %, firmware and calibration read.
    (**ส่งออกไฟล์** opens the same screen even when a check fails, for
    exports, resume and the test-data clear.)
+5. **Record the app version and build** in the participant's session log:
+   Settings → **เกี่ยวกับแอป** → **เวอร์ชัน**, e.g. "1.0.0+1 ·
+   รุ่นทดสอบงานวิจัย" (version + build number). The build number shows
+   that the frozen study build was used. If it differs between
+   participants, note it and tell the study lead before going on.
 
 ## The session
 
