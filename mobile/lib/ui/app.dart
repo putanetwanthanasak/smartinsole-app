@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../settings/app_text_scaler.dart';
+import '../settings/settings_providers.dart';
 
 import '../storage/storage_host.dart';
 
@@ -13,14 +17,15 @@ import 'screens/settings_screen.dart';
 import 'shell/app_shell.dart';
 import 'theme/app_theme.dart';
 
-class SmartInsoleApp extends StatelessWidget {
+class SmartInsoleApp extends ConsumerWidget {
   const SmartInsoleApp({super.key, this.initialRoute = Routes.shell});
 
   /// Overridable so tests can open a pushed screen directly.
   final String initialRoute;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final factor = ref.watch(settingsProvider.select((s) => s.textSize.factor));
     return StorageHost(
       child: MaterialApp(
         title: 'SmartInsole',
@@ -29,6 +34,16 @@ class SmartInsoleApp extends StatelessWidget {
         locale: const Locale('th', 'TH'),
         supportedLocales: const [Locale('th', 'TH')],
         localizationsDelegates: GlobalMaterialLocalizations.delegates,
+        // Settings › "ขนาดตัวอักษร" multiplies the phone's own scale.
+        builder: (context, child) {
+          final mq = MediaQuery.of(context);
+          return MediaQuery(
+            data: mq.copyWith(
+              textScaler: AppTextScaler.combine(mq.textScaler, factor),
+            ),
+            child: child!,
+          );
+        },
         initialRoute: initialRoute,
         routes: {
           Routes.shell: (_) => const AppShell(),
