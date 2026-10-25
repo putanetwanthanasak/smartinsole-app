@@ -75,6 +75,24 @@ abstract final class Motion {
   static const labelColorDuration = Duration(milliseconds: 200);
   static const panelEnterDelay = Duration(milliseconds: 80);
 
+  /// Connection, searching (§12.2): a ring around the radius-20 disc grows
+  /// to [rippleToRadius] while fading from [rippleFromOpacity] to 0, one
+  /// [pulse] cycle each. Reduce motion shows two still rings (§12.3).
+  static const rippleFromRadius = 20.0;
+  static const rippleToRadius = 31.0;
+  static const rippleFromOpacity = 0.6;
+  static const rippleStill = [
+    (radius: 24.0, opacity: 0.5),
+    (radius: 30.0, opacity: 0.25),
+  ];
+
+  /// Connection, connected: after the disc's [pop], the check stroke draws
+  /// ([enter]) starting this long after the pop starts.
+  static const checkDrawDelay = Duration(milliseconds: 120);
+
+  /// Connection: "เสร็จแล้ว กลับหน้าวันนี้" fades in ([enter]) after this.
+  static const doneButtonDelay = Duration(milliseconds: 200);
+
   /// Home status change: the new icon scales from this to 1.
   static const statusIconFrom = 0.85;
 
