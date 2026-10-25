@@ -13,6 +13,9 @@ import '../../ble/packets.dart';
 import '../../device/device_manager.dart';
 import '../../device/device_providers.dart';
 import '../../device/timing_check.dart';
+import '../../gait/gait_estimator.dart';
+import '../../gait/gait_providers.dart';
+import '../../gait/model_classifier.dart';
 import '../../storage/alert_repository.dart';
 import '../../storage/storage_providers.dart';
 import '../../storage/temperature_repository.dart';
@@ -141,6 +144,10 @@ class _DebugBleScreenState extends ConsumerState<DebugBleScreen> {
             mock: ref.read(mockInsolesProvider) != null,
             now: now,
             onToggle: _toggleTiming,
+          ),
+          _GaitModelCard(
+            estimator: ref.read(gaitEstimatorProvider),
+            check: ref.watch(modelCheckProvider),
           ),
           _StorageCard(
             stats:
@@ -548,6 +555,75 @@ class _FootCard extends StatelessWidget {
 /// the app's private storage) and shows each foot's clock figures.
 /// S6A phone check: temperature rows in the database survive a restart.
 /// S7 phone check: alerts raised, tagged to a capture, and the latest.
+/// Model A's slot (S8A): what loaded, inference times on this phone, and
+/// the slot's `check.json` (the dummy's) run through the app's own path.
+class _GaitModelCard extends StatelessWidget {
+  const _GaitModelCard({required this.estimator, required this.check});
+
+  final GaitEstimator estimator;
+  final AsyncValue<ModelCheck?> check;
+
+  @override
+  Widget build(BuildContext context) {
+    String ms(double? v) => v == null ? '—' : v.toStringAsFixed(2);
+    String e(double v) => v.toStringAsExponential(1);
+    final slot = estimator.slot;
+    final stats = slot is ModelReady ? slot.classifier.stats : null;
+    final c = check.value;
+    final current = estimator.current;
+    return Card(
+      key: const ValueKey('gait-model-card'),
+      child: Padding(
+        padding: const EdgeInsets.all(Dimens.cardPadding),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Gait model', style: AppText.cardTitle),
+            Text(
+              estimator.describeSlot(),
+              key: const ValueKey('gait-model-slot'),
+              style: AppText.secondary,
+            ),
+            Text(
+              stats == null
+                  ? 'inference: —'
+                  : 'inference ms: last ${ms(stats.lastMs)} · median '
+                        '${ms(stats.medianMs)} · max ${ms(stats.maxMs)} '
+                        '(${stats.count} runs)',
+              key: const ValueKey('gait-model-timing'),
+              style: AppText.secondary,
+            ),
+            Text(
+              switch (check) {
+                AsyncLoading() => 'check: running…',
+                AsyncError(:final error) => 'check: error $error',
+                _ when c == null => 'check: no check.json',
+                _ =>
+                  'check: ${c.passed ? 'PASSED' : 'FAILED'} · window '
+                      '${e(c.windowMaxDiff)} · probs ${e(c.probsMaxDiff)} · '
+                      'embedding ${e(c.embeddingMaxDiff)}',
+              },
+              key: const ValueKey('gait-model-check'),
+              style: AppText.secondary,
+            ),
+            Text(
+              current == null
+                  ? 'now: —'
+                  : 'now: ${current.gaitClass.id} · ${current.source.name}'
+                        '${current.confidence == null ? '' : ' · '
+                                  '${(current.confidence! * 100).round()}%'}'
+                        '${current.because == null ? '' : ' · '
+                                  '${current.because!.name}'}',
+              key: const ValueKey('gait-model-now'),
+              style: AppText.secondary,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _StorageCard extends StatelessWidget {
   const _StorageCard({
     required this.stats,
