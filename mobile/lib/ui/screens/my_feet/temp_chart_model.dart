@@ -234,6 +234,15 @@ String _siteTh(TempSite site) =>
 
 String _time(int ms) => hhmm(DateTime.fromMillisecondsSinceEpoch(ms));
 
+/// The second line of the gap label under "ขาดข้อมูล": "ตั้งแต่ HH:mm"
+/// while [g] is open, "HH:mm–HH:mm" once data came back (it does not read
+/// as still disconnected). [wrapped] breaks the range after the dash, for
+/// a chart too narrow for it on one line (large text). **Draft copy**
+/// (DESIGN-SPEC Appendix A).
+String gapLabelTime(ChartGap g, {bool wrapped = false}) => g.ongoing
+    ? 'ตั้งแต่ ${_time(g.fromMs)}'
+    : '${_time(g.fromMs)}–${wrapped ? '\n' : ''}${_time(g.toMs!)}';
+
 String _degrees(double c) => '${formatDelta(c)}$nbspองศา';
 
 /// TalkBack summary of the chart (§8.2), e.g. "กราฟความต่างของความอุ่นวันนี้

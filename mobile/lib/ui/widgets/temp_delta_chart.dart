@@ -268,7 +268,9 @@ class _ChartPainter extends CustomPainter {
     }
 
     // Connection gaps: a dashed vertical line each; the newest one is
-    // labelled "ขาดข้อมูล / ตั้งแต่ HH:mm", on a backdrop over the lines.
+    // labelled "ขาดข้อมูล / ตั้งแต่ HH:mm" while it is open, or
+    // "ขาดข้อมูล / HH:mm–HH:mm" once data came back, on a backdrop over
+    // the lines.
     void Function()? gapLabel;
     for (var i = 0; i < data.gaps.length; i++) {
       final g = data.gaps[i];
@@ -287,15 +289,23 @@ class _ChartPainter extends CustomPainter {
       );
       if (i == data.gaps.length - 1) {
         final a = label('ขาดข้อมูล', _gapStyle);
-        final b = label(
-          'ตั้งแต่ ${hhmm(DateTime.fromMillisecondsSinceEpoch(g.fromMs))}',
-          _gapStyle,
-        );
-        final w = a.width > b.width ? a.width : b.width;
-        // Right of the line, or left of it when there is no room.
-        final lx = gx + Dimens.tightGap + w <= plot.right
+        // Room beside the line, keeping the backdrop inside the plot.
+        final right = plot.right - Dimens.textGap - (gx + Dimens.tightGap);
+        final left = gx - Dimens.tightGap - (plot.left + Dimens.textGap);
+        var b = label(gapLabelTime(g), _gapStyle);
+        double width() => a.width > b.width ? a.width : b.width;
+        if (width() > right && width() > left) {
+          b = label(gapLabelTime(g, wrapped: true), _gapStyle);
+        }
+        final w = width();
+        // Right of the line, or left of it when there is no room; else
+        // left of it as far as the plot's edge allows (never over the
+        // axis labels or out of the card).
+        final lx = w <= right
             ? gx + Dimens.tightGap
-            : gx - Dimens.tightGap - w;
+            : w <= left
+            ? gx - Dimens.tightGap - w
+            : plot.left + Dimens.textGap;
         final ly = (bandBottom + Dimens.textGap).clamp(
           plot.top,
           plot.bottom - a.height - b.height,

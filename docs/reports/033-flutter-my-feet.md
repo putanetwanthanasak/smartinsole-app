@@ -7,9 +7,10 @@ Plan approved 2026-10-25 with all defaults, plus the user's decisions on
 the one-foot-missing pressure banner, the detail figures, the seed day
 and the Be-careful banner copy.
 
-**Status: waiting for the user's comparison of the Note 10 screenshots
-with the boards.** Everything automated passes. I ran the phone steps
-myself (section "Note 10 checkpoint"); the release build is installed.
+**Status: the user compared all 9 Note 10 screenshots with the boards:
+they match (2026-10-25). The user asked for one fix before accepting,
+the chart's gap label (section "Follow-up: gap label"); it is done and
+waiting for the user's acceptance.** Everything automated passes.
 
 ## Summary
 
@@ -169,19 +170,34 @@ Screenshots in `033-flutter-my-feet/phone/` (1440×3040):
 
 | # | Board | Files | What I saw | Result |
 |---|---|---|---|---|
-| 1 | FeetD | `safe-pressure*.png` | Safe banner, both maps grey, top 3 "ทั้งสองข้าง · น้อย" | **waiting on user** |
-| 2 | — (level 2) | `safeOrangeDot-pressure*.png` | Safe banner, left meta1 orange, "โคนนิ้วหัวแม่เท้า · เท้าซ้าย · ปานกลาง" first | **waiting on user** |
-| 3 | FeetDPressureWatch | `watch-pressure*.png` | Be careful, PTI copy (decision 4), "ดูสิ่งที่ควรทำ"; red and orange dots | **waiting on user** |
-| 4 | FeetDNoData | `noData-*.png` | "ยังไม่มีข้อมูล" header, No-data banner + button, dashed feet; Temperature "—", "ต้องเชื่อมต่อทั้งสองข้าง". The chart shows the seeded morning because I seeded it; with no stored readings it reads "ยังไม่มีข้อมูลวันนี้" (widget test) | **waiting on user** |
-| 5 | FeetDTemp | `safe-temperature*.png` | Close banner, 0.3° / 0.0°, chart: heel period above the band ended, gap "ตั้งแต่ 11:50" closed, end dots | **waiting on user** |
-| 6 | FeetDTempRest | `rest-temperature*.png`, `rest-temperature-late.png`, `rest-temperature-details.png` | First Close with "ขวาอุ่นกว่า" on the forefoot card (one reading, §8.4), then Rest "หน้าเท้าขวาอุ่นกว่าซ้าย 2.6 องศา" within about 60 s, red 2.6° card and end dot; numbers "หน้าเท้า 5 ครั้ง (เกณฑ์ 2 ครั้ง)", "(Lavery et al., 2004)", "ดีทั้ง 4 จุด" | **waiting on user** |
-| 7 | — (link) | `rest-banner-link.png` | "ดูสิ่งที่ควรทำ" opened the TEMP_DELTA detail, right forefoot | **waiting on user** |
-| 8 | FeetDTempMissing | `oneFootMissing-temperature*.png` | "เทียบความอุ่นไม่ได้ / เท้าขวาหลุดการเชื่อมต่อตั้งแต่ 12:24", cards "—", open gap with no line after it | **waiting on user** |
-| 9 | — (pressure, one foot) | `oneFootMissing-pressure*.png` | "ยังไม่ได้รับข้อมูลเท้าขวา" + button, left map and rows, right dashed | **waiting on user** |
+| 1 | FeetD | `safe-pressure*.png` | Safe banner, both maps grey, top 3 "ทั้งสองข้าง · น้อย" | Match (user, 2026-10-25) |
+| 2 | — (level 2) | `safeOrangeDot-pressure*.png` | Safe banner, left meta1 orange, "โคนนิ้วหัวแม่เท้า · เท้าซ้าย · ปานกลาง" first | Match (user, 2026-10-25) |
+| 3 | FeetDPressureWatch | `watch-pressure*.png` | Be careful, PTI copy (decision 4), "ดูสิ่งที่ควรทำ"; red and orange dots | Match (user, 2026-10-25) |
+| 4 | FeetDNoData | `noData-*.png` | "ยังไม่มีข้อมูล" header, No-data banner + button, dashed feet; Temperature "—", "ต้องเชื่อมต่อทั้งสองข้าง". The chart shows the seeded morning because I seeded it; with no stored readings it reads "ยังไม่มีข้อมูลวันนี้" (widget test) | Match (user, 2026-10-25) |
+| 5 | FeetDTemp | `safe-temperature*.png` | Close banner, 0.3° / 0.0°, chart: heel period above the band ended, gap "ตั้งแต่ 11:50" closed, end dots | Match (user, 2026-10-25) |
+| 6 | FeetDTempRest | `rest-temperature*.png`, `rest-temperature-late.png`, `rest-temperature-details.png` | First Close with "ขวาอุ่นกว่า" on the forefoot card (one reading, §8.4), then Rest "หน้าเท้าขวาอุ่นกว่าซ้าย 2.6 องศา" within about 60 s, red 2.6° card and end dot; numbers "หน้าเท้า 5 ครั้ง (เกณฑ์ 2 ครั้ง)", "(Lavery et al., 2004)", "ดีทั้ง 4 จุด" | Match (user, 2026-10-25) |
+| 7 | — (link) | `rest-banner-link.png` | "ดูสิ่งที่ควรทำ" opened the TEMP_DELTA detail, right forefoot | Match (user, 2026-10-25) |
+| 8 | FeetDTempMissing | `oneFootMissing-temperature*.png` | "เทียบความอุ่นไม่ได้ / เท้าขวาหลุดการเชื่อมต่อตั้งแต่ 12:24", cards "—", open gap with no line after it | Match (user, 2026-10-25) |
+| 9 | — (pressure, one foot) | `oneFootMissing-pressure*.png` | "ยังไม่ได้รับข้อมูลเท้าขวา" + button, left map and rows, right dashed | Match (user, 2026-10-25) |
 
 No layout overflow, clipped text or wrong colour seen at 100 %. Phone and emulator agree.
 
-**Please compare 1–9 with the boards** and tell me what differs.
+The user compared 1–9 with the boards: all match. The phone shots were taken before the gap-label fix below; per the user, no new phone run.
+
+## Follow-up: gap label (user request after the Note 10 comparison)
+
+The request: for a gap that has ended, "ขาดข้อมูล / ตั้งแต่ HH:mm" reads as if the insole were still disconnected. Show "ขาดข้อมูล / HH:mm–HH:mm" (start–end) instead, and keep "ตั้งแต่ HH:mm" only for an open gap.
+
+- **Label:** `gapLabelTime(gap)` in `temp_chart_model.dart` gives "ตั้งแต่ HH:mm" (open) or "HH:mm–HH:mm" (ended). The chart paints it under "ขาดข้อมูล".
+- **Large text:** at 200 % the range didn't fit on either side of the line. It ran over the "2°" axis label, and in `temp_rest_200` it was cut off at the card edge. Now, when neither side fits, the range breaks after the dash ("11:05–" / "11:30"). If the label still doesn't fit, it stays left of its line, clamped to the plot's left edge. The open-gap label in `temp_missing_200` had the same overlap with "2°", and it now sits inside the plot too.
+- **TalkBack:** the summary already read an ended gap as a range ("ขาดข้อมูลเท้า{ข้าง}ช่วง HH:mm–HH:mm") and an open one as "…ตั้งแต่ HH:mm". The wording is unchanged. A new test checks that it gives the same times as the drawn label.
+- **Tests:** 3 new unit tests (open, ended and wrapped label; summary equals label). `flutter test` passes, 621 tests. `flutter analyze` is clean.
+- **Goldens regenerated (5):**
+  - `my_feet_temp_100` and `_200`, `my_feet_temp_rest_100` and `_200`: the range label;
+  - `my_feet_temp_missing_200`: the open-gap label clamped inside the plot.
+  - I reviewed each one.
+- **Emulator:** `emulator/safe-temperature-gap-range.png` (`safe` preset, sample day) shows "ขาดข้อมูล / 12:03–12:35" right of the line. No errors in the run log. The older `emulator/*-temperature*.png` shots predate the fix.
+- **Docs:** DESIGN-SPEC §8.4 (chart and summary bullets) and Appendix A (both label forms, draft).
 
 ## Leftovers and notes for the next sessions
 

@@ -174,4 +174,36 @@ void main() {
       expect(s, endsWith('ขาดข้อมูลเท้าขวาตั้งแต่ 08:09'));
     });
   });
+
+  group('gap label', () {
+    final from = DateTime(2026, 10, 18, 11, 25).millisecondsSinceEpoch;
+    final to = DateTime(2026, 10, 18, 11, 50).millisecondsSinceEpoch;
+
+    test('open: "ตั้งแต่ HH:mm"', () {
+      final g = ChartGap(side: FootSide.right, fromMs: from);
+      expect(gapLabelTime(g), 'ตั้งแต่ 11:25');
+    });
+
+    test('ended: the range, never "ตั้งแต่"', () {
+      final g = ChartGap(side: FootSide.right, fromMs: from, toMs: to);
+      expect(gapLabelTime(g), '11:25–11:50');
+      expect(gapLabelTime(g, wrapped: true), '11:25–\n11:50');
+    });
+
+    test('the spoken summary gives the same range', () {
+      // Right foot silent for readings 6–11, then back.
+      final rs = _day2(t0, 20, rightMissing: (i) => i > 5 && i < 12);
+      final d = tempChartOf(
+        rs,
+        now: DateTime.fromMillisecondsSinceEpoch(rs.last.atMs),
+        usable: _both,
+      );
+      final g = d.gaps.last;
+      expect(g.ongoing, isFalse);
+      expect(
+        chartSummary(d, deltaC: _deltaC),
+        endsWith('ขาดข้อมูลเท้าขวาช่วง ${gapLabelTime(g)}'),
+      );
+    });
+  });
 }
