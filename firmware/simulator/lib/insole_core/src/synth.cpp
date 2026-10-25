@@ -18,11 +18,14 @@ struct Channel {
 // Normal walking stays below the app's watch level (shared/thresholds.json
 // pressure.watchKpa = 75) with margin. With the served calibration (contract
 // §5.1 example) the peaks are about hallux 40, meta1 50, meta3 45, meta5 32,
-// midfoot 18 and heel 60 kPa, including baseline and noise. Higher pressure
-// belongs to a scenario (BACKLOG 18).
+// midfoot 24 and heel 60 kPa, including baseline and noise. Higher pressure
+// belongs to a scenario (BACKLOG 18). The midfoot is wide enough to carry
+// the load from heel to forefoot: the summed kPa stays above the app's
+// steps.contactKpa through the stance, so each stance is one step (S8A; a
+// narrower midfoot split it into a blip and a shorter step).
 constexpr Channel kSixChannels[6] = {
     {0.86f, 0.28f, 1500}, {0.70f, 0.36f, 1710}, {0.64f, 0.36f, 1610},
-    {0.55f, 0.36f, 1300}, {0.40f, 0.40f, 860},  {0.16f, 0.32f, 1880},
+    {0.55f, 0.36f, 1300}, {0.38f, 0.48f, 1100},  {0.16f, 0.32f, 1880},
 };
 
 constexpr float kBaselineAdc = 30;  // unloaded reading, just above offset_adc

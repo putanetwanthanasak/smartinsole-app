@@ -109,6 +109,14 @@ is about 0.17 g and the mean about 0.34 g (`synth::kWalkMotionScale`,
 window was about 0.07 g and only `p` scaled its motion up; now `n`, `t`
 and `p` share the same motion.
 
+Each stance is one step for the app's step detector: the summed kPa stays
+above `steps.contactKpa` from heel strike to toe-off (the midfoot carries
+the hand-off), with the default `offset_adc` 12 and a TARE'd 19
+(`test_normal_walk_one_step_per_stance`; S8A). Before, every stance split
+into a ~150 ms blip and a 420 ms step, and the boards' different offsets
+made the right foot's steps longer, so the app's rule-based gait read
+"antalgic" (stance asymmetry 15.6 % > `gait.stanceAsymmetryPct` 15).
+
 `webapp_csv_check.py` checks a CSV exported by the laptop web app's
 research capture (the study fallback, `docs/STUDY-FALLBACK.md`). The CSV
 has no `seq` column, so it infers lost packets from the 20 ms `tUnixMs`
@@ -153,7 +161,7 @@ sample steps and the boards' notify failures. Standard library only:
   nothing before its own `START_STREAM` (BACKLOG 19, 20).
 - **Temperature** (`…02`): one packet at `START_STREAM`, then every 30 s.
 - **Synthetic walking** stays below the app's watch level: zone peaks about
-  18–60 kPa (heel ~60) against `watchKpa` 75. A host test reads
+  24–60 kPa (heel ~60) against `watchKpa` 75. A host test reads
   `shared/thresholds.json` to enforce it; the firmware does not read it.
 - **Status** (`…03`): read + notify on a state or battery change. Battery
   drains 1 % every 6 min and stops at 50 %, so `BATTERY_LOW` never fires on

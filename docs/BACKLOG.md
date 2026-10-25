@@ -1086,6 +1086,17 @@ from `thresholds.json` and uses the contract statistic;
 window ≥ gate + 0.01 g and a mean of 0.25–0.35 g. SR still records the
 real boards' figures (SESSIONS SR).
 
+**Also found at the S8A phone check:** with the real boards the rules read
+the simulator's normal walk as "antalgic". The summed kPa dipped below
+`steps.contactKpa` between heel and forefoot, so each stance split into a
+~150 ms blip (rejected) and a 420 ms step; the left board's TARE'd offsets
+(18–19 vs the right's 12) changed where the split fell, giving mean
+stances of 420 vs 491 ms (15.6 % > `gait.stanceAsymmetryPct` 15). Fixed
+in the simulator (wider midfoot, peak 24 kPa); `test_scenario` now checks
+one step per stance at both offsets. The app's step detector has no
+hysteresis, so a real foot with a weak midfoot could split stances the
+same way: SR's manual step count (SESSIONS SR) covers it.
+
 **User decision 2026-10-24:** not in S7; do it in S8A, since the step
 count depends on it. Raise the normal walk's motion so the gate statistic
 is on for most of each stride, aiming for a mean around 0.3 g (typical of

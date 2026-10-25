@@ -22,8 +22,9 @@ constexpr double kGateMarginG = 0.01;
 double th(const char* block, const char* key) { return gThresholds[block][key].as<double>(); }
 
 // Contract §5.1 with the served calibration, as in test_synth.cpp.
-double kpa(uint16_t adc) {
-  int corrected = adc > 12 ? adc - 12 : 0;
+// offset_adc is 12 until a TARE stores the board's own (18-19 seen).
+double kpa(uint16_t adc, int offsetAdc = 12) {
+  int corrected = adc > offsetAdc ? adc - offsetAdc : 0;
   double v = (corrected < 1 ? 1 : corrected) / 4095.0 * 3.3;
   double r = 10000 * (3.3 - v) / v;
   if (r < 1e-6) r = 1e-6;
@@ -183,6 +184,52 @@ void test_normal_walk_keeps_the_gate_on() {
   }
 }
 
+void test_normal_walk_one_step_per_stance() {
+  // The app's step detector (mobile/lib/rules/step_detector.dart): a stance
+  // is summed kPa above steps.contactKpa. Each simulated stance must be one
+  // step of a valid length, never a blip plus a shorter step, with the
+  // default offset and a TARE'd one, so the two feet's stance times agree
+  // and the rule-based gait reads normal (gait.stanceAsymmetryPct).
+  const double contact = th("steps", "contactKpa");
+  const double minStance = th("steps", "minStanceMs"), maxStance = th("steps", "maxStanceMs");
+  const double asymPct = th("gait", "stanceAsymmetryPct");
+  double meanOf[2] = {0, 0};  // left foot at offset 12, at 19
+  for (int offset : {12, 19}) {
+    for (uint8_t side : {0, 1}) {
+      bool inStance = false;
+      uint32_t start = 0;
+      double total = 0;
+      int steps = 0;
+      for (uint32_t t = 0; t < 60000; t += kSamplePeriodMs) {
+        Sample s = synth::gaitSample(t, side, 6);
+        double sum = 0;
+        for (int c = 0; c < 6; ++c) sum += kpa(s.fsr[c], offset);
+        if (sum > contact && !inStance) {
+          inStance = true, start = t;
+        } else if (sum <= contact && inStance) {
+          inStance = false;
+          if (start == 0) continue;  // the first, cut-off stance
+          double len = t - start;
+          char msg[80];
+          snprintf(msg, sizeof msg, "offset %d side %u: stance of %.0f ms", offset, side, len);
+          TEST_ASSERT_TRUE_MESSAGE(len >= minStance && len <= maxStance, msg);
+          total += len, ++steps;
+        }
+      }
+      TEST_ASSERT_TRUE(steps >= 50);
+      if (side == 0) meanOf[offset == 12 ? 0 : 1] = total / steps;
+    }
+  }
+  // The same walk read with each board's offset (they differ, as on the
+  // S8A boards: left 18-19, right 12).
+  double a = meanOf[0], b = meanOf[1];
+  double pai = std::fabs(a - b) / ((a + b) / 2) * 100;
+  char msg[80];
+  snprintf(msg, sizeof msg, "mean stance %.0f vs %.0f ms: %.1f %%", a, b, pai);
+  TEST_MESSAGE(msg);
+  TEST_ASSERT_TRUE_MESSAGE(pai < asymPct / 2, msg);
+}
+
 }  // namespace
 
 void setUp() {}
@@ -198,5 +245,6 @@ int main() {
   RUN_TEST(test_high_meta1_peak_pti_and_gate);
   RUN_TEST(test_high_meta1_other_channels_unchanged);
   RUN_TEST(test_normal_walk_keeps_the_gate_on);
+  RUN_TEST(test_normal_walk_one_step_per_stance);
   return UNITY_END();
 }
