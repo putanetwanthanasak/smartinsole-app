@@ -7,6 +7,7 @@ import 'package:smartinsole/device/mock_data_source.dart';
 import 'package:smartinsole/gait/demo_model_runner.dart';
 import 'package:smartinsole/gait/gait_providers.dart';
 import 'package:smartinsole/gait/model_classifier.dart';
+import 'package:smartinsole/rules/alert_providers.dart';
 import 'package:smartinsole/ui/screens/connection_screen.dart';
 import 'package:smartinsole/ui/screens/my_feet/gait_model.dart';
 import 'package:smartinsole/ui/shell/app_shell.dart' show MyFeetTab;
@@ -150,6 +151,59 @@ void main() {
     );
     await openDetails(tester);
     expect(find.textContaining('· เดินปกติ (กฎพื้นฐาน)'), findsOneWidget);
+    await unmount(tester);
+  });
+
+  testWidgets(
+    'PAI detail: the step PAI only while walking, else the standing one',
+    (tester) async {
+      await pumpGait(tester, MockPreset.safe);
+      await openDetails(tester);
+      expect(find.text('ความไม่สมดุลของแรงกด (PAI)'), findsOneWidget);
+      final container = containerOf(tester);
+      expect(container.read(gaitViewProvider).walkingPaiPct, isNotNull);
+
+      // Stopped: no walking step within steps.maxStanceMs. The engine
+      // still holds its last step-pair PAI, but it is not shown.
+      container.read(mockInsolesProvider)!.preset = MockPreset.standing;
+      for (var i = 0; i < 5; i++) {
+        await tester.pump(const Duration(seconds: 1));
+      }
+      expect(container.read(alertEngineProvider).latestPaiPct, isNotNull);
+      final v = container.read(gaitViewProvider);
+      expect(v.activity, GaitActivity.still);
+      expect(v.walkingPaiPct, isNull);
+      expect(find.text('ความไม่สมดุลของแรงกด (PAI)'), findsNothing);
+      expect(find.text('ความไม่สมดุลของแรงกดขณะยืน'), findsOneWidget);
+      expect(find.text('${v.standingPaiPct}%'), findsOneWidget);
+
+      // One foot gone: "—" with the reason (rule 4).
+      container.read(mockInsolesProvider)!.preset = MockPreset.oneFootMissing;
+      for (var i = 0; i < 3; i++) {
+        await tester.pump(const Duration(seconds: 1));
+      }
+      expect(
+        find.text('— (ต้องเชื่อมต่อทั้งสองข้าง)'),
+        findsAtLeastNWidgets(1),
+      );
+      await unmount(tester);
+    },
+  );
+
+  testWidgets('no data shows no data: no "ผลล่าสุด" once a foot is gone', (
+    tester,
+  ) async {
+    await pumpGait(tester, MockPreset.safe);
+    final container = containerOf(tester);
+    container.read(mockInsolesProvider)!.preset = MockPreset.oneFootMissing;
+    for (var i = 0; i < 5; i++) {
+      await tester.pump(const Duration(seconds: 1));
+    }
+    expect(container.read(gaitEstimatorProvider).last, isNotNull);
+    expect(byKey('gait-no-data'), findsOneWidget);
+    expect(byKey('gait-last'), findsNothing);
+    await openDetails(tester);
+    expect(find.textContaining('ผลประเมินล่าสุด'), findsNothing);
     await unmount(tester);
   });
 

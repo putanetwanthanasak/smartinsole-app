@@ -42,7 +42,7 @@ during the session.
   - The untrained dummy (`tools/model/make_dummy_model.py`) lives in
     `assets/models_dummy/`. It loads only in debug or profile builds run
     with `--dart-define=GAIT_MODEL=dummy`.
-  - December needs only the two files in `assets/models/` (proof on the
+  - After data collection (late Nov), the real model needs only the two files in `assets/models/` (proof on the
     Note 10: waiting on user).
 - **The gait-note hook** now receives real estimates: only fresh Model A
   results with confidence ≥ `minConfidence`. Rule-based results add no

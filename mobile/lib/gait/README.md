@@ -15,8 +15,8 @@ Nothing here sets a level: the gait result is never a risk level (rule 11).
 - `model_window.dart` — the 50 Hz path → `pairFeet` → the newest 100
   consecutive rows → z-score → `[1,100,24]` `Float32List`.
 - `model_classifier.dart` — the model slot: `assets/models/` (release,
-  empty until December) or `assets/models_dummy/` (debug/profile with
-  `--dart-define=GAIT_MODEL=dummy`); `ModelMissing` / `ModelInvalid` /
+  empty until after data collection, late Nov) or `assets/models_dummy/`
+  (debug/profile with `--dart-define=GAIT_MODEL=dummy`); `ModelMissing` / `ModelInvalid` /
   `ModelReady`; queued runs, inference timing; `runModelCheck` against a
   slot's optional `check.json`.
 - `tflite_classifier.dart` — the only file that imports `tflite_flutter`:

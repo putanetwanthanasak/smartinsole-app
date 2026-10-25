@@ -133,7 +133,8 @@ assets/config/         thresholds.json and model_input.json, byte-identical
                        copies of the shared/ files (tests check both)
 assets/models/         the Model A slot: README only until the AI team's
                        model_a.tflite + normalization.json arrive
-                       (December); dropping them in is the whole change
+                       (after data collection, late Nov); dropping them
+                       in is the whole change
 assets/models_dummy/   untrained dummy + check.json (dev only, see
                        GAIT_MODEL above)
 assets/sounds/         capture cue beeps, made by tool/make_cues.py

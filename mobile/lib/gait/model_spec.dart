@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// app feeds the model are the ones the training scripts read.
 class ModelInputSpec {
   const ModelInputSpec({
+    required this.version,
     required this.channels,
     required this.sampleRateHz,
     required this.windowSamples,
@@ -18,6 +19,7 @@ class ModelInputSpec {
   factory ModelInputSpec.parse(String json) {
     final m = jsonDecode(json) as Map<String, dynamic>;
     return ModelInputSpec(
+      version: (m['version'] as num).toInt(),
       channels: [for (final c in m['channels'] as List) c as String],
       sampleRateHz: (m['sampleRateHz'] as num).toInt(),
       windowSamples: (m['windowSamples'] as num).toInt(),
@@ -30,6 +32,10 @@ class ModelInputSpec {
   /// Loads the bundled copy. Call before `runApp`.
   static Future<ModelInputSpec> load([AssetBundle? bundle]) async =>
       ModelInputSpec.parse(await (bundle ?? rootBundle).loadString(assetPath));
+
+  /// The file's format version; a model's `normalization.json` must carry
+  /// the same one.
+  final int version;
 
   /// The 24 channel names, in model order.
   final List<String> channels;
@@ -61,11 +67,19 @@ class Normalization {
     required this.std,
   });
 
-  /// Parses and checks [json] against [spec]: the same channels in the same
-  /// order (so a model trained on another order is refused, never run),
-  /// and every std above zero. Throws [FormatException] with the reason.
+  /// Parses and checks [json] against [spec]: the same `version` (user
+  /// decision 2026-10-25), the same channels in the same order (so a model
+  /// trained on another order is refused, never run), and every std above
+  /// zero. Throws [FormatException] with the reason.
   factory Normalization.parse(String json, ModelInputSpec spec) {
     final m = jsonDecode(json) as Map<String, dynamic>;
+    final version = m['version'];
+    if (version is! num || version != spec.version) {
+      throw FormatException(
+        'normalization.json version is $version, '
+        'model_input.json ${spec.version}',
+      );
+    }
     final channels = [for (final c in m['channels'] as List) c as String];
     final mean = [for (final v in m['mean'] as List) (v as num).toDouble()];
     final std = [for (final v in m['std'] as List) (v as num).toDouble()];

@@ -73,14 +73,15 @@ String _n(double v) =>
 
 String _pct(double fraction) => _n(fraction * 100);
 
-/// The rows behind "ดูตัวเลขละเอียด" (§8.3). While walking: the step PAI,
-/// the PTI asymmetry (display only, S8A decision 4), and with an estimate
-/// its confidence (model only), source and window. Otherwise: the last
-/// estimate and the standing PAI. Two-foot values need both feet.
+/// The rows behind "ดูตัวเลขละเอียด" (§8.3). While walking (a walking step
+/// within `steps.maxStanceMs`): the step PAI, the PTI asymmetry (display
+/// only, S8A decision 4), and with an estimate its confidence (model
+/// only), source and window. Otherwise: the last estimate and the
+/// standing PAI under its own label (user decision 2026-10-25). Two-foot
+/// values need both feet.
 List<DetailRow> gaitDetailRows(GaitView v, Thresholds t, ModelInputSpec spec) {
   final e = v.estimate;
-  final walking = v.activity == GaitActivity.walking || e != null;
-  if (!walking) {
+  if (v.activity != GaitActivity.walking) {
     final last = v.last;
     return [
       if (last != null)

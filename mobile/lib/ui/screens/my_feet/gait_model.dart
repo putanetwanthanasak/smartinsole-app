@@ -143,11 +143,13 @@ class GaitView {
   /// The estimate now; null when not walking or too few steps yet.
   final GaitEstimateView? estimate;
 
-  /// The newest earlier estimate, only while [estimate] is null.
+  /// The newest earlier estimate, only while [estimate] is null and both
+  /// feet are usable (no data shows no data; user decision 2026-10-25).
   final GaitLastView? last;
 
   /// The engine's latest step-pair PAI (what `ASYMMETRY_PEAK` compares),
-  /// whole percent; null unless both feet are usable (rule 4).
+  /// whole percent; only while walking ([activity]), and null unless both
+  /// feet are usable (rule 4). Standing shows [standingPaiPct] instead.
   final int? walkingPaiPct;
 
   /// "ความไม่สมดุลของแรงกดขณะยืน": the PAI formula on the two feet's mean
@@ -257,7 +259,7 @@ GaitView gaitViewOf(
       ? GaitActivity.walking
       : GaitActivity.still;
   final current = both ? estimator.current : null;
-  final previous = current == null ? estimator.last : null;
+  final previous = both && current == null ? estimator.last : null;
   final pai = engine.latestPaiPct;
   final pti = estimator.ptiAsymmetryPct();
   final l = meanLoads[FootSide.left];
@@ -277,7 +279,9 @@ GaitView gaitViewOf(
             gaitClass: previous.gaitClass,
             fromRules: previous.source == GaitSource.rules,
           ),
-    walkingPaiPct: both && pai != null ? pai.round() : null,
+    walkingPaiPct: both && activity == GaitActivity.walking && pai != null
+        ? pai.round()
+        : null,
     standingPaiPct: standing?.round(),
     ptiAsymmetryPct: both && pti != null ? pti.round() : null,
     copLeft: s.left.usable ? estimator.copPathOf(FootSide.left) : null,

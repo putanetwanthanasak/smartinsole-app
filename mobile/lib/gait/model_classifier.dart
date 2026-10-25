@@ -104,9 +104,10 @@ class InferenceStats {
   static double _ms(int us) => us / Duration.microsecondsPerMillisecond;
 }
 
-/// Where the model files are. Release builds read only [releaseDir] (the
-/// December slot); debug and profile builds can be pointed at the dummy
-/// with `--dart-define=GAIT_MODEL=dummy`.
+/// Where the model files are. Release builds read only [releaseModelDir]
+/// (the slot for the model trained after data collection, late Nov);
+/// debug and profile builds can be pointed at the dummy with
+/// `--dart-define=GAIT_MODEL=dummy`.
 const releaseModelDir = 'assets/models';
 const dummyModelDir = 'assets/models_dummy';
 const modelFileName = 'model_a.tflite';

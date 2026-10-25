@@ -8,7 +8,8 @@ Put exactly these two files here (DATA-CONTRACT §7, `lib/gait/README.md`):
   TFLite builtin ops only.
 - `normalization.json` — `{"version": 1, "channels": [24 names, same order
   as shared/model_input.json], "mean": [24], "std": [24]}`, the training
-  set's z-score parameters.
+  set's z-score parameters. `"version"` must equal
+  `shared/model_input.json`'s.
 
 With neither file the app classifies gait with its rules ("โมเดล AI ยัง
 ไม่พร้อม"). With one file missing or wrong, it does the same and the BLE

@@ -5,11 +5,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:smartinsole/ble/packets.dart';
 import 'package:smartinsole/device/model_channels.dart';
 import 'package:smartinsole/gait/gait_class.dart';
+import 'package:smartinsole/gait/gait_estimator.dart';
 import 'package:smartinsole/gait/model_classifier.dart';
 import 'package:smartinsole/gait/model_spec.dart';
 import 'package:smartinsole/gait/model_window.dart';
 
 import '../helpers/pump_app.dart';
+import '../rules/rules_rig.dart';
 import 'gait_rig.dart';
 
 /// The Model A slot (DATA-CONTRACT §7): the files it reads, the checks it
@@ -72,6 +74,24 @@ void main() {
           ),
         ),
       );
+    });
+
+    test('a version other than model_input.json\'s is refused', () {
+      for (final v in [spec.version + 1, null, '1']) {
+        final m = dummy()..['version'] = v;
+        expect(
+          () => Normalization.parse(jsonEncode(m), spec),
+          throwsA(
+            isA<FormatException>().having(
+              (e) => e.message,
+              'message',
+              'normalization.json version is $v, '
+                  'model_input.json ${spec.version}',
+            ),
+          ),
+          reason: 'version $v',
+        );
+      }
     });
 
     test('a std of 0 is refused', () {
@@ -138,6 +158,31 @@ void main() {
         normalizationFileName: jsonEncode(m),
       });
       expect(slot, isA<ModelInvalid>());
+    });
+
+    test('wrong version: not ready, the reason on BLE debug', () async {
+      final m = jsonDecode(normJson) as Map<String, dynamic>;
+      m['version'] = spec.version + 1;
+      final slot = await load({
+        modelFileName: 'x',
+        normalizationFileName: jsonEncode(m),
+      });
+      final reason =
+          'normalization.json version is ${spec.version + 1}, '
+          'model_input.json ${spec.version}';
+      expect(
+        slot,
+        isA<ModelInvalid>().having((s) => s.reason, 'reason', reason),
+      );
+      // What BLE debug › "Gait model" shows (`gait-model-slot`).
+      final rig = RulesRig();
+      final estimator = GaitEstimator(
+        manager: rig.manager,
+        engine: rig.engine,
+        thresholds: testThresholds,
+        spec: spec,
+      )..slot = slot;
+      expect(estimator.describeSlot(), 'invalid in $releaseModelDir: $reason');
     });
 
     test(
