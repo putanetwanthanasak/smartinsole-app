@@ -55,6 +55,9 @@ class GaitEstimator {
   final _subs = <StreamSubscription<Object?>>[];
   final _newest = <FootSide, double>{};
   double? _lastStrideMs;
+
+  /// Counts strides; a model answer for an older stride is dropped.
+  int _strideNo = 0;
   GaitResult? _current;
   GaitResult? _last;
   GaitResult? _latestModel;
@@ -154,6 +157,7 @@ class GaitEstimator {
   }
 
   void _stride(double now) {
+    final n = ++_strideNo;
     final s = manager.snapshot();
     final walking =
         s.left.usable &&
@@ -175,17 +179,35 @@ class GaitEstimator {
       _show(rules.classifyNow(input, because: RulesBecause.noModel));
       return;
     }
-    if (input.rows == null || model.busy) return;
-    model.classify(input).then((r) {
-      if (r == null) return;
-      _latestModel = r;
-      if (r.confidence! >= thresholds.minConfidence) {
-        _show(r);
-      } else {
-        _show(rules.classifyNow(input, because: RulesBecause.lowConfidence));
-      }
-      // A failed run shows nothing new; the previous result ages out.
-    }, onError: (Object _) {});
+    // The previous run is still going: its result is this stride's.
+    if (model.busy) return;
+    // No gap-free window yet (contract §7.5: no model result means the
+    // rules).
+    if (input.rows == null) {
+      _show(rules.classifyNow(input, because: RulesBecause.noModel));
+      return;
+    }
+    model.classify(input).then(
+      (r) {
+        // A newer stride has decided already (or walking stopped).
+        if (n != _strideNo) return;
+        if (r == null) {
+          _show(rules.classifyNow(input, because: RulesBecause.noModel));
+          return;
+        }
+        _latestModel = r;
+        if (r.confidence! >= thresholds.minConfidence) {
+          _show(r);
+        } else {
+          _show(rules.classifyNow(input, because: RulesBecause.lowConfidence));
+        }
+      },
+      // A failed run: the rules, like a model that is not there.
+      onError: (Object _) {
+        if (n != _strideNo) return;
+        _show(rules.classifyNow(input, because: RulesBecause.noModel));
+      },
+    );
   }
 
   void _show(GaitResult? r) {

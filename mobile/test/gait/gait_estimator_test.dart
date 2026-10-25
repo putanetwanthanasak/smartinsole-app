@@ -111,6 +111,35 @@ void main() {
     },
   );
 
+  test('model ready but no result: the rules (contract §7.5)', () async {
+    final runner = FakeRunner([0.05, 0.05, 0.8, 0.05, 0.05])..fail = true;
+    final (rig, est) = makeRig(model: runner);
+    rig.walkBoth(const Duration(seconds: 8), toe);
+    await pumpEventQueue();
+    expect(runner.windows, isNotEmpty, reason: 'the model was asked');
+    var r = est.current!;
+    expect(r.source, GaitSource.rules);
+    expect(r.because, RulesBecause.noModel);
+    expect(r.gaitClass, GaitClass.toeWalking);
+
+    // The model answers again: its result replaces the rules'.
+    runner.fail = false;
+    rig.walkBoth(const Duration(seconds: 2), toe);
+    await pumpEventQueue();
+    r = est.current!;
+    expect(r.source, GaitSource.model);
+
+    // 320 ms of the right foot's packets lost (its board clock runs on):
+    // no gap-free window for the next 2 s, so the rules again.
+    rig.run(const Duration(milliseconds: 320), left: toe);
+    rig.right.t0 += 320;
+    rig.walkBoth(const Duration(milliseconds: 1200), toe);
+    await pumpEventQueue();
+    r = est.current!;
+    expect(r.source, GaitSource.rules);
+    expect(r.because, RulesBecause.noModel);
+  });
+
   test('one estimate per stride of sample time', () async {
     final runner = FakeRunner([1, 0, 0, 0, 0]);
     final (rig, _) = makeRig(model: runner);

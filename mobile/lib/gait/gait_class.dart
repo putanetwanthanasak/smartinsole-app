@@ -20,8 +20,9 @@ enum GaitSource { rules, model }
 
 /// Why a result came from the rules rather than Model A.
 enum RulesBecause {
-  /// No usable model in `assets/models/` (DESIGN-SPEC §8.3: "โมเดล AI ยัง
-  /// ไม่พร้อม").
+  /// No usable model in `assets/models/`, or no model result for this
+  /// stride (no gap-free window yet, or the run failed) (DESIGN-SPEC §8.3:
+  /// "โมเดล AI ยังไม่พร้อม").
   noModel,
 
   /// The model ran, but its confidence was below `model.minConfidence`

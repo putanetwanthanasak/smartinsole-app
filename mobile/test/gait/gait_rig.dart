@@ -37,9 +37,13 @@ class FakeRunner implements ModelRunner {
   final windows = <Float32List>[];
   bool closed = false;
 
+  /// Every run throws while set (an inference failure).
+  bool fail = false;
+
   @override
   Future<ModelOutput> run(Float32List window) async {
     windows.add(window);
+    if (fail) throw StateError('inference failed');
     return ModelOutput(probs: probs, embedding: embedding);
   }
 
