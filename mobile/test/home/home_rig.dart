@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smartinsole/device/device_providers.dart';
 import 'package:smartinsole/device/mock_data_source.dart';
+import 'package:smartinsole/settings/settings_store.dart';
 import 'package:smartinsole/storage/database.dart';
 
 import '../helpers/pump_app.dart';
@@ -24,12 +25,14 @@ Future<void> pumpHome(
   Size size = referenceSize,
   DateTime? start,
   AppDatabase? database,
+  SettingsStore? settings,
   List<Override> overrides = const [],
 }) async {
   await pumpApp(
     tester,
     now: fakeTimeClock(tester, start),
     database: database,
+    settings: settings,
     textScale: textScale,
     reduceMotion: reduceMotion,
     size: size,

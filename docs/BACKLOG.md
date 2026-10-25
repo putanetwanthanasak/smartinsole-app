@@ -634,7 +634,23 @@ report 024). `seq` gaps are only counted; gap handling is S4.
 (`mobile/lib/ble/seq_tracker.dart`), and `DeviceManager` drops any batch
 from an older session as a second line of defence. See report 026.
 
-## 21. App: guard REBOOT and TARE (S8B Connection/Settings) **(found in S2C)**
+## 21. App: guard REBOOT and TARE (S8B Connection/Settings) **(found in S2C)** — RESOLVED (S8B)
+
+Resolved in S8B (report 035):
+- Both commands are only on Researcher (Settings → hold "ส่วนผู้วิจัย"
+  2 s), each behind the TARE bottom sheet, whose warning says what a
+  capture would lose.
+- They are disabled while a research capture session screen is open
+  (`activeCaptureProvider`), with the footer "ทั้งสองอย่างทำไม่ได้ระหว่าง
+  เก็บข้อมูลวิจัย". `InsoleCommands` (`lib/device/insole_commands.dart`)
+  refuses them too, in case a session opens while a sheet is up.
+- The TARE sheet tells the researcher to have the wearer sit and lift
+  both feet. Done = each foot's calibrating flag set and then cleared
+  (the calibration re-read follows from BACKLOG 23's handling); 10 s
+  timeout → "ไม่สำเร็จ".
+- Still open: a *laptop* capture is invisible to the phone, so the phone
+  cannot know one is running. The sheet's warning is the only guard there.
+
 
 `REBOOT` and `TARE` act on the whole insole, not on one connection
 (item 17). A `REBOOT` sent from the phone also disconnects the laptop's
@@ -918,7 +934,14 @@ from the web app's (long format, unix time per sample, `seq`, raw ADC,
 gaps), so `tools/capture/load_capture.py` does not read web-app exports.
 
 
-## 36. The study build needs a connect path that isn't the debug screen **(found in S4C)**
+## 36. The study build needs a connect path that isn't the debug screen **(found in S4C)** — RESOLVED (S8B)
+
+Resolved in S8B: the Connection screen (Home's foot tiles, the No-data
+card, Settings › "เชื่อมต่อแผ่นรองเท้า") connects each foot on its own,
+remembers it and reconnects it at app start. The debug screen is
+"Diagnostics", reachable only from Researcher. The capture pre-check hint
+and `docs/STUDY-CAPTURE.md` steps 3–4 point to Connection.
+
 
 Today the only way to connect the insoles is Settings → "BLE debug
 (temporary)", which S8B is meant to hide. Research capture's pre-check
@@ -1173,7 +1196,16 @@ Questions for S9:
 - Was the phone screen off, or the app in the background?
 - Did auto-reconnect give up?
 - Does the app retry at all after a link loss on that path? Check the
-  BLE debug card's "link losses / failed" and the event log.
+  Diagnostics foot card's "link losses / failed", the Reconnects card and
+  the event log.
+
+**S8B:** every automatic reconnect (at app start, and after a streaming
+link is lost) is now logged per foot: "auto-reconnect #n (app start | link
+lost) to <id>", then "→ streaming after X s (k failed tries)" or "→ failed:
+<kind>" / "→ cancelled". Researcher › Diagnostics has a **Reconnects**
+card (attempts, how many reached streaming, the last outcome and duration,
+the last 5 records per foot) and "Copy log" includes the lines. S9 reads
+the reset-to-streaming time from there.
 
 **S9 checklist step** (`docs/SESSIONS.md` §3, S9): reset one board while
 both stream, once with the screen on and once with it off. Keep both
@@ -1267,3 +1299,45 @@ PTI per step, `LOAD_CONCENTRATION`, `ASYMMETRY_PEAK` and the gait rules.
   one step per stance.
 - Two real steps separated by a genuine swing still count as two.
 - SR's manual step count stays, and it now also checks the new keys.
+
+## 52. Auto-reconnect searches without a time limit **(found in S8B)** — OPEN, for S9
+
+At app start, a remembered insole is reconnected by `BleDataSource`'s own
+retry loop (S3A), which keeps scanning until the insole advertises. The
+20 s window and "ไม่พบแผ่นรองเท้า" apply only to a search the user starts
+on Connection. An insole that stays off therefore keeps the phone scanning
+in the background. S9 (battery and background run) should measure what it
+costs and decide whether to back off, e.g. stop after a few minutes and
+retry when the app comes to the foreground. Each attempt is logged
+(BACKLOG 45), so the Reconnects card shows it.
+
+## 53. The Diagnostics "Connect as" path does not remember the insole **(found in S8B)** — OPEN, minor
+
+Diagnostics' scan list connects through `BleDataSource.connectTo`
+directly, not through `FootFinder`, so an insole connected there is not
+remembered for auto-reconnect at the next start. Researchers should use
+Connection. Either route Diagnostics' connect through the finder, or
+leave it as a raw tool and say so on the card.
+
+## 54. Home's two foot tiles stay side by side at 1.3 × "ใหญ่มาก" **(found in S8B)** — OPEN, for S10
+
+At the Note 10's phone scale 1.3 with "ใหญ่มาก" (≈ 1.88) nothing clips
+(golden `home_safe_130xl`), but the foot tiles stay in two columns with
+short lines, and the tab bar labels wrap to two lines ("เท้า / ของฉัน").
+The Note 10 run (report 035) shows the same wrap already at phone
+1.0 × ใหญ่มาก, as does the "ใหญ่มาก" option itself in Settings.
+S10's large-text pass should decide whether the tiles stack above 1.3 like
+the other two-column rows, and how the bar handles two-line labels.
+
+## 55. ModemManager wrote to a replugged simulator board **(found at the S8B Note 10 run)** — RESOLVED 2026-10-25
+
+After the LEFT CP2102 was plugged back in, the simulator read 19 `p`
+commands (meta1 ~250 kPa scenario) that the serial logger did not send,
+right after ModemManager probed the new tty (report 035). No phone was
+connected to that board. Resolved by the user: the udev rule
+`/etc/udev/rules.d/99-cp2102-no-modemmanager.rules` sets
+`ID_MM_DEVICE_IGNORE=1` on the CP2102 boards. `udevadm info` shows the
+property on both by-path ports. This is a dev-laptop setting, not in the
+repo; on another laptop, add the same rule. Sending `?` through the
+logger's `--commands` FIFO after a replug still confirms the scenario
+before a phone connects.

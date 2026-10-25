@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../ble/packets.dart';
 import '../../rules/patient_status.dart';
+import '../../settings/settings_providers.dart';
 import '../clock.dart';
 import '../motion.dart';
 import '../routes.dart';
@@ -62,13 +63,14 @@ class HomeScreen extends ConsumerWidget {
   }
 }
 
-class _Header extends StatelessWidget {
+class _Header extends ConsumerWidget {
   const _Header({required this.date});
 
   final String date;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final name = ref.watch(settingsProvider.select((s) => s.greetingName));
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -77,10 +79,14 @@ class _Header extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(date, style: AppText.secondary),
-              // No name until Settings can set one (S8B).
+              // Name from Settings › "ชื่อที่ใช้ทักทาย" (§6, §10.1).
               Semantics(
                 header: true,
-                child: const Text('สวัสดี', style: AppText.pageTitle),
+                child: Text(
+                  name == null ? 'สวัสดี' : 'สวัสดี คุณ$name',
+                  key: const ValueKey('home-greeting'),
+                  style: AppText.pageTitle,
+                ),
               ),
             ],
           ),

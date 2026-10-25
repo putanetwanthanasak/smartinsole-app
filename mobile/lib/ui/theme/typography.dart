@@ -123,6 +123,17 @@ abstract final class AppText {
   );
 
   /// Card title (h2).
+  /// Settings › text size preview "ตอนนี้เท้าปลอดภัย" (§10.1): 18/700
+  /// heading, which the chosen factor scales to 22 / 26.
+  static const textSizePreview = TextStyle(
+    fontFamily: AppFonts.heading,
+    fontFamilyFallback: AppFonts.headingFallback,
+    fontSize: 18,
+    fontWeight: FontWeight.w700,
+    height: 1.3,
+    color: AppColors.ink,
+  );
+
   static const cardTitle = TextStyle(
     fontFamily: AppFonts.heading,
     fontFamilyFallback: AppFonts.headingFallback,

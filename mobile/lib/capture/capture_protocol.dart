@@ -195,6 +195,12 @@ class CaptureTimings {
   /// the whole session).
   static const minBatteryPct = 80;
 
+  /// Researcher readiness (S8B, user decision 6A): each foot delivers at
+  /// least this many samples per second over [sampleRateWindow]. 50 Hz
+  /// less one lost 8-sample packet in 10 s still passes.
+  static const minSampleRateHz = 49.0;
+  static const sampleRateWindow = Duration(seconds: 10);
+
   /// While a foot's link is down, the cue repeats this often.
   static const linkLostRepeat = Duration(seconds: 5);
 

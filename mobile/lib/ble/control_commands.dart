@@ -16,3 +16,9 @@ Uint8List syncTimeCommand(int unixMs) {
     ..setUint64(1, unixMs, Endian.little);
   return data.buffer.asUint8List();
 }
+
+/// `TARE` (contract §3.4): zero the FSR baseline. Acts on the whole insole.
+Uint8List tareCommand() => Uint8List.fromList([BleOpcode.tare]);
+
+/// `REBOOT` (contract §3.4): restart the insole. Acts on the whole insole.
+Uint8List rebootCommand() => Uint8List.fromList([BleOpcode.reboot]);

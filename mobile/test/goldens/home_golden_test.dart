@@ -4,6 +4,8 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smartinsole/device/mock_data_source.dart';
+import 'package:smartinsole/settings/app_settings.dart';
+import 'package:smartinsole/settings/settings_store.dart';
 
 import '../home/home_rig.dart';
 
@@ -35,5 +37,30 @@ void main() {
         await unmount(tester);
       });
     }
+  }
+
+  // S8B: the Note 10's phone scale 1.3 with "ใหญ่มาก" (26/18, ≈ 1.88), and
+  // a greeting name.
+  for (final preset in [MockPreset.safe, MockPreset.rest]) {
+    final name = 'home_${preset.name}_130xl';
+    testWidgets(name, (tester) async {
+      await pumpHome(
+        tester,
+        preset,
+        textScale: 1.3,
+        size: const Size(390, 3600),
+        settings: MemorySettingsStore(
+          settings: const AppSettings(
+            name: 'สมชาย',
+            textSize: TextSizeOption.extraLarge,
+          ),
+        ),
+      );
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('screens/$name.png'),
+      );
+      await unmount(tester);
+    });
   }
 }

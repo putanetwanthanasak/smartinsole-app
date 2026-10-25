@@ -11,9 +11,12 @@ abstract final class Routes {
   /// (`int?`). A placeholder until S8C.
   static const footCheckFound = '/foot-check-found';
 
-  /// Research capture (S4C): researcher-only, from Settings.
+  /// Researcher (S8B): Settings › hold "ส่วนผู้วิจัย" 2 s.
+  static const researcher = '/researcher';
+
+  /// Research capture (S4C): researcher-only, from Researcher.
   static const capture = '/capture';
 
-  /// Temporary BLE debug screen (S3A); hidden in S8B.
+  /// Diagnostics, the S3A BLE debug screen: only from Researcher (S8B).
   static const bleDebug = '/debug-ble';
 }

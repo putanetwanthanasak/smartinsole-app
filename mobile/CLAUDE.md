@@ -50,7 +50,7 @@ From `docs/FLUTTER-PLAN.md` section 6:
 | `flutter run -d <emulator-id> -t test_driver/main_mcp.dart --print-dtd` | Run on the emulator with the Flutter Driver extension, for Dart MCP UI checks |
 | … add `--dart-define=BLE_FAKE=true` | Same, with the scripted fake BLE (two streaming insoles plus one with MTU 23) instead of the real plugin |
 | … add `--dart-define=MOCK=<preset>` | Same, with `MockDataSource` for both feet (debug builds only): `safe`, `safeOrangeDot`, `watch`, `rest`, `noData`, `oneFootMissing`, `lowBattery`, and for the Gait tab `standing` (still IMU, both feet loaded) and `toeWalk` (no heel load); Settings → "Mock preset (debug)" switches live, "Seed sample alerts (debug)" stores the design boards' sample alerts, and "Seed sample day (debug)" stores today's temperature readings from 08:00 shaped by the preset (one period above ΔT, one connection gap; `lib/storage/sample_day.dart`). Both write only to the in-memory database |
-| … add `--dart-define=GAIT_MODEL=dummy` | Debug/profile only: load the untrained dummy Model A from `assets/models_dummy/` (shapes, channel order, timing; BLE debug › "Gait model" shows the check). `GAIT_MODEL=demo-toe` instead fakes a model answering toe walking at 78 % (the FeetDGaitToe board). Release builds ignore the define |
+| … add `--dart-define=GAIT_MODEL=dummy` | Debug/profile only: load the untrained dummy Model A from `assets/models_dummy/` (shapes, channel order, timing; Researcher › Diagnostics › "Gait model" shows the check). `GAIT_MODEL=demo-toe` instead fakes a model answering toe walking at 78 % (the FeetDGaitToe board). Release builds ignore the define |
 | `uv run tools/model/make_dummy_model.py` (repo root) | Regenerate the dummy model, its `normalization.json` and `check.json` (TensorFlow via uv's cache, not the repo) |
 | `flutter run -d <device-id>` | Plain debug run (e.g. the Note 10) |
 | `dart format lib test test_driver` | Formatting |
@@ -93,6 +93,10 @@ lib/
                        CoP, PTI asymmetry (see its README.md); never sets
                        a level (rule 11); no numeric literals (a test
                        checks)
+  settings/            Settings (S8B): AppSettings, SettingsStore over
+                       shared_preferences (name, text size, sound,
+                       reminder, each foot's remembered insole), text
+                       scaler (factor × phone scale); see its README.md
   footcheck/ notify/
                        empty until their session (see each README.md)
   ui/
@@ -108,14 +112,19 @@ lib/
     shell/             4-tab shell (IndexedStack: วันนี้ / เท้าของฉัน /
                        ตรวจเท้า / แจ้งเตือน) + bottom bar with unread badge
     screens/           one file per screen; debug_ble_screen.dart is
-                       temporary (Settings → "BLE debug", hidden in S8B);
+                       "Diagnostics", only from Researcher (S8B);
+                       connection/ = Connection (S8B): view model
+                       (CardKind per §9), providers, foot card, panels;
+                       researcher/ + researcher_screen.dart = §10.2
+                       (readiness, TARE/REBOOT sheets, device info);
+                       settings_screen.dart = §10.1;
                        home/ = Home view model and draft copy;
                        my_feet/ = My feet (S6B part 2): view model
                        (MyFeetController: 2 s peaks + engine figures),
                        copy, chart model (pairing, gaps, summary),
                        Pressure and Temperature tabs; S8A added the
                        Gait tab (gait_model, gait_copy, gait_tab);
-                       capture/ = Settings → hold "ส่วนผู้วิจัย" 2 s
+                       capture/ = Researcher › "เริ่มเก็บข้อมูลวิจัย"
                        (English, researcher-only, release builds too)
     widgets/           shared widgets; S6B added status_tag, new_chip,
                        details_expander (DetailRow), numbered_steps,
@@ -125,7 +134,9 @@ lib/
                        added summary_banner, segmented_tabs,
                        temp_delta_chart (CustomPainter, draw-in); S8A
                        added estimate_chip, confidence_segments,
-                       balance_bar, cop_foot
+                       balance_bar, cop_foot; S8B added list_row
+                       (SettingsGroup, ListRow, AppSwitch), confirm_sheet
+                       (showConfirmSheet, the TARE pattern), info_box
 assets/fonts/          Figtree 600/700, Noto Sans Thai 600/700 (headings);
                        Noto Sans + Noto Sans Thai Looped 400–700 (body);
                        static TTFs, OFL, never downloaded at runtime
@@ -195,7 +206,14 @@ pull + SHA-256 + checks). Any change to the capture file format must keep
   (capture, rules, model input) reads `DeviceManager.batches` (50 Hz).
 - Retry waits and the debug screen's tick are timers; connection state and
   "last packet X s ago" are not latched by them (rule 2).
-- The user's Disconnect sends STOP and never reconnects.
+- The user's Disconnect sends STOP and never reconnects; on Connection,
+  "ยกเลิกการเชื่อมต่อ" also forgets the remembered insole (S8B).
+- Patients connect through `FootFinder` (`lib/ble/foot_finder.dart`, one
+  per foot, on top of `BleDataSource.connectTo`; the connect sequence is
+  unchanged). It remembers each foot's insole and reconnects it at app
+  start, and logs every automatic reconnect (BACKLOG 45).
+- TARE and REBOOT go only through `InsoleCommands`, which refuses them
+  while a research capture session is open (BACKLOG 21).
 
 ## Theme rules
 
@@ -240,7 +258,7 @@ pull + SHA-256 + checks). Any change to the capture file format must keep
   turn on reduce motion, and always replaces BLE with `FakeBleCentral` /
   `FakePermissions` and the database with `AppDatabase.memory()` (pass
   your own via `central:` / `permissions:`, and any provider override, e.g. `mockPresetProvider`, via `overrides:`).
-  Widgets that tests or the driver tap carry a `ValueKey` (`tab-today`, `tab-myFeet`, `tab-footCheck`, `tab-alerts`, `settings-button`, `foot-left`, `status-card`, `researcher-row`, …).
+  Widgets that tests or the driver tap carry a `ValueKey` (`tab-today`, `tab-myFeet`, `tab-footCheck`, `tab-alerts`, `settings-button`, `foot-left`, `status-card`, `researcher-row`, `back-link`, `connect-action-left`, `connect-done`, `researcher-tare`, `diagnostics-row`, `sheet-confirm`, `sheet-cancel`, …). Researcher and Connection use `pumpResearcher` / `pumpConnection` (`test/researcher/`, `test/connection/`).
 - `MockDataSource` presets (from S4) drive every UI state on the emulator
   (`--dart-define=MOCK=<preset>`). Their test checks each preset against
   `shared/thresholds.json`; when a threshold changes, fix the preset, not

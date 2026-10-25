@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../ble/ble_data_source.dart';
 import '../../ble/ble_hub.dart';
 import '../../ble/ble_providers.dart';
+import '../../ble/foot_finder.dart';
 import '../../ble/link_state.dart';
 import '../../ble/link_stats.dart';
 import '../../ble/packets.dart';
@@ -123,7 +124,7 @@ class _DebugBleScreenState extends ConsumerState<DebugBleScreen> {
       appBar: AppBar(
         leading: const AppBackButton(),
         titleSpacing: 0,
-        title: const Text('BLE debug'),
+        title: const Text('Diagnostics'),
       ),
       body: PageBody(
         children: [
@@ -138,6 +139,13 @@ class _DebugBleScreenState extends ConsumerState<DebugBleScreen> {
           ),
           _FootCard(source: left, now: now),
           _FootCard(source: right, now: now),
+          _ReconnectCard(
+            stats: {
+              for (final side in FootSide.values)
+                side: ref.read(footFinderProvider(side)).reconnects,
+            },
+            now: now,
+          ),
           _TimingCard(
             check: ref.read(timingCheckProvider),
             manager: ref.read(deviceManagerProvider),
@@ -617,6 +625,61 @@ class _GaitModelCard extends StatelessWidget {
               key: const ValueKey('gait-model-now'),
               style: AppText.secondary,
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Automatic reconnects per foot (S8B; BACKLOG 45): at app start and after
+/// a lost link. Each attempt and its outcome is also in the event log.
+class _ReconnectCard extends StatelessWidget {
+  const _ReconnectCard({required this.stats, required this.now});
+
+  final Map<FootSide, ReconnectStats> stats;
+  final DateTime now;
+
+  @override
+  Widget build(BuildContext context) {
+    String line(FootSide side) {
+      final r = stats[side]!;
+      final pending = r.pending
+          ? ' · #${r.attempts} (${r.reason}) running '
+                '${_secs(now.difference(r.startedAt!))}'
+          : '';
+      final last = r.lastOutcome == null
+          ? '—'
+          : '${r.lastOutcome} after ${_secs(r.lastDuration!)}, '
+                '${r.lastFailedTries} failed tries';
+      return '${side.name.toUpperCase()}  attempts ${r.attempts} · '
+          'streaming ${r.succeeded} · last $last$pending';
+    }
+
+    final history = [
+      for (final side in FootSide.values)
+        for (final rec in stats[side]!.history.reversed.take(5))
+          '${side.name.toUpperCase()} $rec',
+    ];
+    return Card(
+      key: const ValueKey('reconnect-card'),
+      child: Padding(
+        padding: const EdgeInsets.all(Dimens.cardPadding),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Reconnects', style: AppText.cardTitle),
+            for (final side in FootSide.values)
+              Text(
+                line(side),
+                key: ValueKey('reconnect-${side.name}'),
+                style: AppText.secondary,
+              ),
+            for (final h in history)
+              Text(
+                h,
+                style: AppText.secondary.copyWith(color: AppColors.inkMuted),
+              ),
           ],
         ),
       ),

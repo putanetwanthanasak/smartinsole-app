@@ -34,12 +34,24 @@ Built in S4C (`docs/reports/027-flutter-capture.md`). Code:
    stream, so they still sound in silent mode. Do Not Disturb off.
 2. Both insoles charged to **at least 80 %**. The pre-check blocks
    anything lower.
-3. Connect the left and the right insole. Until Home has its own connect
-   flow, this is Settings → **BLE debug (temporary)** → Scan → connect
-   each insole as LEFT / RIGHT, then Back.
-4. Settings (gear, top right of Home) → under **สำหรับผู้วิจัย**, press
-   and hold **ส่วนผู้วิจัย** for 2 seconds. Research capture opens. Under
-   **1 · Pre-check**, both feet must be green: streaming, battery ≥ 80 %, firmware and calibration read.
+3. Connect the left and the right insole: Settings (gear, top right of
+   Home) → **เชื่อมต่อแผ่นรองเท้า** → **เชื่อมต่อเท้าซ้าย**, then
+   **เชื่อมต่อเท้าขวา**. Each card turns green ("เชื่อมต่อแล้ว"). An
+   insole connected before is reconnected on its own at app start.
+4. Settings → under **สำหรับผู้วิจัย**, press and hold **ส่วนผู้วิจัย**
+   for 2 seconds. Researcher opens (S8B). Under **เก็บข้อมูลวิจัย**, all
+   three checks must be green: both connected, battery ≥ 80 % on both,
+   and at least 49 samples/s per foot over the last 10 s (it reads
+   "(กำลังวัด)" for the first 10 s). Then **เริ่มเก็บข้อมูลวิจัย** opens
+   Research capture, unchanged. Under **1 · Pre-check**, both feet must
+   be green: streaming, battery ≥ 80 %, firmware and calibration read.
+   (**ส่งออกไฟล์** opens the same screen even when a check fails, for
+   exports, resume and the test-data clear.)
+5. **Record the app version and build** in the participant's session log:
+   Settings → **เกี่ยวกับแอป** → **เวอร์ชัน**, e.g. "1.0.0+1 ·
+   รุ่นทดสอบงานวิจัย" (version + build number). The build number shows
+   that the frozen study build was used. If it differs between
+   participants, note it and tell the study lead before going on.
 
 ## The session
 
@@ -128,18 +140,21 @@ Testing the app on the study phone leaves rows in its database: alerts,
 temperature readings, daily summaries and foot checks. Clear them once,
 before 2026-11-10 (SR checklist):
 
-1. Disconnect both insoles first (for now: Settings → BLE debug →
-   Disconnect on each foot). While an insole is connected the app keeps
+1. Disconnect both insoles first (Settings → **เชื่อมต่อแผ่นรองเท้า** →
+   **ยกเลิกการเชื่อมต่อ** on each foot; this also forgets them, so they
+   are not reconnected at the restart). While an insole is connected the app keeps
    writing temperature readings, so a reading can land between the clear
    and the restart (seen in S6B: one row).
-2. Settings → hold **ส่วนผู้วิจัย** 2 s → Research capture.
+2. Settings → hold **ส่วนผู้วิจัย** 2 s → **ส่งออกไฟล์** → Research
+   capture.
 3. Scroll to **4 · App database (test data)** → *Clear app database
    (test data)*. The button is disabled while a session screen is open.
 4. The first confirmation says what goes, and how many capture sessions
    on the phone keep their alerts. *Continue*, then *Clear*.
 5. The result lists what was removed. Close the app from Recents and
    open it again, so the alert engine starts clean.
-6. Settings → BLE debug: "alerts N" must equal "capture-tagged N", and
+6. Settings → hold **ส่วนผู้วิจัย** 2 s → **Diagnostics** (Storage
+   card): "alerts N" must equal "capture-tagged N", and
    both "temperature rows" lines read 0.
 
 What it deletes: every alert **without** a capture stamp, every

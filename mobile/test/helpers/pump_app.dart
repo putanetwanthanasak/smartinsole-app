@@ -8,6 +8,8 @@ import 'package:smartinsole/ble/ble_providers.dart';
 import 'package:smartinsole/config/thresholds.dart';
 import 'package:smartinsole/gait/gait_providers.dart';
 import 'package:smartinsole/gait/model_spec.dart';
+import 'package:smartinsole/settings/settings_providers.dart';
+import 'package:smartinsole/settings/settings_store.dart';
 import 'package:smartinsole/storage/database.dart';
 import 'package:smartinsole/storage/storage_providers.dart';
 import 'package:smartinsole/ui/app.dart';
@@ -49,7 +51,8 @@ const referenceSize = Size(390, 844);
 /// debug screen), which `pumpAndSettle` would wait on forever. Pass
 /// [database] to start with rows already stored (write them before this
 /// call: with the app's watchers running, several writes in one
-/// `tester.runAsync` deadlock).
+/// `tester.runAsync` deadlock). Settings start at their defaults in memory;
+/// pass [settings] to start from a stored state (e.g. a text size).
 Future<void> pumpApp(
   WidgetTester tester, {
   String initialRoute = Routes.shell,
@@ -61,6 +64,7 @@ Future<void> pumpApp(
   bool settle = true,
   DateTime Function()? now,
   AppDatabase? database,
+  SettingsStore? settings,
   List<Override> overrides = const [],
 }) async {
   tester.view.physicalSize = size * 2;
@@ -91,6 +95,9 @@ Future<void> pumpApp(
           ref.onDispose(db.close);
           return db;
         }),
+        settingsStoreProvider.overrideWithValue(
+          settings ?? MemorySettingsStore(),
+        ),
         ...overrides,
       ],
       child: SmartInsoleApp(initialRoute: initialRoute),
