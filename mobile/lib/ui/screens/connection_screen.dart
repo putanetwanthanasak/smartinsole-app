@@ -139,7 +139,7 @@ class _ConnectionScreenState extends ConsumerState<ConnectionScreen> {
               const BackLink(),
               const SizedBox(height: Dimens.tightGap),
               for (var i = 0; i < sections.length; i++) ...[
-                if (i > 0) const SizedBox(height: Dimens.cardGap),
+                if (i > 0) const SizedBox(height: Dimens.sectionGap),
                 sections[i],
               ],
             ],

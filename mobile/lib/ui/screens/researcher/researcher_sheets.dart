@@ -49,6 +49,15 @@ class _TareSheetState extends ConsumerState<TareSheet> {
 
   @override
   Widget build(BuildContext context) {
+    // While TARE runs, back and the scrim don't close the sheet, so its
+    // outcome is always seen (a drag still can; the TARE goes on anyway).
+    return PopScope(
+      canPop: _phase != _TarePhase.running,
+      child: _sheet(context),
+    );
+  }
+
+  Widget _sheet(BuildContext context) {
     return switch (_phase) {
       _TarePhase.confirm => ConfirmSheet(
         key: const ValueKey('tare-sheet'),

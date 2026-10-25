@@ -603,6 +603,8 @@ Earlier design-chat decisions: style D for the whole app; plain Thai first with 
 - **Confirmations (S8B, built):** "ลบรูปถ่ายเท้าทั้งหมด", "รีสตาร์ตแผ่นรองเท้า" and the name editor use the TARE bottom-sheet pattern. TARE in progress has no buttons (a sent TARE cannot be taken back); done and failed have one "ปิด" button.
 - **My feet (S6B part 2, built):** see §8.4.
 - **Research readiness (S8B/S4C, built):** a failed check shows `triangle-alert` in `#A86A00` with its text and a reason in brackets (draft), and "เริ่มเก็บข้อมูลวิจัย" is disabled. The data-rate check passes at ≥ 49 samples/s per foot over 10 s (`CaptureTimings.minSampleRateHz`). "ส่งออกไฟล์" always opens capture.
+- **Draft copy (S8B, not on the boards):** Researcher card "ตรวจสอบระบบ" with row "Diagnostics"; disabled TARE/reboot rows read "เชื่อมต่อแผ่นรองเท้าก่อน" when nothing is connected; readiness reasons in brackets ("(กำลังวัด)", "(ยังไม่ได้เชื่อมต่อ: ซ้าย)"); Settings "ยังไม่ได้ตั้งชื่อ", "ยังไม่มีรูปถ่ายเท้า", the one-foot and none lines of the insole row; every sheet's text other than TARE confirm. The permission panel (draft, §9) also hides the info box, like Bluetooth off.
+- **Disabled rows (S8B, built):** TARE and reboot while a capture is open use the No-data icon circle, no chevron, and are announced as disabled buttons. While TARE runs, back and the scrim don't close its sheet.
 - **Device info (S8B, built):** MTU and data rate show one value when both feet agree, as on the board, else "ซ้าย … · ขวา …".
 - **Connection (S8B, built):** see §9 and report 035 (20 s search window, wrong side after 3 s with no other candidate, permission panel draft copy, "connected, no data" for stale / MTU too small / calibration rejected).
 

@@ -68,6 +68,16 @@ void main() {
     await tester.pump();
     expect(rowEnabled(tester, 'researcher-tare'), isFalse);
     expect(rowEnabled(tester, 'researcher-reboot'), isFalse);
+    // TalkBack hears them as disabled (§13).
+    expect(
+      tester.getSemantics(byKey('researcher-tare')),
+      matchesSemantics(
+        hasEnabledState: true,
+        isEnabled: false,
+        isButton: true,
+        label: 'ตั้งค่าศูนย์เซนเซอร์ (TARE)\nยกเท้าออกจากแผ่นรองเท้าก่อน',
+      ),
+    );
     expect(
       find.text('ทั้งสองอย่างทำไม่ได้ระหว่างเก็บข้อมูลวิจัย'),
       findsOneWidget,

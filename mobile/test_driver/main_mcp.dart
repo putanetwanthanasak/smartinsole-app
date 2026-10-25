@@ -14,7 +14,11 @@
 //   rightOnly  two right insoles: the left foot sees only the wrong side
 //   none       nothing advertises: not found after 20 s
 //   mtu23      a left insole with MTU 23 (connected, no data) + a right one
-// The driver's request_data then changes the fake while the app runs:
+//   oneBoard   only the right insole: the left foot is not found
+//   btOff      both insoles, the phone's Bluetooth off at start (the panel's
+//              button turns it on)
+// A flutter_driver requestData (not in the Dart MCP tool) changes the fake
+// while the app runs:
 //   bt-off / bt-on       the phone's Bluetooth
 //   unplug-left / plug-left   the left insole stops / starts advertising
 import 'package:flutter_driver/driver_extension.dart';
@@ -33,7 +37,7 @@ const _left = '88:57:21:B7:74:9E';
 const _right = '38:18:2B:8A:26:D6';
 
 List<FakeInsole> _insoles() => switch (_scenario) {
-  'both' => [
+  'both' || 'btOff' => [
     FakeInsole(id: _left, name: 'SMARTINSOLE-L'),
     FakeInsole(id: _right, name: 'SMARTINSOLE-R', footSide: 1),
   ],
@@ -42,6 +46,7 @@ List<FakeInsole> _insoles() => switch (_scenario) {
     FakeInsole(id: 'AA:BB:CC:00:00:02', name: 'SMARTINSOLE-R', footSide: 1),
   ],
   'none' => [],
+  'oneBoard' => [FakeInsole(id: _right, name: 'SMARTINSOLE-R', footSide: 1)],
   'mtu23' => [
     FakeInsole(id: _left, name: 'SMARTINSOLE-L', mtu: 23),
     FakeInsole(id: _right, name: 'SMARTINSOLE-R', footSide: 1),
@@ -61,6 +66,7 @@ void main() {
   }
   final central = FakeBleCentral(insoles: _insoles())
     ..autoStreamPeriod = const Duration(milliseconds: 160);
+  if (_scenario == 'btOff') central.adapterNow = AdapterState.off;
   enableFlutterDriverExtension(
     handler: (message) async {
       switch (message) {

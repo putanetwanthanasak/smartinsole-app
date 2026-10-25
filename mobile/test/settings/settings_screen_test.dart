@@ -15,11 +15,13 @@ Future<MemorySettingsStore> pumpSettings(
   MemorySettingsStore? store,
   int photos = 0,
   Future<int> Function()? deletePhotos,
+  bool reduceMotion = false,
 }) async {
   final s = store ?? MemorySettingsStore();
   await pumpApp(
     tester,
     initialRoute: Routes.settings,
+    reduceMotion: reduceMotion,
     settings: s,
     overrides: [
       appVersionProvider.overrideWithValue(Future.value('1.0.0+1')),
@@ -204,4 +206,25 @@ void main() {
     expect(find.text('BLE debug (temporary)'), findsNothing);
     expect(find.textContaining('debug'), findsNothing);
   });
+
+  for (final reduced in [false, true]) {
+    testWidgets(
+      'the name sheet ${reduced ? 'jumps in under' : 'slides in '
+                'without'} reduce motion (§12.3, rule 16)',
+      (tester) async {
+        await pumpSettings(tester, reduceMotion: reduced);
+        await tester.tap(byKey('settings-name'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 16));
+        final early = tester.getTopLeft(byKey('name-field')).dy;
+        await tester.pumpAndSettle();
+        final settled = tester.getTopLeft(byKey('name-field')).dy;
+        if (reduced) {
+          expect(early, settled);
+        } else {
+          expect(early, greaterThan(settled));
+        }
+      },
+    );
+  }
 }

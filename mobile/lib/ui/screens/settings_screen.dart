@@ -278,17 +278,7 @@ class _TextSizeCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('ตัวอย่าง', style: AppText.secondary),
-                  Text(
-                    'ตอนนี้เท้าปลอดภัย',
-                    style: TextStyle(
-                      fontFamily: AppFonts.heading,
-                      fontFamilyFallback: AppFonts.headingFallback,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      height: 1.3,
-                      color: AppColors.ink,
-                    ),
-                  ),
+                  Text('ตอนนี้เท้าปลอดภัย', style: AppText.textSizePreview),
                 ],
               ),
             ),

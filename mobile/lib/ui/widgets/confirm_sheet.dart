@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../motion.dart';
 import '../theme/colors.dart';
 import '../theme/dimens.dart';
 import '../theme/typography.dart';
@@ -22,6 +23,11 @@ Future<T?> showConfirmSheet<T>(BuildContext context, Widget sheet) =>
           top: Radius.circular(Dimens.radiusViewfinder),
         ),
       ),
+      // Material's sheet ignores reduce motion; it jumps in and out here
+      // (§12.3, rule 16).
+      sheetAnimationStyle: Motion.reduced(context)
+          ? AnimationStyle.noAnimation
+          : null,
       builder: (_) => sheet,
     );
 

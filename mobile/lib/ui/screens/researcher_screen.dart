@@ -243,6 +243,7 @@ class _DeviceCard extends ConsumerWidget {
           title: 'ตั้งค่าศูนย์เซนเซอร์ (TARE)',
           value: value('ยกเท้าออกจากแผ่นรองเท้าก่อน'),
           tone: enabled ? RowTone.normal : RowTone.locked,
+          enabled: enabled,
           onTap: enabled
               ? () => showConfirmSheet<void>(context, const TareSheet())
               : null,
@@ -254,6 +255,7 @@ class _DeviceCard extends ConsumerWidget {
           title: 'รีสตาร์ตแผ่นรองเท้า',
           value: value('ใช้เมื่อแผ่นรองเท้าค้าง'),
           tone: enabled ? RowTone.normal : RowTone.locked,
+          enabled: enabled,
           onTap: enabled
               ? () => showConfirmSheet<void>(context, const RebootSheet())
               : null,

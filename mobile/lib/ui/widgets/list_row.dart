@@ -105,6 +105,7 @@ class ListRow extends StatelessWidget {
     this.tone = RowTone.normal,
     this.chevron = true,
     this.valueKey,
+    this.enabled = true,
   });
 
   final IconData icon;
@@ -119,6 +120,10 @@ class ListRow extends StatelessWidget {
 
   /// Key on the value text, for tests.
   final Key? valueKey;
+
+  /// False for a row that would open something but can't now (TARE during
+  /// a capture): TalkBack hears it as disabled (§13).
+  final bool enabled;
 
   /// Above this text scale a [trailing] switch goes under the title
   /// instead of squeezing it (the same breakpoint as Home and My feet).
@@ -182,6 +187,9 @@ class ListRow extends StatelessWidget {
         ),
       ),
     );
+    if (!enabled) {
+      return Semantics(enabled: false, button: true, child: content);
+    }
     if (onTap == null) return content;
     return Material(
       color: Colors.transparent,
