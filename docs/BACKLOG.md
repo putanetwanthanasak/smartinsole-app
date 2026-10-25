@@ -1328,3 +1328,16 @@ The Note 10 run (report 035) shows the same wrap already at phone
 1.0 × ใหญ่มาก, as does the "ใหญ่มาก" option itself in Settings.
 S10's large-text pass should decide whether the tiles stack above 1.3 like
 the other two-column rows, and how the bar handles two-line labels.
+
+## 55. ModemManager wrote to a replugged simulator board **(found at the S8B Note 10 run)** — RESOLVED 2026-10-25
+
+After the LEFT CP2102 was plugged back in, the simulator read 19 `p`
+commands (meta1 ~250 kPa scenario) that the serial logger did not send,
+right after ModemManager probed the new tty (report 035). No phone was
+connected to that board. Resolved by the user: the udev rule
+`/etc/udev/rules.d/99-cp2102-no-modemmanager.rules` sets
+`ID_MM_DEVICE_IGNORE=1` on the CP2102 boards. `udevadm info` shows the
+property on both by-path ports. This is a dev-laptop setting, not in the
+repo; on another laptop, add the same rule. Sending `?` through the
+logger's `--commands` FIFO after a replug still confirms the scenario
+before a phone connects.

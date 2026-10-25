@@ -247,9 +247,11 @@ Found during the run:
   to that board. The logger was stopped and restarted (board reset). This
   time the boot was clean, and `n` then `?` confirmed "n (normal walk)"
   before the phone reconnected. Next time, send `?` after every replug
-  before a phone connects. A `udev` rule, `ID_MM_DEVICE_IGNORE` for the
-  CP2102, would stop the probing; that is a change to the laptop, so it is
-  left to the user.
+  before a phone connects. **Done (user, 2026-10-25):** the udev rule
+  `/etc/udev/rules.d/99-cp2102-no-modemmanager.rules` sets
+  `ID_MM_DEVICE_IGNORE=1` on the CP2102 boards, so ModemManager no longer
+  probes them. Checked with `udevadm info`: both by-path ports (usb-0:6
+  LEFT, usb-0:7 RIGHT) carry the property (BACKLOG 55).
 
 ## Leftovers and notes for the next sessions
 
