@@ -108,7 +108,11 @@ String agreedOrPerFoot(
   String bothNote = '',
 }) {
   final l = value(FootSide.left);
-  if (l != null && l == value(FootSide.right)) return '$l$unit$bothNote';
+  final r = value(FootSide.right);
+  // Nothing on either foot (not connected, or the rate's first 10 s): one
+  // dash, not "ซ้าย — · ขวา — ครั้ง/วินาที".
+  if (l == null && r == null) return '—';
+  if (l != null && l == r) return '$l$unit$bothNote';
   return '${perFoot(value)}$unit';
 }
 

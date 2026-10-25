@@ -167,6 +167,10 @@ void main() {
       ),
       'ซ้าย 50 · ขวา 31 ครั้ง/วินาที',
     );
-    expect(agreedOrPerFoot((_) => null), 'ซ้าย — · ขวา —');
+    expect(agreedOrPerFoot((_) => null, unit: ' ครั้ง/วินาที'), '—');
+    expect(
+      agreedOrPerFoot((s) => s == FootSide.left ? '50' : null),
+      'ซ้าย 50 · ขวา —',
+    );
   });
 }
