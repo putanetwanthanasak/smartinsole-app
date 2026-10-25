@@ -187,27 +187,31 @@ class GaitEstimator {
       _show(rules.classifyNow(input, because: RulesBecause.noModel));
       return;
     }
-    model.classify(input).then(
-      (r) {
-        // A newer stride has decided already (or walking stopped).
-        if (n != _strideNo) return;
-        if (r == null) {
-          _show(rules.classifyNow(input, because: RulesBecause.noModel));
-          return;
-        }
-        _latestModel = r;
-        if (r.confidence! >= thresholds.minConfidence) {
-          _show(r);
-        } else {
-          _show(rules.classifyNow(input, because: RulesBecause.lowConfidence));
-        }
-      },
-      // A failed run: the rules, like a model that is not there.
-      onError: (Object _) {
-        if (n != _strideNo) return;
-        _show(rules.classifyNow(input, because: RulesBecause.noModel));
-      },
-    );
+    model
+        .classify(input)
+        .then(
+          (r) {
+            // A newer stride has decided already (or walking stopped).
+            if (n != _strideNo) return;
+            if (r == null) {
+              _show(rules.classifyNow(input, because: RulesBecause.noModel));
+              return;
+            }
+            _latestModel = r;
+            if (r.confidence! >= thresholds.minConfidence) {
+              _show(r);
+            } else {
+              _show(
+                rules.classifyNow(input, because: RulesBecause.lowConfidence),
+              );
+            }
+          },
+          // A failed run: the rules, like a model that is not there.
+          onError: (Object _) {
+            if (n != _strideNo) return;
+            _show(rules.classifyNow(input, because: RulesBecause.noModel));
+          },
+        );
   }
 
   void _show(GaitResult? r) {
