@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smartinsole/device/device_providers.dart';
 import 'package:smartinsole/device/mock_data_source.dart';
+import 'package:smartinsole/storage/database.dart';
 
 import '../helpers/pump_app.dart';
 
@@ -12,18 +13,23 @@ import '../helpers/pump_app.dart';
 const warmUp = Duration(seconds: 61);
 
 /// Pumps the app with [preset] on both mock insoles and fake time that
-/// moves the wall clock, streams for [warmUp], then lets animations end.
+/// moves the wall clock (from [start], default [fixedNow]), streams for
+/// [warmUp], then lets animations end. [database] holds rows written
+/// before the app runs (see [pumpApp]).
 Future<void> pumpHome(
   WidgetTester tester,
   MockPreset preset, {
   double textScale = 1.0,
   bool reduceMotion = false,
   Size size = referenceSize,
+  DateTime? start,
+  AppDatabase? database,
   List<Override> overrides = const [],
 }) async {
   await pumpApp(
     tester,
-    now: fakeTimeClock(tester),
+    now: fakeTimeClock(tester, start),
+    database: database,
     textScale: textScale,
     reduceMotion: reduceMotion,
     size: size,

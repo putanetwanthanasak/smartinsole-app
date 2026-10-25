@@ -69,6 +69,12 @@ abstract final class Motion {
   static const pressDuration = Duration(milliseconds: 150);
   static const Curve press = Curves.ease;
 
+  /// My feet (§12.2): the sub-tab labels change colour over this; the new
+  /// panel fades in ([enter]) this long after the old one starts fading
+  /// out ([exit]).
+  static const labelColorDuration = Duration(milliseconds: 200);
+  static const panelEnterDelay = Duration(milliseconds: 80);
+
   /// Home status change: the new icon scales from this to 1.
   static const statusIconFrom = 0.85;
 

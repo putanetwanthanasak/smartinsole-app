@@ -49,7 +49,7 @@ From `docs/FLUTTER-PLAN.md` section 6:
 | `flutter test --update-goldens test/goldens` | Regenerate goldens after an intended UI change; review the PNG diff before committing |
 | `flutter run -d <emulator-id> -t test_driver/main_mcp.dart --print-dtd` | Run on the emulator with the Flutter Driver extension, for Dart MCP UI checks |
 | … add `--dart-define=BLE_FAKE=true` | Same, with the scripted fake BLE (two streaming insoles plus one with MTU 23) instead of the real plugin |
-| … add `--dart-define=MOCK=<preset>` | Same, with `MockDataSource` for both feet (debug builds only): `safe`, `safeOrangeDot`, `watch`, `rest`, `noData`, `oneFootMissing`, `lowBattery`; Settings → "Mock preset (debug)" switches live, and "Seed sample alerts (debug)" stores the design boards' sample alerts (in-memory database) |
+| … add `--dart-define=MOCK=<preset>` | Same, with `MockDataSource` for both feet (debug builds only): `safe`, `safeOrangeDot`, `watch`, `rest`, `noData`, `oneFootMissing`, `lowBattery`; Settings → "Mock preset (debug)" switches live, "Seed sample alerts (debug)" stores the design boards' sample alerts, and "Seed sample day (debug)" stores today's temperature readings from 08:00 shaped by the preset (one period above ΔT, one connection gap; `lib/storage/sample_day.dart`). Both write only to the in-memory database |
 | `flutter run -d <device-id>` | Plain debug run (e.g. the Note 10) |
 | `dart format lib test test_driver` | Formatting |
 | `dart run build_runner build` | Regenerate drift code (`lib/storage/database.g.dart`) after a table change |
@@ -101,13 +101,19 @@ lib/
     screens/           one file per screen; debug_ble_screen.dart is
                        temporary (Settings → "BLE debug", hidden in S8B);
                        home/ = Home view model and draft copy;
+                       my_feet/ = My feet (S6B part 2): view model
+                       (MyFeetController: 2 s peaks + engine figures),
+                       copy, chart model (pairing, gaps, summary),
+                       Pressure and Temperature tabs;
                        capture/ = Settings → hold "ส่วนผู้วิจัย" 2 s
                        (English, researcher-only, release builds too)
     widgets/           shared widgets; S6B added status_tag, new_chip,
                        details_expander (DetailRow), numbered_steps,
                        disclaimer_line, back_link, detail_status_card,
                        temp_site_map; FootMap takes null levels ("not
-                       recorded"), `ringChannel` and `pulse`
+                       recorded"), `ringChannel` and `pulse`; S6B part 2
+                       added summary_banner, segmented_tabs,
+                       temp_delta_chart (CustomPainter, draw-in)
 assets/fonts/          Figtree 600/700, Noto Sans Thai 600/700 (headings);
                        Noto Sans + Noto Sans Thai Looped 400–700 (body);
                        static TTFs, OFL, never downloaded at runtime
@@ -121,6 +127,8 @@ test/                  flutter_test_config.dart loads the real fonts
   capture/             capture tests (fake_async rigs), widget tests, and
                        capture_fixture_test.dart (writes/checks
                        ../shared/capture_fixture/)
+  my_feet/             My feet unit and widget tests; my_feet_rig.dart
+                       (pumpMyFeet: mock preset + optional sample day)
   storage/             repository, retention, recorder tests (in-memory
                        database; persistence_test.dart uses a file)
   drift/               schema migration tests (drift_schemas/ holds the

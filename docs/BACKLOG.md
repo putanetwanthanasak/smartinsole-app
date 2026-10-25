@@ -1164,3 +1164,16 @@ In S10: keep such phrases together, e.g. with a non-breaking join
 (U+2060 WORD JOINER between the last two words) or a shared helper that
 binds the final short word to the one before it. Check every screen at
 100 % and 200 % text. The goldens show the change.
+
+## 47. My feet sub-tab labels break inside words at 200 % text **(found in S6B part 2)** — OPEN, for S10
+
+At 200 % text the segmented control's three labels wrap inside a word
+("แรง/กด", "อุณห/ภูมิ", "การ/เดิน"; goldens `my_feet_*_200`). Each
+option is a third of the width and a single Thai word has no break
+point, so it breaks by character. Options for S10: let the control
+scroll sideways, stack the options above a scale, or shorten the labels
+with the user's OK. The bottom bar labels behave the same at 200 %
+(existing). In the test renderer the chart note also breaks inside
+"ติดกัน"; on the emulator it breaks correctly (BACKLOG 46 covers the
+general case).
+

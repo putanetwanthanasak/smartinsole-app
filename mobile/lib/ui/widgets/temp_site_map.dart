@@ -148,3 +148,63 @@ class TempSiteLegend extends StatelessWidget {
     );
   }
 }
+
+/// How a site card's icon dot looks (DESIGN-SPEC §8.2).
+enum SiteIconState { normal, alerting, missing }
+
+/// The 22×48 foot icon on a My feet site card, with [site]'s dot:
+/// `primary`, Rest red while that site alerts, `inkSubtle` when missing.
+/// Decorative: the card's text says the same.
+class TempSiteIcon extends StatelessWidget {
+  const TempSiteIcon({super.key, required this.site, required this.state});
+
+  final TempSite site;
+  final SiteIconState state;
+
+  @override
+  Widget build(BuildContext context) {
+    return ExcludeSemantics(
+      child: SizedBox(
+        width: Dimens.siteIconWidth,
+        height: Dimens.siteIconHeight,
+        child: CustomPaint(
+          painter: _SiteIconPainter(site: site, state: state),
+        ),
+      ),
+    );
+  }
+}
+
+class _SiteIconPainter extends CustomPainter {
+  _SiteIconPainter({required this.site, required this.state});
+
+  final TempSite site;
+  final SiteIconState state;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final (scale, offset) = fitFootViewBox(size);
+    canvas
+      ..save()
+      ..translate(offset.dx, offset.dy)
+      ..scale(scale);
+    paintFootOutline(canvas, FootSide.left);
+    final t = footLayout.tempSites.firstWhere((t) => t.site == site);
+    canvas
+      ..drawCircle(
+        t.left,
+        SiteIconColors.dotRadius,
+        Paint()
+          ..color = switch (state) {
+            SiteIconState.normal => SiteIconColors.normal,
+            SiteIconState.alerting => SiteIconColors.alerting,
+            SiteIconState.missing => SiteIconColors.missing,
+          },
+      )
+      ..restore();
+  }
+
+  @override
+  bool shouldRepaint(_SiteIconPainter old) =>
+      old.site != site || old.state != state;
+}

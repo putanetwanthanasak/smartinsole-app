@@ -7,6 +7,10 @@ import 'foot_sample.dart';
 /// map stored with a pressure alert is the map Home showed.
 const mapPeakWindowMs = 2000;
 
+/// My feet's "แรงกดสูงสุดขณะเดิน (5 นาทีล่าสุด)" and "น้ำหนักลงจุดเดียวมาก
+/// ที่สุด" window (DESIGN-SPEC §8.1). Display only, not a threshold.
+const walkingPeakWindowMs = 5 * 60 * 1000;
+
 /// The kPa per zone a foot map shows for [f]: the windowed peaks
 /// ([windowPeaks], from a [RollingPeaks] of [mapPeakWindowMs]), the
 /// newest sample while that window is still empty, or null when the foot
@@ -42,11 +46,13 @@ class RollingPeaks {
       _buckets.clear();
     }
     for (final s in batch.samples) {
-      _addSample(s.unixMs, s.fsrKpa);
+      addSample(s.unixMs, s.fsrKpa);
     }
   }
 
-  void _addSample(double unixMs, List<double> kpa) {
+  /// Adds one sample. The caller resets the window ([clear]) when a new
+  /// connection starts; [add] does that by itself.
+  void addSample(double unixMs, List<double> kpa) {
     final index = unixMs ~/ bucketMs;
     if (_buckets.isNotEmpty && _buckets.last.$1 == index) {
       final peaks = _buckets.last.$2;
@@ -58,7 +64,7 @@ class RollingPeaks {
     // A sample older than the newest bucket (it cannot happen with a
     // monotonic DeviceClock) is folded into the newest bucket's window.
     if (_buckets.isNotEmpty && index < _buckets.last.$1) {
-      _addSample(_buckets.last.$1 * bucketMs.toDouble(), kpa);
+      addSample(_buckets.last.$1 * bucketMs.toDouble(), kpa);
       return;
     }
     _buckets.add((index, List.of(kpa)));
@@ -67,10 +73,21 @@ class RollingPeaks {
   }
 
   /// Highest kPa per channel in the window, or null when empty.
-  List<double>? channelPeaks() {
-    if (_buckets.isEmpty) return null;
-    final out = List.of(_buckets.first.$2);
-    for (final (_, peaks) in _buckets.skip(1)) {
+  ///
+  /// The window ends at the newest sample added, or at [asOfMs] when
+  /// given: a window fed only some samples (My feet's walking peak) ends
+  /// at the foot's newest sample, so an old walk drops out of it.
+  List<double>? channelPeaks({double? asOfMs}) {
+    final from = asOfMs == null
+        ? null
+        : (asOfMs ~/ bucketMs) - windowMs ~/ bucketMs;
+    List<double>? out;
+    for (final (index, peaks) in _buckets) {
+      if (from != null && index <= from) continue;
+      if (out == null) {
+        out = List.of(peaks);
+        continue;
+      }
       for (var c = 0; c < out.length && c < peaks.length; c++) {
         if (peaks[c] > out[c]) out[c] = peaks[c];
       }
@@ -79,8 +96,8 @@ class RollingPeaks {
   }
 
   /// Highest kPa of any channel in the window, or null when empty.
-  double? footPeak() {
-    final peaks = channelPeaks();
+  double? footPeak({double? asOfMs}) {
+    final peaks = channelPeaks(asOfMs: asOfMs);
     if (peaks == null) return null;
     return peaks.fold<double>(0, (m, v) => v > m ? v : m);
   }

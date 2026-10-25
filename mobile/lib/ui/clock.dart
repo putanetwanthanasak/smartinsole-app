@@ -16,6 +16,9 @@ const buddhistEraOffset = 543;
 /// "14:32".
 String hhmm(DateTime d) => DateFormat('HH:mm').format(d);
 
+/// "14:30:20".
+String hhmmss(DateTime d) => DateFormat('HH:mm:ss').format(d);
+
 /// "อังคาร 20 ต.ค.": weekday without the "วัน" prefix, day, short month
 /// (DESIGN-SPEC §7.2 group titles).
 String thaiWeekdayDayMonth(DateTime d) {
