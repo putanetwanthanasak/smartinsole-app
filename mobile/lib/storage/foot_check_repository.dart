@@ -25,6 +25,34 @@ abstract interface class FootCheckRepository {
 
   /// Checks on days in `[fromDate, toDate]`, oldest first (the 7-day row).
   Future<List<FootCheck>> range(String fromDate, String toDate);
+
+  /// [range], kept up to date (Saved's 7-day card).
+  Stream<List<FootCheck>> watchRange(String fromDate, String toDate);
+
+  /// The newest photo of [view] taken on a day before [beforeDate]
+  /// (Compare's left photo; user decision 2026-10-26).
+  Future<FootPhotoRef?> latestPhotoBefore(FootView view, String beforeDate);
+
+  /// Checks with at least one photo, newest first (photo history).
+  Stream<List<FootCheck>> watchWithPhotos();
+
+  /// Every photo path a saved check refers to (the orphan sweep keeps
+  /// exactly these).
+  Future<Set<String>> photoPaths();
+}
+
+/// One stored photo and the check it belongs to.
+class FootPhotoRef {
+  const FootPhotoRef({
+    required this.path,
+    required this.atMs,
+    required this.localDate,
+  });
+
+  /// Relative to the foot-photo folder.
+  final String path;
+  final int atMs;
+  final String localDate;
 }
 
 /// Rule 14: only the answers count, and "not sure" counts as abnormal.
@@ -112,7 +140,74 @@ class DriftFootCheckRepository implements FootCheckRepository {
             .get();
     return rows.map(footCheckOf).toList();
   }
+
+  @override
+  Stream<List<FootCheck>> watchRange(String fromDate, String toDate) =>
+      (_db.select(_db.footChecks)
+            ..where((t) => t.localDate.isBetweenValues(fromDate, toDate))
+            ..orderBy([(t) => OrderingTerm.asc(t.atMs)]))
+          .map(footCheckOf)
+          .watch();
+
+  @override
+  Future<FootPhotoRef?> latestPhotoBefore(
+    FootView view,
+    String beforeDate,
+  ) async {
+    final column = _photoColumn(view);
+    final row =
+        await (_db.select(_db.footChecks)
+              ..where(
+                (t) =>
+                    t.localDate.isSmallerThanValue(beforeDate) &
+                    column(t).isNotNull(),
+              )
+              ..orderBy([
+                (t) => OrderingTerm.desc(t.atMs),
+                (t) => OrderingTerm.desc(t.id),
+              ])
+              ..limit(1))
+            .getSingleOrNull();
+    if (row == null) return null;
+    return FootPhotoRef(
+      path: footCheckOf(row).photos[view]!,
+      atMs: row.atMs,
+      localDate: row.localDate,
+    );
+  }
+
+  @override
+  Stream<List<FootCheck>> watchWithPhotos() =>
+      (_db.select(_db.footChecks)
+            ..where(
+              (t) =>
+                  t.photoSoleLeft.isNotNull() |
+                  t.photoSoleRight.isNotNull() |
+                  t.photoTopLeft.isNotNull() |
+                  t.photoTopRight.isNotNull(),
+            )
+            ..orderBy([
+              (t) => OrderingTerm.desc(t.atMs),
+              (t) => OrderingTerm.desc(t.id),
+            ]))
+          .map(footCheckOf)
+          .watch();
+
+  @override
+  Future<Set<String>> photoPaths() async {
+    final rows = await _db.select(_db.footChecks).get();
+    return {for (final r in rows) ...footCheckOf(r).photos.values};
+  }
 }
+
+GeneratedColumn<String> Function($FootChecksTable) _photoColumn(
+  FootView view,
+) => switch (view) {
+  FootView.soleLeft => (t) => t.photoSoleLeft,
+  FootView.soleRight => (t) => t.photoSoleRight,
+  FootView.topLeft => (t) => t.photoTopLeft,
+  FootView.topRight => (t) => t.photoTopRight,
+};
 
 FootCheck footCheckOf(FootCheckRow r) => FootCheck(
   id: r.id,
