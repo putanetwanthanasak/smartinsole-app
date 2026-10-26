@@ -33,6 +33,20 @@ Future<void> answerAll(WidgetTester tester, FootCheckAnswer a) async {
 }
 
 void main() {
+  /// Unread foot-check findings in the database.
+  Future<int> unreadFindings(WidgetTester t) async {
+    final alerts = await t.runAsync(
+      () =>
+          containerOf(t)
+              .read(alertRepositoryProvider)
+              .watchVisible(fixedNow.millisecondsSinceEpoch + 1000)
+              .first,
+    );
+    return alerts!
+        .where((a) => a.kind == AlertKind.footCheckFinding && !a.isRead)
+        .length;
+  }
+
   group('guide outline (decision 1)', () {
     test('left foot uses the left outline as the preview shows it', () {
       // Front preview mirrored: a sole looks like its own top outline.
@@ -138,10 +152,13 @@ void main() {
       expect(find.text('เห็นรอยแดง หรือผิวเปลี่ยนสี'), findsOneWidget);
       expect(find.text('เท้าบวม หรือผิดรูปไปจากเดิม'), findsOneWidget);
       expect(find.text('เห็นแผล รอยถลอก หรือตุ่มพอง'), findsNothing);
+      expect(await unreadFindings(t), 1);
       await tapKey(t, 'foot-check-what-to-do');
       await settleIo(t);
       expect(find.byType(FootCheckFoundScreen), findsOneWidget);
       expect(find.text(FootCheckCopy.foundTitle), findsOneWidget);
+      // Something found is the finding's result screen (§7.2 decision 7).
+      expect(await unreadFindings(t), 0);
     });
 
     testWidgets('"ตรวจอีกครั้ง" shows Start with a back link to Saved', (
@@ -275,6 +292,9 @@ void main() {
                 .first,
       );
       expect(alerts!.single.kind, AlertKind.footCheckFinding);
+      // Opened right after "บันทึก": read, so the badge doesn't count it.
+      expect(alerts.single.isRead, isTrue);
+      expect(await unreadFindings(t), 0);
       await tapKey(t, 'found-home');
       expect(byKey('home-scroll'), findsOneWidget);
     });

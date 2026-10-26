@@ -187,10 +187,16 @@ void main() {
       checkAt(dayAt(2, 20), photos: {FootView.soleRight: photoC}),
     ];
 
-    Future<void> pumpCompare(WidgetTester t, {int shots = 4}) async {
+    Future<void> pumpCompare(
+      WidgetTester t, {
+      int shots = 4,
+      Size size = tall,
+      double textScale = 1.0,
+    }) async {
       await FootCheckRig().pump(
         t,
-        size: tall,
+        size: size,
+        textScale: textScale,
         reduceMotion: true,
         checks: earlier,
         photoFiles: [photoA, photoB, photoC],
@@ -226,6 +232,22 @@ void main() {
       await t.pumpAndSettle();
       await expectScreen(t, 'compare_none_answered');
     });
+
+    // The note's quoted "มี / ไม่แน่ใจ" on one line (screenshot 15 split it
+    // at the Pixel 7's 412 px width; thai_line_break_test checks all widths).
+    for (final (scale, name) in [
+      (1.0, 'compare_note_100'),
+      (1.3, 'compare_note_130'),
+    ]) {
+      testWidgets(name, (t) async {
+        await pumpCompare(
+          t,
+          size: Size(412, scale == 1.0 ? 1500 : 1900),
+          textScale: scale,
+        );
+        await expectScreen(t, name);
+      });
+    }
 
     testWidgets('compare_skipped', (t) async {
       await pumpCompare(t, shots: 0);

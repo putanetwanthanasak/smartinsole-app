@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_lucide/flutter_lucide.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../footcheck/footcheck_providers.dart';
 import '../../footcheck/history.dart';
+import '../../storage/storage_providers.dart';
+import '../clock.dart';
 import '../routes.dart';
 import '../shell/app_shell.dart';
 import '../theme/colors.dart';
@@ -19,14 +23,40 @@ import 'foot_check/foot_check_copy.dart';
 /// link: it leaves through its two buttons. Opened after saving a check
 /// with any "มี / ไม่แน่ใจ", from a foot-check finding on the Alerts list,
 /// and from the found-today tab's "ดูสิ่งที่ควรทำ", always with the
-/// check's id. Steps and the urgent box are draft health copy (Appendix A).
-class FootCheckFoundScreen extends ConsumerWidget {
+/// check's id. Opening it marks that check's finding alert read, from any
+/// of the three (§7.2, decision 7). Steps and the urgent box are draft
+/// health copy (Appendix A).
+class FootCheckFoundScreen extends ConsumerStatefulWidget {
   const FootCheckFoundScreen({super.key, required this.footCheckId});
 
   final int? footCheckId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<FootCheckFoundScreen> createState() =>
+      _FootCheckFoundScreenState();
+}
+
+class _FootCheckFoundScreenState extends ConsumerState<FootCheckFoundScreen> {
+  int? get footCheckId => widget.footCheckId;
+
+  @override
+  void initState() {
+    super.initState();
+    final id = footCheckId;
+    if (id != null) {
+      unawaited(
+        ref
+            .read(alertRepositoryProvider)
+            .markFootCheckRead(
+              id,
+              ref.read(clockProvider)().millisecondsSinceEpoch,
+            ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final id = footCheckId;
     final check = id == null
         ? null

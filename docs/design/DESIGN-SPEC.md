@@ -489,7 +489,7 @@ Positions are for the 390×844 reference.
 - "ยกเลิก" (S8C, user addition 7): leaves at once while no photo is taken; with a photo, first a confirm sheet (§10.1 TARE pattern, draft) "ยกเลิกการตรวจครั้งนี้?" / "รูปที่ถ่ายไว้จะถูกลบ" with "ถ่ายต่อ" and "ยกเลิกการตรวจ" (deletes this check's photos). "กลับ" from Compare returns to the first view with the photos kept; a new shot replaces that view's photo.
 - Camera unavailable (S8C, draft): the viewfinder shows `camera-off` + "ต้องอนุญาตให้ใช้กล้อง" / "แอปใช้กล้องเพื่อถ่ายรูปเท้าเท่านั้น รูปเก็บไว้ในโทรศัพท์เครื่องนี้" with "อนุญาตให้ใช้กล้อง" (asks again, or opens the app's settings), or "เปิดกล้องไม่ได้" / "ลองใหม่อีกครั้ง หรือตอบคำถามอย่างเดียวก็ได้" with "ลองใหม่"; both offer "ไม่ถ่ายรูป ตอบคำถามอย่างเดียว".
 - View name (32/700 white, top 64) in the order "ฝ่าเท้าซ้าย" → "ฝ่าเท้าขวา" → "หลังเท้าซ้าย" → "หลังเท้าขวา", over the hint "ให้เท้าอยู่ในกรอบ และมีแสงสว่างพอ" (18 `camText2`).
-- Viewfinder (342×416 at top 164, radius 24, `camViewfinder`; the camera preview fills it): dashed foot guide 140×312 (`camGuide`, 2.5 px, dash 7 6), left or right outline to match the view; screen-reader label "กรอบวาง" + view name. Hint chip at its bottom: "วางโทรศัพท์บนพื้น แล้วใช้ปุ่มตั้งเวลา" (`camBg` 85 %, radius 16, padding 8 14, 16 `camChipText`). Countdown: 132 disc (`camBg` 80 %) in the centre, digit 72/700 white, announced assertively.
+- Viewfinder (342×416 at top 164, radius 24, `camViewfinder`; the camera preview fills it): dashed foot guide 140×312 (`camGuide`, 2.5 px, dash 7 6), left or right outline to match the view; screen-reader label "กรอบวาง" + view name. Hint chip at its bottom, on the two sole views only (decision 20): "วางโทรศัพท์บนพื้น แล้วใช้ปุ่มตั้งเวลา" (`camBg` 85 %, radius 16, padding 8 14, 16 `camChipText`). Countdown: 132 disc (`camBg` 80 %) in the centre, digit 72/700 white, announced assertively.
 - Slot strip (top 596, 4 columns): 60×60 slots, radius 14, labels "ฝ่าซ้าย" "ฝ่าขวา" "หลังซ้าย" "หลังขวา" (16; current white 700, others `camText2` 500). Current: 2 px solid `camGuide`. Taken: `camSlotDone` fill with a thumbnail and a 22 check badge (`camGuide` disc, `camBg` check). Not taken: 2 px dashed `camSlotTodo`. Screen readers hear the label + "ถ่ายแล้ว" / "กำลังถ่าย" / "ยังไม่ได้ถ่าย".
 - Controls (top 704, 3 columns): "ตั้งเวลา 3 วิ" (64 `camGuide` circle with `timer` 26 `camBg`; 4 px white ring while counting; label 16/600 white) · shutter 80 (5 px white ring around a 58 white disc; screen-reader label "ถ่ายรูป") · "ข้ามภาพนี้" (64 circle, white 16 %, `skip-forward` white).
 - After the 4th photo or skip → Compare & answer.
@@ -498,7 +498,7 @@ Positions are for the 390×844 reference.
 
 1. Back link (→ Capture; → Start when answering only), title "เทียบกับเมื่อวาน".
 2. View picker (segmented control as a radio group "รูปที่ดู", options 16): "ฝ่าซ้าย" / "ฝ่าขวา" / "หลังซ้าย" / "หลังขวา".
-3. Photos side by side (gap 16): 196 tall, radius 16, `camViewfinder` placeholder; today has a 3 px `primary` border. Captions "เมื่อวาน · 20 ต.ค." (16 `inkMuted`) and "วันนี้ · 21 ต.ค." (16/700 `ink`). Screen-reader labels "รูป" + view name + "เมื่อวาน" / "วันนี้". S8C: the left photo is the newest photo of that view from an earlier day (today's don't count): "เมื่อวาน · {d MMM}" when it is from yesterday, otherwise "ครั้งก่อน · {d MMM}"; with none, a dashed frame "ยังไม่มีรูปก่อนหน้า" over the caption "ครั้งก่อน". A view skipped today shows a dashed frame "ไม่ได้ถ่ายภาพนี้" (draft). Answer-only has no picker and no photos (§14).
+3. Photos side by side (gap 16): 196 tall, radius 16, `camViewfinder` placeholder; today has a 3 px `primary` border. Captions "เมื่อวาน · 20 ต.ค." (16 `inkMuted`) and "วันนี้ · 21 ต.ค." (16/700 `ink`). Screen-reader labels "รูป" + view name + "เมื่อวาน" / "วันนี้". S8C: the left photo is the newest photo of that view from an earlier day (today's don't count): "เมื่อวาน · {d MMM}" when it is from yesterday, otherwise "ครั้งก่อน · {d MMM}"; with none, a dashed frame "ยังไม่มีรูปก่อนหน้า" over the caption "ครั้งก่อน". A view skipped today shows a dashed frame "ไม่ได้ถ่ายภาพนี้" (draft). Answer-only has no picker and no photos, and its title is "ตอบคำถาม" (decision 19).
 4. Questions card (padding 24, gap 24); each question is a radio group named by its text (18/600) with two options (2 columns, gap 12; min height 56, radius 14). No answer is selected when the screen opens (decision 9; the board shows sample answers):
    - "เห็นรอยแดง หรือผิวเปลี่ยนสีไหม"
    - "เห็นแผล รอยถลอก หรือตุ่มพองไหม"
@@ -619,6 +619,10 @@ Earlier design-chat decisions: style D for the whole app; plain Thai first with 
 16. Reminders use the phone's time zone, never UTC.
 17. Saved photos carry no EXIF or other metadata.
 18. "ยกเลิก" on Capture asks first once a photo is taken (§11.2).
+19. Answer-only is titled "ตอบคำถาม" (§11.3).
+20. The Capture hint chip shows on the two sole views only (§11.2).
+21. A foot-check finding is read once Something found opens for that check, from any entry: right after "บันทึก", from "ดูสิ่งที่ควรทำ", or from Alerts (§7.2, decision 7).
+22. Phrases Thai word breaking would split inside running text are kept together with word joiners (U+2060): the quoted "มี / ไม่แน่ใจ", "ตั้งเวลา", "แพทย์ดู".
 Also: a real system notification, compare with the newest earlier photo, several checks a day, automatic camera with a switch, no gallery, 1600 px / q85 photos, draft photo history.
 
 ### Proposed defaults (not on the boards; confirm or change before the session that builds them)
@@ -627,7 +631,7 @@ Also: a real system notification, compare with the newest earlier photo, several
 - **Details expander (S6B, built):** starts closed each time a screen opens (the boards only show fixed open and closed versions).
 - **Gait balance warning (S8A, built):** while `ASYMMETRY_PEAK` is active, the balance number and note use `#5E3E00` with a `triangle-alert` icon, as on Home (§8.5).
 - **Gait tab (S8A, built):** see §8.5.
-- **Foot check (S8C, built):** "บันทึก" is enabled after all 3 answers. Answer-only uses Compare & answer without the view picker and photos (title stays "เทียบกับเมื่อวาน"). See §11.2–§11.8 and report 036 for the drafts: camera switch, cancel sheet, camera panels, compare captions, found-today view, photo history, reminder and its permission line.
+- **Foot check (S8C, built):** "บันทึก" is enabled after all 3 answers. Answer-only uses Compare & answer without the view picker and photos, titled "ตอบคำถาม" (decision 19). See §11.2–§11.8 and report 036 for the drafts: camera switch, cancel sheet, camera panels, compare captions, found-today view, photo history, reminder and its permission line.
 - **Switch off state (S8B, built):** "ปิด", knob on the left, `track` fill with a 2 px `inkSubtle` border; the off knob is `inkSubtle` so it shows on the light track. Above text scale 1.3 a switch goes under its row title.
 - **Text size factors (S8B, built):** 22/18 for "ใหญ่" and 26/18 for "ใหญ่มาก" (from the preview sizes), multiplied with the phone's own text scale, never clamped.
 - **Confirmations (S8B, built):** "ลบรูปถ่ายเท้าทั้งหมด", "รีสตาร์ตแผ่นรองเท้า" and the name editor use the TARE bottom-sheet pattern. TARE in progress has no buttons (a sent TARE cannot be taken back); done and failed have one "ปิด" button.

@@ -73,7 +73,11 @@ class _CompareScreenState extends ConsumerState<CompareScreen> {
             children: [
               const BackLink(),
               const SizedBox(height: Dimens.tightGap),
-              const PageTitle(FootCheckCopy.compareTitle),
+              PageTitle(
+                run.answerOnly
+                    ? FootCheckCopy.answerOnlyTitle
+                    : FootCheckCopy.compareTitle,
+              ),
               const SizedBox(height: Dimens.sectionGap),
               if (!run.answerOnly) ...[
                 SegmentedTabs<FootView>(

@@ -601,7 +601,8 @@ class _Viewfinder extends StatelessWidget {
                   ),
                 ),
               ),
-            if (state == _CameraState.ready)
+            // The floor-and-timer tip is for soles only (user, 2026-10-26).
+            if (state == _CameraState.ready && view.isSole)
               Positioned(
                 left: Dimens.cardGap,
                 right: Dimens.cardGap,

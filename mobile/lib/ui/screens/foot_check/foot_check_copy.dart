@@ -21,8 +21,11 @@ abstract final class FootCheckCopy {
     'ดูรูปวันนี้เทียบกับเมื่อวาน',
     'ตอบคำถามสั้น ๆ 3 ข้อ',
   ];
+  // Word joiners (U+2060) keep "ตั้งเวลา" together: Thai word breaking
+  // otherwise splits it as "ตั้ง" | "เวลา" (here and in [chip]).
   static const tip =
-      'มองฝ่าเท้าไม่ถนัด วางโทรศัพท์บนพื้นแล้วใช้ปุ่มตั้งเวลา หรือให้ญาติช่วยถ่ายก็ได้';
+      'มองฝ่าเท้าไม่ถนัด วางโทรศัพท์บนพื้นแล้วใช้ปุ่มตั้ง\u2060เวลา '
+      'หรือให้ญาติช่วยถ่ายก็ได้';
   static const privacy = 'รูปเก็บไว้ในโทรศัพท์เครื่องนี้เท่านั้น';
   static const startPhotos = 'เริ่มถ่ายรูป';
   static const answerOnly = 'ไม่ถ่ายรูป ตอบคำถามอย่างเดียว';
@@ -31,7 +34,9 @@ abstract final class FootCheckCopy {
   static const cancel = 'ยกเลิก';
   static String counter(int n) => 'ภาพที่ $n จาก 4';
   static const hint = 'ให้เท้าอยู่ในกรอบ และมีแสงสว่างพอ';
-  static const chip = 'วางโทรศัพท์บนพื้น แล้วใช้ปุ่มตั้งเวลา';
+
+  /// Sole views only (user, 2026-10-26).
+  static const chip = 'วางโทรศัพท์บนพื้น แล้วใช้ปุ่มตั้ง\u2060เวลา';
   static const timer = 'ตั้งเวลา 3 วิ';
   static const shutter = 'ถ่ายรูป';
   static const skip = 'ข้ามภาพนี้';
@@ -62,6 +67,9 @@ abstract final class FootCheckCopy {
 
   // §11.3 Compare & answer.
   static const compareTitle = 'เทียบกับเมื่อวาน';
+
+  /// Answer-only has no photos to compare (user, 2026-10-26).
+  static const answerOnlyTitle = 'ตอบคำถาม';
   static const pickerLabel = 'รูปที่ดู';
   static const photo = 'รูป';
   static const yesterday = 'เมื่อวาน';
@@ -71,9 +79,13 @@ abstract final class FootCheckCopy {
   static const skipped = 'ไม่ได้ถ่ายภาพนี้';
   static const none = 'ไม่มี';
   static const yesOrUnsure = 'มี / ไม่แน่ใจ';
+
+  /// The quoted answer stays on one line (§11.3 item 5): no-break spaces
+  /// around "/" and word joiners (U+2060) before and inside "ไม่แน่ใจ",
+  /// which Thai word breaking would otherwise split as "ไม่" | "แน่ใจ".
   static const note =
       'แอปไม่ได้ตรวจรูปให้ ถ้าเห็นอะไรผิดปกติหรือไม่แน่ใจ ให้ตอบว่า '
-      '"มี / ไม่แน่ใจ"';
+      '"มี\u00A0/\u00A0\u2060ไม่\u2060แน่ใจ"';
   static const save = 'บันทึก';
 
   static String question(FootCheckQuestion q) => switch (q) {
