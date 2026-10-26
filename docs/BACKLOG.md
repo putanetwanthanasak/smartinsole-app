@@ -1341,3 +1341,38 @@ property on both by-path ports. This is a dev-laptop setting, not in the
 repo; on another laptop, add the same rule. Sending `?` through the
 logger's `--commands` FIFO after a replug still confirms the scenario
 before a phone connects.
+
+## 56. The foot-check reminder shows "smartinsole" and the Flutter launcher icon **(found in S8C)** — OPEN, for S10
+
+The notification's header shows the app label `smartinsole` and the
+default Flutter launcher icon (the small status-bar icon is our
+`ic_stat_foot_check`). The Bluetooth-on and permission prompts also show
+"smartinsole" (report 035). S10 should set the Thai/English app name and a real
+launcher icon; nothing in `lib/notify/` needs to change.
+
+## 57. Front preview mirroring on the camera plugin's SurfaceTexture path is untested **(found in S8C)** — OPEN, Note 10 checkpoint
+
+`camera_android_camerax` mirrors the front preview only on its ImageReader
+path. On the SurfaceTexture path the app mirrors it itself, after asking
+`MainActivity` (`smartinsole/camera_preview`, `handlesCropAndRotation`).
+The emulator takes the ImageReader path, so the app's own mirror has only
+a widget test. The Note 10 checklist (report 036, items 3–4) logs the path
+and checks the preview. If a later plugin version mirrors on both paths,
+the preview would be mirrored twice; re-check after any `camera` upgrade.
+
+## 58. The MCP driver build keeps the database in memory **(found in S8C)** — OPEN, minor
+
+`test_driver/main_mcp.dart` runs with an in-memory database (mock and
+fake-BLE rule), so a restart or reboot on the emulator loses saved foot
+checks. Cross-day views (compare with yesterday, the 7-day row over real
+days, photo history over days) were checked only with widget tests and
+goldens. If an emulator check across restarts is needed, add a driver flag
+for a file database in the app's private folder (never the phone's real
+one).
+
+## 59. The Saved reminder for a finding older than yesterday is not designed **(found in S8C)** — OPEN, needs a design
+
+Saved shows "เมื่อวานพบสิ่งที่ควรให้แพทย์ดู …" only for yesterday's
+finding (§11.5). A finding from two or more days ago, with no check since,
+shows nothing on Saved; the alert stays in "แจ้งเตือน". Listed under
+"Not designed yet" in DESIGN-SPEC §14.
