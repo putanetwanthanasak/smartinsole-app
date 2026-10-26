@@ -12,6 +12,7 @@ import '../../config/thresholds.dart';
 import '../../device/device_providers.dart';
 import '../../device/display_snapshot.dart';
 import '../../device/mock_data_source.dart';
+import '../../notify/reminder_providers.dart';
 import '../../settings/app_settings.dart';
 import '../../settings/settings_providers.dart';
 import '../../storage/sample_alerts.dart';
@@ -41,6 +42,9 @@ class SettingsScreen extends ConsumerWidget {
     final s = ref.watch(settingsProvider);
     final c = ref.read(settingsProvider.notifier);
     final photos = ref.watch(footPhotoCountProvider).value ?? 0;
+    // Android 13+ permission, or the app's notifications turned off in
+    // the phone's settings (S8C, user decision 3).
+    final notifyAllowed = ref.watch(notificationsAllowedProvider).value ?? true;
 
     final sections = <Widget>[
       const PageTitle('ตั้งค่า'),
@@ -84,9 +88,27 @@ class SettingsScreen extends ConsumerWidget {
               key: const ValueKey('settings-reminder'),
               value: s.footCheckReminder,
               label: 'เตือนให้ดูเท้าทุกวัน',
-              onChanged: c.setFootCheckReminder,
+              onChanged: (on) async {
+                await c.setFootCheckReminder(on);
+                if (on && !notifyAllowed) {
+                  await ref
+                      .read(notificationsAllowedProvider.notifier)
+                      .request();
+                }
+              },
             ),
           ),
+          if (s.footCheckReminder && !notifyAllowed)
+            ListRow(
+              key: const ValueKey('settings-notify-denied'),
+              icon: LucideIcons.bell_off,
+              title: SettingsCopy.notifyDenied,
+              value: SettingsCopy.notifyDeniedLine,
+              tone: RowTone.locked,
+              onTap: () => ref
+                  .read(notificationsAllowedProvider.notifier)
+                  .request(openSettingsIfStillOff: true),
+            ),
           ListRow(
             key: const ValueKey('settings-reminder-time'),
             icon: LucideIcons.clock,
@@ -184,6 +206,11 @@ class SettingsScreen extends ConsumerWidget {
 
 /// Settings copy. Lines not on the SettingsD board are drafts (S8B).
 abstract final class SettingsCopy {
+  /// The phone does not let the app post the evening reminder (S8C,
+  /// draft): tap asks again, or opens the app's notification settings.
+  static const notifyDenied = 'ต้องอนุญาตการแจ้งเตือนในโทรศัพท์';
+  static const notifyDeniedLine = 'ตอนนี้แอปเตือนให้ดูเท้าไม่ได้ แตะเพื่อเปิด';
+
   /// Draft: the name row before a name is set.
   static const noName = 'ยังไม่ได้ตั้งชื่อ';
 

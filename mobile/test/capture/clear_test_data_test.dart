@@ -6,7 +6,6 @@ import 'package:smartinsole/rules/patient_status.dart';
 import 'package:smartinsole/storage/alert_repository.dart';
 import 'package:smartinsole/storage/database.dart';
 import 'package:smartinsole/storage/models.dart';
-import 'package:smartinsole/storage/storage_providers.dart';
 import 'package:smartinsole/ui/routes.dart';
 
 import '../helpers/pump_app.dart';
@@ -66,10 +65,8 @@ void main() {
       initialRoute: Routes.capture,
       now: rig.now,
       database: db,
-      overrides: [
-        ...rig.overrides,
-        footPhotoDirProvider.overrideWithValue(() async => photos),
-      ],
+      photoDir: photos,
+      overrides: rig.overrides,
       settle: false,
     );
     await tapClear(tester);

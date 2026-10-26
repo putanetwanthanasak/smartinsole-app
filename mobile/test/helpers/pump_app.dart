@@ -6,8 +6,12 @@ import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smartinsole/ble/ble_providers.dart';
 import 'package:smartinsole/config/thresholds.dart';
+import 'package:smartinsole/footcheck/foot_check_flow.dart';
+import 'package:smartinsole/footcheck/footcheck_providers.dart';
+import 'package:smartinsole/footcheck/photo_processor.dart';
 import 'package:smartinsole/gait/gait_providers.dart';
 import 'package:smartinsole/gait/model_spec.dart';
+import 'package:smartinsole/notify/reminder_providers.dart';
 import 'package:smartinsole/settings/settings_providers.dart';
 import 'package:smartinsole/settings/settings_store.dart';
 import 'package:smartinsole/storage/database.dart';
@@ -17,6 +21,8 @@ import 'package:smartinsole/ui/clock.dart';
 import 'package:smartinsole/ui/routes.dart';
 
 import '../ble/fake_ble_central.dart';
+import 'fake_foot_camera.dart';
+import 'fake_reminder_notifier.dart';
 
 /// Fixed time so the Home date line never changes between golden runs.
 final fixedNow = DateTime(2026, 10, 18, 9, 30);
@@ -53,6 +59,9 @@ const referenceSize = Size(390, 844);
 /// call: with the app's watchers running, several writes in one
 /// `tester.runAsync` deadlock). Settings start at their defaults in memory;
 /// pass [settings] to start from a stored state (e.g. a text size).
+/// The foot check runs on [camera] and [reminders] fakes, with photos in
+/// [photoDir] (a fresh temp folder by default) and the photo processor
+/// called directly (no isolate under fake time).
 Future<void> pumpApp(
   WidgetTester tester, {
   String initialRoute = Routes.shell,
@@ -65,8 +74,13 @@ Future<void> pumpApp(
   DateTime Function()? now,
   AppDatabase? database,
   SettingsStore? settings,
+  FakeFootCamera? camera,
+  FakeReminderNotifier? reminders,
+  Directory? photoDir,
   List<Override> overrides = const [],
 }) async {
+  final photos = photoDir ?? Directory.systemTemp.createTempSync('foot_photos');
+  final cache = Directory.systemTemp.createTempSync('cache');
   tester.view.physicalSize = size * 2;
   tester.view.devicePixelRatio = 2;
   addTearDown(tester.view.reset);
@@ -97,6 +111,20 @@ Future<void> pumpApp(
         }),
         settingsStoreProvider.overrideWithValue(
           settings ?? MemorySettingsStore(),
+        ),
+        footCameraProvider.overrideWithValue(() => camera ?? FakeFootCamera()),
+        reminderNotifierProvider.overrideWithValue(
+          reminders ?? FakeReminderNotifier(),
+        ),
+        footPhotoDirProvider.overrideWithValue(() async => photos),
+        cameraCacheDirProvider.overrideWithValue(() async => cache),
+        photoProcessorProvider.overrideWithValue(
+          (jpeg, {required aspect, required fromFrontCamera}) async =>
+              processFootPhoto(
+                jpeg,
+                aspect: aspect,
+                fromFrontCamera: fromFrontCamera,
+              ),
         ),
         ...overrides,
       ],

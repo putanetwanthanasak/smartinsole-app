@@ -7,23 +7,27 @@ import '../theme/typography.dart';
 
 /// Back link at the top left of pushed screens (DESIGN-SPEC §5):
 /// `chevron-left` 24 + "กลับ" 18/600 `ink`, at least 48 high; returns to
-/// the previous screen.
+/// the previous screen, or runs [onTap] (Foot check › Start shown again
+/// in its tab by "ตรวจอีกครั้ง").
 class BackLink extends StatelessWidget {
-  const BackLink({super.key});
+  const BackLink({super.key, this.onTap});
+
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
+    final tap = onTap ?? () => Navigator.maybePop(context);
     return Align(
       alignment: AlignmentDirectional.centerStart,
       child: Semantics(
         button: true,
         label: 'กลับ',
         excludeSemantics: true,
-        onTap: () => Navigator.maybePop(context),
+        onTap: tap,
         child: InkWell(
           key: const ValueKey('back-link'),
           borderRadius: BorderRadius.circular(Dimens.radiusInner),
-          onTap: () => Navigator.maybePop(context),
+          onTap: tap,
           child: ConstrainedBox(
             constraints: const BoxConstraints(
               minHeight: Dimens.minTouchTarget,

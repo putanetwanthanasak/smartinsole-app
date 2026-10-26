@@ -35,12 +35,21 @@ class SegmentedTabs<T> extends StatelessWidget {
     required this.selected,
     required this.onSelect,
     required this.semanticLabel,
+    this.radio = false,
+    this.small = false,
   });
 
   final List<SegmentOption<T>> options;
   final T selected;
   final ValueChanged<T> onSelect;
   final String semanticLabel;
+
+  /// Screen readers hear a radio group instead of tabs (Foot check's view
+  /// picker "รูปที่ดู", §11.3 and §13).
+  final bool radio;
+
+  /// Option labels 16 instead of 18 (§11.3: four options in one row).
+  final bool small;
 
   @override
   Widget build(BuildContext context) {
@@ -50,7 +59,7 @@ class SegmentedTabs<T> extends StatelessWidget {
     const gap = Dimens.segmentPadding;
     final radius = BorderRadius.circular(Dimens.radiusInner);
     return Semantics(
-      role: SemanticsRole.tabBar,
+      role: radio ? SemanticsRole.radioGroup : SemanticsRole.tabBar,
       label: semanticLabel,
       container: true,
       explicitChildNodes: true,
@@ -96,6 +105,8 @@ class SegmentedTabs<T> extends StatelessWidget {
                             selected: i == index,
                             fade: fade,
                             radius: radius,
+                            radio: radio,
+                            small: small,
                             onTap: () => onSelect(options[i].value),
                           ),
                         ),
@@ -119,6 +130,8 @@ class _Option<T> extends StatelessWidget {
     required this.fade,
     required this.radius,
     required this.onTap,
+    this.radio = false,
+    this.small = false,
   });
 
   final SegmentOption<T> option;
@@ -126,15 +139,20 @@ class _Option<T> extends StatelessWidget {
   final Duration fade;
   final BorderRadius radius;
   final VoidCallback onTap;
+  final bool radio;
+  final bool small;
 
   @override
   Widget build(BuildContext context) {
-    final style = selected
+    var style = selected
         ? AppText.button.copyWith(color: AppColors.surface)
         : AppText.bodyStrong;
+    if (small) style = style.copyWith(fontSize: AppText.secondary.fontSize);
     return Semantics(
-      role: SemanticsRole.tab,
-      selected: selected,
+      role: radio ? null : SemanticsRole.tab,
+      selected: radio ? null : selected,
+      inMutuallyExclusiveGroup: radio ? true : null,
+      checked: radio ? selected : null,
       button: true,
       label: option.label,
       excludeSemantics: true,
