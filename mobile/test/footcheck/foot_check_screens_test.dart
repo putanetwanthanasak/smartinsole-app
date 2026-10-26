@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -229,6 +230,28 @@ void main() {
       expect(stored.single.answerOnly, isTrue);
     });
 
+    testWidgets('Saved opens at the top, not at Start\'s scroll offset', (
+      t,
+    ) async {
+      final rig = FootCheckRig();
+      await rig.pump(t, textScale: 1.3);
+      await openTab(t);
+      await tapKey(t, 'foot-check-answer-only');
+      await answerAll(t, FootCheckAnswer.none);
+      await t.tap(byKey('compare-save'));
+      await settleIo(t, 300);
+      final scroll = t.state<ScrollableState>(
+        find
+            .ancestor(
+              of: byKey('foot-check-saved'),
+              matching: find.byType(Scrollable),
+            )
+            .first,
+      );
+      expect(scroll.position.maxScrollExtent, greaterThan(0));
+      expect(scroll.position.pixels, 0);
+    });
+
     testWidgets('"มี / ไม่แน่ใจ" → Something found + an alert (rule 14)', (
       t,
     ) async {
@@ -390,6 +413,25 @@ void main() {
       await settleIo(t, 300);
       expect(rig.camera.shots, 1);
       expect(find.text('ฝ่าเท้าขวา'), findsOneWidget);
+    });
+
+    testWidgets('an open overtaken by the app going inactive (the '
+        'permission dialog) does not count; resume opens again', (t) async {
+      final rig = FootCheckRig();
+      await rig.pump(t);
+      rig.camera.gate = Completer<void>();
+      await openTab(t);
+      await t.tap(byKey('foot-check-start-photos'));
+      await t.pump();
+      t.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      rig.camera.gate!.complete();
+      rig.camera.gate = null;
+      await settleIo(t);
+      expect(byKey('fake-preview'), findsNothing);
+      t.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await settleIo(t);
+      expect(byKey('fake-preview'), findsOneWidget);
+      expect(rig.camera.opened, hasLength(2));
     });
 
     testWidgets('camera refused: the panel offers answer-only', (t) async {

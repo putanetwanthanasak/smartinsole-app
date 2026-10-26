@@ -32,11 +32,7 @@ bool isRed(img.Pixel p) => p.r > 200 && p.b < 60;
 
 void main() {
   test('crops to the viewfinder aspect and shrinks the long side to 1600', () {
-    final out = processFootPhoto(
-      cameraJpeg(),
-      aspect: 342 / 416,
-      fromFrontCamera: false,
-    );
+    final out = processFootPhoto(cameraJpeg(), aspect: 342 / 416);
     final image = img.decodeJpg(out)!;
     expect(image.height, footPhotoMaxSide);
     expect(image.width / image.height, closeTo(342 / 416, 0.01));
@@ -46,7 +42,6 @@ void main() {
     final out = processFootPhoto(
       cameraJpeg(width: 800, height: 600, orientation: 1),
       aspect: 4 / 3,
-      fromFrontCamera: false,
     );
     final image = img.decodeJpg(out)!;
     expect([image.width, image.height], [800, 600]);
@@ -55,11 +50,7 @@ void main() {
   test('the saved JPEG carries no EXIF, ICC or comment (no metadata)', () {
     final input = cameraJpeg();
     expect(jpegMarkers(input), contains(0xE1)); // the camera's EXIF
-    final out = processFootPhoto(
-      input,
-      aspect: 342 / 416,
-      fromFrontCamera: true,
-    );
+    final out = processFootPhoto(input, aspect: 342 / 416);
     final markers = jpegMarkers(out);
     // APP0 (JFIF) is allowed; APP1–APP15 (EXIF, XMP, ICC, …) and COM not.
     expect(markers.where((m) => m >= 0xE1 && m <= 0xEF), isEmpty);
@@ -68,51 +59,49 @@ void main() {
     expect(String.fromCharCodes(out), isNot(contains('SM-N975F')));
   });
 
-  test('EXIF rotation is applied; a front photo is un-mirrored', () {
-    // Orientation 1, red on the left as stored.
+  test('EXIF rotation is applied; an unflagged photo is not flipped', () {
+    // Orientation 1, red on the left as stored: the true view, front or
+    // back (what the emulator's front camera gives).
     final plain = cameraJpeg(width: 1200, height: 900, orientation: 1);
-    final back = img.decodeJpg(
-      processFootPhoto(plain, aspect: 4 / 3, fromFrontCamera: false),
-    )!;
-    final front = img.decodeJpg(
-      processFootPhoto(plain, aspect: 4 / 3, fromFrontCamera: true),
-    )!;
-    expect(isRed(back.getPixel(10, 450)), isTrue);
-    expect(isRed(front.getPixel(10, 450)), isFalse);
-    expect(isRed(front.getPixel(1190, 450)), isTrue);
+    final out = img.decodeJpg(processFootPhoto(plain, aspect: 4 / 3))!;
+    expect(isRed(out.getPixel(10, 450)), isTrue);
+    expect(isRed(out.getPixel(1190, 450)), isFalse);
 
     // Orientation 6 (rotate 90° clockwise): the stored left half becomes
     // the top half, and the image becomes portrait.
     final rotated = img.decodeJpg(
-      processFootPhoto(
-        cameraJpeg(width: 1200, height: 900),
-        aspect: 3 / 4,
-        fromFrontCamera: false,
-      ),
+      processFootPhoto(cameraJpeg(width: 1200, height: 900), aspect: 3 / 4),
     )!;
     expect(rotated.height > rotated.width, isTrue);
     expect(isRed(rotated.getPixel(450, 10)), isTrue);
     expect(isRed(rotated.getPixel(450, 1190)), isFalse);
   });
 
-  test('a mirror the camera recorded in EXIF is applied before the '
-      'front un-mirror, so the result is the true view', () {
-    // Orientation 2 = mirrored as stored (what CameraX writes for a front
-    // photo it mirrors to match the preview).
+  test('a mirror the camera recorded in EXIF is dropped, its rotation '
+      'kept, so the result is the true view', () {
+    // Orientation 2 = mirrored (what CameraX writes for a front photo it
+    // mirrors to match the preview): stored pixels kept as they are.
     final mirrored = cameraJpeg(width: 1200, height: 900, orientation: 2);
-    final out = img.decodeJpg(
-      processFootPhoto(mirrored, aspect: 4 / 3, fromFrontCamera: true),
-    )!;
+    final out = img.decodeJpg(processFootPhoto(mirrored, aspect: 4 / 3))!;
     expect(isRed(out.getPixel(10, 450)), isTrue);
+    expect(isRed(out.getPixel(1190, 450)), isFalse);
+
+    // Orientation 5 = mirror + 90° rotation: as orientation 6, the stored
+    // left half on top and portrait.
+    final turned = img.decodeJpg(
+      processFootPhoto(
+        cameraJpeg(width: 1200, height: 900, orientation: 5),
+        aspect: 3 / 4,
+      ),
+    )!;
+    expect(turned.height > turned.width, isTrue);
+    expect(isRed(turned.getPixel(450, 10)), isTrue);
+    expect(isRed(turned.getPixel(450, 1190)), isFalse);
   });
 
   test('a file that is not a JPEG is refused', () {
     expect(
-      () => processFootPhoto(
-        Uint8List.fromList([1, 2, 3]),
-        aspect: 1,
-        fromFrontCamera: false,
-      ),
+      () => processFootPhoto(Uint8List.fromList([1, 2, 3]), aspect: 1),
       throwsFormatException,
     );
   });

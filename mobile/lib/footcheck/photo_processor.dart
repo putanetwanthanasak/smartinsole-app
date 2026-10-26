@@ -8,24 +8,20 @@ const footPhotoMaxSide = 1600;
 const footPhotoJpegQuality = 85;
 
 /// Turns a camera JPEG into the stored foot photo:
-/// 1. applies the EXIF orientation (rotation and any mirror the camera
-///    recorded), giving the image as the preview showed it;
-/// 2. un-mirrors a front-camera photo ([fromFrontCamera]), so the saved
-///    photo is the true view of the foot (decision 1: a left sole looks
-///    like a left sole to a doctor, whichever lens took it);
-/// 3. centre-crops to the viewfinder's [aspect] (width / height), which
+/// 1. applies the EXIF rotation (the decoder does) but undoes any EXIF
+///    mirror, so the saved photo is the true view of the foot whichever
+///    lens took it (decision 1: a left sole looks like a left sole to a
+///    doctor). The sensor never mirrors pixels; a camera that mirrors a
+///    front photo to match its preview does it only with the EXIF flag
+///    (CameraX's `isReversedHorizontal`). On the emulator (S8C) the
+///    front camera's JPEG is unmirrored with no flag; the Note 10
+///    checkpoint checks a real phone;
+/// 2. centre-crops to the viewfinder's [aspect] (width / height), which
 ///    is what the user saw, since preview and photo share one aspect;
-/// 4. shrinks the long side to [footPhotoMaxSide] (never enlarges);
-/// 5. encodes JPEG at [footPhotoJpegQuality] with no EXIF, ICC or other
+/// 3. shrinks the long side to [footPhotoMaxSide] (never enlarges);
+/// 4. encodes JPEG at [footPhotoJpegQuality] with no EXIF, ICC or other
 ///    metadata (no GPS, no device model; user addition 6).
-///
-/// Step 2 assumes the camera mirrors front photos to match the preview,
-/// as CameraX does by default; the Note 10 checkpoint checks it.
-Uint8List processFootPhoto(
-  Uint8List jpeg, {
-  required double aspect,
-  required bool fromFrontCamera,
-}) {
+Uint8List processFootPhoto(Uint8List jpeg, {required double aspect}) {
   img.Image? decoded;
   try {
     decoded = img.decodeJpg(jpeg);
@@ -35,8 +31,12 @@ Uint8List processFootPhoto(
   if (decoded == null) {
     throw const FormatException('camera photo is not a readable JPEG');
   }
-  var image = img.bakeOrientation(decoded);
-  if (fromFrontCamera) image = img.flipHorizontal(image);
+  // The decoder has already applied the whole EXIF orientation; flipping
+  // back a mirrored one leaves only its rotation.
+  final orientation = img.decodeJpgExif(jpeg)?.imageIfd.orientation;
+  var image = _mirrored.contains(orientation)
+      ? img.flipHorizontal(decoded)
+      : decoded;
   image = _cropToAspect(image, aspect);
   final longSide = image.width > image.height ? image.width : image.height;
   if (longSide > footPhotoMaxSide) {
@@ -63,11 +63,11 @@ Uint8List processFootPhoto(
 Future<Uint8List> processFootPhotoInBackground(
   Uint8List jpeg, {
   required double aspect,
-  required bool fromFrontCamera,
-}) => Isolate.run(
-  () =>
-      processFootPhoto(jpeg, aspect: aspect, fromFrontCamera: fromFrontCamera),
-);
+}) => Isolate.run(() => processFootPhoto(jpeg, aspect: aspect));
+
+/// EXIF orientations that include a horizontal mirror (2, 4, 5, 7: one
+/// of each pair AndroidX `ExifInterface.flipHorizontally` swaps).
+const _mirrored = {2, 4, 5, 7};
 
 img.Image _cropToAspect(img.Image image, double aspect) {
   final w = image.width, h = image.height;

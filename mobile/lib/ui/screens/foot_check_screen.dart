@@ -56,8 +56,10 @@ class FootCheckScreen extends ConsumerWidget {
     return Scaffold(
       body: SafeArea(
         bottom: false,
+        // A new scroll view per view: Saved (after a check) or Start (after
+        // "ตรวจอีกครั้ง") opens at the top, not at the other's offset.
         child: SingleChildScrollView(
-          key: const ValueKey('foot-check-scroll'),
+          key: ValueKey(('foot-check-scroll', body.key)),
           padding: EdgeInsets.fromLTRB(
             Dimens.pagePadding,
             repeat ? Dimens.pageTopPushed : Dimens.pagePadding,

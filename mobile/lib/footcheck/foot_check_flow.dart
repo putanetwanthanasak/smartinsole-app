@@ -14,7 +14,6 @@ import 'photo_session.dart';
 typedef PhotoProcessor = Future<Uint8List> Function(
   Uint8List jpeg, {
   required double aspect,
-  required bool fromFrontCamera,
 });
 
 final photoProcessorProvider = Provider<PhotoProcessor>(
@@ -66,15 +65,10 @@ class FootCheckFlow extends Notifier<FootCheckRun?> {
     FootView view,
     Uint8List jpeg, {
     required double aspect,
-    required bool fromFrontCamera,
   }) async {
     final session = state?.session;
     if (session == null) throw StateError('no photo check in progress');
-    final photo = await ref.read(photoProcessorProvider)(
-      jpeg,
-      aspect: aspect,
-      fromFrontCamera: fromFrontCamera,
-    );
+    final photo = await ref.read(photoProcessorProvider)(jpeg, aspect: aspect);
     final rel = await session.put(view, photo);
     _changed();
     return rel;

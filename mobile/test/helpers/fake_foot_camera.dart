@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -17,8 +18,12 @@ class FakeFootCamera implements FootCamera {
   var settingsOpened = 0;
   CameraFacing? current;
 
+  /// When set, [open] waits for it (an open still in progress).
+  Completer<void>? gate;
+
   @override
   Future<CameraFacing> open(CameraFacing facing) async {
+    await gate?.future;
     if (deny) throw const CameraUnavailable(permissionDenied: true);
     if (fail) throw const CameraUnavailable(permissionDenied: false);
     opened.add(facing);

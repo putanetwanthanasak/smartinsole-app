@@ -64,6 +64,7 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen>
   final _viewfinderKey = GlobalKey();
   final _slotKeys = [for (final _ in FootView.values) GlobalKey()];
   Size? _viewfinderSize;
+  var _cameraGen = 0;
 
   FootView get _view => FootView.values[_index];
 
@@ -92,6 +93,7 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen>
   }
 
   void _release() {
+    _cameraGen++;
     _countTimer?.cancel();
     _count = null;
     _opened = null;
@@ -103,17 +105,20 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen>
     if (_closed) return;
     final want = _wanted;
     if (_opened == want && _state == _CameraState.ready) return;
+    // Only the latest open (or release) counts: an open that a release or
+    // another open overtook while it waited must not mark the camera ready.
+    final gen = ++_cameraGen;
     setState(() => _state = _CameraState.opening);
     try {
       final got = await _camera.open(want);
-      if (!mounted) return;
+      if (!mounted || gen != _cameraGen) return;
       setState(() {
         _opened = got;
         _state = _CameraState.ready;
       });
     } on CameraUnavailable catch (e) {
       debugPrint('foot camera: $e');
-      if (!mounted) return;
+      if (!mounted || gen != _cameraGen) return;
       setState(
         () => _state = e.permissionDenied
             ? _CameraState.denied
@@ -187,7 +192,6 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen>
   Future<void> _shoot() async {
     if (_busy || _state != _CameraState.ready) return;
     final view = _view;
-    final front = _opened == CameraFacing.front;
     final size = _viewfinderSize;
     setState(() => _busy = true);
     Uint8List bytes;
@@ -204,7 +208,7 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen>
         : size.width / size.height;
     final job = ref
         .read(footCheckFlowProvider.notifier)
-        .putPhoto(view, bytes, aspect: aspect, fromFrontCamera: front)
+        .putPhoto(view, bytes, aspect: aspect)
         .then<void>(
           (_) {},
           onError: (Object e) {
@@ -725,7 +729,10 @@ class _Panel extends StatelessWidget {
                 width: Dimens.outlineWidth,
               ),
             ),
-            child: const Text(FootCheckCopy.answerOnly),
+            child: const Text(
+              FootCheckCopy.answerOnly,
+              textAlign: TextAlign.center,
+            ),
           ),
         ],
       ),

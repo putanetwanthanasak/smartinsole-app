@@ -119,12 +119,8 @@ Future<void> pumpApp(
         footPhotoDirProvider.overrideWithValue(() async => photos),
         cameraCacheDirProvider.overrideWithValue(() async => cache),
         photoProcessorProvider.overrideWithValue(
-          (jpeg, {required aspect, required fromFrontCamera}) async =>
-              processFootPhoto(
-                jpeg,
-                aspect: aspect,
-                fromFrontCamera: fromFrontCamera,
-              ),
+          (jpeg, {required aspect}) async =>
+              processFootPhoto(jpeg, aspect: aspect),
         ),
         ...overrides,
       ],
