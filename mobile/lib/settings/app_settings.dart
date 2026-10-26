@@ -34,11 +34,13 @@ class AppSettings {
   /// Defaults to "ปกติ" (decision 11).
   final TextSizeOption textSize;
 
-  /// "เสียงแจ้งเตือน". Stored only: the alert sound and the reminder
-  /// notification arrive in S8C/S9. Research capture cues ignore it.
+  /// "เสียงแจ้งเตือน". Off makes the evening foot-check reminder silent
+  /// (S8C, user decision 2); the in-app alert sound arrives in S9.
+  /// Research capture cues ignore it.
   final bool sound;
 
-  /// "เตือนให้ดูเท้าทุกวัน" and its time. Stored only (S8C/S9).
+  /// "เตือนให้ดูเท้าทุกวัน" and its time: the evening notification
+  /// (`lib/notify/`, S8C).
   final bool footCheckReminder;
   final TimeOfDay reminderTime;
 

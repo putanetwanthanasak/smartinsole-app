@@ -17,6 +17,12 @@ abstract interface class SettingsStore {
   /// reconnects it at start (user decision 2A, S8B). Null = none.
   String? boundInsole(FootSide side);
   Future<void> setBoundInsole(FootSide side, String? deviceId);
+
+  /// Whether the app has shown the Android 13+ notification prompt from the
+  /// "ตรวจเท้า" tab once (S8C, user decision 3): it is not shown again from
+  /// there; Settings can still ask.
+  bool get notificationPromptShown;
+  Future<void> setNotificationPromptShown();
 }
 
 /// Preference keys. Never rename one: a renamed key silently resets that
@@ -28,6 +34,7 @@ abstract final class SettingsKeys {
   static const footCheckReminder = 'settings.footCheckReminder';
   static const reminderMinute = 'settings.reminderMinuteOfDay';
   static String boundInsole(FootSide side) => 'insole.bound.${side.name}';
+  static const notificationPromptShown = 'notify.promptShown';
 }
 
 class PrefsSettingsStore implements SettingsStore {
@@ -86,6 +93,14 @@ class PrefsSettingsStore implements SettingsStore {
       await _prefs.setString(key, deviceId);
     }
   }
+
+  @override
+  bool get notificationPromptShown =>
+      _prefs.getBool(SettingsKeys.notificationPromptShown) ?? false;
+
+  @override
+  Future<void> setNotificationPromptShown() =>
+      _prefs.setBool(SettingsKeys.notificationPromptShown, true);
 }
 
 /// In memory only: tests, goldens and the emulator's fake-BLE runs.
@@ -93,6 +108,7 @@ class MemorySettingsStore implements SettingsStore {
   MemorySettingsStore({
     this.settings = const AppSettings(),
     Map<FootSide, String>? bound,
+    this.notificationPromptShown = false,
   }) : _bound = {...?bound};
 
   /// What [load] returns; [save] replaces it.
@@ -116,4 +132,11 @@ class MemorySettingsStore implements SettingsStore {
       _bound[side] = deviceId;
     }
   }
+
+  @override
+  bool notificationPromptShown;
+
+  @override
+  Future<void> setNotificationPromptShown() async =>
+      notificationPromptShown = true;
 }
