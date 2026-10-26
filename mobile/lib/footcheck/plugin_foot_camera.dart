@@ -66,7 +66,10 @@ class PluginFootCamera implements FootCamera {
   Future<CameraFacing> _open(CameraFacing facing) async {
     final status = await ph.Permission.camera.request();
     if (!status.isGranted) {
-      throw const CameraUnavailable(permissionDenied: true);
+      throw CameraUnavailable(
+        permissionDenied: true,
+        askAgain: !status.isPermanentlyDenied,
+      );
     }
     final cameras = _cameras ??= await availableCameras();
     if (cameras.isEmpty) {

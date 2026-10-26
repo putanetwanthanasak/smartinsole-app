@@ -174,6 +174,7 @@ abstract final class Dimens {
   static const slotBadge = 22.0;
   static const slotDash = [4.0, 3.0];
   static const timerIcon = 26.0;
+  static const switchCameraIcon = 26.0; // S8C, §11.2
   static const timerRing = 4.0;
   static const shutterRing = 5.0;
   static const shutterDisc = 58.0;

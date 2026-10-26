@@ -1,3 +1,5 @@
+import 'dart:ui' show SemanticsRole;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_lucide/flutter_lucide.dart';
 
@@ -40,6 +42,7 @@ class WeekCard extends StatelessWidget {
           const SizedBox(height: Dimens.cardGap),
           Semantics(
             label: FootCheckCopy.weekLabel,
+            role: SemanticsRole.list,
             container: true,
             explicitChildNodes: true,
             child: Row(
@@ -99,6 +102,8 @@ class _Day extends StatelessWidget {
     ].join(' ');
     return Semantics(
       label: label,
+      role: SemanticsRole.listItem,
+      container: true,
       excludeSemantics: true,
       child: Column(
         children: [

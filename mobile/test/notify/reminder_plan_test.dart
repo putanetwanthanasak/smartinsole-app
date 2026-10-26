@@ -87,7 +87,7 @@ void main() {
         zoneName: () async => 'Not/AZone',
         offset: const Duration(hours: 7),
       );
-      expect(loc.name, 'Etc/GMT-7');
+      expect(loc.name, 'Fixed+0700');
       expect(
         zonedTimeOf(DateTime(2026, 10, 26, 19), tz.local).toUtc(),
         DateTime.utc(2026, 10, 26, 12),
@@ -99,7 +99,19 @@ void main() {
         zoneName: () async => throw StateError('no plugin'),
         offset: const Duration(hours: 7),
       );
-      expect(loc.name, 'Etc/GMT-7');
+      expect(loc.name, 'Fixed+0700');
+    });
+
+    test('a half-hour offset is kept, never UTC', () async {
+      final loc = await initLocalTimeZone(
+        zoneName: () async => 'Not/AZone',
+        offset: const Duration(hours: 5, minutes: 30),
+      );
+      expect(loc.name, 'Fixed+0530');
+      expect(
+        zonedTimeOf(DateTime(2026, 10, 26, 19), tz.local).toUtc(),
+        DateTime.utc(2026, 10, 26, 13, 30),
+      );
     });
   });
 }

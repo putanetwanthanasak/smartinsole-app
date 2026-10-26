@@ -5,7 +5,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:smartinsole/footcheck/orphan_sweep.dart';
 import 'package:smartinsole/footcheck/photo_session.dart';
+import 'package:smartinsole/storage/database.dart';
 import 'package:smartinsole/storage/models.dart';
+import 'package:smartinsole/storage/storage_providers.dart';
 
 void main() {
   late Directory tmp;
@@ -84,5 +86,21 @@ void main() {
     expect(cap.existsSync(), isFalse);
     expect(other.existsSync(), isTrue);
     expect(nested.existsSync(), isTrue);
+  });
+
+  test('an in-memory database never uses the real photo folder', () async {
+    // Its start-up sweep sees no saved checks: pointed at the real folder,
+    // a mock or driver run would delete every photo on the phone.
+    expect(
+      footPhotoPath(inMemory: false, support: '/s', cache: '/c'),
+      '/s/foot_photos',
+    );
+    expect(
+      footPhotoPath(inMemory: true, support: '/s', cache: '/c'),
+      '/c/foot_photos_memory',
+    );
+    final db = AppDatabase.memory();
+    addTearDown(db.close);
+    expect(db.inMemory, isTrue);
   });
 }

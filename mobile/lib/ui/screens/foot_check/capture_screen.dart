@@ -42,13 +42,15 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen>
   late final AppLifecycleListener _lifecycle;
   late final AnimationController _fly = AnimationController(
     vsync: this,
-    duration: Motion.valueDuration,
+    // The move takes `valueDuration`; the fade ends after it (§12.2).
+    duration: Motion.thumbFadeAt + Motion.thumbFade,
   );
 
   var _index = 0;
   final _facingFor = <bool, CameraFacing>{}; // by isSole
   CameraFacing? _opened;
   var _state = _CameraState.opening;
+  var _askAgain = true; // camera refused: Android still shows its dialog
   int? _count; // 3, 2, 1 while the self-timer runs
   Timer? _countTimer;
   var _busy = false;
@@ -119,15 +121,23 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen>
     } on CameraUnavailable catch (e) {
       debugPrint('foot camera: $e');
       if (!mounted || gen != _cameraGen) return;
-      setState(
-        () => _state = e.permissionDenied
-            ? _CameraState.denied
-            : _CameraState.failed,
-      );
+      setState(() {
+        _askAgain = e.askAgain;
+        _state = e.permissionDenied ? _CameraState.denied : _CameraState.failed;
+      });
     }
   }
 
+  /// A running self-timer belongs to the view it was started on: a shot,
+  /// skip or camera switch stops it, so it never takes the next view.
+  void _stopCountdown() {
+    _countTimer?.cancel();
+    _countTimer = null;
+    if (_count != null) setState(() => _count = null);
+  }
+
   Future<void> _goTo(int index) async {
+    _stopCountdown();
     if (index >= FootView.values.length) {
       await _toCompare();
       return;
@@ -153,7 +163,40 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen>
     }
   }
 
+  void _retryCamera() {
+    _opened = null;
+    unawaited(_openCamera());
+  }
+
+  /// "อนุญาตให้ใช้กล้อง" (§11.2): asks again while Android still shows its
+  /// dialog, else opens the app's settings (the camera reopens on resume).
+  void _allowCamera() {
+    if (_askAgain) {
+      _retryCamera();
+    } else {
+      unawaited(_camera.openSettings());
+    }
+  }
+
+  /// "ไม่ถ่ายรูป ตอบคำถามอย่างเดียว" on a camera panel. With no photo yet,
+  /// the check becomes answer-only (no picker, no photos; §11.3). Photos
+  /// already taken are kept, never silently deleted: Compare shows the
+  /// rest as not taken.
+  Future<void> _answerOnly() async {
+    final flow = ref.read(footCheckFlowProvider.notifier);
+    if (ref.read(footCheckFlowProvider)?.photos.isNotEmpty ?? false) {
+      await _toCompare();
+      return;
+    }
+    _closed = true; // no reopen on resume while leaving
+    _release();
+    await flow.begin(answerOnly: true);
+    if (!mounted) return;
+    await Navigator.pushReplacementNamed(context, Routes.footCheckCompare);
+  }
+
   void _switchCamera() {
+    _stopCountdown();
     final next = (_opened ?? _wanted).other;
     _facingFor[_view.isSole] = next;
     unawaited(_openCamera());
@@ -161,8 +204,7 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen>
 
   void _toggleTimer() {
     if (_count != null) {
-      _countTimer?.cancel();
-      setState(() => _count = null);
+      _stopCountdown();
       return;
     }
     setState(() => _count = Motion.countdownSeconds);
@@ -191,6 +233,7 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen>
 
   Future<void> _shoot() async {
     if (_busy || _state != _CameraState.ready) return;
+    _stopCountdown();
     final view = _view;
     final size = _viewfinderSize;
     setState(() => _busy = true);
@@ -341,14 +384,9 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen>
                                   busy: _busy,
                                   fade: fade,
                                   reduced: reduced,
-                                  onAllow: () async {
-                                    await _camera.openSettings();
-                                  },
-                                  onRetry: () {
-                                    _opened = null;
-                                    unawaited(_openCamera());
-                                  },
-                                  onAnswerOnly: () => unawaited(_toCompare()),
+                                  onAllow: _allowCamera,
+                                  onRetry: _retryCamera,
+                                  onAnswerOnly: () => unawaited(_answerOnly()),
                                 );
                               },
                             ),
@@ -385,13 +423,15 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen>
     return AnimatedBuilder(
       animation: _fly,
       builder: (context, child) {
-        final t = Motion.value.transform(_fly.value);
+        final ms = _fly.value * _fly.duration!.inMilliseconds;
+        final t = Motion.value.transform(
+          (ms / Motion.valueDuration.inMilliseconds).clamp(0.0, 1.0),
+        );
         final from = _flyFrom!, to = _flyTo!;
         // Move the centre and scale towards the slot (0.43 of the photo).
         final center = Offset.lerp(from.center, to.center, t)!;
         final scale = 1 + (Motion.thumbFlyScale - 1) * t;
         final w = from.width * scale, h = from.height * scale;
-        final ms = _fly.value * Motion.valueDuration.inMilliseconds;
         final fadeStart = Motion.thumbFadeAt.inMilliseconds;
         final opacity = ms < fadeStart
             ? 1.0
@@ -494,7 +534,7 @@ class _TopRow extends StatelessWidget {
           ),
           icon: const Icon(
             LucideIcons.switch_camera,
-            size: Dimens.iconButtonIcon,
+            size: Dimens.switchCameraIcon,
           ),
           color: AppColors.surface,
           disabledColor: CameraColors.slotTodo,

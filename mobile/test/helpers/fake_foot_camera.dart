@@ -13,6 +13,9 @@ class FakeFootCamera implements FootCamera {
 
   bool deny;
   bool fail;
+
+  /// With [deny]: whether Android would still show the dialog.
+  bool askAgain = true;
   final opened = <CameraFacing>[];
   var shots = 0;
   var settingsOpened = 0;
@@ -24,7 +27,9 @@ class FakeFootCamera implements FootCamera {
   @override
   Future<CameraFacing> open(CameraFacing facing) async {
     await gate?.future;
-    if (deny) throw const CameraUnavailable(permissionDenied: true);
+    if (deny) {
+      throw CameraUnavailable(permissionDenied: true, askAgain: askAgain);
+    }
     if (fail) throw const CameraUnavailable(permissionDenied: false);
     opened.add(facing);
     return current = facing;

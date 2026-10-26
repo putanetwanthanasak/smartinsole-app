@@ -434,7 +434,34 @@ void main() {
       expect(rig.camera.opened, hasLength(2));
     });
 
-    testWidgets('camera refused: the panel offers answer-only', (t) async {
+    testWidgets('a shot, skip or switch stops a running self-timer: it '
+        'never takes the next view', (t) async {
+      final rig = FootCheckRig();
+      await rig.pump(t, reduceMotion: true);
+      await startPhotos(t);
+      await t.tap(byKey('capture-timer'));
+      await t.pump();
+      expect(find.text('3'), findsOneWidget);
+      await t.tap(byKey('capture-skip'));
+      await settleIo(t);
+      expect(find.text('ฝ่าเท้าขวา'), findsOneWidget);
+      await t.pump(const Duration(seconds: 4));
+      await settleIo(t, 300);
+      expect(rig.camera.shots, 0);
+      expect(find.text('ฝ่าเท้าขวา'), findsOneWidget);
+
+      await t.tap(byKey('capture-timer'));
+      await t.pump();
+      await t.tap(byKey('capture-switch'));
+      await settleIo(t);
+      expect(find.text('3'), findsNothing);
+      await t.pump(const Duration(seconds: 4));
+      await settleIo(t, 300);
+      expect(rig.camera.shots, 0);
+    });
+
+    testWidgets('camera refused: "อนุญาต" asks again while Android still '
+        'shows its dialog, else opens settings', (t) async {
       final rig = FootCheckRig();
       rig.camera.deny = true;
       await rig.pump(t);
@@ -442,10 +469,58 @@ void main() {
       expect(find.text(FootCheckCopy.cameraDenied), findsOneWidget);
       await t.tap(byKey('capture-camera-action'));
       await settleIo(t);
+      expect(rig.camera.settingsOpened, 0);
+      expect(find.text(FootCheckCopy.cameraDenied), findsOneWidget);
+
+      rig.camera.askAgain = false;
+      await t.tap(byKey('capture-camera-action'));
+      await settleIo(t);
+      await t.tap(byKey('capture-camera-action'));
+      await settleIo(t);
       expect(rig.camera.settingsOpened, 1);
+
+      rig.camera.deny = false;
+      await t.tap(byKey('capture-camera-action'));
+      await settleIo(t);
+      expect(rig.camera.settingsOpened, 2);
+    });
+
+    testWidgets('camera refused with no photo: answer-only has no picker '
+        'and no photos; back returns to the tab', (t) async {
+      final rig = FootCheckRig();
+      rig.camera.deny = true;
+      await rig.pump(t);
+      await startPhotos(t);
       await t.tap(byKey('capture-answer-only'));
       await settleIo(t);
       expect(find.byType(CompareScreen), findsOneWidget);
+      expect(byKey('compare-view-soleLeft'), findsNothing);
+      expect(find.text(FootCheckCopy.skipped), findsNothing);
+      expect(find.byType(CaptureScreen), findsNothing);
+      await t.tap(byKey('back-link'));
+      await settleIo(t);
+      expect(find.byType(CompareScreen), findsNothing);
+      expect(byKey('foot-check-start-photos'), findsOneWidget);
+    });
+
+    testWidgets('camera failing after a photo: answer-only keeps the photo '
+        'taken', (t) async {
+      final rig = FootCheckRig();
+      await rig.pump(t, reduceMotion: true);
+      await startPhotos(t);
+      await shoot(t);
+      rig.camera.fail = true;
+      await t.tap(byKey('capture-switch'));
+      await settleIo(t);
+      expect(find.text(FootCheckCopy.cameraFailed), findsOneWidget);
+      await t.tap(byKey('capture-answer-only'));
+      await settleIo(t);
+      expect(find.byType(CompareScreen), findsOneWidget);
+      expect(byKey('compare-view-soleLeft'), findsOneWidget);
+      expect(
+        rig.photoDir.listSync(recursive: true).whereType<File>(),
+        hasLength(1),
+      );
     });
   });
 

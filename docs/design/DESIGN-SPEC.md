@@ -469,7 +469,7 @@ The debug screen is hidden (S8B): it is "Diagnostics", reached only from Researc
 
 Flow: Start → Capture (4 photos) → Compare & answer → Saved, or Something found. Options from FLUTTER-PLAN §9: answer only, 3-second self-timer, skip a photo. Photos stay on the device (rule 15). The app never says a foot is normal (rule 14). The "ตรวจเท้า" tab opens Start until today's check is saved, then Saved (decision 8), or the found-today view (§11.6) when today's check found something.
 
-S8C (user, 2026-10-26): a day can have several checks; the latest one is that day's result (tab, Home card, 7-day row), and every check that found something keeps its own alert. "ตรวจอีกครั้ง" on Saved / found-today shows Start in the tab with a back link. Home's foot-check card shows only while today has no saved check (it hides at midnight rollover and on resume as well).
+S8C (user, 2026-10-26): a day can have several checks; the latest one is that day's result (tab, Home card, 7-day row), and every check that found something keeps its own alert. "ตรวจอีกครั้ง" on Saved / found-today shows Start in the tab with a back link. Home's foot-check card shows only while today has no saved check (the day is re-checked at midnight and on resume, so the card comes back on a new day).
 
 ### 11.1 Start (bar visible)
 

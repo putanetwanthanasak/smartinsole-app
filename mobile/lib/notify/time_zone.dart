@@ -5,9 +5,9 @@ import 'package:timezone/timezone.dart' as tz;
 /// Sets `tz.local` to the phone's zone (user addition 5). The timezone
 /// package's default `tz.local` is UTC, which would move a 19:00 reminder
 /// to 02:00 in Bangkok. [zoneName] reads the IANA name from the phone
-/// (`flutter_timezone`). An unknown name falls back to the fixed-offset
-/// `Etc/GMT` zone of [offset] (Thailand has no daylight saving), and to
-/// UTC only when even that is missing. Returns the zone used.
+/// (`flutter_timezone`). An unknown name falls back to a zone fixed at
+/// the phone's current [offset] (Thailand has no daylight saving), never
+/// UTC. Returns the zone used.
 Future<tz.Location> initLocalTimeZone({
   required Future<String> Function() zoneName,
   required Duration offset,
@@ -26,14 +26,15 @@ Future<tz.Location> initLocalTimeZone({
   return location;
 }
 
+/// A zone with one fixed [offset] and no transitions; works for any
+/// offset, including half hours (never falls back to UTC).
 tz.Location _fixedOffset(Duration offset) {
-  // Etc/GMT signs are inverted: UTC+7 is "Etc/GMT-7".
-  if (offset.inMinutes % 60 == 0) {
-    final h = offset.inHours;
-    final name = h == 0 ? 'Etc/UTC' : 'Etc/GMT${h > 0 ? '-' : '+'}${h.abs()}';
-    try {
-      return tz.getLocation(name);
-    } catch (_) {}
-  }
-  return tz.UTC;
+  final sign = offset.isNegative ? '-' : '+';
+  final m = offset.inMinutes.abs();
+  final name =
+      'Fixed$sign${(m ~/ 60).toString().padLeft(2, '0')}'
+      '${(m % 60).toString().padLeft(2, '0')}';
+  return tz.Location(name, const [], const [], [
+    tz.TimeZone(offset, isDst: false, abbreviation: name),
+  ]);
 }

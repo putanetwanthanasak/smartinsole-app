@@ -145,7 +145,9 @@ abstract final class FootCheckCopy {
 
   // The tab after today's latest check found something (user decision 4,
   // the approved proposal; draft).
-  static const foundTodayTitle = 'วันนี้พบสิ่งที่ควรให้แพทย์ดู';
+  // A word joiner (U+2060) keeps "แพทย์ดู" together: without it "ดู" wraps
+  // alone onto the second line at 28/700.
+  static const foundTodayTitle = 'วันนี้พบสิ่งที่ควรให้แพทย์\u2060ดู';
   static String foundCheckedAt(String hhmm) => 'ดูเท้าแล้ว เวลา $hhmm';
   static const whatToDo = 'ดูสิ่งที่ควรทำ';
 

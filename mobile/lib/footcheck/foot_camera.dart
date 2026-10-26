@@ -27,13 +27,22 @@ abstract interface class FootCamera {
 }
 
 class CameraUnavailable implements Exception {
-  const CameraUnavailable({required this.permissionDenied, this.detail});
+  const CameraUnavailable({
+    required this.permissionDenied,
+    this.askAgain = true,
+    this.detail,
+  });
 
-  /// The user refused camera access (the draft panel offers settings).
+  /// The user refused camera access (the draft panel's allow button).
   final bool permissionDenied;
+
+  /// Android still shows the permission dialog; false once it no longer
+  /// does ("don't ask again"), when only the app's settings can allow it.
+  final bool askAgain;
   final String? detail;
 
   @override
   String toString() =>
-      'CameraUnavailable(permissionDenied: $permissionDenied, $detail)';
+      'CameraUnavailable(permissionDenied: $permissionDenied, '
+      'askAgain: $askAgain, $detail)';
 }
