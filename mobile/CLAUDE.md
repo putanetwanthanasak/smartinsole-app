@@ -97,13 +97,23 @@ lib/
                        shared_preferences (name, text size, sound,
                        reminder, each foot's remembered insole), text
                        scaler (factor × phone scale); see its README.md
-  footcheck/ notify/
-                       empty until their session (see each README.md)
+  footcheck/           Daily foot check (S8C): FootCamera (only
+                       plugin_foot_camera.dart imports `camera`), photo
+                       processor (true view, 1600 px, q85, no metadata),
+                       photo session, flow controller, compare source,
+                       history, orphan sweep (see its README.md)
+  notify/              Evening reminder (S8C): reminder plan in the
+                       phone's time zone, ReminderService, the only
+                       flutter_local_notifications importer (see its
+                       README.md)
   ui/
     app.dart           MaterialApp, named routes
+    foot_check_host.dart  start-up sweeps, reminder service, resume
+                       refresh, the one-time notification prompt
     routes.dart        route names; `/alert` takes the alert id,
-                       `/foot-check-found` the foot check id (placeholder
-                       until S8C); My feet sub-tabs open through
+                       `/foot-check-found` the foot check id,
+                       `/foot-check/photo` a PhotoViewerArgs;
+                       `appNavigatorKey`; My feet sub-tabs open through
                        `openMyFeet(context, ref, MyFeetTab.x)`
     motion.dart        ALL animation durations and curves
     clock.dart         clockProvider (override in tests) + Thai date
@@ -126,6 +136,11 @@ lib/
                        Gait tab (gait_model, gait_copy, gait_tab);
                        capture/ = Researcher › "เริ่มเก็บข้อมูลวิจัย"
                        (English, researcher-only, release builds too)
+                       foot_check/ = Daily foot check (S8C): Start,
+                       Capture, Compare & answer, Saved / found-today,
+                       photo history and viewer, copy (all strings);
+                       foot_check_screen.dart = the tab,
+                       foot_check_found_screen.dart = Something found
     widgets/           shared widgets; S6B added status_tag, new_chip,
                        details_expander (DetailRow), numbered_steps,
                        disclaimer_line, back_link, detail_status_card,
@@ -150,6 +165,11 @@ assets/models_dummy/   untrained dummy + check.json (dev only, see
                        GAIT_MODEL above)
 assets/sounds/         capture cue beeps, made by tool/make_cues.py
 test/                  flutter_test_config.dart loads the real fonts
+  footcheck/           foot-check unit and widget tests;
+                       foot_check_rig.dart (FootCheckRig, settleIo for
+                       real file and database I/O)
+  notify/              reminder plan tests (Asia/Bangkok)
+  helpers/             pumpApp, FakeFootCamera, FakeReminderNotifier
   ble/                 parser tests; test_vectors_test.dart reads
                        ../shared/test_vectors/*.json; fake_ble_central.dart
                        + ble_data_source_test.dart (fake_async)
@@ -256,9 +276,14 @@ pull + SHA-256 + checks). Any change to the capture file format must keep
   OSes may differ by a few pixels.
 - Use `pumpApp()` in `test/helpers/pump_app.dart`; it fixes the clock, can
   turn on reduce motion, and always replaces BLE with `FakeBleCentral` /
-  `FakePermissions` and the database with `AppDatabase.memory()` (pass
-  your own via `central:` / `permissions:`, and any provider override, e.g. `mockPresetProvider`, via `overrides:`).
-  Widgets that tests or the driver tap carry a `ValueKey` (`tab-today`, `tab-myFeet`, `tab-footCheck`, `tab-alerts`, `settings-button`, `foot-left`, `status-card`, `researcher-row`, `back-link`, `connect-action-left`, `connect-done`, `researcher-tare`, `diagnostics-row`, `sheet-confirm`, `sheet-cancel`, …). Researcher and Connection use `pumpResearcher` / `pumpConnection` (`test/researcher/`, `test/connection/`).
+  `FakePermissions`, the database with `AppDatabase.memory()`, and the
+  foot check's camera and reminders with `FakeFootCamera` /
+  `FakeReminderNotifier` and temp photo folders (pass your own via
+  `central:` / `permissions:` / `camera:` / `reminders:` / `photoDir:`, and
+  any provider override, e.g. `mockPresetProvider`, via `overrides:`).
+  Real file and database I/O only finishes inside `tester.runAsync`; the
+  foot-check tests alternate it with frames (`settleIo`).
+  Widgets that tests or the driver tap carry a `ValueKey` (`tab-today`, `tab-myFeet`, `tab-footCheck`, `tab-alerts`, `settings-button`, `foot-check-start-photos`, `foot-check-answer-only`, `capture-shutter`, `capture-skip`, `capture-switch`, `capture-timer`, `capture-cancel`, `answer-<question>-<answer>`, `compare-save`, `foot-left`, `status-card`, `researcher-row`, `back-link`, `connect-action-left`, `connect-done`, `researcher-tare`, `diagnostics-row`, `sheet-confirm`, `sheet-cancel`, …). Researcher and Connection use `pumpResearcher` / `pumpConnection` (`test/researcher/`, `test/connection/`).
 - `MockDataSource` presets (from S4) drive every UI state on the emulator
   (`--dart-define=MOCK=<preset>`). Their test checks each preset against
   `shared/thresholds.json`; when a threshold changes, fix the preset, not

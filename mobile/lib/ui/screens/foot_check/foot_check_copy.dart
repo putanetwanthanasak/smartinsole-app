@@ -36,7 +36,8 @@ abstract final class FootCheckCopy {
   static const shutter = 'ถ่ายรูป';
   static const skip = 'ข้ามภาพนี้';
 
-  /// Added in S8C (user decision 5): top right of Capture.
+  /// Added in S8C (automatic camera with a switch, user 2026-10-26): top
+  /// right of Capture.
   static const switchCamera = 'สลับกล้อง';
   static const guidePrefix = 'กรอบวาง';
   static const slotDone = 'ถ่ายแล้ว';
