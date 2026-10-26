@@ -44,16 +44,19 @@ plan.
 
   It also showed that the camera plugin mirrors the front preview on only
   one of its two rendering paths; the app now mirrors it on the other.
-- `flutter analyze` is clean. `flutter test` passes **877** tests (786
+- `flutter analyze` is clean. `flutter test` passes **883** tests (786
   after S8B), with 24 new goldens.
 - The spec review found 1 high, 3 medium and 5 low issues. The high one:
   a mock or driver run could have deleted the phone's real foot photos.
-  Eight are fixed, and one needed no change.
+  All nine are fixed, the last after the user's screenshot review.
+- The user's decisions after the review are applied (7357fca). The
+  release APK is rebuilt from that commit.
 - **Note 10 checkpoint: waiting on user** (checklist below).
 
 ## What changed
 
-Eight commits (`git log main..HEAD`):
+Nine commits (`git log main..HEAD`); the last, 7357fca, applies the
+user's decisions after the review (see "Decisions after the review"):
 
 | Area | Files |
 |---|---|
@@ -62,7 +65,7 @@ Eight commits (`git log main..HEAD`):
 | Reminder | `lib/notify/` (new; see its README): `reminder_plan.dart`, `time_zone.dart`, `reminder_notifier.dart`, `local_reminder_notifier.dart`, `reminder_providers.dart`. `settings_store.dart`: `notify.promptShown`. |
 | Screens | `lib/ui/screens/foot_check/` (new): Start, Capture, Compare, Saved / found-today, history, viewer, guide, week card, photo tile, copy. `foot_check_screen.dart` (the tab), `foot_check_found_screen.dart` (rewritten to §11.4), `home_screen.dart` (card only until today's check), `settings_screen.dart` (permission line), `foot_check_host.dart` (new), `app.dart` (routes, `appNavigatorKey`), `routes.dart`, `motion.dart` (capture motions), `dimens.dart`, `segmented_tabs.dart` (`radio`, `small`), `back_link.dart` (`onTap`). |
 | Tests | `test/footcheck/` (processor, files, compare and history, screens; `foot_check_rig.dart`), `test/notify/reminder_plan_test.dart`, `test/goldens/foot_check_golden_test.dart` (24 goldens), `test/helpers/` (`FakeFootCamera`, `FakeReminderNotifier`; `pumpApp` uses them by default). |
-| Docs | DESIGN-SPEC §11 intro, §11.2, §11.3, §11.5, new §11.6–§11.8, §14 (decisions 12–18, defaults, not-designed list); READMEs of `lib/footcheck/` and `lib/notify/`; `mobile/CLAUDE.md` layout, keys, test helpers; BACKLOG 56–59. |
+| Docs | DESIGN-SPEC §11 intro, §11.2, §11.3, §11.5, new §11.6–§11.8, §14 (decisions 12–18, defaults, not-designed list); READMEs of `lib/footcheck/` and `lib/notify/`; `mobile/CLAUDE.md` layout, keys, test helpers; BACKLOG 56–60. |
 
 ## Decisions and how they were applied
 
@@ -81,8 +84,9 @@ Eight commits (`git log main..HEAD`):
 
 The `spec-reviewer` agent read `git diff main...HEAD` against DESIGN-SPEC
 §11, §4, §7.1–§7.2, §12, §13, §14 and FLUTTER-PLAN §6 / §9. It found
-1 high, 3 medium and 5 low issues. Eight are fixed in 353832a; one needed
-no change.
+1 high, 3 medium and 5 low issues. Eight are fixed in 353832a. Finding 9
+was at first marked "no change needed"; the user showed it was real, and
+it is fixed in 7357fca.
 
 | # | Severity | Finding | Resolution |
 |---|---|---|---|
@@ -94,13 +98,13 @@ no change.
 | 6 | low | The switch icon was 24, but §11.2 says 26. | **Fixed.** `Dimens.switchCameraIcon` = 26; Capture goldens regenerated. |
 | 7 | low | The 7-day row was not announced as a list (§11.5, §13). | **Fixed.** `SemanticsRole.list` with `listItem` per day. |
 | 8 | low | The time-zone fallback used UTC for offsets that are not whole hours. | **Fixed.** The fallback is a fixed-offset zone for any offset (`Fixed+0530`). Unit test. |
-| 9 | low | The quoted "มี / ไม่แน่ใจ" in the Compare note could break across lines. | **No change needed.** The note already uses no-break spaces (U+00A0) around "/". The reviewer read the button label constant, which is not quoted text. |
+| 9 | low | The quoted "มี / ไม่แน่ใจ" in the Compare note could break across lines. | **Fixed in 7357fca.** At first I marked this "no change needed": the no-break spaces around "/" looked enough. That was wrong. Screenshot `15` shows "มี / ไม่" \| "แน่ใจ", because Thai word breaking still splits "ไม่แน่ใจ". Word joiners (U+2060) now keep the phrase together. `thai_line_break_test` lays the note out at every width from 180 to 400 px and at scales 1.0, 1.3 and 1.88. Goldens `compare_note_100` / `_130` are at the Pixel 7's 412 px. |
 
 Spec gaps the reviewer raised:
 - **Is a foot-check alert read when Something found opens right after
-  "บันทึก", or from "ดูสิ่งที่ควรทำ"?** Now it is marked read only when
-  opened from the Alerts list, so the badge keeps counting a finding
-  until the user opens it there. This is in "Decisions needed".
+  "บันทึก", or from "ดูสิ่งที่ควรทำ"?** The code marked it read only from
+  the Alerts list, which differed from §7.2 decision 7. Fixed in 7357fca
+  (user decision below).
 - **§11 intro wording.** It said Home's card "hides at midnight". That
   was wrong: the card comes back on a new day. Fixed in the spec text.
   The code was already right (widget test "midnight rollover").
@@ -115,7 +119,8 @@ Spec gaps the reviewer raised:
 ### Static checks and tests
 
 - `flutter analyze`: no issues. `dart format`: clean.
-- `flutter test`: **877 passed** (after the review fixes).
+- `flutter test`: **883 passed** (after the review fixes and the user's
+  decisions).
 - `flutter build apk --release`: builds, 92.8 MB (87.9 MB after S8B, +4.9 MB:
   camera, notifications, `image`).
 - New tests:
@@ -234,7 +239,7 @@ covered on the emulator (E2–E4).
 
 | # | Check | How | Pass when |
 |---|---|---|---|
-| 1 | Install | `adb install -r build/app/outputs/flutter-apk/app-release.apk`; open the app | Existing alerts and settings are still there |
+| 1 | Install | From `mobile/`: `adb install -r build/app/outputs/flutter-apk/app-release.apk` (built from 7357fca); open the app | Existing alerts and settings are still there |
 | 2 | Camera permission | "ตรวจเท้า" → "เริ่มถ่ายรูป" → allow | The preview appears at once; no "เปิดกล้องไม่ได้" |
 | 3 | Preview path | `adb logcat -s flutter | grep "foot camera"` | Note the logged "surface producer handles crop and rotation: true/false" |
 | 4 | Front preview mirrored | Left sole view, front camera: raise your right hand in view | The hand appears on the right of the screen, like a mirror |
@@ -250,8 +255,9 @@ covered on the emulator (E2–E4).
 | 14 | Silent | Sound off; set another time a few minutes ahead | Shown, no sound or vibration |
 | 15 | None once done | Save a check, then set a time later today | No notification today |
 | 16 | After a reboot | Leave the app with Home (no force stop), restart the phone, don't open the app; set-up as in 12 beforehand | The reminder still comes |
-| 17 | Found path | A check with "มี / ไม่แน่ใจ" | Something found; the alert in "แจ้งเตือน"; the tab shows the found-today card; "ดูสิ่งที่ควรทำ" opens Something found |
+| 17 | Found path | A check with "มี / ไม่แน่ใจ" | Something found; the alert is in "แจ้งเตือน" and already read (no "ใหม่" chip, badge not raised by it); the tab shows the found-today card; "ดูสิ่งที่ควรทำ" opens Something found |
 | 18 | Cancel | Take one photo, "ยกเลิก" | The sheet asks; "ยกเลิกการตรวจ" removes the photo (Settings count unchanged) |
+| 19 | Line breaks and chip | On Capture and Compare, at phone font scale 1.3 (the phone's usual) | "ตั้งเวลา" and the quoted "มี / ไม่แน่ใจ" are never split; the hint chip shows on the two sole views only; answer-only is titled "ตอบคำถาม" |
 
 ## Leftovers and notes for the next sessions
 
@@ -270,31 +276,34 @@ covered on the emulator (E2–E4).
   broadcast to a force-stopped app, so its reminders come back only after
   the app is next opened. Normal use doesn't force-stop the app. Settings ›
   Apps › Force stop does, as does killing `flutter run`.
-- **Thai line break (fixed after the emulator run):** "วันนี้พบสิ่งที่ควรให้แพทย์ดู"
-  wrapped with "ดู" alone on the second line. A word joiner (U+2060) now
-  keeps "แพทย์ดู" together; goldens regenerated. The release APK above was
-  built before 353832a (this and the review fixes); rebuild it before the
-  Note 10 run.
-- **Capture hint chip** "วางโทรศัพท์บนพื้น แล้วใช้ปุ่มตั้งเวลา" shows on
-  all 4 views, as §11.2 states it (no view condition). On top views it is
-  less apt; a candidate for the design check.
-- **Answer-only title** stays "เทียบกับเมื่อวาน" though there are no photos
-  (see "Decisions needed").
+- **Thai line breaks.** Three phrases were split by Thai word breaking:
+  "แพทย์" | "ดู" in the found-today title (golden), "มี / ไม่" | "แน่ใจ"
+  in the Compare note (screenshot `15`), and "ตั้ง" | "เวลา" in the hint
+  chip. Each is kept together with word joiners (U+2060), checked by
+  `thai_line_break_test`. That test also has a control showing the plain
+  text does split, so it can fail. Other running text may have more such
+  splits; S10's text pass should look for them (BACKLOG 60).
 - Health copy (Something found, the reminder text, the camera panels, the
   history note) is draft, as listed in DESIGN-SPEC §14 and Appendix A.
 
+## Decisions after the review (user, 2026-10-26)
+
+Applied in 7357fca. DESIGN-SPEC §14 has them as decisions 19–22.
+
+| # | Decision | Applied |
+|---|---|---|
+| 1 | Answer-only is titled "ตอบคำถาม" | `FootCheckCopy.answerOnlyTitle`; golden `compare_answer_only` |
+| 2 | The hint chip shows on the two sole views only | `capture_screen.dart` (`view.isSole`); golden `capture_top_back_camera` has no chip |
+| 3 | A finding is read whenever Something found opens for that check: right after "บันทึก", from "ดูสิ่งที่ควรทำ", or from Alerts (§7.2 decision 7) | `AlertRepository.markFootCheckRead` called when Something found opens. Widget tests: right after saving, the alert is read; on the found-today tab, unread is 1 before "ดูสิ่งที่ควรทำ" and 0 after |
+| 4 | Keep "มี / ไม่แน่ใจ" on one line in running text (review finding 9 was real) | Word joiners in `FootCheckCopy.note`, the only running text that quotes it. Line-break test plus goldens `compare_note_100` / `compare_note_130` (412 px wide) |
+| 5 | Keep "ตั้งเวลา" together in the hint chip | Word joiners in the chip and in the Start tip ("ใช้ปุ่มตั้งเวลา"). Line-break test; Start and tab goldens regenerated |
+
+Release APK rebuilt from 7357fca: `mobile/build/app/outputs/flutter-apk/app-release.apk`,
+92.8 MB, built 2026-10-26 15:23. This is the build for the Note 10 run.
+
 ## Decisions needed
 
-1. **Answer-only title.** It keeps "เทียบกับเมื่อวาน" (§11.3) with no
-   photos to compare. Keep it, or use "ตอบคำถาม" for answer-only?
-2. **Hint chip on top views.** Keep it on all 4 views (as now), or show it
-   only on soles, where the phone goes on the floor?
-3. **When is a foot-check alert read?** Now: only when opened from the
-   Alerts list. So the badge keeps counting a finding the user has just
-   seen on Something found, until they open it in "แจ้งเตือน". Keep this,
-   or mark it read whenever Something found opens?
-4. **Note 10 checkpoint.** Run the checklist above when the phone is
-   available.
+None open. The Note 10 checkpoint is waiting on the user.
 
 ## Next session
 

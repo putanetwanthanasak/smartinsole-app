@@ -1376,3 +1376,12 @@ Saved shows "เมื่อวานพบสิ่งที่ควรให�
 finding (§11.5). A finding from two or more days ago, with no check since,
 shows nothing on Saved; the alert stays in "แจ้งเตือน". Listed under
 "Not designed yet" in DESIGN-SPEC §14.
+
+## 60. Thai word breaking can split phrases in other running text **(found in S8C)** — OPEN, for S10
+
+Flutter's Thai line breaker split "ไม่แน่ใจ", "ตั้งเวลา" and "แพทย์ดู"
+in foot-check copy (report 036). These are now kept together with word
+joiners (U+2060) and checked by `test/footcheck/thai_line_break_test.dart`.
+Other screens' running text (alert details, Home advice, Settings lines)
+was not checked. S10's large-text pass should look for awkward splits at
+1.3 × "ใหญ่มาก" and add joiners, extending that test to cover them.
