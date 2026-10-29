@@ -14,7 +14,7 @@ class FakeInsole {
     required this.id,
     this.name,
     this.footSide = 0,
-    this.fsrCount = 6,
+    this.fsrCount = SensorLayout.fsrCount,
     this.mtu = 247,
     this.advertising = true,
     this.hasService = true,
@@ -320,12 +320,23 @@ class FakeLink implements BleLink {
     nextSensorPacket(samples: samples, flags: flags),
   );
 
-  void sendTemp({int? tMs, int forefoot = 3180, int heel = 3120}) {
-    final d = ByteData(TempLayout.packetBytes)
-      ..setUint16(0, 0, Endian.little)
+  /// A temperature v2 packet; [raw] is 0.01 °C per site (−32768 = could
+  /// not read), [quality] 0–2 per site.
+  void sendTemp({
+    int? tMs,
+    List<int> raw = defaultTempRaw,
+    List<int>? quality,
+  }) => push(
+    BleUuids.temperature,
+    buildTempPacket(tMs: tMs ?? t0, raw: raw, quality: quality),
+  );
+
+  /// The refused v1 packet (12 bytes, forefoot and heel only).
+  void sendLegacyTemp({int? tMs}) {
+    final d = ByteData(TempLayout.legacyPacketBytes)
       ..setUint32(2, tMs ?? t0, Endian.little)
-      ..setInt16(6, forefoot, Endian.little)
-      ..setInt16(8, heel, Endian.little);
+      ..setInt16(6, 3180, Endian.little)
+      ..setInt16(8, 3120, Endian.little);
     push(BleUuids.temperature, d.buffer.asUint8List());
   }
 

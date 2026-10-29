@@ -464,9 +464,32 @@ class BleDataSource implements InsoleDataSource, InsoleControl {
             ),
           );
           return;
+        case Parsed(:final value) when value.fsrCount != SensorLayout.fsrCount:
+          const reason = RejectReason.calibrationFsrCount;
+          stats
+            ..countReject(reason)
+            ..calibrationFsrCount = value.fsrCount;
+          _log.add(
+            'calibration ${value.deviceId}: N = ${value.fsrCount}, the app '
+            'needs N = ${SensorLayout.fsrCount} (contract v1.6)',
+            side: side,
+          );
+          _problem(
+            LinkProblem(
+              deviceId: id,
+              kind: ProblemKind.calibrationInvalid,
+              detail:
+                  'calibration lists ${value.fsrCount} FSR channels, needs '
+                  '${SensorLayout.fsrCount}',
+              rejectReason: reason,
+            ),
+          );
+          return;
         case Parsed(:final value):
           _cal = value;
-          stats.calibrationDeviceId = value.deviceId;
+          stats
+            ..calibrationDeviceId = value.deviceId
+            ..calibrationFsrCount = value.fsrCount;
           _log.add(
             'calibration ${value.deviceId}: N = ${value.fsrCount}, '
             'offset_adc ${value.channels.map((c) => c.offsetAdc).toList()}',

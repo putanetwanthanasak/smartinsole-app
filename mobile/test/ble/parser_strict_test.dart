@@ -24,20 +24,11 @@ void main() {
 
   Uint8List status({int side = 0, int state = 1}) =>
       Uint8List.fromList([87, 0x93, 0x0f, side, 1, 4, state, 0]);
-  Uint8List temp({int quality = 0}) => Uint8List.fromList([
-    1,
-    0,
-    0x30,
-    0x75,
-    0,
-    0,
-    0x6c,
-    0x0c,
-    0xd2,
-    0x0b,
-    quality,
-    0,
-  ]);
+  Uint8List temp({int quality = 0, int count = 8}) => buildTempPacket(
+    tMs: 30000,
+    quality: [0, 0, 0, quality, 0, 0, 0, 0],
+    count: count,
+  );
   String blob(void Function(Map<String, dynamic> b) edit) {
     final b =
         jsonDecode(jsonEncode(calibrationBlob(6))) as Map<String, dynamic>;
@@ -119,12 +110,30 @@ void main() {
   });
 
   group('temperature', () {
-    test('tooShort', () {
+    for (final length in [0, 11, 12, 31]) {
+      test('tempLength: $length bytes', () {
+        expectReason(
+          parseTempPacket(temp().sublist(0, length)),
+          RejectReason.tempLength,
+        );
+      });
+    }
+
+    test('tempLength: 33 bytes', () {
       expectReason(
-        parseTempPacket(temp().sublist(0, 11)),
-        RejectReason.tooShort,
+        parseTempPacket(Uint8List.fromList([...temp(), 0])),
+        RejectReason.tempLength,
       );
     });
+
+    for (final count in [0, 2, 6, 9]) {
+      test('tempCount: count $count', () {
+        expectReason(
+          parseTempPacket(temp(count: count)),
+          RejectReason.tempCount,
+        );
+      });
+    }
 
     for (final quality in [3, 4, 255]) {
       test('invalidQuality: quality $quality', () {
@@ -221,7 +230,14 @@ void main() {
   });
 
   // Runs last (tests run in declaration order).
+  // calibrationFsrCount is refused by the connect sequence, not a parser
+  // (ble_data_source_test.dart "an insole with N = … is refused").
   test('every RejectReason has a test above', () {
-    expect(tested, RejectReason.values.toSet());
+    expect(
+      tested,
+      RejectReason.values.toSet().difference({
+        RejectReason.calibrationFsrCount,
+      }),
+    );
   });
 }

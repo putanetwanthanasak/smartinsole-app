@@ -2,6 +2,9 @@
 // generate.mjs — builds shared/test_vectors/*.json from the web app's TS
 // parser (src/ts/data/blePacketParser.ts), so the Flutter parser can be
 // checked against the exact numbers the hardware-verified TS code produces.
+// Formats the TS parser cannot read (N ≠ 6, temperature v2 from DATA-CONTRACT
+// v1.6) are "constructed": the expected values are the inputs the packet was
+// built from, and kPa / g / dps still come from the TS conversion functions.
 //
 // The TS source is compiled read-only into a temporary directory with the
 // repo's own tsc; nothing under src/ is touched. Every input is fixed (no
@@ -197,13 +200,25 @@ function constructedSensorCase(name, n, blob, spec) {
   const bytes = sensorBytes({ n, ...spec });
   const cal = tsCalibrationFromBlob(blob);
   const samples = spec.samples.map((s) => ({ fsrAdc: s.fsr, accelRaw: s.accel, gyroRaw: s.gyro }));
+  const expectedBytes = HEADER_BYTES + samples.length * blockBytes(n);
+  const base = { name, reference: 'constructed+ts-adcToKpa', fsr_count: n, calibration: blob.device_id, hex: hex(bytes) };
+  if (bytes.length < expectedBytes) {
+    return { ...base, expected: { rejected: 'truncated', expected_bytes: expectedBytes, actual_bytes: bytes.length } };
+  }
+  if (bytes.length > expectedBytes) {
+    return { ...base, expected: { rejected: 'lengthMismatch', expected_bytes: expectedBytes, actual_bytes: bytes.length } };
+  }
+  const flags = spec.flags ?? 0;
   return {
-    name, reference: 'constructed+ts-adcToKpa', fsr_count: n, calibration: blob.device_id, hex: hex(bytes),
+    ...base,
     expected: {
       rejected: null,
-      expected_bytes: HEADER_BYTES + samples.length * blockBytes(n),
+      expected_bytes: expectedBytes,
       actual_bytes: bytes.length,
-      header: { seq: spec.seq, t0_ms: spec.t0, count: samples.length, saturated: false, calibrating: false },
+      header: {
+        seq: spec.seq, t0_ms: spec.t0, count: samples.length,
+        saturated: (flags & 0b01) !== 0, calibrating: (flags & 0b10) !== 0,
+      },
       samples: samples.map((s, i) => sampleExpectation(s, i, spec.t0, cal, name)),
     },
   };
@@ -278,6 +293,19 @@ function sensorNFile(n) {
       { fsr: Array.from({ length: n }, (_, ch) => (ch % 2 ? 4095 : 0)), accel: [-32768, 32767, 0], gyro: [1, -1, 0] },
     ] }),
   ];
+  if (n === 8) {
+    // N = 8 is the real insole since DATA-CONTRACT v1.6: cover it as fully as N = 6.
+    // Offsets are ch × 9: ch1 at, ch2 below, ch3 above its offset_adc.
+    cases.push(
+      constructedSensorCase('n8_offset_below_equal_above', n, blob, { seq: 400, t0: 50260, samples: [
+        { fsr: [0, 9, 17, 28, 4095, 44, 55, 62], accel: [0, 0, 4096], gyro: [0, 0, 0] },
+      ] }),
+      constructedSensorCase('n8_flags_both', n, blob, { seq: 401, t0: 50280, flags: 0b11, samples: syntheticSamples(n, 2, 41) }),
+      constructedSensorCase('n8_seq_and_t0_max', n, blob, { seq: 65535, t0: 4294967295 - 140, samples: syntheticSamples(n, 8, 42) }),
+      constructedSensorCase('n8_one_byte_short', n, blob, { seq: 402, t0: 50440, samples: syntheticSamples(n, 8, 43), truncateTo: 231 }),
+      constructedSensorCase('n8_extra_trailing_bytes', n, blob, { seq: 403, t0: 50600, samples: syntheticSamples(n, 2, 44), extraBytes: 3 }),
+    );
+  }
   return {
     description: `Sensor Stream packets with ${n} FSR channels (sample block = 2N + 12 = ${blockBytes(n)} bytes). `
       + 'The TS parser only reads 6 channels, so raw values are the inputs the packet was built from; '
@@ -313,6 +341,73 @@ function temperatureFile() {
       tempCase('quality_2_sensor_fault', { seq: 8, tMs: 240000, forefoot: 3050, heel: 2990, quality: 2 }),
       tempCase('seq_and_t_max', { seq: 65535, tMs: 4294967295, forefoot: 3300, heel: 3300, quality: 0 }),
       tempCase('short_11_bytes', { seq: 9, tMs: 270000, forefoot: 3000, heel: 3000, quality: 0, length: 11 }),
+    ],
+  };
+}
+
+// ─── Temperature v2 vectors (DATA-CONTRACT v1.6 §3.2) ─────────────
+
+const TEMP_V2_BYTES = 32;
+const TEMP_V2_SITES = 8;
+const TEMP_UNREADABLE = -32768;
+
+/** seq u16, t_ms u32, count u8, reserved u8, temp int16 × 8 (0.01 °C), quality u8 × 8; little-endian. */
+function tempV2Bytes({ seq, tMs, count = TEMP_V2_SITES, reserved = 0, temps, quality, length = TEMP_V2_BYTES }) {
+  const dv = new DataView(new ArrayBuffer(Math.max(length, TEMP_V2_BYTES)));
+  dv.setUint16(0, seq, true);
+  dv.setUint32(2, tMs, true);
+  dv.setUint8(6, count);
+  dv.setUint8(7, reserved);
+  temps.forEach((v, i) => dv.setInt16(8 + 2 * i, v, true));
+  quality.forEach((q, i) => dv.setUint8(24 + i, q));
+  for (let i = TEMP_V2_BYTES; i < length; i++) dv.setUint8(i, 0xa5);
+  return new Uint8Array(dv.buffer).slice(0, length);
+}
+
+/**
+ * No TS parser reads v2, so a parsed case expects the inputs the packet was built from
+ * (°C = raw / 100, -32768 → null; contract §5.3). `rejected` is the Dart RejectReason.
+ */
+function tempV2Case(name, spec, rejected = null) {
+  const bytes = tempV2Bytes(spec);
+  const lengths = rejected === 'tempLength' ? { expected_bytes: TEMP_V2_BYTES, actual_bytes: bytes.length } : {};
+  const expected = rejected
+    ? { rejected, ...lengths }
+    : {
+      rejected: null, seq: spec.seq, t_ms: spec.tMs, count: spec.count ?? TEMP_V2_SITES,
+      celsius: spec.temps.map((v) => (v === TEMP_UNREADABLE ? null : v / 100)),
+      quality: spec.quality,
+    };
+  return { name, reference: 'constructed', hex: hex(bytes), expected };
+}
+
+function temperatureV2File() {
+  const temps = [3180, 3215, 3198, 3122, 3240, 3105, 3260, 3090];
+  const ok = Array(TEMP_V2_SITES).fill(0);
+  const base = { temps, quality: ok };
+  const legacy = tempBytes({ seq: 10, tMs: 300000, forefoot: 3180, heel: 3025, quality: 0 });
+  return {
+    description: 'Temperature v2 packets (DATA-CONTRACT v1.6 §3.2): exactly 32 bytes, count = 8, site i = NTC i '
+      + 'next to FSR i. Constructed: the TS parser cannot read v2, so "celsius" is raw / 100 of the inputs and null '
+      + 'for -32768 ("could not read"). "rejected" is the Dart RejectReason: tempLength for any length other than 32 '
+      + '(including the old 12-byte v1 packet), tempCount for count ≠ 8, invalidQuality for a quality byte above 2.',
+    cases: [
+      tempV2Case('normal_8_sites', { seq: 1, tMs: 30000, ...base }),
+      tempV2Case('negative_and_fractional', { seq: 2, tMs: 60000, temps: [-105, 1, -1, 0, 2999, -2999, 100, -100], quality: ok }),
+      tempV2Case('int16_extremes', { seq: 3, tMs: 90000, temps: [32767, -32767, 32767, -32767, 0, 0, 0, 0], quality: ok }),
+      tempV2Case('unreadable_one_site', { seq: 4, tMs: 120000, temps: temps.map((v, i) => (i === 6 ? TEMP_UNREADABLE : v)), quality: ok }),
+      tempV2Case('unreadable_all', { seq: 5, tMs: 150000, temps: Array(TEMP_V2_SITES).fill(TEMP_UNREADABLE), quality: Array(TEMP_V2_SITES).fill(2) }),
+      tempV2Case('quality_mixed', { seq: 6, tMs: 180000, temps, quality: [0, 1, 2, 0, 1, 2, 0, 0] }),
+      tempV2Case('seq_and_t_max', { seq: 65535, tMs: 4294967295, ...base }),
+      tempV2Case('reserved_nonzero_ignored', { seq: 7, tMs: 210000, reserved: 0x5a, ...base }),
+      { name: 'legacy_v1_12_bytes', reference: 'constructed', hex: hex(legacy),
+        expected: { rejected: 'tempLength', expected_bytes: TEMP_V2_BYTES, actual_bytes: legacy.length } },
+      tempV2Case('short_31_bytes', { seq: 8, tMs: 240000, ...base, length: 31 }, 'tempLength'),
+      tempV2Case('long_33_bytes', { seq: 9, tMs: 270000, ...base, length: 33 }, 'tempLength'),
+      tempV2Case('empty', { seq: 0, tMs: 0, ...base, length: 0 }, 'tempLength'),
+      tempV2Case('count_6', { seq: 11, tMs: 330000, count: 6, ...base }, 'tempCount'),
+      tempV2Case('count_0', { seq: 12, tMs: 360000, count: 0, ...base }, 'tempCount'),
+      tempV2Case('quality_3', { seq: 13, tMs: 390000, temps, quality: [0, 0, 0, 3, 0, 0, 0, 0] }, 'invalidQuality'),
     ],
   };
 }
@@ -422,6 +517,7 @@ const FILES = {
   'sensor_n4.json': sensorNFile(4),
   'sensor_n8.json': sensorNFile(8),
   'temperature.json': temperatureFile(),
+  'temperature_v2.json': temperatureV2File(),
   'status.json': statusFile(),
   'calibration.json': calibrationFile(),
 };

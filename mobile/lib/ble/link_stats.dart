@@ -58,6 +58,11 @@ class LinkStats {
   String? advertisedName;
   String? calibrationDeviceId;
 
+  /// FSR channels (N) the insole's calibration listed, accepted or
+  /// refused (the app needs `SensorLayout.fsrCount`); null before a
+  /// calibration was read. Diagnostics shows it for the SR check.
+  int? calibrationFsrCount;
+
   final _arrivals = ListQueue<DateTime>();
 
   void countReject(RejectReason reason) =>
