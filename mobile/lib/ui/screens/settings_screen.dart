@@ -42,9 +42,11 @@ class SettingsScreen extends ConsumerWidget {
     final s = ref.watch(settingsProvider);
     final c = ref.read(settingsProvider.notifier);
     final photos = ref.watch(footPhotoCountProvider).value ?? 0;
-    // Android 13+ permission, or the app's notifications turned off in
-    // the phone's settings (S8C, user decision 3).
-    final notifyAllowed = ref.watch(notificationsAllowedProvider).value ?? true;
+    // Blocked on any API level: the Android 13+ permission, the app's
+    // notifications turned off in the phone's settings, or the app-op
+    // (S8C, user decision 3). Unknown is not blocked.
+    final notifyBlocked =
+        ref.watch(notificationsAllowedProvider).value == false;
 
     final sections = <Widget>[
       const PageTitle('ตั้งค่า'),
@@ -90,7 +92,7 @@ class SettingsScreen extends ConsumerWidget {
               label: 'เตือนให้ดูเท้าทุกวัน',
               onChanged: (on) async {
                 await c.setFootCheckReminder(on);
-                if (on && !notifyAllowed) {
+                if (on && notifyBlocked) {
                   await ref
                       .read(notificationsAllowedProvider.notifier)
                       .request();
@@ -98,7 +100,7 @@ class SettingsScreen extends ConsumerWidget {
               },
             ),
           ),
-          if (s.footCheckReminder && !notifyAllowed)
+          if (s.footCheckReminder && notifyBlocked)
             ListRow(
               key: const ValueKey('settings-notify-denied'),
               icon: LucideIcons.bell_off,

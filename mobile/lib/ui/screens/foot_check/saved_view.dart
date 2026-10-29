@@ -79,7 +79,8 @@ class SavedView extends ConsumerWidget {
   /// phone lets the app post it (user decision 3).
   String? _reminderLine(WidgetRef ref) {
     final s = ref.watch(settingsProvider);
-    final allowed = ref.watch(notificationsAllowedProvider).value ?? false;
+    // Unknown is not a promise.
+    final allowed = ref.watch(notificationsAllowedProvider).value == true;
     if (!s.footCheckReminder || !allowed) return null;
     return FootCheckCopy.remindAt(formatReminderTime(s.reminderTime));
   }

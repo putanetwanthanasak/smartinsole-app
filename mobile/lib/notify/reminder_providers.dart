@@ -16,8 +16,11 @@ final reminderNotifierProvider = Provider<ReminderNotifier>(
   (ref) => LocalReminderNotifier(),
 );
 
-/// Whether the phone lets the app post notifications. Refreshed on resume
-/// (the user may have changed it in the phone's settings) and after a
+/// Whether the phone lets the app post notifications, on every API level
+/// (`NotificationAccess`). The one state the Settings row, Saved's
+/// reminder line and the reminder service all read: `null` while unknown,
+/// which neither warns nor promises. Refreshed on resume (the user may
+/// have changed it in the phone's settings), at each sync and after a
 /// request.
 final notificationsAllowedProvider =
     AsyncNotifierProvider<NotificationsAllowed, bool>(NotificationsAllowed.new);
@@ -27,13 +30,17 @@ class NotificationsAllowed extends AsyncNotifier<bool> {
   Future<bool> build() => ref.watch(reminderNotifierProvider).enabled();
 
   Future<void> refresh() async {
-    final v = await ref.read(reminderNotifierProvider).enabled();
-    if (state.value != v) state = AsyncData(v);
+    try {
+      final v = await ref.read(reminderNotifierProvider).enabled();
+      if (state.value != v) state = AsyncData(v);
+    } catch (e) {
+      debugPrint('reminder: notification check failed: $e');
+    }
   }
 
-  /// Shows the system prompt where allowed; if that still leaves
-  /// notifications off, opens the app's notification settings when
-  /// [openSettingsIfStillOff].
+  /// Shows the Android 13+ prompt where it can help; if notifications are
+  /// still off (always so below 13, which has no prompt), opens the app's
+  /// notification settings when [openSettingsIfStillOff].
   Future<bool> request({bool openSettingsIfStillOff = false}) async {
     final n = ref.read(reminderNotifierProvider);
     final ok = await n.request();
@@ -98,15 +105,22 @@ class ReminderService {
             .first !=
         null;
     final n = _ref.read(reminderNotifierProvider);
-    await n.replaceAll(
-      reminderTimes(
-        now: now,
-        enabled: s.footCheckReminder,
-        hour: s.reminderTime.hour,
-        minute: s.reminderTime.minute,
-        todayDone: done,
-      ),
-      sound: s.sound,
+    final times = reminderTimes(
+      now: now,
+      enabled: s.footCheckReminder,
+      hour: s.reminderTime.hour,
+      minute: s.reminderTime.minute,
+      todayDone: done,
+    );
+    // Scheduled even while blocked, so reminders come as soon as the user
+    // allows them in the phone's settings, without reopening the app.
+    await n.replaceAll(times, sound: s.sound);
+    await _ref.read(notificationsAllowedProvider.notifier).refresh();
+    final allowed = _ref.read(notificationsAllowedProvider).value;
+    debugPrint(
+      'reminder: ${times.length} scheduled'
+      '${times.isEmpty ? '' : ', first ${times.first}'}'
+      ' (notifications ${allowed == true ? 'allowed' : 'blocked'})',
     );
     // Also clears a reminder already shown today from the tray.
     if (done) await n.cancelDay(now);

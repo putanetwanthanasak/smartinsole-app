@@ -2,19 +2,20 @@
 /// `local_reminder_notifier.dart` imports the notification plugin; tests
 /// use a fake.
 abstract interface class ReminderNotifier {
-  /// Sets up the plugin and its channels. [onTap] runs when the user taps
+  /// Sets up the plugin and creates both reminder channels. [onTap] runs when the user taps
   /// a reminder while the app is running.
   Future<void> init({required void Function() onTap});
 
   /// Whether this run was started by tapping a reminder.
   Future<bool> launchedFromReminder();
 
-  /// Whether the phone lets the app post notifications (Android 13+
-  /// permission, or the app's switch in the phone's settings).
+  /// Whether a notification would actually show, on every API level: the
+  /// Android 13+ permission, the app's switch in the phone's settings and
+  /// the app-op (`NotificationAccess`).
   Future<bool> enabled();
 
-  /// Shows the Android 13+ prompt where the OS still allows it; returns
-  /// whether notifications are allowed afterwards.
+  /// Shows the Android 13+ prompt where it can help (never below 13);
+  /// returns whether notifications are allowed afterwards.
   Future<bool> request();
 
   /// Opens the app's notification settings page.

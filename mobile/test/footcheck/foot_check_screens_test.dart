@@ -718,6 +718,45 @@ void main() {
       expect(byKey('settings-notify-denied'), findsNothing);
     });
 
+    testWidgets('blocked, turned on in the phone settings: the row goes on '
+        'resume', (t) async {
+      final rig = FootCheckRig(allowed: false);
+      rig.reminders.grantOnRequest = false;
+      await rig.pump(t, initialRoute: '/settings');
+      await settleIo(t);
+      expect(byKey('settings-notify-denied'), findsOneWidget);
+      t.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      rig.reminders.allowed = true; // in the phone's settings
+      t.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await settleIo(t);
+      expect(byKey('settings-notify-denied'), findsNothing);
+    });
+
+    testWidgets('blocked: reminders stay scheduled, so they come once '
+        'allowed without reopening the app', (t) async {
+      final rig = FootCheckRig(allowed: false);
+      rig.reminders.grantOnRequest = false;
+      rig.settings.notificationPromptShown = true;
+      await rig.pump(t);
+      await settleIo(t);
+      expect(rig.reminders.pending, isNotEmpty);
+    });
+
+    testWidgets('blocked, then allowed on resume: Saved shows the reminder '
+        'line again', (t) async {
+      final rig = FootCheckRig(allowed: false);
+      rig.reminders.grantOnRequest = false;
+      rig.settings.notificationPromptShown = true;
+      await rig.pump(t, checks: [checkAt(dayAt(0, 8))]);
+      await openTab(t);
+      expect(find.text(FootCheckCopy.remindAt('19:00')), findsNothing);
+      t.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      rig.reminders.allowed = true; // in the phone's settings
+      t.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await settleIo(t);
+      expect(find.text(FootCheckCopy.remindAt('19:00')), findsOneWidget);
+    });
+
     testWidgets('denied: Saved hides the reminder line', (t) async {
       final rig = FootCheckRig(allowed: false);
       rig.reminders.grantOnRequest = false;

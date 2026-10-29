@@ -1,10 +1,11 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
-import 'package:permission_handler/permission_handler.dart' as ph;
 import 'package:timezone/timezone.dart' as tz;
 
 import 'android_resources.dart';
+import 'notification_access.dart';
 import 'reminder_notifier.dart';
 import 'reminder_plan.dart';
 import 'time_zone.dart';
@@ -15,6 +16,7 @@ import 'time_zone.dart';
 /// receiver (manifest). Text has no health details (user decision 2).
 class LocalReminderNotifier implements ReminderNotifier {
   final _plugin = FlutterLocalNotificationsPlugin();
+  late final _access = NotificationAccess(_PhoneNotifications(this));
 
   static const payload = 'foot-check-reminder';
   static const title = 'ถึงเวลาดูเท้าประจำวัน';
@@ -22,24 +24,36 @@ class LocalReminderNotifier implements ReminderNotifier {
 
   // A channel's sound is fixed once created, so the silent reminder has
   // its own channel. Names are what the phone's settings show (draft).
-  static const _soundChannel = AndroidNotificationDetails(
+  // Both are created in init(), so the phone's settings list them before
+  // the first reminder (the plugin otherwise creates a channel only when
+  // it first posts to it).
+  static const _soundChannel = AndroidNotificationChannel(
     'foot_check_reminder',
     'เตือนให้ดูเท้า',
-    channelDescription: 'เตือนตอนเย็นถ้าวันนี้ยังไม่ได้ดูเท้า',
+    description: 'เตือนตอนเย็นถ้าวันนี้ยังไม่ได้ดูเท้า',
     importance: Importance.high,
-    priority: Priority.high,
-    icon: AndroidResources.reminderIcon,
   );
-  static const _silentChannel = AndroidNotificationDetails(
+  static const _silentChannel = AndroidNotificationChannel(
     'foot_check_reminder_silent',
     'เตือนให้ดูเท้า (ไม่มีเสียง)',
-    channelDescription: 'เตือนตอนเย็นแบบไม่มีเสียง',
-    importance: Importance.defaultImportance,
-    priority: Priority.defaultPriority,
+    description: 'เตือนตอนเย็นแบบไม่มีเสียง',
     playSound: false,
     enableVibration: false,
-    icon: AndroidResources.reminderIcon,
   );
+
+  static AndroidNotificationDetails _detailsOf(AndroidNotificationChannel c) =>
+      AndroidNotificationDetails(
+        c.id,
+        c.name,
+        channelDescription: c.description,
+        importance: c.importance,
+        priority: c.importance == Importance.high
+            ? Priority.high
+            : Priority.defaultPriority,
+        playSound: c.playSound,
+        enableVibration: c.enableVibration,
+        icon: AndroidResources.reminderIcon,
+      );
 
   AndroidFlutterLocalNotificationsPlugin? get _android => _plugin
       .resolvePlatformSpecificImplementation<
@@ -62,6 +76,8 @@ class LocalReminderNotifier implements ReminderNotifier {
         if (r.payload == payload) onTap();
       },
     );
+    await _android?.createNotificationChannel(_soundChannel);
+    await _android?.createNotificationChannel(_silentChannel);
   }
 
   @override
@@ -72,17 +88,13 @@ class LocalReminderNotifier implements ReminderNotifier {
   }
 
   @override
-  Future<bool> enabled() async =>
-      await _android?.areNotificationsEnabled() ?? false;
+  Future<bool> enabled() => _access.allowed();
 
   @override
-  Future<bool> request() async {
-    await _android?.requestNotificationsPermission();
-    return enabled();
-  }
+  Future<bool> request() => _access.request();
 
   @override
-  Future<void> openSettings() => ph.openAppSettings();
+  Future<void> openSettings() => _access.openSettings();
 
   @override
   Future<void> replaceAll(
@@ -96,7 +108,7 @@ class LocalReminderNotifier implements ReminderNotifier {
       }
     }
     final details = NotificationDetails(
-      android: sound ? _soundChannel : _silentChannel,
+      android: _detailsOf(sound ? _soundChannel : _silentChannel),
     );
     for (final t in localTimes) {
       await _plugin.zonedSchedule(
@@ -114,4 +126,33 @@ class LocalReminderNotifier implements ReminderNotifier {
   @override
   Future<void> cancelDay(DateTime localDay) =>
       _plugin.cancel(id: reminderIdOf(localDay));
+}
+
+/// [NotificationPlatform] on the phone: the status and the settings page
+/// come from MainActivity's "smartinsole/notifications" channel, the
+/// Android 13+ prompt from the plugin.
+class _PhoneNotifications implements NotificationPlatform {
+  _PhoneNotifications(this._notifier);
+
+  final LocalReminderNotifier _notifier;
+  static const _channel = MethodChannel('smartinsole/notifications');
+
+  @override
+  Future<NotificationStatus> status() async {
+    final m = await _channel.invokeMapMethod<String, Object?>('status');
+    return NotificationStatus(
+      sdk: m?['sdk'] as int? ?? 0,
+      enabled: m?['enabled'] as bool? ?? false,
+      permissionGranted: m?['permission'] as bool? ?? false,
+      appOpAllowed: m?['appOpAllowed'] as bool? ?? false,
+    );
+  }
+
+  @override
+  Future<void> requestPermission() async =>
+      _notifier._android?.requestNotificationsPermission();
+
+  @override
+  Future<void> openNotificationSettings() =>
+      _channel.invokeMethod<void>('openSettings');
 }
