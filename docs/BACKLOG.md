@@ -1407,3 +1407,13 @@ shown to fail with keep.xml removed.
 `AndroidResources` and keep.xml, and the Note 10 run uses a release APK
 that passed the check. Any other by-name lookup (`getIdentifier`) follows
 the same rule.
+
+## 62. Evening reminders may come up to 1 hour late **(found at the S8C Note 10 run)** — OPEN, for S10 if needed
+
+The reminders are inexact alarms (`inexactAllowWhileIdle`, no exact-alarm
+permission). On the Note 10, `dumpsys alarm` shows each one, set a day or
+more ahead, with a delivery window of 1 hour, so 19:00 may come as late as
+20:00. Accepted for now (DESIGN-SPEC §11.8, report 036). If patients find
+it too late, options are a window alarm (`setWindow`, e.g. 15 minutes) or
+exact alarms, which need `SCHEDULE_EXACT_ALARM` / `USE_EXACT_ALARM` and
+their policy review.

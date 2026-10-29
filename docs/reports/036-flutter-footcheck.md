@@ -51,7 +51,11 @@ plan.
   All nine are fixed, the last after the user's screenshot review.
 - The user's decisions after the review are applied (7357fca). The
   release APK is rebuilt from that commit.
-- **Note 10 checkpoint: waiting on user** (checklist below).
+- **Note 10 checkpoint: waiting on user** (checklist below). Run 1
+  (2026-10-29) found that the reminder never worked in the release APK:
+  the icon was stripped by resource shrinking (fixed, with a release-APK
+  check), and Settings gave no warning while the phone blocked the app's
+  notifications (fixed). Items 12, 13, 14 and 16 are re-run on 2026-10-30.
 
 ## What changed
 
@@ -259,6 +263,36 @@ covered on the emulator (E2–E4).
 | 18 | Cancel | Take one photo, "ยกเลิก" | The sheet asks; "ยกเลิกการตรวจ" removes the photo (Settings count unchanged) |
 | 19 | Line breaks and chip | On Capture and Compare, at phone font scale 1.3 (the phone's usual) | "ตั้งเวลา" and the quoted "มี / ไม่แน่ใจ" are never split; the hint chip shows on the two sole views only; answer-only is titled "ตอบคำถาม" |
 
+### Note 10 run 1 (2026-10-29): in progress
+
+The laptop side was run by Claude; the phone steps by the user. The results
+below are only what was measured on the laptop or reported by the user so
+far. The user re-runs items 12, 13, 14 and 16 on 2026-10-30, before saving
+a check.
+
+| # | Result |
+|---|---|
+| 1 | `adb install -r` of the APK built from 7357fca (nothing under `mobile/` changed after it). `firstInstallTime` stayed 2026-10-18, so the study data was kept. |
+| 3 | `foot camera: surface producer handles crop and rotation: false` (logged at 12:06:19, 12:09:40 and 12:12:24). The Note 10 takes the plugin's SurfaceTexture path, where the app mirrors the front preview itself (BACKLOG 57); item 4 checks it. |
+| 10 | BEFORE (11:57): MediaStore 10,310 images, highest `_id` 80754; `/sdcard/DCIM` 5,093 files, `/sdcard/Pictures` 14,785 (19,878). AFTER: to be taken when the user finishes the run. |
+| 12 | **Failed.** No reminder came. Three defects and one phone setting, N1–N4 below. Fixed in 0c0ae61 and 5756720; re-run on 2026-10-30. |
+| other items | Results not yet reported by the user. |
+
+Findings:
+
+| # | Severity | Finding | Status |
+|---|---|---|---|
+| N1 | high | **The release APK lacked the reminder's small icon.** The release build shrinks resources and removes any that no code references by R id. `flutter_local_notifications` looks `ic_stat_foot_check` up by name, so it was removed. Reminder setup failed at every start with `PlatformException(invalid_icon, The resource ic_stat_foot_check could not be found…)`, so no reminder was ever scheduled: `dumpsys alarm` listed 0 alarms for the app. **Why the emulator missed it:** E15, E17 and E18 ran the MCP driver build (`flutter run -t test_driver/main_mcp.dart`), a debug build, and debug builds do not shrink resources. | **Fixed in 0c0ae61.** `res/raw/keep.xml` keeps it. Names looked up at runtime are constants in `android_resources.dart`. `android_resources_test` fails if a name is not kept or if lib/ passes one as text. `tool/check_release_resources.sh` fails if a release APK lacks a kept resource; it is now part of the release build command (`mobile/CLAUDE.md`). Both checks were shown to fail with keep.xml removed. BACKLOG 61 covers S9's alert notifications. After installing 0c0ae61 (12:36): no `invalid_icon`; 13 alarms, 30 Oct to 11 Nov at the set time (12:40), today skipped because a check was already saved. |
+| N2 | phone setting | **The app's notifications were blocked at system level.** `dumpsys notification`: `AppSettings: th.ac.kmutt.smartinsole (10212) allowNoti=false`; `appops`: `POST_NOTIFICATION: ignore`. Android 12 has no runtime prompt, so this was set outside the app's own flow; when and how is not known. Even with N1 fixed, no reminder would have shown. | The user turns notifications on from the app's Settings row after installing 5756720. |
+| N3 | high | **Settings showed no warning while notifications were blocked** (the reminder switch was on). The row "ต้องอนุญาตการแจ้งเตือนในโทรศัพท์" did not show on either 7357fca or 0c0ae61. The app decided from `areNotificationsEnabled()` only, and treated an unknown answer as allowed in Settings but as blocked in Saved. **Why the emulator missed it:** the emulator (API 37) was blocked through the runtime permission, which `areNotificationsEnabled()` follows; the Android 12 app-op state was never tested. | **Fixed in 5756720.** "Blocked" now means the phone would not show the reminder, on every API level: the app switch, the Android 13+ permission or the `POST_NOTIFICATION` app-op (MainActivity's `smartinsole/notifications` channel; the decision is the pure `NotificationAccess`). The row opens the app's notification settings directly (below 13 there is no prompt). It is re-checked on resume. Settings, Saved and the reminder service read one state; unknown neither warns nor promises. Reminders stay scheduled while blocked, so they come as soon as notifications are allowed. Tests: API 31 enabled, blocked by the switch, blocked by the app-op alone; API 33+ granted, denied then granted, denied, granted with the switch off; Settings row gone and Saved line back on resume; scheduled while blocked. **To confirm on the phone:** each check now logs `reminder: notifications allowed\|blocked (sdk=… enabled=… permission=… appOp=…)`, which shows whether `areNotificationsEnabled()` missed the app-op. |
+| N4 | low | **The two channels did not exist before the first reminder.** The plugin creates a channel only when it first posts to it, so the phone's notification settings listed none. | **Fixed in 5756720.** Both are created in `init()`. |
+| N5 | note | **Delivery window.** `dumpsys alarm` shows each reminder with `window=+1h0m0s0ms`: Android lets an inexact alarm set a day or more ahead come up to 1 hour late, so 19:00 may arrive as late as 20:00. | Accepted for now; recorded in DESIGN-SPEC §11.8; BACKLOG 62 (revisit in S10). |
+
+Other diagnostics from the failed item 12 (12:20, before any fix): device
+idle `ACTIVE` (screen on, charging); standby bucket 10 (active); Samsung
+freezer `isFrozen=false`; the app was not on the battery-optimisation
+exemption list. None of these was the cause.
+
 ## Leftovers and notes for the next sessions
 
 - **BACKLOG 56 (S10):** the notification header shows "smartinsole" and
@@ -298,8 +332,9 @@ Applied in 7357fca. DESIGN-SPEC §14 has them as decisions 19–22.
 | 4 | Keep "มี / ไม่แน่ใจ" on one line in running text (review finding 9 was real) | Word joiners in `FootCheckCopy.note`, the only running text that quotes it. Line-break test plus goldens `compare_note_100` / `compare_note_130` (412 px wide) |
 | 5 | Keep "ตั้งเวลา" together in the hint chip | Word joiners in the chip and in the Start tip ("ใช้ปุ่มตั้งเวลา"). Line-break test; Start and tab goldens regenerated |
 
-Release APK rebuilt from 7357fca: `mobile/build/app/outputs/flutter-apk/app-release.apk`,
-92.8 MB, built 2026-10-26 15:23. This is the build for the Note 10 run.
+Release APK for the Note 10 rebuilt from 5756720 (includes 0c0ae61):
+`mobile/build/app/outputs/flutter-apk/app-release.apk`, 92.8 MB, passes
+`tool/check_release_resources.sh`; SHA-256 begins `ba4edc419b1c02f1`.
 
 ## Decisions needed
 
