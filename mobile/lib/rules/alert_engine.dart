@@ -3,6 +3,7 @@ import 'dart:collection';
 
 import 'package:flutter/foundation.dart';
 
+import '../ble/ble_protocol.dart';
 import '../ble/link_state.dart';
 import '../ble/packets.dart';
 import '../config/foot_layout.dart';
@@ -12,7 +13,7 @@ import '../device/display_snapshot.dart';
 import '../device/foot_sample.dart';
 import '../device/rolling_peaks.dart';
 import '../storage/alert_repository.dart';
-import '../storage/models.dart' show AlertKind, NewAlert;
+import '../storage/models.dart' show AlertKind, NewAlert, TempSiteEntry;
 import 'alert_code.dart';
 import 'asymmetry.dart';
 import 'gait_note.dart';
@@ -21,15 +22,14 @@ import 'pressure_level.dart';
 import 'step_detector.dart';
 import 'walking_gate.dart';
 
-/// One rule that holds now: code + side + zone or site, with the value
-/// that crossed the threshold.
+/// One rule that holds now: code + side + zone, with the value that
+/// crossed the threshold.
 @immutable
 class AlertCondition {
   const AlertCondition({
     required this.code,
     required this.side,
     this.channel,
-    this.site,
     required this.value,
     required this.threshold,
     this.details = const {},
@@ -41,11 +41,11 @@ class AlertCondition {
   /// `ASYMMETRY_PEAK` the foot with the higher peak.
   final FootSide side;
 
-  /// FSR channel for the pressure codes.
+  /// Index into `footLayout.zones`: the FSR channel for the pressure
+  /// codes; for `TEMP_DELTA` the qualifying site with the largest |ΔT|
+  /// (site i = zone i), which the alert names. Not part of a
+  /// `TEMP_DELTA`'s [key]: one alert per warmer foot.
   final int? channel;
-
-  /// Temperature site for `TEMP_DELTA`.
-  final TempSite? site;
 
   /// In the code's unit: kPa, kPa·s, %, °C, minutes.
   final double value;
@@ -54,7 +54,7 @@ class AlertCondition {
   /// The numbers for the detail rows (DESIGN-SPEC §7.3).
   final Map<String, Object?> details;
 
-  String get key => alertKey(code, side, channel: channel, site: site);
+  String get key => alertKey(code, side, channel: channel);
 
   /// How far past its threshold, for picking between two of one code.
   double get ratio => value / threshold;
@@ -63,7 +63,6 @@ class AlertCondition {
     code: code,
     side: side,
     channel: channel,
-    site: site,
     deltaC: code == AlertCode.tempDelta ? value : null,
   );
 
@@ -207,9 +206,16 @@ class AlertEngine {
   Timer? _timer;
   final _steps = StreamController<Step>.broadcast(sync: true);
 
-  // TEMP_DELTA: consecutive reading pairs above deltaC, per site (rule 6).
+  // TEMP_DELTA: consecutive reading pairs above deltaC, per site (rule 6),
+  // and when each site's current run reached `consecutiveReadings`.
   final _tempFresh = {FootSide.left: false, FootSide.right: false};
-  final _overCount = {TempSite.forefoot: 0, TempSite.heel: 0};
+  final _overCount = List<int>.filled(TempLayout.siteCount, 0);
+  final _qualifiedAtMs = List<int?>.filled(TempLayout.siteCount, null);
+
+  // The TEMP_DELTA alert each warmer foot's newly qualifying sites are
+  // added to while it holds or suppresses a repeat (user decision
+  // 2026-10-29).
+  final _openTemp = <FootSide, _OpenTempAlert>{};
 
   // ASYMMETRY_PEAK: consecutive steps above peakPct.
   double? _latestPai;
@@ -228,10 +234,14 @@ class AlertEngine {
   bool _seeded = false;
   final _beforeSeed =
       <(AlertCondition, DisplaySnapshot, List<AlertCondition>)>[];
+  // TEMP_DELTA conditions whose sites wait for the memory too, applied
+  // after the rises above.
+  final _sitesBeforeSeed = <AlertCondition>[];
   final _writes = <Future<void>>{};
 
-  /// Consecutive reading pairs above `deltaC` at [site] (for tests).
-  int overCount(TempSite site) => _overCount[site]!;
+  /// Consecutive reading pairs above `deltaC` at temperature [site] (zone
+  /// index; for tests).
+  int overCount(int site) => _overCount[site];
 
   /// Consecutive steps above `asymmetry.peakPct` (for tests).
   int get asymmetrySteps => _asymSteps;
@@ -331,6 +341,7 @@ class AlertEngine {
     final now = {for (final c in conditions) c.key};
     for (final c in conditions) {
       if (!_active.contains(c.key)) _rise(c, s, conditions);
+      if (c.code == AlertCode.tempDelta) _addTempSites(c);
     }
     _active = now;
   }
@@ -376,14 +387,20 @@ class AlertEngine {
     if (_tempFresh.values.every((f) => f)) {
       _tempFresh.updateAll((_, _) => false);
       final s = manager.snapshot();
-      for (final site in TempSite.values) {
-        final d = _delta(s, site);
-        // A pair without a ΔT (a foot unusable, poor contact, no reading)
-        // breaks the run; one foot's missed reading does not, because a
-        // pair always uses each foot's newest reading.
-        _overCount[site] = d != null && deltaAbove(d, thresholds.deltaC)
-            ? _overCount[site]! + 1
-            : 0;
+      final atMs = s.at.millisecondsSinceEpoch;
+      for (var site = 0; site < _overCount.length; site++) {
+        // Null unless both feet are usable and both have this site with
+        // normal quality (rule 4). A pair without a ΔT breaks the site's
+        // run; one foot's missed reading does not, because a pair always
+        // uses each foot's newest reading.
+        final d = site < s.deltaC.length ? s.deltaC[site] : null;
+        final over = d != null && deltaAbove(d, thresholds.deltaC);
+        _overCount[site] = over ? _overCount[site] + 1 : 0;
+        if (!over) {
+          _qualifiedAtMs[site] = null;
+        } else if (_overCount[site] == thresholds.consecutiveReadings) {
+          _qualifiedAtMs[site] = atMs;
+        }
       }
     }
     check();
@@ -391,42 +408,90 @@ class AlertEngine {
 
   // --- Two-foot and link rules --------------------------------------------
 
-  static double? _delta(DisplaySnapshot s, TempSite site) {
-    if (!s.left.usable || !s.right.usable) return null;
-    return site == TempSite.forefoot ? s.deltaForefootC : s.deltaHeelC;
+  /// `TEMP_DELTA`, rule 6 per site: a site qualifies once its ΔT is above
+  /// `deltaC` on `consecutiveReadings` reading pairs in a row. One
+  /// condition per warmer foot, naming its site with the largest |ΔT| and
+  /// listing every qualifying site (user decision 2026-10-29).
+  List<AlertCondition> _tempConditions(DisplaySnapshot s) {
+    final bySide = <FootSide, List<int>>{};
+    for (var site = 0; site < s.deltaC.length; site++) {
+      final d = s.deltaC[site];
+      if (d == null) continue;
+      if (_overCount[site] < thresholds.consecutiveReadings) continue;
+      if (!deltaAbove(d, thresholds.deltaC)) continue;
+      // ΔT is left minus right: positive means the left foot is warmer.
+      (bySide[d > 0 ? FootSide.left : FootSide.right] ??= []).add(site);
+    }
+    return [
+      for (final MapEntry(key: side, value: sites) in bySide.entries)
+        _tempCondition(s, side, sites),
+    ];
   }
 
-  List<AlertCondition> _tempConditions(DisplaySnapshot s) {
-    final out = <AlertCondition>[];
-    for (final site in TempSite.values) {
-      final d = _delta(s, site);
-      if (d == null) continue;
-      final count = _overCount[site]!;
-      if (count < thresholds.consecutiveReadings) continue;
-      if (!deltaAbove(d, thresholds.deltaC)) continue;
-      double? at(FootView f) =>
-          site == TempSite.forefoot ? f.temp?.forefootC : f.temp?.heelC;
-      final otherSite = site == TempSite.forefoot
-          ? TempSite.heel
-          : TempSite.forefoot;
-      out.add(
-        AlertCondition(
-          code: AlertCode.tempDelta,
-          // ΔT is left minus right: positive means the left foot is warmer.
-          side: d > 0 ? FootSide.left : FootSide.right,
-          site: site,
-          value: d.abs(),
-          threshold: thresholds.deltaC,
-          details: {
-            'leftC': at(s.left),
-            'rightC': at(s.right),
-            'consecutive': count,
-            'otherSiteDeltaC': _delta(s, otherSite)?.abs(),
-          },
-        ),
-      );
+  AlertCondition _tempCondition(
+    DisplaySnapshot s,
+    FootSide side,
+    List<int> sites,
+  ) {
+    double abs(int i) => s.deltaC[i]!.abs();
+    // Largest |ΔT| first; the lower index on a tie (as maxAbsSite).
+    final ordered = [...sites]
+      ..sort((a, b) {
+        final c = abs(b).compareTo(abs(a));
+        return c != 0 ? c : a.compareTo(b);
+      });
+    final named = ordered.first;
+    return AlertCondition(
+      code: AlertCode.tempDelta,
+      side: side,
+      channel: named,
+      value: abs(named),
+      threshold: thresholds.deltaC,
+      details: {
+        'leftC': s.left.temp?.celsius[named],
+        'rightC': s.right.temp?.celsius[named],
+        'consecutive': _overCount[named],
+        // Every site's |ΔT| at this moment (null: no two-foot value).
+        'siteDeltaC': [for (final d in s.deltaC) d?.abs()],
+        TempSiteEntry.listKey: [
+          for (final i in ordered)
+            TempSiteEntry(
+              zone: footLayout.zones[i].id,
+              deltaC: abs(i),
+              atMs: _qualifiedAtMs[i] ?? s.at.millisecondsSinceEpoch,
+            ).toJson(),
+        ],
+      },
+    );
+  }
+
+  /// Adds the sites of [c] (a `TEMP_DELTA`) that its foot's open alert
+  /// does not list yet: a site that starts to qualify while that alert
+  /// holds or suppresses a repeat is never lost (user decision
+  /// 2026-10-29).
+  void _addTempSites(AlertCondition c) {
+    if (!_seeded) {
+      _sitesBeforeSeed.add(c);
+      return;
     }
-    return out;
+    final open = _openTemp[c.side];
+    if (open == null) return;
+    for (final e in TempSiteEntry.listOf(c.details)) {
+      if (!open.zones.add(e.zone)) continue;
+      debugPrint(
+        'alerts: TEMP_DELTA ${c.side.name}: site ${e.zone} added '
+        '(${e.deltaC} °C)',
+      );
+      final write = open.id
+          .then<void>((id) async {
+            if (id != null) await alerts.appendTempSite(id, e);
+          })
+          .catchError((Object err) {
+            debugPrint('alerts: site not added: $err');
+          });
+      _writes.add(write);
+      write.whenComplete(() => _writes.remove(write));
+    }
   }
 
   AlertCondition? _asymmetryCondition() {
@@ -520,10 +585,23 @@ class AlertEngine {
           code,
           a.side,
           channel: a.zone == null ? null : _channelOf(a.zone!),
-          site: a.site,
         );
         final prev = _lastRaisedMs[key];
-        if (prev == null || a.atMs > prev) _lastRaisedMs[key] = a.atMs;
+        if (prev == null || a.atMs > prev) {
+          _lastRaisedMs[key] = a.atMs;
+          // The newest TEMP_DELTA per foot takes later sites; one stored
+          // before schema v2 has no site list to add to.
+          final side = a.side;
+          if (code == AlertCode.tempDelta && side != null) {
+            if (a.details?.containsKey(TempSiteEntry.listKey) ?? false) {
+              _openTemp[side] = _OpenTempAlert(Future.value(a.id), {
+                for (final e in TempSiteEntry.listOf(a.details)) e.zone,
+              });
+            } else {
+              _openTemp.remove(side);
+            }
+          }
+        }
       }
     } on Object catch (e) {
       debugPrint('alerts: suppression memory unreadable: $e');
@@ -534,6 +612,9 @@ class AlertEngine {
     for (final (c, s, all) in waiting) {
       _rise(c, s, all);
     }
+    final sites = List.of(_sitesBeforeSeed);
+    _sitesBeforeSeed.clear();
+    sites.forEach(_addTempSites);
   }
 
   /// [c]'s detail numbers; a pressure code also gets both feet's foot
@@ -582,7 +663,6 @@ class AlertEngine {
       atMs: atMs,
       side: c.side,
       zone: c.channel == null ? null : footLayout.zones[c.channel!].id,
-      site: c.site,
       measuredValue: c.value,
       threshold: c.threshold,
       gaitClass: estimate?.gaitClass,
@@ -590,15 +670,29 @@ class AlertEngine {
       details: _detailsOf(c, s),
       captureStamp: captureStamp?.call(),
     );
-    final write = alerts
-        .add(alert)
-        .then<void>(
-          (_) {},
-          onError: (Object e) => debugPrint('alerts: not stored: $e'),
-        );
+    final added = alerts.add(alert);
+    final write = added.then<void>(
+      (_) {},
+      onError: (Object e) => debugPrint('alerts: not stored: $e'),
+    );
     _writes.add(write);
     write.whenComplete(() => _writes.remove(write));
+    if (c.code == AlertCode.tempDelta) {
+      _openTemp[c.side] = _OpenTempAlert(
+        added.then<int?>((id) => id, onError: (Object _) => null),
+        {for (final e in TempSiteEntry.listOf(c.details)) e.zone},
+      );
+    }
   }
+}
+
+/// A foot's newest `TEMP_DELTA`: its row id once stored (null if the
+/// write failed) and the zone ids of the sites it lists.
+class _OpenTempAlert {
+  _OpenTempAlert(this.id, this.zones);
+
+  final Future<int?> id;
+  final Set<String> zones;
 }
 
 /// The single-foot rules of one foot, fed from its 50 Hz samples.

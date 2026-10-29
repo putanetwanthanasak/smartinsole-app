@@ -9,11 +9,10 @@ import 'gait_timing.dart';
 /// The centre-of-pressure path of each foot's newest walking step
 /// (DESIGN-SPEC §8.3 details, "เส้นทางของแรงกดในก้าวล่าสุด (CoP)").
 ///
-/// Each sample's CoP is the zone positions weighted by their kPa
-/// (Σ kPa·position / Σ kPa), in the foot drawing's view-box units. The
-/// positions are the placeholder layout's until `shared/sensor_layout.json`
-/// exists (DESIGN-SPEC §14 decision 3), so the path shows the order the
-/// zones load in, not millimetres.
+/// Each sample's CoP is the 8 zone positions weighted by their kPa
+/// (Σ kPa·position / Σ kPa), in the foot drawing's view-box units: the
+/// sensor sites of `shared/sensor_layout.json` (mm) under its one uniform
+/// display scale, so the path keeps the insole's proportions.
 class CopTracker {
   CopTracker({required this.keepMs, this.layout = footLayout});
 

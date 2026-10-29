@@ -19,7 +19,7 @@ class Gait {
   const Gait({
     this.strideMs = 1000,
     this.stanceMs = 600,
-    this.kpa = const [10, 10, 10, 10, 10, 10],
+    this.kpa = const [10, 10, 10, 10, 10, 10, 10, 10],
     this.walking = true,
     this.phaseMs = 0,
   });
@@ -109,7 +109,7 @@ class RulesRig {
         src.packet(
           sample: (i, ms) => SensorSample(
             deviceMs: ms,
-            fsrAdc: List.filled(6, 1000),
+            fsrAdc: List.filled(g.kpa.length, 1000),
             fsrKpa: g.kpaAt(ms),
             accelG: g.accel,
             gyroDps: const [0, 0, 0],
@@ -141,13 +141,17 @@ class RulesRig {
     right.t0 += d.inMilliseconds;
   }
 
-  /// One temperature reading from [side].
+  /// One temperature reading from [side]: [c] °C at every site, [sites]
+  /// overriding some (null: could not read), [qualityAt] some qualities.
   void temp(
     FootSide side,
-    double? forefoot,
-    double? heel, {
+    double? c, {
+    Map<int, double?> sites = const {},
     TempQuality quality = TempQuality.normal,
-  }) => source(side).temp(forefoot, heel, quality: quality);
+    Map<int, TempQuality> qualityAt = const {},
+  }) =>
+      source(side)
+          .temp(c, sites: sites, quality: quality, qualityAt: qualityAt);
 
   /// Every alert raised so far, stored.
   Future<List<StoredAlert>> stored() async {

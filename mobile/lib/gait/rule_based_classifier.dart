@@ -11,17 +11,22 @@ import 'gait_classifier.dart';
 /// SR. Display only, never a level (rule 11).
 ///
 /// From each foot's newest `gait.ruleSteps` walking steps:
-/// - `toe_walking`: the heel's share of the steps' summed pressure–time
-///   integral is below `gait.toeHeelPtiPct`;
-/// - `heel_walking`: the forefoot's share (hallux, meta1, meta3, meta5) is
+/// - `toe_walking`: the heel's share (heel centre + lateral heel, the
+///   layout's `heel` region) of the steps' summed pressure–time integral is
+///   below `gait.toeHeelPtiPct`;
+/// - `heel_walking`: the forefoot's share (hallux, MTH1, MTH2–3, MTH5) is
 ///   below `gait.heelForefootPtiPct`;
 /// - `antalgic`: the PAI formula ([paiPercent]) on the two feet's mean
 ///   stance times is above `gait.stanceAsymmetryPct` (the painful side's
 ///   stance is shorter);
 /// - otherwise `normal`.
 ///
-/// `rotated_foot` comes only from the model: six FSR cannot tell how the
-/// foot is turned.
+/// The lateral midfoot and the medial arch count only in the whole, so
+/// both shares are over all 8 zones (the `gait.*` percentages were set
+/// for 6; SR checks them, BACKLOG 65).
+///
+/// `rotated_foot` comes only from the model: eight FSR cannot tell how
+/// the foot is turned.
 class RuleBasedClassifier implements GaitClassifier {
   const RuleBasedClassifier(this.thresholds, {this.layout = footLayout});
 
