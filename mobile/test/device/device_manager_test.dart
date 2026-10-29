@@ -36,15 +36,17 @@ class Rig {
   }
 
   /// Both feet streaming with one packet and one temperature each.
+  /// Both feet streaming; site 1 (MTH1) at [l] / [r], every other site at
+  /// 30.0 / 30.4 °C.
   void bothStreaming({double l = 31.8, double r = 31.5}) {
     left
       ..stream()
       ..packet()
-      ..temp(l, 30.0);
+      ..temp(30.0, sites: {1: l});
     right
       ..stream()
       ..packet()
-      ..temp(r, 30.4);
+      ..temp(30.4, sites: {1: r});
   }
 }
 
@@ -148,57 +150,75 @@ void main() {
     });
   });
 
-  group('ΔT (rule 4)', () {
-    test('is left minus right when both feet are usable', () {
+  group('ΔT per site (rule 4)', () {
+    test('is left minus right at each of the 8 sites', () {
       fakeAsync((async) {
         final rig = Rig(async)..bothStreaming(l: 31.0, r: 33.6);
         final s = rig.manager.snapshot();
-        expect(s.deltaForefootC, closeTo(-2.6, 1e-9));
-        expect(s.deltaHeelC, closeTo(-0.4, 1e-9));
+        expect(s.deltaC, hasLength(8));
+        expect(s.deltaC[1], closeTo(-2.6, 1e-9));
+        for (final i in [0, 2, 3, 4, 5, 6, 7]) {
+          expect(s.deltaC[i], closeTo(-0.4, 1e-9), reason: 'site $i');
+        }
+        expect(s.maxDeltaSite, 1);
+        expect(s.maxAbsDeltaC, closeTo(2.6, 1e-9));
       });
     });
 
-    test('is null with one foot missing', () {
+    test('every site is null with one foot missing', () {
       fakeAsync((async) {
         final rig = Rig(async);
         rig.left
           ..stream()
           ..packet()
-          ..temp(31, 30);
+          ..temp(30, sites: {1: 31});
         final s = rig.manager.snapshot();
         expect(s.left.usable, isTrue);
-        expect(s.deltaForefootC, isNull);
-        expect(s.deltaHeelC, isNull);
+        expect(s.deltaC, everyElement(isNull));
+        expect(s.maxDeltaSite, isNull);
+        expect(s.maxAbsDeltaC, isNull);
       });
     });
 
-    test('is null when one foot is stale', () {
+    test('every site is null when one foot is stale', () {
       fakeAsync((async) {
         final rig = Rig(async)..bothStreaming();
         rig.elapse(const Duration(seconds: 2));
         rig.left.packet();
         rig.elapse(const Duration(seconds: 2)); // right silent 4 s
-        expect(rig.manager.snapshot().deltaForefootC, isNull);
+        expect(rig.manager.snapshot().deltaC, everyElement(isNull));
       });
     });
 
-    test('is null for a reading that is not normal quality', () {
+    test('only the site whose quality is not normal is null', () {
       for (final q in [TempQuality.poorContact, TempQuality.sensorFault]) {
         fakeAsync((async) {
           final rig = Rig(async)..bothStreaming();
-          rig.right.temp(31.5, 30.4, quality: q);
-          expect(rig.manager.snapshot().deltaForefootC, isNull);
+          rig.right.temp(30.4, sites: {1: 31.5}, qualityAt: {6: q});
+          final d = rig.manager.snapshot().deltaC;
+          expect(d[6], isNull, reason: q.name);
+          expect(d[1], closeTo(31.8 - 31.5, 1e-9));
+          expect(d.where((v) => v == null), hasLength(1));
         });
       }
     });
 
-    test('is null when a value could not be read', () {
+    test('a whole foot of poor-quality sites gives no ΔT anywhere', () {
       fakeAsync((async) {
         final rig = Rig(async)..bothStreaming();
-        rig.right.temp(null, 30.4);
+        rig.left.temp(30.0, quality: TempQuality.poorContact);
+        expect(rig.manager.snapshot().deltaC, everyElement(isNull));
+      });
+    });
+
+    test('only the site that could not be read is null', () {
+      fakeAsync((async) {
+        final rig = Rig(async)..bothStreaming();
+        rig.right.temp(30.4, sites: {1: null});
         final s = rig.manager.snapshot();
-        expect(s.deltaForefootC, isNull);
-        expect(s.deltaHeelC, closeTo(30.0 - 30.4, 1e-9));
+        expect(s.deltaC[1], isNull);
+        expect(s.deltaC[5], closeTo(30.0 - 30.4, 1e-9));
+        expect(s.maxDeltaSite, 0, reason: 'a tie keeps the lower index');
       });
     });
 
@@ -208,11 +228,11 @@ void main() {
         rig.left
           ..stream()
           ..packet()
-          ..temp(31, 30);
+          ..temp(30, sites: {1: 31});
         rig.right
           ..stream()
           ..packet();
-        expect(rig.manager.snapshot().deltaForefootC, isNull);
+        expect(rig.manager.snapshot().deltaC, everyElement(isNull));
       });
     });
 
@@ -223,7 +243,7 @@ void main() {
           ..set(const LinkSearching(deviceId: 'X'))
           ..stream()
           ..packet();
-        expect(rig.manager.snapshot().deltaForefootC, isNull);
+        expect(rig.manager.snapshot().deltaC, everyElement(isNull));
       });
     });
   });
@@ -239,7 +259,7 @@ void main() {
           ..packet();
         final lastSample = rig.batches.last.samples.last;
         rig.elapse(const Duration(seconds: 1));
-        rig.left.temp(31.0, 30.0);
+        rig.left.temp(30.0, sites: {1: 31.0});
         expect(temps.single.fromArrival, isFalse);
         expect(temps.single.session, 1);
         // On the device clock: the last sample's time + the device time since.
@@ -258,7 +278,7 @@ void main() {
         rig.left
           ..set(const LinkSearching(deviceId: 'X'))
           ..stream()
-          ..temp(32.0, 30.0);
+          ..temp(30.0, sites: {1: 32.0});
         expect(temps.single.fromArrival, isTrue);
         expect(temps.single.session, 2);
         expect(temps.single.unixMs, rig.now().microsecondsSinceEpoch / 1000);
@@ -271,9 +291,9 @@ void main() {
         rig.right
           ..set(const LinkSearching(deviceId: 'X'))
           ..stream()
-          ..temp(31.9, 30.4)
+          ..temp(30.4, sites: {1: 31.9})
           ..packet();
-        expect(rig.manager.snapshot().deltaForefootC, closeTo(-0.1, 1e-9));
+        expect(rig.manager.snapshot().deltaC[1], closeTo(-0.1, 1e-9));
       });
     });
   });
@@ -294,7 +314,7 @@ void main() {
         for (var i = 1; i < unix.length; i++) {
           expect(unix[i] - unix[i - 1], inInclusiveRange(19.75, 20.25));
         }
-        expect(rig.batches.first.samples.first.fsrAdc, hasLength(6));
+        expect(rig.batches.first.samples.first.fsrAdc, hasLength(8));
       });
     });
 
@@ -384,18 +404,25 @@ void main() {
         rig.left
           ..stream()
           ..packet()
-          ..temp(31.0, 30.0);
+          ..temp(30.0, sites: {1: 31.0});
         rig.walkLeft(const Duration(minutes: 3));
         rig.left
           ..packet()
-          ..temp(31.4, 30.2)
-          ..temp(40, 40, quality: TempQuality.sensorFault);
+          ..temp(
+            30.2,
+            sites: {1: 31.4},
+            qualityAt: {7: TempQuality.poorContact},
+          )
+          ..temp(40, quality: TempQuality.sensorFault);
         rig.walkLeft(const Duration(minutes: 10));
         rig.left
           ..packet()
-          ..temp(31.9, 30.5);
+          ..temp(30.5, sites: {1: 31.9});
         final points = rig.manager.history(FootSide.left).points(rig.now());
-        expect(points.map((p) => p.forefootC), [31.4, 31.9]);
+        expect(points.map((p) => p.celsius[1]), [31.4, 31.9]);
+        // Per site: the poor-contact site is a gap, not a temperature.
+        expect(points.first.celsius[7], isNull);
+        expect(points.first.celsius[5], 30.2);
       });
     });
 
@@ -405,7 +432,7 @@ void main() {
         rig.left
           ..stream()
           ..packet()
-          ..temp(31.0, 30.0);
+          ..temp(30.0);
         rig.elapse(const Duration(hours: 25));
         expect(rig.manager.history(FootSide.left).points(rig.now()), isEmpty);
       });

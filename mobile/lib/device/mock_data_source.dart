@@ -11,6 +11,7 @@ import '../ble/insole_control.dart';
 import '../ble/link_state.dart';
 import '../ble/packets.dart';
 import '../ble/seq_tracker.dart';
+import '../config/foot_layout.dart';
 
 /// Data for every Home state on the emulator, without an ESP32. Debug
 /// builds only ([mockPresetFor]).
@@ -32,14 +33,17 @@ enum MockPreset {
 
   /// Level 3 `PRESSURE_PTI` (Be careful): the left forefoot carries a high
   /// load for most of a slow, long stance, "ปลายเท้าซ้ายรับน้ำหนักมาก
-  /// ต่อเนื่องนานเกินไป". Zone levels match board HomeDWatch: left
-  /// [medium, high, medium, low, low, medium], right [low, medium, low,
-  /// low, low, medium]. The left meta1 peak is above `alertKpa`, so S7's
+  /// ต่อเนื่องนานเกินไป". Zone levels for sites 0–5 match board HomeDWatch:
+  /// left [medium, high, medium, low, low, medium], right [low, medium,
+  /// low, low, low, medium]; the two v1.6 sites (medial arch, lateral heel)
+  /// are low on both feet. The left meta1 peak is above `alertKpa`, so S7's
   /// `PRESSURE_PEAK` can fire here too (BACKLOG 37 note).
   watch,
 
-  /// Level 4 `TEMP_DELTA` (Rest your feet): the right forefoot is 2.6 °C
-  /// warmer on every reading.
+  /// Level 4 `TEMP_DELTA` (Rest your feet): on the right foot, the heel
+  /// centre is 2.6 °C and the lateral heel 2.3 °C warmer than on the left,
+  /// on every reading (DESIGN-SPEC's "ส้นเท้าขวาอุ่นกว่าส้นเท้าซ้าย 2.6
+  /// องศา"; two qualifying sites, one alert for the right foot).
   rest,
 
   /// Neither foot connects.
@@ -90,8 +94,9 @@ class MockGait {
   final int strideMs;
   final int stanceMs;
 
-  /// Peak kPa per FSR channel: hallux, meta1, meta3, meta5, midfoot, heel
-  /// (channel index order).
+  /// Peak kPa per FSR channel, in `sensor_layout.json` order: hallux,
+  /// MTH1, MTH2–3, MTH5, lateral midfoot, heel centre, medial arch,
+  /// lateral heel.
   final List<double> peakKpa;
 
   /// When each channel is loaded, as a fraction of stance.
@@ -111,6 +116,8 @@ class MockGait {
     (0.35, 0.90),
     (0.15, 0.60),
     (0.00, 0.45),
+    (0.20, 0.65),
+    (0.00, 0.40),
   ];
 
   /// kPa per channel at [ms] into the walk.
@@ -159,47 +166,58 @@ class MockFootProfile {
   const MockFootProfile({
     this.streams = true,
     this.batteryPct = 92,
-    this.forefootC = 31.6,
-    this.heelC = 31.2,
+    this.siteC = baseSiteC,
     this.gait = normalWalk,
   });
 
   final bool streams;
   final int batteryPct;
-  final double forefootC;
-  final double heelC;
+
+  /// °C per temperature site (index = zone, NTC i next to FSR i).
+  final List<double> siteC;
   final MockGait gait;
+
+  /// A plausible resting sole: the arch warmest, toes and heel coolest.
+  static const baseSiteC = [31.4, 31.6, 31.7, 31.5, 31.9, 31.2, 32.3, 31.1];
+
+  /// [baseSiteC] shifted by [by] °C, plus [extra] °C at chosen sites.
+  static List<double> sites(double by, [Map<int, double> extra = const {}]) => [
+    for (var i = 0; i < baseSiteC.length; i++)
+      baseSiteC[i] + by + (extra[i] ?? 0),
+  ];
 
   /// Heel peak ≈ 60 kPa like the simulator's walk (S2B), all below watch.
   static const normalWalk = MockGait(
     strideMs: 1100,
     stanceMs: 660,
-    peakKpa: [40, 45, 50, 30, 25, 60],
+    peakKpa: [40, 45, 50, 30, 25, 60, 15, 45],
   );
 
   static MockFootProfile of(MockPreset preset, FootSide side) {
     final left = side == FootSide.left;
+    // The left foot a little warmer than the right everywhere: ΔT 0.3 °C.
+    final usual = sites(left ? 0.2 : -0.1);
     return switch (preset) {
-      MockPreset.safe => MockFootProfile(forefootC: left ? 31.8 : 31.5),
+      MockPreset.safe => MockFootProfile(siteC: usual),
       MockPreset.safeOrangeDot => MockFootProfile(
-        forefootC: left ? 31.8 : 31.5,
+        siteC: usual,
         gait: left
             ? const MockGait(
                 strideMs: 1100,
                 stanceMs: 660,
-                peakKpa: [40, 95, 50, 30, 25, 60],
+                peakKpa: [40, 95, 50, 30, 25, 60, 15, 45],
               )
             : normalWalk,
       ),
       MockPreset.watch => MockFootProfile(
-        forefootC: left ? 31.8 : 31.5,
+        siteC: usual,
         // A slow walk (both feet keep the same cadence); the left forefoot
         // stays loaded for most of a 1.2 s stance.
         gait: left
             ? const MockGait(
                 strideMs: 1600,
                 stanceMs: 1200,
-                peakKpa: [120, 240, 140, 50, 30, 110],
+                peakKpa: [120, 240, 140, 50, 30, 110, 25, 70],
                 windows: [
                   (0.60, 1.00),
                   (0.20, 0.98),
@@ -207,49 +225,49 @@ class MockFootProfile {
                   (0.35, 0.90),
                   (0.15, 0.60),
                   (0.00, 0.45),
+                  (0.20, 0.65),
+                  (0.00, 0.40),
                 ],
                 plateau: {1, 2},
               )
             : const MockGait(
                 strideMs: 1600,
                 stanceMs: 960,
-                peakKpa: [45, 120, 50, 30, 25, 100],
+                peakKpa: [45, 120, 50, 30, 25, 100, 15, 60],
               ),
       ),
       MockPreset.rest => MockFootProfile(
-        forefootC: left ? 31.0 : 33.6,
-        heelC: left ? 30.6 : 30.9,
+        siteC: left ? sites(-0.4) : sites(-0.4, const {5: 2.6, 7: 2.3}),
       ),
       MockPreset.noData => const MockFootProfile(streams: false),
-      MockPreset.oneFootMissing => MockFootProfile(
-        streams: left,
-        forefootC: 31.8,
-      ),
+      MockPreset.oneFootMissing => MockFootProfile(streams: left, siteC: usual),
       MockPreset.lowBattery => MockFootProfile(
-        forefootC: left ? 31.8 : 31.5,
+        siteC: usual,
         batteryPct: left ? 10 : 92,
       ),
-      // Sums 142 and 162 kPa: 47 : 53, "พอ ๆ กัน" (PAI 13 %).
+      // Sums 182 and 208 kPa: 47 : 53, "พอ ๆ กัน" (PAI 13 %).
       MockPreset.standing => MockFootProfile(
-        forefootC: left ? 31.8 : 31.5,
+        siteC: usual,
         gait: MockGait.standing(
           left
-              ? const [18, 24, 22, 14, 16, 48]
-              : const [20, 28, 26, 16, 18, 54],
+              ? const [18, 24, 22, 14, 16, 48, 10, 30]
+              : const [20, 28, 26, 16, 18, 54, 12, 34],
         ),
       ),
       // Forefoot loaded through most of stance, the heel never.
       MockPreset.toeWalk => MockFootProfile(
-        forefootC: left ? 31.8 : 31.5,
+        siteC: usual,
         gait: const MockGait(
           strideMs: 1000,
           stanceMs: 600,
-          peakKpa: [55, 60, 65, 40, 20, 0],
+          peakKpa: [55, 60, 65, 40, 20, 0, 8, 0],
           windows: [
             (0.30, 1.00),
             (0.05, 0.95),
             (0.05, 0.95),
             (0.05, 0.90),
+            (0.05, 0.50),
+            (0.00, 0.10),
             (0.05, 0.50),
             (0.00, 0.10),
           ],
@@ -312,7 +330,7 @@ class MockDataSource implements InsoleDataSource, InsoleControl {
         rPulldownOhm: 10000,
         sensorAreaM2: 0.000113,
         channels: [
-          for (var i = 0; i < 6; i++)
+          for (var i = 0; i < footLayout.zones.length; i++)
             CalibrationChannel(index: i, a: 1.23e5, b: -1.05, offsetAdc: 12),
         ],
       );
@@ -559,9 +577,8 @@ class MockDataSource implements InsoleDataSource, InsoleControl {
         packet: TempPacket(
           seq: _tempCount,
           tMs: (at.millisecondsSinceEpoch - _bootUnixMs) & 0xFFFFFFFF,
-          forefootC: _round2(p.forefootC + wobble),
-          heelC: _round2(p.heelC + wobble),
-          quality: TempQuality.normal,
+          celsius: [for (final c in p.siteC) _round2(c + wobble)],
+          quality: List.filled(p.siteC.length, TempQuality.normal),
         ),
       ),
     );

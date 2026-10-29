@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:smartinsole/ble/insole_data_source.dart';
 import 'package:smartinsole/ble/link_state.dart';
 import 'package:smartinsole/ble/packets.dart';
+import 'package:smartinsole/config/foot_layout.dart';
 import 'package:smartinsole/device/mock_data_source.dart';
 
 /// `shared/thresholds.json`: the numbers each preset must land against.
@@ -73,7 +74,7 @@ class FootRun {
   double get maxChannelPti => stances
       .map(
         (st) => [
-          for (var ch = 0; ch < 6; ch++)
+          for (var ch = 0; ch < st.first.length; ch++)
             st.fold(0.0, (a, k) => a + k[ch] * sampleS),
         ].reduce(math.max),
       )
@@ -83,7 +84,8 @@ class FootRun {
   double get maxConcentration => stances
       .map((st) {
         final peaks = [
-          for (var ch = 0; ch < 6; ch++) st.map((k) => k[ch]).reduce(math.max),
+          for (var ch = 0; ch < st.first.length; ch++)
+            st.map((k) => k[ch]).reduce(math.max),
         ];
         return peaks.reduce(math.max) / peaks.reduce((a, b) => a + b) * 100;
       })
@@ -105,7 +107,8 @@ class FootRun {
     return best;
   }
 
-  List<double> get forefoot => [for (final t in temps) t.packet.forefootC!];
+  /// Site [i]'s °C on every reading.
+  List<double> site(int i) => [for (final t in temps) t.packet.celsius[i]!];
   int get battery => statuses.last.packet.batteryPct;
 }
 
@@ -146,9 +149,17 @@ void expectSafe(FootRun f, String foot) {
   expect(f.maxPeak, lessThan(watchKpa), reason: '$foot peak');
 }
 
+/// Every site's |ΔT| below `deltaC` on every reading pair.
 void expectDeltaBelow(FootRun l, FootRun r) {
-  for (var i = 0; i < math.min(l.temps.length, r.temps.length); i++) {
-    expect((l.forefoot[i] - r.forefoot[i]).abs(), lessThan(deltaC));
+  expect(l.temps, isNotEmpty);
+  for (var site = 0; site < footLayout.zones.length; site++) {
+    for (var i = 0; i < math.min(l.temps.length, r.temps.length); i++) {
+      expect(
+        (l.site(site)[i] - r.site(site)[i]).abs(),
+        lessThan(deltaC),
+        reason: 'site $site',
+      );
+    }
   }
 }
 
@@ -183,19 +194,19 @@ void main() {
       expect(
         [for (final k in l.channelPeaks) band(k)],
         [
-          medium, high, medium, low, low, medium, //
+          medium, high, medium, low, low, medium, low, low, //
         ],
       );
       expect(
         [for (final k in r.channelPeaks) band(k)],
         [
-          low, medium, low, low, low, medium, //
+          low, medium, low, low, low, medium, low, low, //
         ],
       );
       // It is the forefoot: meta1 (channel 1) carries the highest PTI.
       final st = l.stances.first;
       final pti = [
-        for (var ch = 0; ch < 6; ch++)
+        for (var ch = 0; ch < st.first.length; ch++)
           st.fold(0.0, (a, k) => a + k[ch] * sampleS),
       ];
       expect(pti.indexOf(pti.reduce(math.max)), 1);
@@ -203,13 +214,26 @@ void main() {
       expectDeltaBelow(l, r);
     });
 
-    test('rest: right forefoot warmer beyond ΔT on consecutive readings', () {
+    test('rest: the right heel centre and lateral heel warmer beyond ΔT on '
+        'consecutive readings, every other site below', () {
       final (l, r) = runPreset(MockPreset.rest);
       final n = math.min(l.temps.length, r.temps.length);
       expect(n, greaterThanOrEqualTo(th('temperature', 'consecutiveReadings')));
-      for (var i = 0; i < n; i++) {
-        expect(r.forefoot[i] - l.forefoot[i], greaterThan(deltaC));
+      for (var site = 0; site < footLayout.zones.length; site++) {
+        for (var i = 0; i < n; i++) {
+          final d = r.site(site)[i] - l.site(site)[i];
+          if (site == 5 || site == 7) {
+            expect(d, greaterThan(deltaC), reason: 'site $site');
+          } else {
+            expect(d.abs(), lessThan(deltaC), reason: 'site $site');
+          }
+        }
       }
+      // The heel centre is the largest, so the alert names it.
+      expect(
+        r.site(5).first - l.site(5).first,
+        greaterThan(r.site(7).first - l.site(7).first),
+      );
       expectSafe(l, 'left');
       expectSafe(r, 'right');
     });
@@ -239,6 +263,7 @@ void main() {
         expect(f.maxWalkingAccel, greaterThanOrEqualTo(walkingAccelG));
         // 0 kPa comes back through the ADC as a hair above 0.
         expect(f.channelPeaks[5], lessThan(1), reason: '$foot heel');
+        expect(f.channelPeaks[7], lessThan(1), reason: '$foot lateral heel');
       }
     });
 
@@ -292,7 +317,7 @@ void main() {
       final s = l.frames
           .expand((f) => f.samples)
           .firstWhere((s) => s.fsrAdc.any((a) => a > 0));
-      expect(s.fsrAdc, hasLength(6));
+      expect(s.fsrAdc, hasLength(8));
       expect(s.fsrKpa.reduce(math.max), greaterThan(1));
     });
 

@@ -6,9 +6,9 @@ import 'package:smartinsole/ble/packets.dart';
 import 'package:smartinsole/config/foot_layout.dart';
 
 void main() {
-  final json =
-      jsonDecode(File('../shared/sensor_layout.json').readAsStringSync())
-          as Map<String, Object?>;
+  final json = jsonDecode(
+    File('../shared/sensor_layout.json').readAsStringSync(),
+  ) as Map<String, Object?>;
   final sites = (json['sites']! as List).cast<Map<String, Object?>>();
 
   test('8 zones in wire order, identical to shared/sensor_layout.json', () {

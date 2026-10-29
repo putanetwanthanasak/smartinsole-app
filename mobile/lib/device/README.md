@@ -7,7 +7,7 @@ the 10 Hz display path, read-time staleness, ΔT, and the debug-only mock.
 |---|---|
 | `device_clock.dart` | `DeviceClock`: device ms → unix ms per sample, one per foot per session (see below) |
 | `foot_sample.dart` | `FootSample` (unixMs, deviceMs, seq, raw ADC, kPa, g, °/s), `FootBatch` (one per accepted packet, with session and gap info) and `FootTemp` (one temperature reading, unix-timed) |
-| `model_channels.dart` | The 24 model-input channels in contract §7.1 order; `modelRow(left, right)`; `pairFeet(left, right)`, the L/R pairing rule (`pairing` in `shared/model_input.json`, also in the Python loader). Same list as `shared/model_input.json` (a test checks it) |
+| `model_channels.dart` | The 28 model-input channels in contract v1.6 §7.1 order; `modelRow(left, right)`; `pairFeet(left, right)`, the L/R pairing rule (`pairing` in `shared/model_input.json`, also in the Python loader). Same list as `shared/model_input.json` (a test checks it) |
 | `device_manager.dart` | `DeviceManager(left, right)` over two `InsoleDataSource`s |
 | `display_snapshot.dart` | `DisplaySnapshot` / `FootView` / `FootConnection`: what screens read |
 | `temp_history.dart` | Per-foot temperature history, 10-min buckets over 24 h (memory only; S6A persists it) |

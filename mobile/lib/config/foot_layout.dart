@@ -21,7 +21,6 @@ class FootLayout {
     required this.outlineLeft,
     required this.outlineRight,
     required this.zones,
-    required this.tempSites,
   });
 
   final Size viewBox;
@@ -31,9 +30,9 @@ class FootLayout {
   final String outlineLeft;
   final String outlineRight;
 
-  /// Indexed by FSR channel (= temperature site index).
+  /// Indexed by FSR channel (= temperature site index: NTC i sits with
+  /// FSR i, DATA-CONTRACT v1.6).
   final List<FootZone> zones;
-  final List<TempSiteLayout> tempSites;
 
   String outline(FootSide side) =>
       side == FootSide.left ? outlineLeft : outlineRight;
@@ -87,22 +86,6 @@ class FootZone {
   Offset get right => Offset(footLayout.viewBox.width - left.dx, left.dy);
 
   Offset position(FootSide side) => side == FootSide.left ? left : right;
-}
-
-enum TempSite { forefoot, heel }
-
-class TempSiteLayout {
-  const TempSiteLayout({
-    required this.site,
-    required this.nameTh,
-    required this.left,
-    required this.right,
-  });
-
-  final TempSite site;
-  final String nameTh;
-  final Offset left;
-  final Offset right;
 }
 
 const footLayout = FootLayout(
@@ -172,20 +155,6 @@ const footLayout = FootLayout(
       nameTh: 'ส้นเท้าด้านนอก',
       region: FootRegion.heel,
       mm: Offset(22, 82),
-    ),
-  ],
-  tempSites: [
-    TempSiteLayout(
-      site: TempSite.forefoot,
-      nameTh: 'หน้าเท้า',
-      left: Offset(62, 92),
-      right: Offset(58, 92),
-    ),
-    TempSiteLayout(
-      site: TempSite.heel,
-      nameTh: 'ส้นเท้า',
-      left: Offset(58, 222),
-      right: Offset(62, 222),
     ),
   ],
 );

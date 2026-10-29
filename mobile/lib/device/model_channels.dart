@@ -1,21 +1,23 @@
+import '../ble/ble_protocol.dart';
 import '../ble/packets.dart';
 import 'foot_sample.dart';
 
-/// Model A input channels, DATA-CONTRACT §7.1, in units decided for S4C /
-/// S8A (2026-10-22): FSR in kPa, accel in g, gyro in °/s. The same list is
-/// in `shared/model_input.json` for the training scripts; a test keeps the
-/// two identical. Never reorder: a model trained on one order silently
-/// gives garbage on another.
+/// Model A input channels, DATA-CONTRACT v1.6 §7.1, in units decided for
+/// S4C / S8A (2026-10-22): FSR in kPa, accel in g, gyro in °/s. The same
+/// list is in `shared/model_input.json` (version 2) for the training
+/// scripts; a test keeps the two identical. Never reorder: a model trained
+/// on one order silently gives garbage on another.
 ///
 /// ```
-///  0– 5 : FSR left  index 0–5     12–17 : FSR right index 0–5
-///  6– 8 : accel left x,y,z        18–20 : accel right x,y,z
-///  9–11 : gyro left  x,y,z        21–23 : gyro right  x,y,z
+///  0– 7 : FSR left  index 0–7     14–21 : FSR right index 0–7
+///  8–10 : accel left x,y,z        22–24 : accel right x,y,z
+/// 11–13 : gyro left  x,y,z        25–27 : gyro right  x,y,z
 /// ```
 
-/// FSR channels the model was specified for. A foot with another count
-/// (the hardware may change, FLUTTER-PLAN §2) has no model input.
-const modelFsrCount = 6;
+/// FSR channels the model is specified for (contract v1.6: 8 per foot). A
+/// foot with another count has no model input (and the connect sequence
+/// refuses it anyway).
+const modelFsrCount = SensorLayout.fsrCount;
 const modelChannelsPerFoot = modelFsrCount + 6;
 const modelChannelCount = 2 * modelChannelsPerFoot;
 
@@ -28,14 +30,14 @@ final List<String> modelChannelNames = List.unmodifiable([
   ],
 ]);
 
-/// The 12 values of one foot in §7.1 order, or null when the foot does not
+/// The 14 values of one foot in §7.1 order, or null when the foot does not
 /// have exactly [modelFsrCount] FSR channels.
 List<double>? footModelChannels(FootSample s) {
   if (s.fsrKpa.length != modelFsrCount) return null;
   return [...s.fsrKpa, ...s.accelG, ...s.gyroDps];
 }
 
-/// One 24-channel timestep: [left] then [right]. Pair the two feet's
+/// One 28-channel timestep: [left] then [right]. Pair the two feet's
 /// samples in time with [pairFeet] first.
 List<double>? modelRow(FootSample left, FootSample right) {
   final l = footModelChannels(left);
@@ -44,12 +46,12 @@ List<double>? modelRow(FootSample left, FootSample right) {
   return [...l, ...r];
 }
 
-/// Where a foot's block starts in the 24 channels.
+/// Where a foot's block starts in the 28 channels.
 int modelChannelOffset(FootSide side) =>
     side == FootSide.left ? 0 : modelChannelsPerFoot;
 
 /// How far apart (unix ms) a left and a right sample may be and still form
-/// one 24-channel row: half a 20 ms sample period. The same value is
+/// one 28-channel row: half a 20 ms sample period. The same value is
 /// `pairing.toleranceMs` in `shared/model_input.json` (a test checks).
 const pairToleranceMs = 10.0;
 

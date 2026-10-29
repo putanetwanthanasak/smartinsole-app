@@ -6,7 +6,7 @@ import 'package:smartinsole/ble/packets.dart';
 import 'package:smartinsole/device/foot_sample.dart';
 import 'package:smartinsole/device/model_channels.dart';
 
-FootSample sample(double base, {int n = 6, double unixMs = 0}) => FootSample(
+FootSample sample(double base, {int n = 8, double unixMs = 0}) => FootSample(
   unixMs: unixMs,
   deviceMs: 0,
   fsrAdc: List.filled(n, 0),
@@ -21,7 +21,10 @@ void main() {
       File('../shared/model_input.json').readAsStringSync(),
     ) as Map<String, Object?>;
     expect(modelChannelNames, json['channels']);
+    expect(json['version'], 2, reason: 'v2: 8 FSR per foot (contract v1.6)');
     expect(json['fsrChannelsPerFoot'], modelFsrCount);
+    expect(modelFsrCount, 8);
+    expect(modelChannelCount, 28);
     expect(json['windowSamples'], 100);
     expect(json['strideSamples'], 50);
     expect(json['sampleRateHz'], 50);
@@ -31,22 +34,24 @@ void main() {
     expect((pairing['toleranceMs']! as num).toDouble(), pairToleranceMs);
   });
 
-  test('a row is FSR 0-5, accel xyz, gyro xyz; left then right (§7.1)', () {
+  test('a row is FSR 0-7, accel xyz, gyro xyz; left then right (§7.1)', () {
     final row = modelRow(sample(100), sample(200))!;
     expect(row, hasLength(modelChannelCount));
-    expect(row.sublist(0, 6), [100, 101, 102, 103, 104, 105]);
-    expect(row.sublist(6, 9), [110, 111, 112]);
-    expect(row.sublist(9, 12), [120, 121, 122]);
-    expect(row.sublist(12, 18), [200, 201, 202, 203, 204, 205]);
-    expect(row.sublist(18, 21), [210, 211, 212]);
-    expect(row.sublist(21, 24), [220, 221, 222]);
+    expect(row.sublist(0, 8), [100, 101, 102, 103, 104, 105, 106, 107]);
+    expect(row.sublist(8, 11), [110, 111, 112]);
+    expect(row.sublist(11, 14), [120, 121, 122]);
+    expect(row.sublist(14, 22), [200, 201, 202, 203, 204, 205, 206, 207]);
+    expect(row.sublist(22, 25), [210, 211, 212]);
+    expect(row.sublist(25, 28), [220, 221, 222]);
     expect(modelChannelNames[modelChannelOffset(FootSide.right)], 'R_fsr0_kpa');
-    expect(modelChannelNames[9], 'L_gyro_x_dps');
+    expect(modelChannelNames[11], 'L_gyro_x_dps');
   });
 
-  test('a foot without exactly 6 FSR channels has no model input', () {
-    expect(footModelChannels(sample(0, n: 8)), isNull);
-    expect(modelRow(sample(0), sample(0, n: 4)), isNull);
+  test('a foot without exactly 8 FSR channels has no model input (a '
+      '6-FSR foot is never padded)', () {
+    expect(footModelChannels(sample(0, n: 6)), isNull);
+    expect(footModelChannels(sample(0, n: 9)), isNull);
+    expect(modelRow(sample(0), sample(0, n: 6)), isNull);
   });
 
   group('pairFeet', () {

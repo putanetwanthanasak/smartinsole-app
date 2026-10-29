@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:smartinsole/ble/ble_protocol.dart';
 import 'package:smartinsole/ble/calibration.dart';
 import 'package:smartinsole/ble/insole_data_source.dart';
 import 'package:smartinsole/ble/link_state.dart';
@@ -62,7 +63,7 @@ class FakeSource implements InsoleDataSource {
         deviceId: 'X',
         mtu: 247,
         samplesPerPacket: 8,
-        fsrCount: 6,
+        fsrCount: SensorLayout.fsrCount,
         since: now(),
       ),
     );
@@ -93,8 +94,8 @@ class FakeSource implements InsoleDataSource {
             else
               SensorSample(
                 deviceMs: (t0 + i * 20) & 0xFFFFFFFF,
-                fsrAdc: List.filled(6, 1000),
-                fsrKpa: List.filled(6, kpa),
+                fsrAdc: List.filled(SensorLayout.fsrCount, 1000),
+                fsrKpa: List.filled(SensorLayout.fsrCount, kpa),
                 accelG: [0, 0, 1],
                 gyroDps: [0, 0, 0],
               ),
@@ -118,10 +119,14 @@ class FakeSource implements InsoleDataSource {
         0xFFFFFFFF;
   }
 
+  /// A temperature v2 reading: every site at [c] °C except those in
+  /// [sites] (site index → °C, null = could not read); every site's quality
+  /// is [quality] except those in [qualityAt].
   void temp(
-    double? forefoot,
-    double? heel, {
+    double? c, {
+    Map<int, double?> sites = const {},
     TempQuality quality = TempQuality.normal,
+    Map<int, TempQuality> qualityAt = const {},
   }) => _temps.add(
     TempFrame(
       side: side,
@@ -130,9 +135,14 @@ class FakeSource implements InsoleDataSource {
       packet: TempPacket(
         seq: 0,
         tMs: deviceNow,
-        forefootC: forefoot,
-        heelC: heel,
-        quality: quality,
+        celsius: [
+          for (var i = 0; i < TempLayout.siteCount; i++)
+            sites.containsKey(i) ? sites[i] : c,
+        ],
+        quality: [
+          for (var i = 0; i < TempLayout.siteCount; i++)
+            qualityAt[i] ?? quality,
+        ],
       ),
     ),
   );
