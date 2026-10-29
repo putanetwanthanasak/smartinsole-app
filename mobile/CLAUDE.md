@@ -53,6 +53,7 @@ From `docs/FLUTTER-PLAN.md` section 6:
 | … add `--dart-define=GAIT_MODEL=dummy` | Debug/profile only: load the untrained dummy Model A from `assets/models_dummy/` (shapes, channel order, timing; Researcher › Diagnostics › "Gait model" shows the check). `GAIT_MODEL=demo-toe` instead fakes a model answering toe walking at 78 % (the FeetDGaitToe board). Release builds ignore the define |
 | `uv run tools/model/make_dummy_model.py` (repo root) | Regenerate the dummy model, its `normalization.json` and `check.json` (TensorFlow via uv's cache, not the repo) |
 | `flutter run -d <device-id>` | Plain debug run (e.g. the Note 10) |
+| `flutter build apk --release && tool/check_release_resources.sh` | Release APK for the phone. The check must pass before the APK goes on the Note 10: it fails if the APK lacks a resource the app looks up by name at runtime (see Release resources below) |
 | `dart format lib test test_driver` | Formatting |
 | `dart run build_runner build` | Regenerate drift code (`lib/storage/database.g.dart`) after a table change |
 | `dart run drift_dev make-migrations` | After bumping `schemaVersion`: dump the schema, write migration steps and tests |
@@ -105,7 +106,8 @@ lib/
   notify/              Evening reminder (S8C): reminder plan in the
                        phone's time zone, ReminderService, the only
                        flutter_local_notifications importer (see its
-                       README.md)
+                       README.md); android_resources.dart names every
+                       resource looked up by name at runtime
   ui/
     app.dart           MaterialApp, named routes
     foot_check_host.dart  start-up sweeps, reminder service, resume
@@ -168,7 +170,9 @@ test/                  flutter_test_config.dart loads the real fonts
   footcheck/           foot-check unit and widget tests;
                        foot_check_rig.dart (FootCheckRig, settleIo for
                        real file and database I/O)
-  notify/              reminder plan tests (Asia/Bangkok)
+  notify/              reminder plan tests (Asia/Bangkok);
+                       android_resources_test.dart (runtime resource
+                       names are kept, no literal names in lib/)
   helpers/             pumpApp, FakeFootCamera, FakeReminderNotifier
   ble/                 parser tests; test_vectors_test.dart reads
                        ../shared/test_vectors/*.json; fake_ble_central.dart
@@ -185,7 +189,27 @@ test/                  flutter_test_config.dart loads the real fonts
   drift/               schema migration tests (drift_schemas/ holds the
                        committed schema dumps)
 test_driver/           main_mcp.dart — driver-enabled entrypoint
+tool/                  make_cues.py; check_release_resources.sh (release
+                       APK has every kept runtime resource)
 ```
+
+## Release resources
+
+The release build shrinks resources: anything no code references by R id
+is removed. Debug builds (`flutter run`, the MCP driver build) keep
+everything, so a resource looked up only by name at runtime works on the
+emulator and is missing from the release APK. This happened in S8C: the
+reminder icon was gone and reminder setup failed on the Note 10 with
+"invalid_icon" (report 036).
+
+- Every name passed to a plugin that looks resources up by name
+  (notification icons, notification sounds, `getIdentifier`) is a constant
+  in `lib/notify/android_resources.dart`, never a string literal.
+- Each one is listed in `android/app/src/main/res/raw/keep.xml`
+  (`tools:keep`).
+- `test/notify/android_resources_test.dart` checks both;
+  `tool/check_release_resources.sh` checks the built release APK. S9's
+  alert notifications add their icons and sounds the same way.
 
 Research capture tools live at the repo root: `tools/capture/load_capture.py`
 (loader, checks, `--selftest`) and `tools/capture/export_capture.py` (adb

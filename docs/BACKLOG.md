@@ -1385,3 +1385,25 @@ joiners (U+2060) and checked by `test/footcheck/thai_line_break_test.dart`.
 Other screens' running text (alert details, Home advice, Settings lines)
 was not checked. S10's large-text pass should look for awkward splits at
 1.3 × "ใหญ่มาก" and add joiners, extending that test to cover them.
+
+## 61. Resources looked up by name must be kept in release builds **(found at the S8C Note 10 run)** — FIXED for the reminder; standing check for S9
+
+The release APK lacked the reminder's small icon `ic_stat_foot_check`:
+the release build's resource shrinker removes resources no code references
+by R id, and `flutter_local_notifications` looks the icon up by name. On
+the Note 10 reminder setup failed at every start ("invalid_icon"), so no
+reminder was ever scheduled. The emulator reminder checks (E15, E17, E18) ran a debug
+build, which does not shrink resources, and passed (report 036).
+
+Fixed with `android/app/src/main/res/raw/keep.xml` (`tools:keep`). Names
+looked up at runtime are now constants in
+`lib/notify/android_resources.dart`; `test/notify/android_resources_test.dart`
+fails if one is not kept or if lib/ passes a literal name to the plugin,
+and `tool/check_release_resources.sh` fails if a release APK lacks a kept
+resource (run after every release build; `mobile/CLAUDE.md`). Both were
+shown to fail with keep.xml removed.
+
+**For S9:** alert notifications add their icons and sounds to
+`AndroidResources` and keep.xml, and the Note 10 run uses a release APK
+that passed the check. Any other by-name lookup (`getIdentifier`) follows
+the same rule.

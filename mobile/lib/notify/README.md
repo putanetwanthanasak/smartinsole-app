@@ -20,3 +20,8 @@ Rules:
 - Inexact (`inexactAllowWhileIdle`): no exact-alarm permission; Android may
   deliver a few minutes late.
 - A tapped reminder, or a launch from one, opens the "ตรวจเท้า" tab.
+- The small icon `ic_stat_foot_check` is looked up by name, so it is a
+  constant in `android_resources.dart` and kept in
+  `android/app/src/main/res/raw/keep.xml`; the release build's resource
+  shrinker drops it otherwise (S8C, Note 10). See "Release resources" in
+  `mobile/CLAUDE.md`.

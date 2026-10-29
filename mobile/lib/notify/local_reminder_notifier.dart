@@ -4,6 +4,7 @@ import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:permission_handler/permission_handler.dart' as ph;
 import 'package:timezone/timezone.dart' as tz;
 
+import 'android_resources.dart';
 import 'reminder_notifier.dart';
 import 'reminder_plan.dart';
 import 'time_zone.dart';
@@ -27,7 +28,7 @@ class LocalReminderNotifier implements ReminderNotifier {
     channelDescription: 'เตือนตอนเย็นถ้าวันนี้ยังไม่ได้ดูเท้า',
     importance: Importance.high,
     priority: Priority.high,
-    icon: 'ic_stat_foot_check',
+    icon: AndroidResources.reminderIcon,
   );
   static const _silentChannel = AndroidNotificationDetails(
     'foot_check_reminder_silent',
@@ -37,7 +38,7 @@ class LocalReminderNotifier implements ReminderNotifier {
     priority: Priority.defaultPriority,
     playSound: false,
     enableVibration: false,
-    icon: 'ic_stat_foot_check',
+    icon: AndroidResources.reminderIcon,
   );
 
   AndroidFlutterLocalNotificationsPlugin? get _android => _plugin
@@ -55,7 +56,7 @@ class LocalReminderNotifier implements ReminderNotifier {
     debugPrint('reminder: local time zone ${zone.name}');
     await _plugin.initialize(
       settings: const InitializationSettings(
-        android: AndroidInitializationSettings('ic_stat_foot_check'),
+        android: AndroidInitializationSettings(AndroidResources.reminderIcon),
       ),
       onDidReceiveNotificationResponse: (r) {
         if (r.payload == payload) onTap();
