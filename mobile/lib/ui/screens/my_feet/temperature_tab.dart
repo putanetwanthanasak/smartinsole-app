@@ -79,8 +79,8 @@ class TemperatureTab extends ConsumerWidget {
         ),
         const SizedBox(height: Dimens.sectionGap),
         TwoColumns(
-          left: _SiteCard(view: siteCard(v, TempSite.forefoot, t)),
-          right: _SiteCard(view: siteCard(v, TempSite.heel, t)),
+          left: _SiteCard(view: siteCard(v, v.shownSites.first, t)),
+          right: _SiteCard(view: siteCard(v, v.shownSites.last, t)),
         ),
         const SizedBox(height: Dimens.sectionGap),
         _ChartCard(view: v, readings: readings, drawInKey: drawInKey),
@@ -106,7 +106,7 @@ class _SiteCard extends StatelessWidget {
     final rest = StatusColors.rest;
     final d = view.deltaC;
     return AppCard(
-      key: ValueKey('site-card-${view.site.name}'),
+      key: ValueKey('site-card-${footLayout.zones[view.site].id}'),
       padding: const EdgeInsets.all(Dimens.smallCardPadding),
       child: MergeSemantics(
         child: Column(
@@ -193,6 +193,7 @@ class _ChartCard extends ConsumerWidget {
       readings,
       now: view.minute,
       usable: {for (final s in FootSide.values) s: view.foot(s).usable},
+      sites: view.shownSites,
     );
     return AppCard(
       key: const ValueKey('temp-chart-card'),
@@ -223,7 +224,7 @@ class _ChartCard extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: Dimens.buttonGap),
-          const TempChartLegend(),
+          TempChartLegend(sites: view.shownSites),
           const SizedBox(height: Dimens.buttonGap),
           Text(
             'แอปจะเตือนเมื่อเส้นขึ้นไปถึงแถบสีแดงติดกัน '

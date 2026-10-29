@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smartinsole/ble/ble_protocol.dart';
 import 'package:smartinsole/ble/packets.dart';
-import 'package:smartinsole/config/foot_layout.dart';
 import 'package:smartinsole/storage/models.dart';
 import 'package:smartinsole/ui/screens/my_feet/temp_chart_model.dart';
 
@@ -10,6 +9,14 @@ final _period = TempLayout.notifyPeriod.inMilliseconds;
 const _deltaC = 2.2;
 const _both = {FootSide.left: true, FootSide.right: true};
 
+/// The two sites the chart draws here (INTERIM, S8D-1): MTH1 (the old
+/// forefoot site's role) and the heel centre.
+const _fore = 1;
+const _heel = 5;
+const _sites = [_fore, _heel];
+
+/// One reading: [fore] at MTH1, [heel] at the heel centre, 30.5 °C at the
+/// other sites; [quality] at every site.
 TemperatureReading _r(
   FootSide side,
   int atMs, {
@@ -20,11 +27,24 @@ TemperatureReading _r(
   atMs: atMs,
   localDate: '2026-10-25',
   side: side,
-  forefootC: fore,
-  heelC: heel,
+  siteC: [
+    for (var i = 0; i < TempLayout.siteCount; i++)
+      i == _fore
+          ? fore
+          : i == _heel
+          ? heel
+          : 30.5,
+  ],
+  siteQuality: List.filled(TempLayout.siteCount, quality),
   quality: quality,
   timeFromArrival: false,
 );
+
+TempChartData _chart(
+  List<TemperatureReading> readings, {
+  required DateTime now,
+  required Map<FootSide, bool> usable,
+}) => tempChartOf(readings, now: now, usable: usable, sites: _sites);
 
 /// Both feet every period from [fromMs] for [n] readings; the right foot
 /// 5 s after the left, its forefoot [rightFore] (by index).
@@ -49,29 +69,29 @@ void main() {
   final t0 = _day.millisecondsSinceEpoch;
 
   test('no readings: empty', () {
-    final d = tempChartOf(const [], now: _day, usable: _both);
+    final d = _chart(const [], now: _day, usable: _both);
     expect(d.isEmpty, isTrue);
     expect(chartSummary(d, deltaC: _deltaC), contains('ยังไม่มีข้อมูล'));
   });
 
   test('pairs the two feet: one point per reading once both have one', () {
     final rs = _day2(t0, 4);
-    final d = tempChartOf(
+    final d = _chart(
       rs,
       now: DateTime.fromMillisecondsSinceEpoch(rs.last.atMs),
       usable: _both,
     );
     // The first left reading has no right partner yet.
-    expect(d.runs[TempSite.forefoot]!.single.length, 7);
-    expect(d.last(TempSite.forefoot)!.deltaC, closeTo(0.3, 1e-9));
-    expect(d.last(TempSite.heel)!.deltaC, 0);
+    expect(d.runsOf(_fore).single.length, 7);
+    expect(d.last(_fore)!.deltaC, closeTo(0.3, 1e-9));
+    expect(d.last(_heel)!.deltaC, 0);
     expect(d.gaps, isEmpty);
     expect(d.startMs, t0);
   });
 
   test('readings further apart than notifyPeriod are not paired', () {
     final rs = [_r(FootSide.left, t0), _r(FootSide.right, t0 + _period + 1000)];
-    final d = tempChartOf(rs, now: _day, usable: _both);
+    final d = _chart(rs, now: _day, usable: _both);
     expect(d.isEmpty, isTrue);
   });
 
@@ -81,7 +101,7 @@ void main() {
       _r(FootSide.right, t0 + 1000, quality: TempQuality.poorContact),
       _r(FootSide.right, t0 + 2000, quality: TempQuality.sensorFault),
     ];
-    expect(tempChartOf(rs, now: _day, usable: _both).isEmpty, isTrue);
+    expect(_chart(rs, now: _day, usable: _both).isEmpty, isTrue);
   });
 
   test('a missing site value makes no point at that site only', () {
@@ -89,17 +109,17 @@ void main() {
       _r(FootSide.left, t0),
       _r(FootSide.right, t0 + 1000, heel: null),
     ];
-    final d = tempChartOf(rs, now: _day, usable: _both);
-    expect(d.runs[TempSite.forefoot], hasLength(1));
-    expect(d.runs[TempSite.heel], isEmpty);
+    final d = _chart(rs, now: _day, usable: _both);
+    expect(d.runs[_fore], hasLength(1));
+    expect(d.runs[_heel], isEmpty);
   });
 
   test('a gap that ended: the line breaks and the gap is closed', () {
     // The right foot misses readings 10..19 (5 min).
     final rs = _day2(t0, 30, rightMissing: (i) => i >= 10 && i < 20);
     final end = DateTime.fromMillisecondsSinceEpoch(rs.last.atMs);
-    final d = tempChartOf(rs, now: end, usable: _both);
-    expect(d.runs[TempSite.forefoot], hasLength(2));
+    final d = _chart(rs, now: end, usable: _both);
+    expect(d.runs[_fore], hasLength(2));
     final g = d.gaps.single;
     expect(g.side, FootSide.right);
     expect(g.ongoing, isFalse);
@@ -110,15 +130,15 @@ void main() {
   test('one or two missed readings are not a gap', () {
     final rs = _day2(t0, 10, rightMissing: (i) => i == 4 || i == 5);
     final end = DateTime.fromMillisecondsSinceEpoch(rs.last.atMs);
-    final d = tempChartOf(rs, now: end, usable: _both);
+    final d = _chart(rs, now: end, usable: _both);
     expect(d.gaps, isEmpty);
-    expect(d.runs[TempSite.forefoot], hasLength(1));
+    expect(d.runs[_fore], hasLength(1));
   });
 
   test('a foot that is not usable now has an open gap from its last row', () {
     final rs = _day2(t0, 10);
     final end = DateTime.fromMillisecondsSinceEpoch(rs.last.atMs);
-    final d = tempChartOf(
+    final d = _chart(
       rs,
       now: end,
       usable: const {FootSide.left: true, FootSide.right: false},
@@ -134,7 +154,7 @@ void main() {
     final now = DateTime.fromMillisecondsSinceEpoch(
       rs.last.atMs + chartGapAfter.inMilliseconds + 1,
     );
-    final d = tempChartOf(rs, now: now, usable: _both);
+    final d = _chart(rs, now: now, usable: _both);
     // Both feet stopped together: one gap.
     expect(d.gaps.single.ongoing, isTrue);
     expect(d.gaps.single.side, FootSide.left);
@@ -146,14 +166,14 @@ void main() {
       final rs = _day2(t0, 20, rightFore: (i) => i >= 10 ? 33.6 : 31.3);
       final end = DateTime.fromMillisecondsSinceEpoch(rs.last.atMs);
       final s = chartSummary(
-        tempChartOf(rs, now: end, usable: _both),
+        _chart(rs, now: end, usable: _both),
         deltaC: _deltaC,
       );
       expect(
         s,
         'กราฟความต่างของความอุ่นวันนี้ '
-        'ส้นเท้าต่ำกว่า 0.5 องศาตลอด '
-        'หน้าเท้าขึ้นถึงระดับที่ควรระวังตั้งแต่ราว 08:05 '
+        'กลางส้นเท้าต่ำกว่า 0.5 องศาตลอด '
+        'โคนนิ้วหัวแม่เท้าขึ้นถึงระดับที่ควรระวังตั้งแต่ราว 08:05 '
         'ตอนนี้ 2.6 องศา',
       );
     });
@@ -162,14 +182,17 @@ void main() {
       final rs = _day2(t0, 20, rightFore: (i) => i >= 4 && i < 8 ? 33.6 : 31.3);
       final end = DateTime.fromMillisecondsSinceEpoch(rs.last.atMs);
       final s = chartSummary(
-        tempChartOf(
+        _chart(
           rs,
           now: end,
           usable: const {FootSide.left: true, FootSide.right: false},
         ),
         deltaC: _deltaC,
       );
-      expect(s, contains('หน้าเท้าเคยขึ้นถึงระดับที่ควรระวังช่วง 08:02–08:04'));
+      expect(
+        s,
+        contains('โคนนิ้วหัวแม่เท้าเคยขึ้นถึงระดับที่ควรระวังช่วง 08:02–08:04'),
+      );
       expect(s, contains('ล่าสุด 0.3 องศา'));
       expect(s, endsWith('ขาดข้อมูลเท้าขวาตั้งแต่ 08:09'));
     });
@@ -193,7 +216,7 @@ void main() {
     test('the spoken summary gives the same range', () {
       // Right foot silent for readings 6–11, then back.
       final rs = _day2(t0, 20, rightMissing: (i) => i > 5 && i < 12);
-      final d = tempChartOf(
+      final d = _chart(
         rs,
         now: DateTime.fromMillisecondsSinceEpoch(rs.last.atMs),
         usable: _both,

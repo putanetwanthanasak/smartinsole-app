@@ -24,7 +24,8 @@ import 'my_feet_model.dart';
 /// A summary banner (§5): its status look, title, line, and either the
 /// "ดูสิ่งที่ควรทำ" link or the "เชื่อมต่อแผ่นรองเท้า" button. The link
 /// opens the newest stored alert of [linkCode] about the same foot
-/// ([linkSide]) and zone ([linkChannel]) or site ([linkSite]).
+/// ([linkSide]) and, for a pressure code, zone ([linkChannel]): the key the
+/// engine suppresses repeats by (`TEMP_DELTA` is per foot).
 @immutable
 class BannerView {
   const BannerView({
@@ -34,7 +35,6 @@ class BannerView {
     this.linkCode,
     this.linkSide,
     this.linkChannel,
-    this.linkSite,
     this.connect = false,
   });
 
@@ -44,7 +44,6 @@ class BannerView {
   final AlertCode? linkCode;
   final FootSide? linkSide;
   final int? linkChannel;
-  final TempSite? linkSite;
   final bool connect;
 
   @override
@@ -56,20 +55,11 @@ class BannerView {
       other.linkCode == linkCode &&
       other.linkSide == linkSide &&
       other.linkChannel == linkChannel &&
-      other.linkSite == linkSite &&
       other.connect == connect;
 
   @override
-  int get hashCode => Object.hash(
-    level,
-    title,
-    line,
-    linkCode,
-    linkSide,
-    linkChannel,
-    linkSite,
-    connect,
-  );
+  int get hashCode =>
+      Object.hash(level, title, line, linkCode, linkSide, linkChannel, connect);
 }
 
 const _noDataBanner = BannerView(
@@ -87,8 +77,8 @@ FootSide? _missingOf(bool left, bool right) => !left
 
 String _foot(FootSide s) => 'เท้า${sideTh(s)}';
 
-String _siteTh(TempSite site) =>
-    footLayout.tempSites.firstWhere((t) => t.site == site).nameTh;
+/// Temperature site i is zone i (DATA-CONTRACT v1.6).
+String _siteTh(int site) => footLayout.zones[site].nameTh;
 
 /// Whole number, or one decimal when it has one ("200", "2.2").
 String _n(double v) =>
@@ -256,10 +246,9 @@ BannerView tempBanner(
       line: 'ติดต่อกันมาสักพัก',
       linkCode: AlertCode.tempDelta,
       linkSide: alert.warmerSide,
-      linkSite: alert.site,
     );
   }
-  if (v.deltaForefootC == null && v.deltaHeelC == null) {
+  if (v.noDelta) {
     // Both feet stream but no site has a usable pair (poor contact, sensor
     // fault): never "close" without a number behind it. S6B draft.
     return const BannerView(
@@ -285,7 +274,8 @@ class SiteCardView {
     this.alerting = false,
   });
 
-  final TempSite site;
+  /// Zone index.
+  final int site;
 
   /// |ΔT| rounded to 0.1 °C; null shows "—" (rule 4).
   final double? deltaC;
@@ -309,7 +299,7 @@ class SiteCardView {
   int get hashCode => Object.hash(site, deltaC, alerting, note);
 }
 
-SiteCardView siteCard(TempTabView v, TempSite site, Thresholds t) {
+SiteCardView siteCard(TempTabView v, int site, Thresholds t) {
   final d = v.bothUsable ? v.delta(site) : null;
   if (d == null) {
     return SiteCardView(
@@ -358,6 +348,9 @@ String _qualityTh(TempQuality q) => switch (q) {
 
 /// The Temperature details rows (§8.2). [latestAt] is the newest stored
 /// reading today; [since] is when each foot's data stopped.
+///
+/// INTERIM (S8D-1): one row per site, "ซ้าย · ขวา · ต่าง", until S8D-2's
+/// table (จุด / ซ้าย / ขวา / ต่าง).
 List<DetailRow> tempDetailRows(
   TempTabView v,
   Thresholds t, {
@@ -365,60 +358,55 @@ List<DetailRow> tempDetailRows(
   required Map<FootSide, DateTime?> since,
 }) {
   final threshold = DetailRow('เกณฑ์', _tempThresholdRow(t));
-  if (!v.bothUsable) {
-    String gone(FootSide s) {
-      final at = since[s];
-      return at == null
-          ? 'ยังไม่ได้เชื่อมต่อ'
-          : 'ไม่มีข้อมูลตั้งแต่ ${hhmm(at)}';
-    }
+  String gone(FootSide s) {
+    final at = since[s];
+    return at == null ? 'ยังไม่ได้เชื่อมต่อ' : 'ไม่มีข้อมูลตั้งแต่ ${hhmm(at)}';
+  }
 
+  final sites = [
+    for (var i = 0; i < footLayout.zones.length; i++)
+      DetailRow(
+        _siteTh(i),
+        'ซ้าย ${_cOr(v.left.at(i))} · ขวา ${_cOr(v.right.at(i))}'
+        '${v.bothUsable ? ' · ต่าง ${_cOr(v.delta(i)?.abs())}' : ''} °C',
+      ),
+  ];
+  if (!v.bothUsable) {
     return [
       for (final f in [v.left, v.right])
-        f.usable
-            ? DetailRow(
-                'อุณหภูมิล่าสุด (${_foot(f.side)})',
-                'หน้าเท้า ${_cOr(f.forefootC)} · ส้นเท้า ${_cOr(f.heelC)} °C',
-              )
-            : DetailRow(_foot(f.side), gone(f.side)),
+        if (!f.usable) DetailRow(_foot(f.side), gone(f.side)),
+      if (v.left.usable || v.right.usable) ...sites,
       threshold,
     ];
-  }
-  String sites(TempSite s) {
-    double? at(TempFootView f) =>
-        s == TempSite.forefoot ? f.forefootC : f.heelC;
-    return 'ซ้าย ${_cOr(at(v.left))} · ขวา ${_cOr(at(v.right))} °C';
-  }
-
-  String delta(TempSite s) {
-    final d = v.delta(s);
-    return '${_siteTh(s)} ${d == null ? '—' : '${_c(d.abs())} °C'}';
   }
 
   final period = TempLayout.notifyPeriod.inSeconds;
   final latest = latestAt == null ? '' : ' · ล่าสุด ${hhmmss(latestAt)}';
-  // "ดีทั้ง 4 จุด" only when all four sites have a normal reading; a foot
-  // with no reading yet, or a site the sensor could not read, is named
-  // (rule 5: no data never reads as good).
+  // "ดีทั้ง 16 จุด" only when every site of both feet has a normal
+  // reading; a foot with no reading yet, or a site the sensor could not
+  // read, is named (rule 5: no data never reads as good).
   final bad = [
     for (final f in [v.left, v.right])
-      if (f.quality != null && f.quality != TempQuality.normal)
-        '${_foot(f.side)} ${_qualityTh(f.quality!)}'
-      else if (f.quality == null || f.forefootC == null || f.heelC == null)
-        '${_foot(f.side)} ยังวัดไม่ได้',
+      if (f.quality.isEmpty)
+        '${_foot(f.side)} ยังวัดไม่ได้'
+      else
+        for (var i = 0; i < f.quality.length; i++)
+          if (f.quality[i] != TempQuality.normal)
+            '${_foot(f.side)} ${_siteTh(i)} ${_qualityTh(f.quality[i])}'
+          else if (f.at(i) == null)
+            '${_foot(f.side)} ${_siteTh(i)} ยังวัดไม่ได้',
+  ];
+  final counted = [
+    for (final a in v.alerts.values)
+      if (a.consecutive != null) a,
   ];
   return [
-    DetailRow('หน้าเท้าตอนนี้', sites(TempSite.forefoot)),
-    DetailRow('ส้นเท้าตอนนี้', sites(TempSite.heel)),
-    DetailRow(
-      'ผลต่าง',
-      '${delta(TempSite.forefoot)} · ${delta(TempSite.heel)}',
-    ),
-    if (v.alerts.isNotEmpty)
+    ...sites,
+    if (counted.isNotEmpty)
       DetailRow(
         'วัดเกินเกณฑ์ติดกัน',
         [
-          for (final a in v.alerts.values)
+          for (final a in counted)
             '${_siteTh(a.site)} ${a.consecutive} ครั้ง '
                 '(เกณฑ์ ${t.consecutiveReadings} ครั้ง)',
         ].join(' · '),
@@ -428,7 +416,7 @@ List<DetailRow> tempDetailRows(
     DetailRow(
       'คุณภาพสัญญาณ',
       bad.isEmpty
-          ? 'ดีทั้ง ${FootSide.values.length * TempSite.values.length} จุด'
+          ? 'ดีทั้ง ${FootSide.values.length * TempLayout.siteCount} จุด'
           : bad.join(' · '),
     ),
   ];

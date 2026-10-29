@@ -279,11 +279,10 @@ HomeView homeViewOf(
 
   final both = s.left.usable && s.right.usable;
 
-  double? delta;
-  for (final d in [s.deltaForefootC, s.deltaHeelC]) {
-    if (d != null && (delta == null || d.abs() > delta.abs())) delta = d;
-  }
-  if (!both) delta = null;
+  // ΔT (signed: the warmer foot) at the site with the largest |ΔT| of the
+  // 8; rule 4 is checked again here.
+  final site = s.maxDeltaSite;
+  final delta = both && site != null ? s.deltaC[site] : null;
 
   WeightShare? share;
   if (both) {

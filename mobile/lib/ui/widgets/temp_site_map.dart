@@ -6,12 +6,13 @@ import '../theme/colors.dart';
 import '../theme/dimens.dart';
 import 'foot_map.dart';
 
-/// One foot with its two temperature sites (DESIGN-SPEC §7.3, "ตำแหน่งที่
-/// พบ" for `TEMP_DELTA`). [warmSite] is the site that is warmer than the
-/// same site on the other foot: Rest-your-feet fill and stroke plus a
-/// 3 px ring at radius 23; every other site is white with a 2 px
-/// `inkMuted` stroke. Still (no motion on the alert detail, §12.2). One
-/// screen-reader image with [semanticLabel].
+/// One foot with its 8 temperature sites (DESIGN-SPEC §7.3, "ตำแหน่งที่
+/// พบ" for `TEMP_DELTA`; site i = zone i, `shared/sensor_layout.json`).
+/// [warmSite] (zone index) is the site that is warmer than the same site
+/// on the other foot: Rest-your-feet fill and stroke plus a 3 px ring;
+/// every other site is white with a 2 px `inkMuted` stroke. Still (no
+/// motion on the alert detail, §12.2). One screen-reader image with
+/// [semanticLabel]. S8D-2 marks every qualifying site.
 class TempSiteMap extends StatelessWidget {
   const TempSiteMap({
     super.key,
@@ -23,7 +24,7 @@ class TempSiteMap extends StatelessWidget {
   });
 
   final FootSide side;
-  final TempSite? warmSite;
+  final int? warmSite;
   final String semanticLabel;
   final double width;
   final double height;
@@ -49,7 +50,7 @@ class _TempSitePainter extends CustomPainter {
   _TempSitePainter({required this.side, required this.warmSite});
 
   final FootSide side;
-  final TempSite? warmSite;
+  final int? warmSite;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -59,9 +60,9 @@ class _TempSitePainter extends CustomPainter {
       ..translate(offset.dx, offset.dy)
       ..scale(scale);
     paintFootOutline(canvas, side);
-    for (final t in footLayout.tempSites) {
-      final c = side == FootSide.left ? t.left : t.right;
-      final warm = t.site == warmSite;
+    for (var i = 0; i < footLayout.zones.length; i++) {
+      final c = footLayout.zones[i].position(side);
+      final warm = i == warmSite;
       canvas
         ..drawCircle(
           c,
@@ -158,7 +159,8 @@ enum SiteIconState { normal, alerting, missing }
 class TempSiteIcon extends StatelessWidget {
   const TempSiteIcon({super.key, required this.site, required this.state});
 
-  final TempSite site;
+  /// Zone index.
+  final int site;
   final SiteIconState state;
 
   @override
@@ -178,7 +180,7 @@ class TempSiteIcon extends StatelessWidget {
 class _SiteIconPainter extends CustomPainter {
   _SiteIconPainter({required this.site, required this.state});
 
-  final TempSite site;
+  final int site;
   final SiteIconState state;
 
   @override
@@ -189,10 +191,9 @@ class _SiteIconPainter extends CustomPainter {
       ..translate(offset.dx, offset.dy)
       ..scale(scale);
     paintFootOutline(canvas, FootSide.left);
-    final t = footLayout.tempSites.firstWhere((t) => t.site == site);
     canvas
       ..drawCircle(
-        t.left,
+        footLayout.zones[site].left,
         SiteIconColors.dotRadius,
         Paint()
           ..color = switch (state) {

@@ -342,8 +342,10 @@ class _ChartPainter extends CustomPainter {
           size.height,
         ),
       );
-    for (final site in [TempSite.forefoot, TempSite.heel]) {
-      final heel = site == TempSite.heel;
+    // INTERIM (S8D-1): the first site in the old forefoot style (dashed),
+    // the second in the old heel style (solid).
+    for (final site in data.sites) {
+      final heel = site != data.sites.first;
       final paint = Paint()
         ..color = heel ? TempChartColors.heel : TempChartColors.forefoot
         ..style = PaintingStyle.stroke
@@ -352,7 +354,7 @@ class _ChartPainter extends CustomPainter {
             : TempChartColors.forefootWidth
         ..strokeJoin = StrokeJoin.round
         ..strokeCap = StrokeCap.round;
-      for (final run in data.runs[site]!) {
+      for (final run in data.runsOf(site)) {
         final path = Path()..moveTo(x(run.first.atMs), y(run.first.deltaC));
         for (final p in run.skip(1)) {
           path.lineTo(x(p.atMs), y(p.deltaC));
@@ -367,7 +369,7 @@ class _ChartPainter extends CustomPainter {
       }
     }
     if (progress.value >= 1) {
-      for (final site in [TempSite.forefoot, TempSite.heel]) {
+      for (final site in data.sites) {
         final last = data.last(site);
         if (last == null) continue;
         final c = Offset(x(last.atMs), y(last.deltaC));
@@ -396,10 +398,13 @@ class _ChartPainter extends CustomPainter {
       old.data != data || old.deltaC != deltaC || old.scaler != scaler;
 }
 
-/// Legend "ส้นเท้า" / "หน้าเท้า": the two line styles. Hidden from screen
-/// readers; the chart has its own summary.
+/// Legend: the two line styles with their sites' names (INTERIM, S8D-1:
+/// [sites] as the chart's). Hidden from screen readers; the chart has its
+/// own summary.
 class TempChartLegend extends StatelessWidget {
-  const TempChartLegend({super.key});
+  const TempChartLegend({super.key, required this.sites});
+
+  final List<int> sites;
 
   @override
   Widget build(BuildContext context) {
@@ -419,7 +424,10 @@ class TempChartLegend extends StatelessWidget {
         alignment: WrapAlignment.center,
         spacing: Dimens.cardGap,
         runSpacing: Dimens.tightGap,
-        children: [item(true, 'ส้นเท้า'), item(false, 'หน้าเท้า')],
+        children: [
+          for (final site in sites.reversed)
+            item(site != sites.first, footLayout.zones[site].nameTh),
+        ],
       ),
     );
   }

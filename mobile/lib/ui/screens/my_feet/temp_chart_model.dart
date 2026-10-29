@@ -72,6 +72,7 @@ class TempChartData {
   const TempChartData({
     required this.startMs,
     required this.endMs,
+    required this.sites,
     required this.runs,
     required this.gaps,
   });
@@ -79,7 +80,8 @@ class TempChartData {
   static const empty = TempChartData(
     startMs: 0,
     endMs: 0,
-    runs: {TempSite.forefoot: [], TempSite.heel: []},
+    sites: [],
+    runs: {},
     gaps: [],
   );
 
@@ -87,17 +89,25 @@ class TempChartData {
   final int startMs;
   final int endMs;
 
-  /// Per site, the line as runs of points; the line breaks between runs.
-  final Map<TempSite, List<List<ChartPoint>>> runs;
+  /// INTERIM (S8D-1): the two sites drawn (zone indexes, in zone order):
+  /// the first dashed, the second solid. S8D-2 draws one line, the largest
+  /// |ΔT| of the 8 sites.
+  final List<int> sites;
+
+  /// Per site of [sites], the line as runs of points; the line breaks
+  /// between runs.
+  final Map<int, List<List<ChartPoint>>> runs;
 
   /// Oldest first.
   final List<ChartGap> gaps;
 
   bool get isEmpty => runs.values.every((r) => r.isEmpty);
 
+  List<List<ChartPoint>> runsOf(int site) => runs[site] ?? const [];
+
   /// The newest point at [site], or null.
-  ChartPoint? last(TempSite site) {
-    final r = runs[site]!;
+  ChartPoint? last(int site) {
+    final r = runsOf(site);
     return r.isEmpty ? null : r.last.last;
   }
 
@@ -106,17 +116,19 @@ class TempChartData {
       other is TempChartData &&
       other.startMs == startMs &&
       other.endMs == endMs &&
+      listEquals(other.sites, sites) &&
       listEquals(other.gaps, gaps) &&
-      TempSite.values.every((s) => _runsEqual(other.runs[s]!, runs[s]!));
+      sites.every((s) => _runsEqual(other.runsOf(s), runsOf(s)));
 
   @override
   int get hashCode => Object.hash(
     startMs,
     endMs,
+    Object.hashAll(sites),
     Object.hashAll(gaps),
     Object.hashAll([
-      for (final s in TempSite.values)
-        for (final r in runs[s]!) Object.hashAll(r),
+      for (final s in sites)
+        for (final r in runsOf(s)) Object.hashAll(r),
     ]),
   );
 }
@@ -129,14 +141,15 @@ bool _runsEqual(List<List<ChartPoint>> a, List<List<ChartPoint>> b) {
   return true;
 }
 
-/// The chart for [readings] (one day, both feet, oldest first) at [now].
-/// [usable] says which feet stream now: a foot that does not has an open
-/// gap from its last reading, however recent.
+/// The chart of [sites] for [readings] (one day, both feet, oldest first)
+/// at [now]. [usable] says which feet stream now: a foot that does not has
+/// an open gap from its last reading, however recent.
 ///
-/// - A point is |ΔT| at a site whenever a `normal` reading of one foot
-///   meets the other foot's newest `normal` reading no more than
-///   [chartPairWithin] older, the same pairing as the alert engine (each
-///   foot's newest reading).
+/// - A point is |ΔT| at a site whenever a reading of one foot meets the
+///   other foot's newest reading no more than [chartPairWithin] older, the
+///   same pairing as the alert engine (each foot's newest reading), and
+///   both read that site with normal quality. Rows stored before the 8
+///   sites (schema v1) give no points: their sites are not these.
 /// - The line breaks where two points are more than [chartGapAfter] apart.
 /// - A foot with no row for longer than [chartGapAfter] is a gap, open
 ///   when it has not come back by [now].
@@ -144,24 +157,25 @@ TempChartData tempChartOf(
   List<TemperatureReading> readings, {
   required DateTime now,
   required Map<FootSide, bool> usable,
+  required List<int> sites,
 }) {
   if (readings.isEmpty) return TempChartData.empty;
   final nowMs = now.millisecondsSinceEpoch;
   final gapMs = chartGapAfter.inMilliseconds;
   final pairMs = chartPairWithin.inMilliseconds;
 
-  final points = {for (final s in TempSite.values) s: <ChartPoint>[]};
+  final points = {for (final s in sites) s: <ChartPoint>[]};
   final newest = <FootSide, TemperatureReading>{};
   for (final r in readings) {
-    if (r.quality != TempQuality.normal) continue;
+    if (r.isLegacy) continue;
     newest[r.side] = r;
     final left = newest[FootSide.left];
     final right = newest[FootSide.right];
     if (left == null || right == null) continue;
     if ((left.atMs - right.atMs).abs() > pairMs) continue;
-    for (final site in TempSite.values) {
-      final l = site == TempSite.forefoot ? left.forefootC : left.heelC;
-      final rr = site == TempSite.forefoot ? right.forefootC : right.heelC;
+    for (final site in sites) {
+      final l = left.usableC(site);
+      final rr = right.usableC(site);
       if (l == null || rr == null) continue;
       final p = ChartPoint(r.atMs, (l - rr).abs());
       final list = points[site]!;
@@ -204,7 +218,8 @@ TempChartData tempChartOf(
   return TempChartData(
     startMs: start,
     endMs: nowMs > readings.last.atMs ? nowMs : readings.last.atMs,
-    runs: {for (final s in TempSite.values) s: split(points[s]!)},
+    sites: sites,
+    runs: {for (final s in sites) s: split(points[s]!)},
     gaps: _merged(gaps, gapMs),
   );
 }
@@ -229,8 +244,7 @@ List<ChartGap> _merged(List<ChartGap> gaps, int gapMs) {
   return out;
 }
 
-String _siteTh(TempSite site) =>
-    footLayout.tempSites.firstWhere((t) => t.site == site).nameTh;
+String _siteTh(int site) => footLayout.zones[site].nameTh;
 
 String _time(int ms) => hhmm(DateTime.fromMillisecondsSinceEpoch(ms));
 
@@ -253,8 +267,8 @@ String chartSummary(TempChartData d, {required double deltaC}) {
   if (d.isEmpty) return '$title ยังไม่มีข้อมูล';
   final open = d.gaps.isNotEmpty && d.gaps.last.ongoing;
   final parts = <String>[title];
-  for (final site in [TempSite.heel, TempSite.forefoot]) {
-    parts.add(_siteSummary(site, d.runs[site]!, deltaC, open: open));
+  for (final site in d.sites.reversed) {
+    parts.add(_siteSummary(site, d.runsOf(site), deltaC, open: open));
   }
   if (d.gaps.isNotEmpty) {
     final g = d.gaps.last;
@@ -269,7 +283,7 @@ String chartSummary(TempChartData d, {required double deltaC}) {
 }
 
 String _siteSummary(
-  TempSite site,
+  int site,
   List<List<ChartPoint>> runs,
   double deltaC, {
   required bool open,

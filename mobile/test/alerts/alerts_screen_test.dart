@@ -4,7 +4,6 @@ import 'dart:ui' show Tristate;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smartinsole/ble/packets.dart';
-import 'package:smartinsole/config/foot_layout.dart';
 import 'package:smartinsole/rules/patient_status.dart';
 import 'package:smartinsole/storage/models.dart';
 import 'package:smartinsole/storage/storage_providers.dart';
@@ -38,7 +37,7 @@ Future<int> insertAlert(WidgetTester tester, {int minutesAgo = 1}) async {
                 .subtract(Duration(minutes: minutesAgo))
                 .millisecondsSinceEpoch,
             side: FootSide.left,
-            site: TempSite.forefoot,
+            zone: 'meta1',
             measuredValue: 2.4,
             threshold: testThresholds.deltaC,
           ),
@@ -363,11 +362,11 @@ void main() {
       await tester.pumpAndSettle();
       await openAlert(tester, ids, AlertKind.tempDelta);
       expect(
-        find.bySemanticsLabel('เท้าขวา ส้นเท้าอุ่นกว่าเท้าซ้าย'),
+        find.bySemanticsLabel('เท้าขวา กลางส้นเท้าอุ่นกว่าเท้าซ้าย'),
         findsOneWidget,
       );
       expect(
-        find.bySemanticsLabel('เท้าซ้าย จุดวัดความอุ่นที่หน้าเท้าและส้นเท้า'),
+        find.bySemanticsLabel('เท้าซ้าย จุดวัดความอุ่นทั้ง 8 จุด'),
         findsOneWidget,
       );
       handle.dispose();

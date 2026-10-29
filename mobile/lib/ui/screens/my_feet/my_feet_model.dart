@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../ble/ble_protocol.dart';
 import '../../../ble/packets.dart';
 import '../../../config/foot_layout.dart';
 import '../../../config/thresholds.dart';
@@ -13,6 +14,7 @@ import '../../../rules/alert_code.dart';
 import '../../../rules/alert_engine.dart';
 import '../../../rules/alert_providers.dart';
 import '../../../rules/patient_status.dart';
+import '../../../storage/models.dart' show TempSiteEntry;
 import '../home/home_model.dart';
 
 /// The level-3 pressure codes: the ones that turn the Pressure banner to
@@ -104,20 +106,23 @@ class TempFootView {
   const TempFootView({
     required this.side,
     required this.usable,
-    this.forefootC,
-    this.heelC,
-    this.quality,
+    this.celsius = const [],
+    this.quality = const [],
     this.lastDataAt,
   });
 
   final FootSide side;
   final bool usable;
 
-  /// Newest reading, rounded to 0.1 °C; null unless [usable] (and null
-  /// when the sensor could not read).
-  final double? forefootC;
-  final double? heelC;
-  final TempQuality? quality;
+  /// Newest reading per site (index = zone), rounded to 0.1 °C; empty
+  /// unless [usable] and a reading arrived; null where the sensor could
+  /// not read.
+  final List<double?> celsius;
+
+  /// Each site's quality in that reading; empty with no reading.
+  final List<TempQuality> quality;
+
+  double? at(int site) => site < celsius.length ? celsius[site] : null;
 
   /// When this foot's newest sample arrived in this run, kept only while
   /// it is not usable ("ตั้งแต่ HH:mm"); null otherwise.
@@ -128,34 +133,41 @@ class TempFootView {
       other is TempFootView &&
       other.side == side &&
       other.usable == usable &&
-      other.forefootC == forefootC &&
-      other.heelC == heelC &&
-      other.quality == quality &&
+      listEquals(other.celsius, celsius) &&
+      listEquals(other.quality, quality) &&
       other.lastDataAt == lastDataAt;
 
   @override
-  int get hashCode =>
-      Object.hash(side, usable, forefootC, heelC, quality, lastDataAt);
+  int get hashCode => Object.hash(
+    side,
+    usable,
+    Object.hashAll(celsius),
+    Object.hashAll(quality),
+    lastDataAt,
+  );
 }
 
-/// `TEMP_DELTA` holding at one site.
+/// `TEMP_DELTA` holding at one site (every qualifying site of the warmer
+/// foot's condition, `details.tempSites`).
 @immutable
 class TempAlertView {
   const TempAlertView({
     required this.site,
     required this.warmerSide,
     required this.deltaC,
-    required this.consecutive,
+    this.consecutive,
   });
 
-  final TempSite site;
+  /// Zone index.
+  final int site;
   final FootSide warmerSide;
 
   /// |ΔT|, rounded to 0.1 °C.
   final double deltaC;
 
-  /// Readings above the threshold in a row.
-  final int consecutive;
+  /// Readings above the threshold in a row; only for the site the alert
+  /// names (the engine's details carry it for that one).
+  final int? consecutive;
 
   @override
   bool operator ==(Object other) =>
@@ -169,14 +181,18 @@ class TempAlertView {
   int get hashCode => Object.hash(site, warmerSide, deltaC, consecutive);
 }
 
+/// INTERIM (S8D-1, until S8D-2's 8-site layout A): the site cards and
+/// chart lines show two sites. With nothing to rank them by, these:
+/// MTH1 and the heel centre.
+const interimDefaultSites = [1, 5];
+
 @immutable
 class TempTabView {
   const TempTabView({
     required this.left,
     required this.right,
     required this.minute,
-    this.deltaForefootC,
-    this.deltaHeelC,
+    this.deltaC = const [],
     this.alerts = const {},
   });
 
@@ -193,19 +209,42 @@ class TempTabView {
   /// minute, not at 10 Hz.
   final DateTime minute;
 
-  /// ΔT left minus right, rounded to 0.1 °C. Null unless both feet are
-  /// usable and both read that site (rule 4).
-  final double? deltaForefootC;
-  final double? deltaHeelC;
+  /// ΔT left minus right per site (index = zone), rounded to 0.1 °C;
+  /// empty unless both feet are usable. A site is null unless both feet
+  /// read it with normal quality (rule 4).
+  final List<double?> deltaC;
 
-  /// The sites where `TEMP_DELTA` holds now.
-  final Map<TempSite, TempAlertView> alerts;
+  /// The sites (zone index) where `TEMP_DELTA` holds now.
+  final Map<int, TempAlertView> alerts;
 
   TempFootView foot(FootSide s) => s == FootSide.left ? left : right;
   bool get bothUsable => left.usable && right.usable;
 
-  double? delta(TempSite site) =>
-      site == TempSite.forefoot ? deltaForefootC : deltaHeelC;
+  double? delta(int site) => site < deltaC.length ? deltaC[site] : null;
+
+  /// No site has a two-foot ΔT.
+  bool get noDelta => deltaC.every((d) => d == null);
+
+  /// INTERIM (S8D-1): the two sites the cards and chart lines show, in
+  /// zone order: sites where `TEMP_DELTA` holds first, then the largest
+  /// |ΔT|, then [interimDefaultSites].
+  List<int> get shownSites {
+    int rank(int site) {
+      final i = interimDefaultSites.indexOf(site);
+      return i < 0 ? interimDefaultSites.length + site : i;
+    }
+
+    final sites = [for (var i = 0; i < TempLayout.siteCount; i++) i]
+      ..sort((a, b) {
+        final alert = (alerts[b]?.deltaC ?? -1).compareTo(
+          alerts[a]?.deltaC ?? -1,
+        );
+        if (alert != 0) return alert;
+        final d = (delta(b)?.abs() ?? -1).compareTo(delta(a)?.abs() ?? -1);
+        return d != 0 ? d : rank(a).compareTo(rank(b));
+      });
+    return sites.take(interimDefaultSites.length).toList()..sort();
+  }
 
   /// The site that names the Rest banner: the larger ΔT.
   TempAlertView? get topAlert {
@@ -222,8 +261,7 @@ class TempTabView {
       other.left == left &&
       other.right == right &&
       other.minute == minute &&
-      other.deltaForefootC == deltaForefootC &&
-      other.deltaHeelC == deltaHeelC &&
+      listEquals(other.deltaC, deltaC) &&
       mapEquals(other.alerts, alerts);
 
   @override
@@ -231,8 +269,7 @@ class TempTabView {
     left,
     right,
     minute,
-    deltaForefootC,
-    deltaHeelC,
+    Object.hashAll(deltaC),
     Object.hashAll(alerts.values),
   );
 }
@@ -342,22 +379,27 @@ MyFeetView myFeetViewOf(
     return TempFootView(
       side: f.side,
       usable: true,
-      forefootC: _round1(t?.forefootC),
-      heelC: _round1(t?.heelC),
-      quality: t?.quality,
+      celsius: t == null ? const [] : [for (final c in t.celsius) _round1(c)],
+      quality: t?.quality ?? const [],
     );
   }
 
   final both = s.left.usable && s.right.usable;
-  final alerts = <TempSite, TempAlertView>{};
+  final alerts = <int, TempAlertView>{};
   for (final c in rules.conditions) {
-    if (c.code != AlertCode.tempDelta || c.site == null) continue;
-    alerts[c.site!] = TempAlertView(
-      site: c.site!,
-      warmerSide: c.side,
-      deltaC: _round1(c.value)!,
-      consecutive: (c.details['consecutive'] as int?) ?? 0,
-    );
+    if (c.code != AlertCode.tempDelta) continue;
+    for (final e in TempSiteEntry.listOf(c.details)) {
+      final site = footLayout.zones.indexWhere((z) => z.id == e.zone);
+      if (site < 0) continue;
+      alerts[site] = TempAlertView(
+        site: site,
+        warmerSide: c.side,
+        deltaC: _round1(e.deltaC)!,
+        consecutive: site == c.channel
+            ? (c.details['consecutive'] as int?)
+            : null,
+      );
+    }
   }
   final at = s.at;
   return MyFeetView(
@@ -376,8 +418,7 @@ MyFeetView myFeetViewOf(
           microseconds: at.microsecond,
         ),
       ),
-      deltaForefootC: both ? _round1(s.deltaForefootC) : null,
-      deltaHeelC: both ? _round1(s.deltaHeelC) : null,
+      deltaC: both ? [for (final d in s.deltaC) _round1(d)] : const [],
       alerts: both ? alerts : const {},
     ),
   );

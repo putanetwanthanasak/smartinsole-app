@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:smartinsole/ble/packets.dart';
-import 'package:smartinsole/config/foot_layout.dart';
 import 'package:smartinsole/rules/patient_status.dart';
 import 'package:smartinsole/rules/pressure_level.dart';
 import 'package:smartinsole/storage/models.dart';
@@ -17,7 +16,7 @@ StoredAlert alert(
   int level = 3,
   FootSide? side = FootSide.left,
   String? zone,
-  TempSite? site,
+  LegacyTempSite? legacySite,
   double? value,
   double? threshold,
   String? gaitClass,
@@ -32,7 +31,7 @@ StoredAlert alert(
   localDate: '2026-10-21',
   side: side,
   zone: zone,
-  site: site,
+  legacySite: legacySite,
   measuredValue: value,
   threshold: threshold,
   gaitClass: gaitClass,
@@ -48,13 +47,52 @@ void main() {
   setUpAll(() => initializeDateFormatting('th'));
 
   group('detail rows (§7.3)', () {
-    test('TEMP_DELTA', () {
+    test('TEMP_DELTA: the named zone and every qualifying site', () {
+      final atMs = at.millisecondsSinceEpoch;
       final rows = rowsOf(
         alert(
           AlertKind.tempDelta,
           level: 4,
           side: FootSide.right,
-          site: TempSite.heel,
+          zone: 'heel',
+          value: 2.6,
+          threshold: 2.2,
+          details: {
+            'leftC': 31.4,
+            'rightC': 34.0,
+            'consecutive': 3,
+            TempSiteEntry.listKey: [
+              TempSiteEntry(zone: 'heel', deltaC: 2.6, atMs: atMs).toJson(),
+              TempSiteEntry(
+                zone: 'lateralHeel',
+                deltaC: 2.3,
+                atMs: atMs,
+              ).toJson(),
+            ],
+          },
+        ),
+      );
+      expect(rows, {
+        'รหัส': 'TEMP_DELTA',
+        'กลางส้นเท้า': 'ซ้าย 31.4 °C · ขวา 34.0 °C',
+        'ผลต่างที่กลางส้นเท้า': '2.6 °C (เกณฑ์ 2.2 °C)',
+        'วัดเกินเกณฑ์ติดกัน':
+            '3 ครั้ง (เกณฑ์ ${testThresholds.consecutiveReadings} ครั้ง '
+            'วัดทุก 30 วินาที)',
+        'จุดที่เกินเกณฑ์': 'กลางส้นเท้า 2.6 · ส้นเท้าด้านนอก 2.3 °C',
+        'ระดับภายในระบบ': '4 จาก 5',
+        'เวลาที่พบ': '21 ต.ค. 2569 14:32:10',
+        'ที่มาของเกณฑ์': 'Lavery et al. (2004)',
+      });
+    });
+
+    test('TEMP_DELTA stored before the 8 sites keeps its old rows', () {
+      final rows = rowsOf(
+        alert(
+          AlertKind.tempDelta,
+          level: 4,
+          side: FootSide.right,
+          legacySite: LegacyTempSite.heel,
           value: 2.6,
           threshold: 2.2,
           details: {
@@ -136,7 +174,7 @@ void main() {
           details: {'steps': 10},
         ),
       );
-      expect(rows['ค่าที่วัดได้'], '46% ของแรงกดทั้งฝ่าเท้า ที่ส้นเท้าขวา');
+      expect(rows['ค่าที่วัดได้'], '46% ของแรงกดทั้งฝ่าเท้า ที่กลางส้นเท้าขวา');
       expect(
         rows['เกณฑ์'],
         '40% ติดกัน ${testThresholds.concentrationSteps} ก้าว',
@@ -172,13 +210,24 @@ void main() {
   group('maps', () {
     test('TEMP_DELTA caption and labels', () {
       final v = tempMapOf(
-        alert(AlertKind.tempDelta, side: FootSide.right, site: TempSite.heel),
+        alert(AlertKind.tempDelta, side: FootSide.right, zone: 'heel'),
       )!;
-      expect(v.caption, 'ส้นเท้าขวาอุ่นกว่าส้นเท้าซ้าย');
-      expect(v.labels[FootSide.right], 'เท้าขวา ส้นเท้าอุ่นกว่าเท้าซ้าย');
+      expect(v.site, 5);
+      expect(v.caption, 'กลางส้นเท้าขวาอุ่นกว่ากลางส้นเท้าซ้าย');
+      expect(v.labels[FootSide.right], 'เท้าขวา กลางส้นเท้าอุ่นกว่าเท้าซ้าย');
+      expect(v.labels[FootSide.left], 'เท้าซ้าย จุดวัดความอุ่นทั้ง 8 จุด');
+    });
+
+    test('TEMP_DELTA stored before the 8 sites has no map', () {
       expect(
-        v.labels[FootSide.left],
-        'เท้าซ้าย จุดวัดความอุ่นที่หน้าเท้าและส้นเท้า',
+        tempMapOf(
+          alert(
+            AlertKind.tempDelta,
+            side: FootSide.right,
+            legacySite: LegacyTempSite.heel,
+          ),
+        ),
+        isNull,
       );
     });
 
@@ -191,8 +240,17 @@ void main() {
           details: {
             'map': {
               'left': {
-                'kpa': [90, 236, 60, 30, 20, 40],
-                'levels': ['moderate', 'high', 'low', 'low', 'low', 'low'],
+                'kpa': [90, 236, 60, 30, 20, 40, 20, 30],
+                'levels': [
+                  'moderate',
+                  'high',
+                  'low',
+                  'low',
+                  'low',
+                  'low',
+                  'low',
+                  'low',
+                ],
               },
               'right': null,
             },
@@ -211,6 +269,30 @@ void main() {
       );
     });
 
+    test('a map stored before the 8 zones: zones 6–7 not recorded', () {
+      final v = pressureMapOf(
+        alert(
+          AlertKind.pressurePeak,
+          zone: 'meta1',
+          value: 236,
+          details: {
+            'map': {
+              'left': {
+                'kpa': [20.0, 236.5, 85.0, 20.0, 20.0, 60.0],
+                'levels': ['low', 'high', 'medium', 'low', 'low', 'low'],
+              },
+              'right': null,
+            },
+          },
+        ),
+        testThresholds,
+      )!;
+      expect(v.recorded, isTrue);
+      expect(v.levels[FootSide.left], hasLength(8));
+      expect(v.levels[FootSide.left]![1], PressureLevel.high);
+      expect(v.levels[FootSide.left]!.sublist(6), [null, null]);
+    });
+
     test('older PEAK without a map: only the ringed zone has a level', () {
       final v = pressureMapOf(
         alert(AlertKind.pressurePeak, zone: 'heel', value: 236),
@@ -224,8 +306,10 @@ void main() {
         null,
         null,
         PressureLevel.high,
+        null,
+        null,
       ]);
-      expect(v.levels[FootSide.right], List.filled(6, null));
+      expect(v.levels[FootSide.right], List.filled(8, null));
       expect(v.labels[FootSide.right], 'เท้าขวา');
     });
 
@@ -235,7 +319,7 @@ void main() {
           alert(kind, zone: 'heel', value: 92),
           testThresholds,
         )!;
-        expect(v.levels[FootSide.left], List.filled(6, null));
+        expect(v.levels[FootSide.left], List.filled(8, null));
         expect(v.channel, 5);
       }
     });

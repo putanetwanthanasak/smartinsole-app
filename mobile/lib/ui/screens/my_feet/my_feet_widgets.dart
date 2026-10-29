@@ -30,14 +30,13 @@ class MyFeetBanner extends ConsumerWidget {
         : footLayout.zones[view.linkChannel!].id;
     int? alertId;
     if (code != null) {
-      // Newest first: the newest row about the same foot and zone or site,
-      // the key the engine suppresses repeats by.
+      // Newest first: the newest row about the same foot and zone, the key
+      // the engine suppresses repeats by.
       final alerts = ref.watch(visibleAlertsProvider).value ?? const [];
       for (final a in alerts) {
         if (a.kind.code == code &&
             (view.linkSide == null || a.side == view.linkSide) &&
-            (zone == null || a.zone == zone) &&
-            (view.linkSite == null || a.site == view.linkSite)) {
+            (zone == null || a.zone == zone)) {
           alertId = a.id;
           break;
         }

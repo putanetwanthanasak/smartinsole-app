@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smartinsole/ble/ble_central.dart';
+import 'package:smartinsole/ble/link_stats.dart';
+import 'package:smartinsole/ble/packets.dart';
+import 'package:smartinsole/ble/parse_result.dart';
 import 'package:smartinsole/ui/routes.dart';
 import 'package:smartinsole/ui/screens/debug_ble_screen.dart';
 
@@ -9,7 +12,7 @@ import 'ble/fake_ble_central.dart';
 import 'helpers/pump_app.dart';
 
 /// Tall enough that the ListView builds every card.
-const debugScreenSize = Size(390, 2400);
+const debugScreenSize = Size(390, 2800);
 
 /// Lets the fake scan report, connects run and the display tick redraw.
 Future<void> settleBle(WidgetTester tester) async {
@@ -94,7 +97,7 @@ void main() {
     expect(find.text('R1'), findsOneWidget);
 
     await tapKey(tester, 'connect-L1-left');
-    expect(stateText(tester, 'left'), 'STREAMING · MTU 247 · 8/pkt · N 6');
+    expect(stateText(tester, 'left'), 'STREAMING · MTU 247 · 8/pkt · N 8');
     expect(stateText(tester, 'right'), 'IDLE');
   });
 
@@ -124,7 +127,7 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.text('MTU 23 fits no packet; 4 samples of N = 6 need MTU 107'),
+      find.text('MTU 23 fits no packet; 4 samples of N = 8 need MTU 123'),
       findsOneWidget,
     );
   });
@@ -160,6 +163,28 @@ void main() {
     permissions.answer = PermissionStatus.granted;
     await tapKey(tester, 'ble-readiness-action');
     expect(byKey('ble-readiness'), findsNothing);
+  });
+
+  test('format line: the SR first-connection check on one line (S8D)', () {
+    final st = LinkStats();
+    expect(formatLine(st), 'N — · no temperature packet yet · rejects 0');
+    st.calibrationFsrCount = 6;
+    st.countReject(RejectReason.tempLength);
+    st.countReject(RejectReason.tempLength);
+    expect(
+      formatLine(st),
+      'N 6 (needs 8) · no temperature packet yet · rejects 2',
+    );
+    st
+      ..calibrationFsrCount = 8
+      ..rejects.clear()
+      ..lastTemp = TempPacket(
+        seq: 1,
+        tMs: 30000,
+        celsius: List.filled(8, 31.0),
+        quality: List.filled(8, TempQuality.normal),
+      );
+    expect(formatLine(st), 'N 8 · temperature v2, 8 sites · rejects 0');
   });
 
   testWidgets('Copy log puts both feet and the event log on the clipboard', (

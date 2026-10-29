@@ -35,35 +35,70 @@ PressureFootView _none(FootSide side) =>
     PressureFootView(map: FootMapView(side: side));
 
 final _lows = List.filled(footLayout.zones.length, _low);
-final _flat = [40, 45, 50, 30, 25, 60];
+final _flat = [40, 45, 50, 30, 25, 60, 20, 35];
 
+/// MTH1 and the heel centre: the two sites the interim cards show by
+/// default ([interimDefaultSites]).
+const _fore = 1;
+const _heel = 5;
+
+/// Both feet's readings: [fore] ΔT at MTH1, [heel] at the heel centre,
+/// [other] elsewhere (31.0 / 30.7 at MTH1, 30.6 / 30.6 at the heel).
 TempTabView _temp({
   bool left = true,
   bool right = true,
   double? fore = 0.3,
   double? heel = 0.0,
-  Map<TempSite, TempAlertView> alerts = const {},
-  TempQuality leftQuality = TempQuality.normal,
-}) => TempTabView(
-  left: TempFootView(
-    side: FootSide.left,
-    usable: left,
-    forefootC: left ? 31.0 : null,
-    heelC: left ? 30.6 : null,
-    quality: left ? leftQuality : null,
-  ),
-  right: TempFootView(
-    side: FootSide.right,
-    usable: right,
-    forefootC: right ? 30.7 : null,
-    heelC: right ? 30.6 : null,
-    quality: right ? TempQuality.normal : null,
-  ),
-  minute: DateTime(2026, 10, 25, 13),
-  deltaForefootC: left && right ? fore : null,
-  deltaHeelC: left && right ? heel : null,
-  alerts: alerts,
-);
+  double? other = 0.1,
+  Map<int, TempAlertView> alerts = const {},
+  Map<int, TempQuality> leftQualityAt = const {},
+}) {
+  List<double?> c(double atFore, double atHeel, double other) => [
+    for (var i = 0; i < TempLayout.siteCount; i++)
+      i == _fore
+          ? atFore
+          : i == _heel
+          ? atHeel
+          : other,
+  ];
+  List<TempQuality> q([Map<int, TempQuality> at = const {}]) => [
+    for (var i = 0; i < TempLayout.siteCount; i++) at[i] ?? TempQuality.normal,
+  ];
+  return TempTabView(
+    left: TempFootView(
+      side: FootSide.left,
+      usable: left,
+      celsius: left ? c(31.0, 30.6, 30.9) : const [],
+      quality: left ? q(leftQualityAt) : const [],
+    ),
+    right: TempFootView(
+      side: FootSide.right,
+      usable: right,
+      celsius: right ? c(30.7, 30.6, 30.8) : const [],
+      quality: right ? q() : const [],
+    ),
+    minute: DateTime(2026, 10, 25, 13),
+    deltaC: left && right
+        ? [
+            for (var i = 0; i < TempLayout.siteCount; i++)
+              i == _fore
+                  ? fore
+                  : i == _heel
+                  ? heel
+                  : other,
+          ]
+        : const [],
+    alerts: alerts,
+  );
+}
+
+TempAlertView _alert(int site, double d, {int? consecutive = 2}) =>
+    TempAlertView(
+      site: site,
+      warmerSide: FootSide.right,
+      deltaC: d,
+      consecutive: consecutive,
+    );
 
 void main() {
   final t = testThresholds;
@@ -139,8 +174,8 @@ void main() {
       final v = PressureTabView(
         left: _foot(
           FootSide.left,
-          [40, 210, 50, 30, 25, 60],
-          [_low, _high, _low, _low, _low, _low],
+          [40, 210, 50, 30, 25, 60, 20, 35],
+          [_low, _high, _low, _low, _low, _low, _low, _low],
         ),
         right: _foot(FootSide.right, _flat, _lows),
       );
@@ -199,23 +234,20 @@ void main() {
       final b = tempBanner(
         _temp(
           fore: -2.6,
-          alerts: const {
-            TempSite.forefoot: TempAlertView(
-              site: TempSite.forefoot,
-              warmerSide: FootSide.right,
-              deltaC: 2.6,
-              consecutive: 3,
-            ),
+          heel: -2.4,
+          alerts: {
+            _fore: _alert(_fore, 2.6, consecutive: 3),
+            _heel: _alert(_heel, 2.4, consecutive: null),
           },
         ),
         latestAt: at,
         since: noSince,
       );
       expect(b.level, PatientLevel.rest);
-      expect(b.title, 'หน้าเท้าขวาอุ่นกว่าซ้าย 2.6 องศา');
+      expect(b.title, 'โคนนิ้วหัวแม่เท้าขวาอุ่นกว่าซ้าย 2.6 องศา');
       expect(b.linkCode, AlertCode.tempDelta);
       expect(b.linkSide, FootSide.right);
-      expect(b.linkSite, TempSite.forefoot);
+      expect(b.linkChannel, isNull, reason: 'TEMP_DELTA is one per foot');
       // Above once, not yet twice: still safe.
       expect(
         tempBanner(_temp(fore: -2.6), latestAt: at, since: noSince).level,
@@ -240,7 +272,7 @@ void main() {
 
     test('both streaming but no site compares: never safe', () {
       final b = tempBanner(
-        _temp(fore: null, heel: null),
+        _temp(fore: null, heel: null, other: null),
         latestAt: at,
         since: noSince,
       );
@@ -261,38 +293,47 @@ void main() {
 
   group('site cards', () {
     test('close, warmer above the threshold, alerting', () {
-      expect(siteCard(_temp(), TempSite.heel, t).note, 'ใกล้เคียงกัน');
-      final over = siteCard(_temp(fore: -2.6), TempSite.forefoot, t);
+      expect(siteCard(_temp(), _heel, t).note, 'ใกล้เคียงกัน');
+      final over = siteCard(_temp(fore: -2.6), _fore, t);
       expect(over.note, 'ขวาอุ่นกว่า');
       expect(over.deltaC, 2.6);
       expect(over.alerting, isFalse);
+      expect(over.siteTh, 'โคนนิ้วหัวแม่เท้า');
       final alerting = siteCard(
-        _temp(
-          fore: -2.6,
-          alerts: const {
-            TempSite.forefoot: TempAlertView(
-              site: TempSite.forefoot,
-              warmerSide: FootSide.right,
-              deltaC: 2.6,
-              consecutive: 2,
-            ),
-          },
-        ),
-        TempSite.forefoot,
+        _temp(fore: -2.6, alerts: {_fore: _alert(_fore, 2.6)}),
+        _fore,
         t,
       );
       expect(alerting.alerting, isTrue);
     });
 
     test('rule 4: one foot missing shows no number', () {
-      final c = siteCard(_temp(right: false), TempSite.forefoot, t);
+      final c = siteCard(_temp(right: false), _fore, t);
       expect(c.deltaC, isNull);
       expect(c.missing, isTrue);
       expect(c.note, 'ต้องเชื่อมต่อทั้งสองข้าง');
-      expect(
-        siteCard(_temp(fore: null), TempSite.forefoot, t).note,
-        'ยังวัดไม่ได้',
+      expect(siteCard(_temp(fore: null), _fore, t).note, 'ยังวัดไม่ได้');
+    });
+
+    test('INTERIM: the two shown sites, in zone order: alerting first, then '
+        'the largest |ΔT|, then MTH1 and the heel centre', () {
+      expect(_temp(left: false).shownSites, [_fore, _heel]);
+      expect(_temp().shownSites, [0, _fore], reason: '0.3, then 0.1 at 0');
+      final big = TempTabView(
+        left: _temp().left,
+        right: _temp().right,
+        minute: DateTime(2026),
+        deltaC: [0.1, 0.2, 1.4, 0.1, 0.1, 0.1, 0.1, -1.9],
       );
+      expect(big.shownSites, [2, 7]);
+      final alerting = TempTabView(
+        left: _temp().left,
+        right: _temp().right,
+        minute: DateTime(2026),
+        deltaC: [0.1, 0.2, 1.4, 0.1, 0.1, -2.3, 0.1, -2.5],
+        alerts: {5: _alert(5, 2.3), 7: _alert(7, 2.5, consecutive: null)},
+      );
+      expect(alerting.shownSites, [5, 7]);
     });
   });
 
@@ -304,35 +345,40 @@ void main() {
   group('temperature detail rows', () {
     test('both feet: values, quality, threshold with the source', () {
       final rows = tempDetailRows(
-        _temp(leftQuality: TempQuality.poorContact),
+        _temp(leftQualityAt: {_fore: TempQuality.poorContact}),
         t,
         latestAt: DateTime(2026, 10, 25, 12, 57, 31),
         since: const {},
       );
       String row(String label) =>
           rows.firstWhere((r) => r.label == label).value;
-      expect(row('หน้าเท้าตอนนี้'), 'ซ้าย 31.0 · ขวา 30.7 °C');
+      expect(row('โคนนิ้วหัวแม่เท้า'), 'ซ้าย 31.0 · ขวา 30.7 · ต่าง 0.3 °C');
+      expect(row('กลางส้นเท้า'), 'ซ้าย 30.6 · ขวา 30.6 · ต่าง 0.0 °C');
+      expect(
+        rows.where((r) => r.value.startsWith('ซ้าย ')),
+        hasLength(TempLayout.siteCount),
+      );
       expect(
         row('วัดทุก'),
         '${TempLayout.notifyPeriod.inSeconds} วินาที · ล่าสุด 12:57:31',
       );
-      expect(row('คุณภาพสัญญาณ'), 'เท้าซ้าย สัมผัสไม่ดี');
+      expect(row('คุณภาพสัญญาณ'), 'เท้าซ้าย โคนนิ้วหัวแม่เท้า สัมผัสไม่ดี');
       expect(row('เกณฑ์'), contains('(Lavery et al., 2004)'));
       expect(row('เกณฑ์'), contains('ติดกัน ${t.consecutiveReadings} ครั้ง'));
     });
 
-    test('all good: "ดีทั้ง 4 จุด"', () {
+    test('all good: "ดีทั้ง 16 จุด"', () {
       final rows = tempDetailRows(_temp(), t, latestAt: null, since: const {});
-      expect(rows.last.value, 'ดีทั้ง 4 จุด');
+      expect(rows.last.value, 'ดีทั้ง 16 จุด');
     });
 
     test('no reading yet or a site not read: never "ดี" (rule 5)', () {
       const left = TempFootView(side: FootSide.left, usable: true);
-      const right = TempFootView(
+      final right = TempFootView(
         side: FootSide.right,
         usable: true,
-        forefootC: 30.7,
-        quality: TempQuality.normal,
+        celsius: [30.7, null, 30.6, 30.6, 30.6, 30.6, 30.6, 30.6],
+        quality: List.filled(TempLayout.siteCount, TempQuality.normal),
       );
       final rows = tempDetailRows(
         TempTabView(left: left, right: right, minute: DateTime(2026)),
@@ -340,18 +386,46 @@ void main() {
         latestAt: null,
         since: const {},
       );
-      expect(rows.last.value, 'เท้าซ้าย ยังวัดไม่ได้ · เท้าขวา ยังวัดไม่ได้');
+      expect(
+        rows.last.value,
+        'เท้าซ้าย ยังวัดไม่ได้ · เท้าขวา โคนนิ้วหัวแม่เท้า ยังวัดไม่ได้',
+      );
     });
 
-    test('one foot missing: no two-foot rows', () {
+    test('alerting sites: the consecutive count where the engine has it', () {
+      final rows = tempDetailRows(
+        _temp(
+          fore: -2.6,
+          heel: -2.4,
+          alerts: {
+            _fore: _alert(_fore, 2.6, consecutive: 3),
+            _heel: _alert(_heel, 2.4, consecutive: null),
+          },
+        ),
+        t,
+        latestAt: null,
+        since: const {},
+      );
+      expect(
+        rows.firstWhere((r) => r.label == 'วัดเกินเกณฑ์ติดกัน').value,
+        'โคนนิ้วหัวแม่เท้า 3 ครั้ง (เกณฑ์ ${t.consecutiveReadings} ครั้ง)',
+      );
+    });
+
+    test('one foot missing: no two-foot values', () {
       final rows = tempDetailRows(
         _temp(right: false),
         t,
         latestAt: null,
         since: const {},
       );
-      expect(rows.map((r) => r.label), isNot(contains('ผลต่าง')));
-      expect(rows[1].value, 'ยังไม่ได้เชื่อมต่อ');
+      expect(rows.first.label, 'เท้าขวา');
+      expect(rows.first.value, 'ยังไม่ได้เชื่อมต่อ');
+      expect(rows.any((r) => r.value.contains(' · ต่าง ')), isFalse);
+      expect(
+        rows.firstWhere((r) => r.label == 'โคนนิ้วหัวแม่เท้า').value,
+        'ซ้าย 31.0 · ขวา — °C',
+      );
     });
   });
 }
