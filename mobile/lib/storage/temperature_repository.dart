@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 
+import '../ble/ble_protocol.dart';
 import '../ble/packets.dart';
 import 'database.dart';
 import 'local_date.dart';
@@ -19,12 +20,14 @@ class TemperatureStats {
 /// Every 30 s reading of both feet. Connection gaps are not stored: they
 /// are the spaces between rows, worked out when the chart reads them.
 abstract interface class TemperatureRepository {
+  /// One reading of all sites (index = zone): [celsius] null where the
+  /// sensor could not read, [quality] per site. The row's `quality` is the
+  /// worst site's.
   Future<void> add({
     required FootSide side,
     required int atMs,
-    required double? forefootC,
-    required double? heelC,
-    required TempQuality quality,
+    required List<double?> celsius,
+    required List<TempQuality> quality,
     required bool timeFromArrival,
   });
 
@@ -54,23 +57,42 @@ class DriftTemperatureRepository implements TemperatureRepository {
   Future<void> add({
     required FootSide side,
     required int atMs,
-    required double? forefootC,
-    required double? heelC,
-    required TempQuality quality,
+    required List<double?> celsius,
+    required List<TempQuality> quality,
     required bool timeFromArrival,
-  }) => _db
-      .into(_db.temperatureReadings)
-      .insert(
-        TemperatureReadingsCompanion.insert(
-          atMs: atMs,
-          localDate: _dates.of(atMs),
-          side: side,
-          forefootC: Value(forefootC),
-          heelC: Value(heelC),
-          quality: quality,
-          timeFromArrival: timeFromArrival,
-        ),
-      );
+  }) {
+    assert(celsius.length == TempLayout.siteCount);
+    assert(quality.length == TempLayout.siteCount);
+    Value<double?> c(int i) => Value(celsius[i]);
+    Value<TempQuality?> q(int i) => Value(quality[i]);
+    return _db
+        .into(_db.temperatureReadings)
+        .insert(
+          TemperatureReadingsCompanion.insert(
+            atMs: atMs,
+            localDate: _dates.of(atMs),
+            side: side,
+            quality: worstQuality(quality),
+            timeFromArrival: timeFromArrival,
+            site0C: c(0),
+            site1C: c(1),
+            site2C: c(2),
+            site3C: c(3),
+            site4C: c(4),
+            site5C: c(5),
+            site6C: c(6),
+            site7C: c(7),
+            site0Q: q(0),
+            site1Q: q(1),
+            site2Q: q(2),
+            site3Q: q(3),
+            site4Q: q(4),
+            site5Q: q(5),
+            site6Q: q(6),
+            site7Q: q(7),
+          ),
+        );
+  }
 
   @override
   Stream<List<TemperatureReading>> watchDay(String localDate) =>
@@ -132,8 +154,20 @@ TemperatureReading _toModel(TemperatureRow r) => TemperatureReading(
   atMs: r.atMs,
   localDate: r.localDate,
   side: r.side,
-  forefootC: r.forefootC,
-  heelC: r.heelC,
+  siteC: [
+    r.site0C, r.site1C, r.site2C, r.site3C, //
+    r.site4C, r.site5C, r.site6C, r.site7C,
+  ],
+  siteQuality: [
+    r.site0Q, r.site1Q, r.site2Q, r.site3Q, //
+    r.site4Q, r.site5Q, r.site6Q, r.site7Q,
+  ],
   quality: r.quality,
   timeFromArrival: r.timeFromArrival,
+  legacyForefootC: r.forefootC,
+  legacyHeelC: r.heelC,
 );
+
+/// The worst of [quality] (sensor fault > poor contact > normal).
+TempQuality worstQuality(List<TempQuality> quality) =>
+    quality.fold(TempQuality.normal, (a, b) => b.index > a.index ? b : a);

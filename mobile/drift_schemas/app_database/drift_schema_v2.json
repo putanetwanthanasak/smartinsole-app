@@ -1,0 +1,1103 @@
+{
+  "_meta": {
+    "description": "This file contains a serialized version of schema entities for drift.",
+    "version": "1.3.0"
+  },
+  "options": {
+    "store_date_time_values_as_text": false
+  },
+  "entities": [
+    {
+      "id": 0,
+      "references": [],
+      "type": "table",
+      "data": {
+        "name": "foot_checks",
+        "was_declared_in_moor": false,
+        "columns": [
+          {
+            "name": "id",
+            "getter_name": "id",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "defaultConstraints": "PRIMARY KEY AUTOINCREMENT",
+            "dialectAwareDefaultConstraints": {
+              "sqlite": "PRIMARY KEY AUTOINCREMENT"
+            },
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              "auto-increment"
+            ]
+          },
+          {
+            "name": "at_ms",
+            "getter_name": "atMs",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "local_date",
+            "getter_name": "localDate",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "q_redness",
+            "getter_name": "qRedness",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [],
+            "type_converter": {
+              "dart_expr": "const EnumNameConverter<FootCheckAnswer>(FootCheckAnswer.values)",
+              "dart_type_name": "FootCheckAnswer"
+            }
+          },
+          {
+            "name": "q_wound",
+            "getter_name": "qWound",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [],
+            "type_converter": {
+              "dart_expr": "const EnumNameConverter<FootCheckAnswer>(FootCheckAnswer.values)",
+              "dart_type_name": "FootCheckAnswer"
+            }
+          },
+          {
+            "name": "q_swelling",
+            "getter_name": "qSwelling",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [],
+            "type_converter": {
+              "dart_expr": "const EnumNameConverter<FootCheckAnswer>(FootCheckAnswer.values)",
+              "dart_type_name": "FootCheckAnswer"
+            }
+          },
+          {
+            "name": "result",
+            "getter_name": "result",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [],
+            "type_converter": {
+              "dart_expr": "const EnumNameConverter<FootCheckResult>(FootCheckResult.values)",
+              "dart_type_name": "FootCheckResult"
+            }
+          },
+          {
+            "name": "photo_sole_left",
+            "getter_name": "photoSoleLeft",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "photo_sole_right",
+            "getter_name": "photoSoleRight",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "photo_top_left",
+            "getter_name": "photoTopLeft",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "photo_top_right",
+            "getter_name": "photoTopRight",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "answer_only",
+            "getter_name": "answerOnly",
+            "moor_type": "bool",
+            "nullable": false,
+            "customConstraints": null,
+            "defaultConstraints": "CHECK (\"answer_only\" IN (0, 1))",
+            "dialectAwareDefaultConstraints": {
+              "sqlite": "CHECK (\"answer_only\" IN (0, 1))"
+            },
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": []
+      }
+    },
+    {
+      "id": 1,
+      "references": [
+        0
+      ],
+      "type": "table",
+      "data": {
+        "name": "alerts",
+        "was_declared_in_moor": false,
+        "columns": [
+          {
+            "name": "id",
+            "getter_name": "id",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "defaultConstraints": "PRIMARY KEY AUTOINCREMENT",
+            "dialectAwareDefaultConstraints": {
+              "sqlite": "PRIMARY KEY AUTOINCREMENT"
+            },
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              "auto-increment"
+            ]
+          },
+          {
+            "name": "code",
+            "getter_name": "code",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [],
+            "type_converter": {
+              "dart_expr": "const _AlertKindConverter()",
+              "dart_type_name": "AlertKind"
+            }
+          },
+          {
+            "name": "level",
+            "getter_name": "level",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "check": {
+                  "dart_expression": {
+                    "elements": [
+                      {
+                        "lexeme": "ComparableExpr",
+                        "import_uri": "package:drift/src/runtime/query_builder/query_builder.dart"
+                      },
+                      "(",
+                      {
+                        "lexeme": "level",
+                        "tag": "level"
+                      },
+                      ").isBetweenValues(1,5)"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "patient_status",
+            "getter_name": "patientStatus",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [],
+            "type_converter": {
+              "dart_expr": "const EnumNameConverter<PatientLevel>(PatientLevel.values)",
+              "dart_type_name": "PatientLevel"
+            }
+          },
+          {
+            "name": "side",
+            "getter_name": "side",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [],
+            "type_converter": {
+              "dart_expr": "const EnumNameConverter<FootSide>(FootSide.values)",
+              "dart_type_name": "FootSide"
+            }
+          },
+          {
+            "name": "zone",
+            "getter_name": "zone",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "site",
+            "getter_name": "site",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [],
+            "type_converter": {
+              "dart_expr": "const EnumNameConverter<LegacyTempSite>(LegacyTempSite.values)",
+              "dart_type_name": "LegacyTempSite"
+            }
+          },
+          {
+            "name": "measured_value",
+            "getter_name": "measuredValue",
+            "moor_type": "double",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "threshold",
+            "getter_name": "threshold",
+            "moor_type": "double",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "gait_class",
+            "getter_name": "gaitClass",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "gait_confidence",
+            "getter_name": "gaitConfidence",
+            "moor_type": "double",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "details",
+            "getter_name": "details",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [],
+            "type_converter": {
+              "dart_expr": "const _JsonMapConverter()",
+              "dart_type_name": "Map<String, Object?>"
+            }
+          },
+          {
+            "name": "at_ms",
+            "getter_name": "atMs",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "local_date",
+            "getter_name": "localDate",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "read_at_ms",
+            "getter_name": "readAtMs",
+            "moor_type": "int",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "capture_stamp",
+            "getter_name": "captureStamp",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "foot_check_id",
+            "getter_name": "footCheckId",
+            "moor_type": "int",
+            "nullable": true,
+            "customConstraints": null,
+            "defaultConstraints": "REFERENCES foot_checks (id) ON DELETE SET NULL",
+            "dialectAwareDefaultConstraints": {
+              "sqlite": "REFERENCES foot_checks (id) ON DELETE SET NULL"
+            },
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "foreign_key": {
+                  "to": {
+                    "table": "foot_checks",
+                    "column": "id"
+                  },
+                  "initially_deferred": false,
+                  "on_update": null,
+                  "on_delete": "setNull"
+                }
+              }
+            ]
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": []
+      }
+    },
+    {
+      "id": 2,
+      "references": [],
+      "type": "table",
+      "data": {
+        "name": "temperature_readings",
+        "was_declared_in_moor": false,
+        "columns": [
+          {
+            "name": "id",
+            "getter_name": "id",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "defaultConstraints": "PRIMARY KEY AUTOINCREMENT",
+            "dialectAwareDefaultConstraints": {
+              "sqlite": "PRIMARY KEY AUTOINCREMENT"
+            },
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              "auto-increment"
+            ]
+          },
+          {
+            "name": "at_ms",
+            "getter_name": "atMs",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "local_date",
+            "getter_name": "localDate",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "side",
+            "getter_name": "side",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [],
+            "type_converter": {
+              "dart_expr": "const EnumNameConverter<FootSide>(FootSide.values)",
+              "dart_type_name": "FootSide"
+            }
+          },
+          {
+            "name": "forefoot_c",
+            "getter_name": "forefootC",
+            "moor_type": "double",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "heel_c",
+            "getter_name": "heelC",
+            "moor_type": "double",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "quality",
+            "getter_name": "quality",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [],
+            "type_converter": {
+              "dart_expr": "const EnumNameConverter<TempQuality>(TempQuality.values)",
+              "dart_type_name": "TempQuality"
+            }
+          },
+          {
+            "name": "time_from_arrival",
+            "getter_name": "timeFromArrival",
+            "moor_type": "bool",
+            "nullable": false,
+            "customConstraints": null,
+            "defaultConstraints": "CHECK (\"time_from_arrival\" IN (0, 1))",
+            "dialectAwareDefaultConstraints": {
+              "sqlite": "CHECK (\"time_from_arrival\" IN (0, 1))"
+            },
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "site0_c",
+            "getter_name": "site0C",
+            "moor_type": "double",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "site1_c",
+            "getter_name": "site1C",
+            "moor_type": "double",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "site2_c",
+            "getter_name": "site2C",
+            "moor_type": "double",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "site3_c",
+            "getter_name": "site3C",
+            "moor_type": "double",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "site4_c",
+            "getter_name": "site4C",
+            "moor_type": "double",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "site5_c",
+            "getter_name": "site5C",
+            "moor_type": "double",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "site6_c",
+            "getter_name": "site6C",
+            "moor_type": "double",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "site7_c",
+            "getter_name": "site7C",
+            "moor_type": "double",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "site0_q",
+            "getter_name": "site0Q",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [],
+            "type_converter": {
+              "dart_expr": "const EnumNameConverter<TempQuality>(TempQuality.values)",
+              "dart_type_name": "TempQuality"
+            }
+          },
+          {
+            "name": "site1_q",
+            "getter_name": "site1Q",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [],
+            "type_converter": {
+              "dart_expr": "const EnumNameConverter<TempQuality>(TempQuality.values)",
+              "dart_type_name": "TempQuality"
+            }
+          },
+          {
+            "name": "site2_q",
+            "getter_name": "site2Q",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [],
+            "type_converter": {
+              "dart_expr": "const EnumNameConverter<TempQuality>(TempQuality.values)",
+              "dart_type_name": "TempQuality"
+            }
+          },
+          {
+            "name": "site3_q",
+            "getter_name": "site3Q",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [],
+            "type_converter": {
+              "dart_expr": "const EnumNameConverter<TempQuality>(TempQuality.values)",
+              "dart_type_name": "TempQuality"
+            }
+          },
+          {
+            "name": "site4_q",
+            "getter_name": "site4Q",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [],
+            "type_converter": {
+              "dart_expr": "const EnumNameConverter<TempQuality>(TempQuality.values)",
+              "dart_type_name": "TempQuality"
+            }
+          },
+          {
+            "name": "site5_q",
+            "getter_name": "site5Q",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [],
+            "type_converter": {
+              "dart_expr": "const EnumNameConverter<TempQuality>(TempQuality.values)",
+              "dart_type_name": "TempQuality"
+            }
+          },
+          {
+            "name": "site6_q",
+            "getter_name": "site6Q",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [],
+            "type_converter": {
+              "dart_expr": "const EnumNameConverter<TempQuality>(TempQuality.values)",
+              "dart_type_name": "TempQuality"
+            }
+          },
+          {
+            "name": "site7_q",
+            "getter_name": "site7Q",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [],
+            "type_converter": {
+              "dart_expr": "const EnumNameConverter<TempQuality>(TempQuality.values)",
+              "dart_type_name": "TempQuality"
+            }
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": []
+      }
+    },
+    {
+      "id": 3,
+      "references": [],
+      "type": "table",
+      "data": {
+        "name": "daily_summary",
+        "was_declared_in_moor": false,
+        "columns": [
+          {
+            "name": "local_date",
+            "getter_name": "localDate",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "steps",
+            "getter_name": "steps",
+            "moor_type": "int",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "walking_min",
+            "getter_name": "walkingMin",
+            "moor_type": "int",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "worn_min",
+            "getter_name": "wornMin",
+            "moor_type": "int",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "max_delta_forefoot_c",
+            "getter_name": "maxDeltaForefootC",
+            "moor_type": "double",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "max_delta_heel_c",
+            "getter_name": "maxDeltaHeelC",
+            "moor_type": "double",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "max_delta_c",
+            "getter_name": "maxDeltaC",
+            "moor_type": "double",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "max_delta_site",
+            "getter_name": "maxDeltaSite",
+            "moor_type": "int",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "alerts_l1",
+            "getter_name": "alertsL1",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": "const CustomExpression('0')",
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "alerts_l2",
+            "getter_name": "alertsL2",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": "const CustomExpression('0')",
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "alerts_l3",
+            "getter_name": "alertsL3",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": "const CustomExpression('0')",
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "alerts_l4",
+            "getter_name": "alertsL4",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": "const CustomExpression('0')",
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "alerts_l5",
+            "getter_name": "alertsL5",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": "const CustomExpression('0')",
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "foot_check_done",
+            "getter_name": "footCheckDone",
+            "moor_type": "bool",
+            "nullable": false,
+            "customConstraints": null,
+            "defaultConstraints": "CHECK (\"foot_check_done\" IN (0, 1))",
+            "dialectAwareDefaultConstraints": {
+              "sqlite": "CHECK (\"foot_check_done\" IN (0, 1))"
+            },
+            "default_dart": "const CustomExpression('0')",
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "updated_at_ms",
+            "getter_name": "updatedAtMs",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": [],
+        "explicit_pk": [
+          "local_date"
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "references": [
+        1
+      ],
+      "type": "index",
+      "data": {
+        "on": 1,
+        "name": "alerts_at",
+        "sql": null,
+        "unique": false,
+        "columns": [
+          {
+            "column": "at_ms",
+            "order_by": null
+          }
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "references": [
+        1
+      ],
+      "type": "index",
+      "data": {
+        "on": 1,
+        "name": "alerts_read_at",
+        "sql": null,
+        "unique": false,
+        "columns": [
+          {
+            "column": "read_at_ms",
+            "order_by": null
+          }
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "references": [
+        1
+      ],
+      "type": "index",
+      "data": {
+        "on": 1,
+        "name": "alerts_capture",
+        "sql": null,
+        "unique": false,
+        "columns": [
+          {
+            "column": "capture_stamp",
+            "order_by": null
+          }
+        ]
+      }
+    },
+    {
+      "id": 7,
+      "references": [
+        2
+      ],
+      "type": "index",
+      "data": {
+        "on": 2,
+        "name": "temperature_side_at",
+        "sql": null,
+        "unique": false,
+        "columns": [
+          {
+            "column": "side",
+            "order_by": null
+          },
+          {
+            "column": "at_ms",
+            "order_by": null
+          }
+        ]
+      }
+    },
+    {
+      "id": 8,
+      "references": [
+        2
+      ],
+      "type": "index",
+      "data": {
+        "on": 2,
+        "name": "temperature_date",
+        "sql": null,
+        "unique": false,
+        "columns": [
+          {
+            "column": "local_date",
+            "order_by": null
+          }
+        ]
+      }
+    },
+    {
+      "id": 9,
+      "references": [
+        0
+      ],
+      "type": "index",
+      "data": {
+        "on": 0,
+        "name": "foot_checks_date",
+        "sql": null,
+        "unique": false,
+        "columns": [
+          {
+            "column": "local_date",
+            "order_by": null
+          }
+        ]
+      }
+    }
+  ],
+  "fixed_sql": [
+    {
+      "name": "foot_checks",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"foot_checks\" (\"id\" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, \"at_ms\" INTEGER NOT NULL, \"local_date\" TEXT NOT NULL, \"q_redness\" TEXT NULL, \"q_wound\" TEXT NULL, \"q_swelling\" TEXT NULL, \"result\" TEXT NOT NULL, \"photo_sole_left\" TEXT NULL, \"photo_sole_right\" TEXT NULL, \"photo_top_left\" TEXT NULL, \"photo_top_right\" TEXT NULL, \"answer_only\" INTEGER NOT NULL CHECK (\"answer_only\" IN (0, 1)));"
+        }
+      ]
+    },
+    {
+      "name": "alerts",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"alerts\" (\"id\" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, \"code\" TEXT NOT NULL, \"level\" INTEGER NOT NULL CHECK(\"level\" BETWEEN 1 AND 5), \"patient_status\" TEXT NOT NULL, \"side\" TEXT NULL, \"zone\" TEXT NULL, \"site\" TEXT NULL, \"measured_value\" REAL NULL, \"threshold\" REAL NULL, \"gait_class\" TEXT NULL, \"gait_confidence\" REAL NULL, \"details\" TEXT NULL, \"at_ms\" INTEGER NOT NULL, \"local_date\" TEXT NOT NULL, \"read_at_ms\" INTEGER NULL, \"capture_stamp\" TEXT NULL, \"foot_check_id\" INTEGER NULL REFERENCES foot_checks (id) ON DELETE SET NULL);"
+        }
+      ]
+    },
+    {
+      "name": "temperature_readings",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"temperature_readings\" (\"id\" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, \"at_ms\" INTEGER NOT NULL, \"local_date\" TEXT NOT NULL, \"side\" TEXT NOT NULL, \"forefoot_c\" REAL NULL, \"heel_c\" REAL NULL, \"quality\" TEXT NOT NULL, \"time_from_arrival\" INTEGER NOT NULL CHECK (\"time_from_arrival\" IN (0, 1)), \"site0_c\" REAL NULL, \"site1_c\" REAL NULL, \"site2_c\" REAL NULL, \"site3_c\" REAL NULL, \"site4_c\" REAL NULL, \"site5_c\" REAL NULL, \"site6_c\" REAL NULL, \"site7_c\" REAL NULL, \"site0_q\" TEXT NULL, \"site1_q\" TEXT NULL, \"site2_q\" TEXT NULL, \"site3_q\" TEXT NULL, \"site4_q\" TEXT NULL, \"site5_q\" TEXT NULL, \"site6_q\" TEXT NULL, \"site7_q\" TEXT NULL);"
+        }
+      ]
+    },
+    {
+      "name": "daily_summary",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"daily_summary\" (\"local_date\" TEXT NOT NULL, \"steps\" INTEGER NULL, \"walking_min\" INTEGER NULL, \"worn_min\" INTEGER NULL, \"max_delta_forefoot_c\" REAL NULL, \"max_delta_heel_c\" REAL NULL, \"max_delta_c\" REAL NULL, \"max_delta_site\" INTEGER NULL, \"alerts_l1\" INTEGER NOT NULL DEFAULT 0, \"alerts_l2\" INTEGER NOT NULL DEFAULT 0, \"alerts_l3\" INTEGER NOT NULL DEFAULT 0, \"alerts_l4\" INTEGER NOT NULL DEFAULT 0, \"alerts_l5\" INTEGER NOT NULL DEFAULT 0, \"foot_check_done\" INTEGER NOT NULL DEFAULT 0 CHECK (\"foot_check_done\" IN (0, 1)), \"updated_at_ms\" INTEGER NOT NULL, PRIMARY KEY (\"local_date\"));"
+        }
+      ]
+    },
+    {
+      "name": "alerts_at",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE INDEX alerts_at ON alerts (at_ms)"
+        }
+      ]
+    },
+    {
+      "name": "alerts_read_at",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE INDEX alerts_read_at ON alerts (read_at_ms)"
+        }
+      ]
+    },
+    {
+      "name": "alerts_capture",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE INDEX alerts_capture ON alerts (capture_stamp)"
+        }
+      ]
+    },
+    {
+      "name": "temperature_side_at",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE INDEX temperature_side_at ON temperature_readings (side, at_ms)"
+        }
+      ]
+    },
+    {
+      "name": "temperature_date",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE INDEX temperature_date ON temperature_readings (local_date)"
+        }
+      ]
+    },
+    {
+      "name": "foot_checks_date",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE INDEX foot_checks_date ON foot_checks (local_date)"
+        }
+      ]
+    }
+  ]
+}

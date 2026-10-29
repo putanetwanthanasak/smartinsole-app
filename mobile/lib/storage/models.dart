@@ -1,5 +1,4 @@
 import '../ble/packets.dart';
-import '../config/foot_layout.dart';
 import '../rules/alert_code.dart';
 import '../rules/patient_status.dart';
 
@@ -46,6 +45,63 @@ enum AlertKind {
       values.firstWhere((k) => k.wireName == name);
 }
 
+/// The temperature site of a `TEMP_DELTA` raised before schema v2 (the v1
+/// packet's two sites). Stored by name, so the names never change. Since v2
+/// the site is a zone id in `zone`; these are never written again, and an
+/// alert carrying one shows no site map (the v1 positions are not v1.6
+/// sites).
+enum LegacyTempSite { forefoot, heel }
+
+/// One qualifying site of a `TEMP_DELTA` alert (`details.tempSites`): the
+/// zone id (site i = zone i), its |ΔT| in °C and when it qualified (UTC
+/// ms, the reading pair that made it consecutive, rule 6).
+class TempSiteEntry {
+  const TempSiteEntry({
+    required this.zone,
+    required this.deltaC,
+    required this.atMs,
+  });
+
+  factory TempSiteEntry.fromJson(Map<Object?, Object?> j) => TempSiteEntry(
+    zone: j['zone']! as String,
+    deltaC: (j['deltaC']! as num).toDouble(),
+    atMs: (j['atMs']! as num).toInt(),
+  );
+
+  /// The details key holding the list.
+  static const listKey = 'tempSites';
+
+  final String zone;
+  final double deltaC;
+  final int atMs;
+
+  Map<String, Object?> toJson() => {
+    'zone': zone,
+    'deltaC': deltaC,
+    'atMs': atMs,
+  };
+
+  /// `details.tempSites` of a stored alert; empty for any other alert and
+  /// for a `TEMP_DELTA` stored before schema v2.
+  static List<TempSiteEntry> listOf(Map<String, Object?>? details) => [
+    if (details?[listKey] case final List<Object?> l)
+      for (final e in l) TempSiteEntry.fromJson(e! as Map),
+  ];
+
+  @override
+  bool operator ==(Object other) =>
+      other is TempSiteEntry &&
+      other.zone == zone &&
+      other.deltaC == deltaC &&
+      other.atMs == atMs;
+
+  @override
+  int get hashCode => Object.hash(zone, deltaC, atMs);
+
+  @override
+  String toString() => 'TempSiteEntry($zone, $deltaC, $atMs)';
+}
+
 /// An alert to store. The level is not passed: it follows from [kind].
 class NewAlert {
   const NewAlert({
@@ -54,7 +110,6 @@ class NewAlert {
     required this.atMs,
     this.side,
     this.zone,
-    this.site,
     this.measuredValue,
     this.threshold,
     this.gaitClass,
@@ -74,11 +129,10 @@ class NewAlert {
   /// The foot it is about; for `TEMP_DELTA`, the warmer foot.
   final FootSide? side;
 
-  /// Pressure zone id (`FootZone.id`, e.g. `hallux`).
+  /// Zone id (`FootZone.id`, e.g. `hallux`): the pressure zone, or for
+  /// `TEMP_DELTA` the temperature site (site i = zone i) with the largest
+  /// |ΔT| when it was raised.
   final String? zone;
-
-  /// Temperature site for `TEMP_DELTA`.
-  final TempSite? site;
 
   /// The measured value and the threshold it crossed, in the code's unit
   /// (kPa, kPa·s, %, °C, minutes).
@@ -109,7 +163,7 @@ class StoredAlert {
     required this.localDate,
     this.side,
     this.zone,
-    this.site,
+    this.legacySite,
     this.measuredValue,
     this.threshold,
     this.gaitClass,
@@ -130,7 +184,9 @@ class StoredAlert {
   final String localDate;
   final FootSide? side;
   final String? zone;
-  final TempSite? site;
+
+  /// A `TEMP_DELTA` stored before schema v2: its forefoot/heel site.
+  final LegacyTempSite? legacySite;
   final double? measuredValue;
   final double? threshold;
   final String? gaitClass;
@@ -148,27 +204,46 @@ class StoredAlert {
 }
 
 /// One foot's 30 s temperature reading. Stored whatever its quality, so the
-/// details can say how good the signal was; only `normal` readings are
+/// details can say how good the signal was; only `normal` sites are
 /// temperatures (web report 011).
 class TemperatureReading {
   const TemperatureReading({
     required this.atMs,
     required this.localDate,
     required this.side,
-    required this.forefootC,
-    required this.heelC,
+    required this.siteC,
+    required this.siteQuality,
     required this.quality,
     required this.timeFromArrival,
+    this.legacyForefootC,
+    this.legacyHeelC,
   });
 
   final int atMs;
   final String localDate;
   final FootSide side;
 
-  /// null = the sensor could not read (wire `-32768`).
-  final double? forefootC;
-  final double? heelC;
+  /// Per site (index = zone); null = the sensor could not read (wire
+  /// `-32768`). All null, and [siteQuality] all null, for a v1 row.
+  final List<double?> siteC;
+  final List<TempQuality?> siteQuality;
+
+  /// The worst site's quality (v1: the packet's).
   final TempQuality quality;
+
+  /// A v1 row (12-byte packet, before schema v2): its two sites. Never
+  /// mapped onto a v1.6 site: the v1 positions are not the new ones.
+  final double? legacyForefootC;
+  final double? legacyHeelC;
+
+  bool get isLegacy => siteQuality.every((q) => q == null);
+
+  /// The site's temperature when it can be compared with the other foot:
+  /// a value with `normal` quality, else null.
+  double? usableC(int site) =>
+      site < siteC.length && siteQuality[site] == TempQuality.normal
+      ? siteC[site]
+      : null;
 
   /// True when [atMs] is the phone's arrival time, not the device time
   /// mapped onto the session clock (`FootTemp.fromArrival`).
@@ -183,8 +258,10 @@ class DailySummary {
     this.steps,
     this.walkingMin,
     this.wornMin,
-    this.maxDeltaForefootC,
-    this.maxDeltaHeelC,
+    this.maxDeltaC,
+    this.maxDeltaSite,
+    this.legacyMaxDeltaForefootC,
+    this.legacyMaxDeltaHeelC,
   });
 
   final String localDate;
@@ -194,9 +271,14 @@ class DailySummary {
   final int? walkingMin;
   final int? wornMin;
 
-  /// Largest |ΔT| of the day, from two-foot readings only (rule 4).
-  final double? maxDeltaForefootC;
-  final double? maxDeltaHeelC;
+  /// Largest |ΔT| of the day over the 8 sites, from two-foot readings only
+  /// (rule 4), and the site (zone index) it was at.
+  final double? maxDeltaC;
+  final int? maxDeltaSite;
+
+  /// A day recorded before schema v2: its two v1 sites.
+  final double? legacyMaxDeltaForefootC;
+  final double? legacyMaxDeltaHeelC;
 
   /// Alerts raised that day, index 0 = level 1 … index 4 = level 5. All
   /// levels, including the ones the patient never sees.

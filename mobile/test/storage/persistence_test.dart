@@ -29,14 +29,16 @@ void main() {
       await DriftTemperatureRepository(db, bangkok).add(
         side: FootSide.values[i % 2],
         atMs: at + i * 30000,
-        forefootC: 30.8,
-        heelC: 31.4,
-        quality: TempQuality.normal,
+        celsius: List.filled(8, 30.8),
+        quality: List.filled(8, TempQuality.normal),
         timeFromArrival: false,
       );
     }
     await DriftFootCheckRepository(db, bangkok).save(draftOf(at));
-    await DriftDailySummaryRepository(db, bangkok).recordDelta(at, heelC: 2.6);
+    await DriftDailySummaryRepository(
+      db,
+      bangkok,
+    ).recordDelta(at, [null, null, null, null, null, 2.6, null, null]);
     await db.close();
     expect(file.existsSync(), isTrue);
 
@@ -63,9 +65,6 @@ void main() {
       db,
       bangkok,
     ).get('2026-10-24'))!;
-    expect(
-      (s.maxDeltaHeelC, s.footCheckDone, s.alertsByLevel[3]),
-      (2.6, true, 1),
-    );
+    expect((s.maxDeltaC, s.footCheckDone, s.alertsByLevel[3]), (2.6, true, 1));
   });
 }

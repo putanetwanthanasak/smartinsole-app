@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smartinsole/ble/packets.dart';
+import 'package:smartinsole/storage/temperature_repository.dart';
 
 import 'storage_rig.dart';
 
@@ -7,43 +8,50 @@ void main() {
   final t0 = bkk(2026, 10, 24, 14, 0);
 
   group('temperature readings', () {
-    Future<void> add(
-      StorageRig rig,
-      FootSide side,
-      int atMs, {
-      double? forefoot = 30.8,
-      double? heel = 31.4,
-      TempQuality quality = TempQuality.normal,
-      bool fromArrival = false,
-    }) => rig.temperatures.add(
-      side: side,
-      atMs: atMs,
-      forefootC: forefoot,
-      heelC: heel,
-      quality: quality,
-      timeFromArrival: fromArrival,
-    );
+    Future<void> add(StorageRig rig, FootSide side, int atMs) =>
+        addReading(rig.temperatures, side, atMs);
 
-    test('a reading reads back with every field', () async {
+    test('a reading reads back with every site and field', () async {
       final rig = StorageRig();
-      await add(
-        rig,
-        FootSide.left,
-        t0,
-        forefoot: null,
-        heel: 31.4,
-        quality: TempQuality.poorContact,
-        fromArrival: true,
+      await rig.temperatures.add(
+        side: FootSide.left,
+        atMs: t0,
+        celsius: [for (var i = 0; i < 8; i++) i == 2 ? null : 30 + i / 10],
+        quality: sitesQ(TempQuality.normal, {
+          2: TempQuality.sensorFault,
+          6: TempQuality.poorContact,
+        }),
+        timeFromArrival: true,
       );
       final r = (await rig.temperatures.latest(FootSide.left))!;
       expect(r.atMs, t0);
       expect(r.localDate, '2026-10-24');
       expect(r.side, FootSide.left);
-      expect(r.forefootC, isNull, reason: 'could not read (-32768)');
-      expect(r.heelC, 31.4);
-      expect(r.quality, TempQuality.poorContact);
+      expect(r.siteC, [30.0, 30.1, null, 30.3, 30.4, 30.5, 30.6, 30.7]);
+      expect(r.siteQuality[2], TempQuality.sensorFault);
+      expect(r.siteQuality[6], TempQuality.poorContact);
+      expect(r.quality, TempQuality.sensorFault, reason: 'the worst site');
+      expect(r.isLegacy, isFalse);
+      expect(r.usableC(0), 30.0);
+      expect(r.usableC(2), isNull, reason: 'could not read (-32768)');
+      expect(r.usableC(6), isNull, reason: 'poor contact is not a value');
+      expect(r.legacyForefootC, isNull);
       expect(r.timeFromArrival, isTrue);
       expect(await rig.temperatures.latest(FootSide.right), isNull);
+    });
+
+    test('the row quality is the worst site\'s', () {
+      expect(worstQuality(sitesQ()), TempQuality.normal);
+      expect(
+        worstQuality(sitesQ(TempQuality.normal, {7: TempQuality.poorContact})),
+        TempQuality.poorContact,
+      );
+      expect(
+        worstQuality(
+          sitesQ(TempQuality.poorContact, {0: TempQuality.sensorFault}),
+        ),
+        TempQuality.sensorFault,
+      );
     });
 
     test('the day query keeps both feet, oldest first, and leaves '
@@ -106,18 +114,22 @@ void main() {
       expect(await rig.summaries.get('2026-10-24'), isNull);
     });
 
-    test('max ΔT keeps the largest |ΔT| per site, nulls never win', () async {
+    test('max ΔT keeps the day\'s largest |ΔT| of the 8 sites and its '
+        'site; nulls never win', () async {
       final rig = StorageRig();
-      await rig.summaries.recordDelta(t0, forefootC: -0.4);
+      List<double?> d(Map<int, double> at) => sitesC(null, at);
+      await rig.summaries.recordDelta(t0, d({1: -0.4}));
       var s = (await rig.summaries.get('2026-10-24'))!;
-      expect(s.maxDeltaForefootC, 0.4);
-      expect(s.maxDeltaHeelC, isNull);
-      await rig.summaries.recordDelta(t0 + 1, forefootC: 0.2, heelC: -2.6);
-      await rig.summaries.recordDelta(t0 + 2, heelC: 1.0);
-      await rig.summaries.recordDelta(t0 + 3, forefootC: null, heelC: null);
+      expect(s.maxDeltaC, 0.4);
+      expect(s.maxDeltaSite, 1);
+      await rig.summaries.recordDelta(t0 + 1, d({1: 0.2, 5: -2.6, 7: 2.3}));
+      await rig.summaries.recordDelta(t0 + 2, d({7: 1.0}));
+      await rig.summaries.recordDelta(t0 + 3, sitesC(null));
       s = (await rig.summaries.get('2026-10-24'))!;
-      expect(s.maxDeltaForefootC, 0.4);
-      expect(s.maxDeltaHeelC, 2.6);
+      expect(s.maxDeltaC, 2.6);
+      expect(s.maxDeltaSite, 5, reason: 'the site moves with the value');
+      expect(s.legacyMaxDeltaForefootC, isNull);
+      expect(s.legacyMaxDeltaHeelC, isNull);
       expect(s.steps, isNull, reason: 'S8A fills activity');
       expect(s.alertsByLevel, [0, 0, 0, 0, 0]);
       expect(s.footCheckDone, isFalse);

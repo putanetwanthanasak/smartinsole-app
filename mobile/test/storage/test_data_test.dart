@@ -41,9 +41,8 @@ void main() {
       await DriftTemperatureRepository(db).add(
         side: FootSide.left,
         atMs: t0,
-        forefootC: 31,
-        heelC: 30,
-        quality: TempQuality.normal,
+        celsius: List.filled(8, 31),
+        quality: List.filled(8, TempQuality.normal),
         timeFromArrival: false,
       );
       // A finding: a foot check, its untagged alert and the day's summary.

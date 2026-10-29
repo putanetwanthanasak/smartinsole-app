@@ -2,7 +2,6 @@ import 'dart:math' as math;
 
 import '../ble/ble_protocol.dart';
 import '../ble/packets.dart';
-import '../config/foot_layout.dart';
 import '../config/thresholds.dart';
 import '../device/mock_data_source.dart';
 import 'local_date.dart';
@@ -14,15 +13,16 @@ import 'temperature_repository.dart';
 /// FeetDTemp, FeetDTempRest and FeetDTempMissing.
 class SampleDayShape {
   const SampleDayShape({
-    required this.aboveSite,
+    required this.aboveSites,
     required this.aboveFrom,
     required this.aboveTo,
     required this.gapFrom,
     this.gapTo,
   });
 
-  /// One period above `deltaC`, the right foot warmer.
-  final TempSite aboveSite;
+  /// One period above `deltaC` at these temperature sites (zone indexes),
+  /// the right foot warmer; the first is the largest.
+  final List<int> aboveSites;
   final double aboveFrom;
   final double aboveTo;
 
@@ -32,10 +32,10 @@ class SampleDayShape {
   final double? gapTo;
 
   static SampleDayShape of(MockPreset preset) => switch (preset) {
-    // The forefoot stays above the threshold up to the end, joining the
-    // live mock's right forefoot (2.6 °C warmer).
+    // The heel centre and lateral heel stay above the threshold up to the
+    // end, joining the live mock's right heel (2.6 and 2.3 °C warmer).
     MockPreset.rest => const SampleDayShape(
-      aboveSite: TempSite.forefoot,
+      aboveSites: [5, 7],
       aboveFrom: 0.75,
       aboveTo: 1,
       gapFrom: 0.30,
@@ -43,13 +43,13 @@ class SampleDayShape {
     ),
     // The right foot never comes back, as the live mock's.
     MockPreset.oneFootMissing => const SampleDayShape(
-      aboveSite: TempSite.heel,
+      aboveSites: [5],
       aboveFrom: 0.30,
       aboveTo: 0.45,
       gapFrom: 0.70,
     ),
     _ => const SampleDayShape(
-      aboveSite: TempSite.heel,
+      aboveSites: [5],
       aboveFrom: 0.35,
       aboveTo: 0.50,
       gapFrom: 0.62,
@@ -111,18 +111,24 @@ Future<int> seedSampleDay({
     final drift = 0.4 * math.sin(f * math.pi * 2);
     final small = 0.25 + 0.15 * math.sin(f * math.pi * 7);
     final a = above(f);
-    // Inside the period it wobbles by ±0.2 °C, staying above deltaC.
-    final top = high + 0.2 * math.sin(f * math.pi * 40);
-    double diff(TempSite s) =>
-        s == shape.aboveSite ? small + (top - small) * a : small * 0.6;
-    const leftForefoot = 30.6;
-    const leftHeel = 31.2;
+    // Inside the period it wobbles by ±0.2 °C, staying above deltaC; each
+    // further above-site sits 0.25 °C lower and wobbles half as much, so
+    // it stays above too.
+    final wobble = math.sin(f * math.pi * 40);
+    double diff(int site) {
+      final k = shape.aboveSites.indexOf(site);
+      if (k < 0) return small * 0.6;
+      final top = high - 0.25 * k + 0.2 * wobble / (k + 1);
+      return small + (top - small) * a;
+    }
+
+    const base = MockFootProfile.baseSiteC;
+    final normal = List.filled(base.length, TempQuality.normal);
     await temperatures.add(
       side: FootSide.left,
       atMs: ms,
-      forefootC: _r(leftForefoot + drift),
-      heelC: _r(leftHeel + drift),
-      quality: TempQuality.normal,
+      celsius: [for (final c in base) _r(c + drift)],
+      quality: normal,
       timeFromArrival: false,
     );
     n++;
@@ -133,9 +139,10 @@ Future<int> seedSampleDay({
       await temperatures.add(
         side: FootSide.right,
         atMs: rightMs,
-        forefootC: _r(leftForefoot + drift + diff(TempSite.forefoot)),
-        heelC: _r(leftHeel + drift + diff(TempSite.heel)),
-        quality: TempQuality.normal,
+        celsius: [
+          for (var i = 0; i < base.length; i++) _r(base[i] + drift + diff(i)),
+        ],
+        quality: normal,
         timeFromArrival: false,
       );
       n++;

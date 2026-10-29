@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smartinsole/ble/packets.dart';
-import 'package:smartinsole/config/foot_layout.dart';
 import 'package:smartinsole/rules/patient_status.dart';
 import 'package:smartinsole/storage/models.dart';
 
@@ -17,7 +16,7 @@ void main() {
         patientLevel: PatientLevel.rest,
         atMs: now,
         side: FootSide.right,
-        site: TempSite.heel,
+        zone: 'heel',
         measuredValue: 2.6,
         threshold: 2.2,
         gaitClass: 'normal',
@@ -33,8 +32,8 @@ void main() {
     expect(a.atMs, now);
     expect(a.localDate, '2026-10-24');
     expect(a.side, FootSide.right);
-    expect(a.site, TempSite.heel);
-    expect(a.zone, isNull);
+    expect(a.zone, 'heel');
+    expect(a.legacySite, isNull);
     expect(a.measuredValue, 2.6);
     expect(a.threshold, 2.2);
     expect(a.gaitClass, 'normal');
@@ -198,6 +197,79 @@ void main() {
         expect(await rig.alerts.forCapture('A'), hasLength(1));
       },
     );
+  });
+
+  group('appendTempSite (sites that qualify during suppression)', () {
+    TempSiteEntry entry(String zone, double d, int at) =>
+        TempSiteEntry(zone: zone, deltaC: d, atMs: at);
+    Future<int> tempAlert(StorageRig rig, {Map<String, Object?>? details}) =>
+        rig.alerts.add(
+          NewAlert(
+            kind: AlertKind.tempDelta,
+            patientLevel: PatientLevel.rest,
+            atMs: now,
+            side: FootSide.right,
+            zone: 'heel',
+            measuredValue: 2.6,
+            threshold: 2.2,
+            details:
+                details ??
+                {
+                  'consecutive': 2,
+                  TempSiteEntry.listKey: [entry('heel', 2.6, now).toJson()],
+                },
+          ),
+        );
+
+    test('a new site is added after the listed ones', () async {
+      final rig = StorageRig();
+      final id = await tempAlert(rig);
+      expect(
+        await rig.alerts.appendTempSite(id, entry('lateralHeel', 2.3, now + 1)),
+        isTrue,
+      );
+      final a = (await rig.alerts.byId(id))!;
+      expect(TempSiteEntry.listOf(a.details).map((e) => e.zone), [
+        'heel',
+        'lateralHeel',
+      ]);
+      expect(TempSiteEntry.listOf(a.details).last.atMs, now + 1);
+      expect(a.details!['consecutive'], 2, reason: 'other details kept');
+      expect(a.zone, 'heel', reason: 'the named site does not change');
+      expect(a.measuredValue, 2.6);
+    });
+
+    test('a listed site is never added twice', () async {
+      final rig = StorageRig();
+      final id = await tempAlert(rig);
+      expect(
+        await rig.alerts.appendTempSite(id, entry('heel', 2.9, now + 1)),
+        isFalse,
+      );
+      final a = (await rig.alerts.byId(id))!;
+      expect(TempSiteEntry.listOf(a.details), hasLength(1));
+      expect(TempSiteEntry.listOf(a.details).single.deltaC, 2.6);
+    });
+
+    test('refused for a missing row, another code, or an alert stored '
+        'before the 8 sites', () async {
+      final rig = StorageRig();
+      final e = entry('meta1', 2.4, now);
+      expect(await rig.alerts.appendTempSite(999, e), isFalse);
+      final pressure = await rig.alerts.add(
+        alertOf(AlertKind.pressurePeak, now),
+      );
+      expect(await rig.alerts.appendTempSite(pressure, e), isFalse);
+      final legacy = await tempAlert(
+        rig,
+        details: {'consecutive': 2, 'otherSiteDeltaC': 0.4},
+      );
+      expect(await rig.alerts.appendTempSite(legacy, e), isFalse);
+      expect((await rig.alerts.byId(legacy))!.details, {
+        'consecutive': 2,
+        'otherSiteDeltaC': 0.4,
+      });
+    });
   });
 
   test('every alert is counted in its day\'s summary by level', () async {

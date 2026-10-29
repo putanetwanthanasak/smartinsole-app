@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:smartinsole/ble/ble_protocol.dart';
 import 'package:smartinsole/ble/packets.dart';
 import 'package:smartinsole/rules/patient_status.dart';
 import 'package:smartinsole/storage/alert_repository.dart';
@@ -65,4 +66,34 @@ FootCheckDraft draftOf(
   swelling: swelling,
   answerOnly: photos.isEmpty,
   photos: photos,
+);
+
+/// One reading's 8 sites: [c] at every site, [at] overriding some (null:
+/// the sensor could not read).
+List<double?> sitesC(double? c, [Map<int, double?> at = const {}]) => [
+  for (var i = 0; i < TempLayout.siteCount; i++) at.containsKey(i) ? at[i] : c,
+];
+
+/// One reading's 8 qualities: [q] at every site, [at] overriding some.
+List<TempQuality> sitesQ([
+  TempQuality q = TempQuality.normal,
+  Map<int, TempQuality> at = const {},
+]) => [for (var i = 0; i < TempLayout.siteCount; i++) at[i] ?? q];
+
+/// Stores one reading of [side] (every site [c] unless [at] says).
+Future<void> addReading(
+  TemperatureRepository repo,
+  FootSide side,
+  int atMs, {
+  double? c = 31.0,
+  Map<int, double?> at = const {},
+  TempQuality quality = TempQuality.normal,
+  Map<int, TempQuality> qualityAt = const {},
+  bool fromArrival = false,
+}) => repo.add(
+  side: side,
+  atMs: atMs,
+  celsius: sitesC(c, at),
+  quality: sitesQ(quality, qualityAt),
+  timeFromArrival: fromArrival,
 );

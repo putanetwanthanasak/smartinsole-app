@@ -6,16 +6,18 @@ import 'package:drift_flutter/drift_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../ble/packets.dart';
-import '../config/foot_layout.dart';
 import '../rules/patient_status.dart';
+import 'database.steps.dart';
 import 'models.dart';
 
 part 'database.g.dart';
 
-// Schema v1 (S6A). Every time is UTC ms (`*_ms`); `local_date` is the
-// phone's calendar day `YYYY-MM-DD` at that time (`LocalDates`). Enums are
-// stored by name (`textEnum`), so renaming an enum value is a migration.
-// No names or subject codes anywhere in this file (IRB).
+// Schema v1 (S6A), v2 (S8D: 8 temperature sites, DATA-CONTRACT v1.6).
+// Every time is UTC ms (`*_ms`); `local_date` is the phone's calendar day
+// `YYYY-MM-DD` at that time (`LocalDates`). Enums are stored by name
+// (`textEnum`), so renaming an enum value is a migration. v2 only adds
+// columns: rows written before it keep their values and are never
+// rewritten. No names or subject codes anywhere in this file (IRB).
 
 @DataClassName('AlertRow')
 @TableIndex(name: 'alerts_at', columns: {#atMs})
@@ -33,8 +35,14 @@ class Alerts extends Table {
   IntColumn get level => integer().check(level.isBetweenValues(1, 5))();
   TextColumn get patientStatus => textEnum<PatientLevel>()();
   TextColumn get side => textEnum<FootSide>().nullable()();
+
+  /// Zone id (`FootZone.id`). Since v2 also the temperature site of a
+  /// `TEMP_DELTA` (site i = zone i).
   TextColumn get zone => text().nullable()();
-  TextColumn get site => textEnum<TempSite>().nullable()();
+
+  /// The v1 temperature site of a `TEMP_DELTA` raised before v2
+  /// (forefoot or heel); never written since.
+  TextColumn get site => textEnum<LegacyTempSite>().nullable()();
   RealColumn get measuredValue => real().nullable()();
   RealColumn get threshold => real().nullable()();
   TextColumn get gaitClass => text().nullable()();
@@ -63,10 +71,41 @@ class TemperatureReadings extends Table {
   IntColumn get atMs => integer()();
   TextColumn get localDate => text()();
   TextColumn get side => textEnum<FootSide>()();
+
+  /// v1 rows only (the 12-byte packet's two sites); null since v2.
   RealColumn get forefootC => real().nullable()();
   RealColumn get heelC => real().nullable()();
+
+  /// v1: the packet's quality. v2: the worst of the 8 sites' qualities.
   TextColumn get quality => textEnum<TempQuality>()();
   BoolColumn get timeFromArrival => boolean()();
+
+  // v2: one value and one quality per site (index = zone, NTC i next to
+  // FSR i); null in v1 rows, and a null value = could not read.
+  RealColumn get site0C => real().named('site0_c').nullable()();
+  RealColumn get site1C => real().named('site1_c').nullable()();
+  RealColumn get site2C => real().named('site2_c').nullable()();
+  RealColumn get site3C => real().named('site3_c').nullable()();
+  RealColumn get site4C => real().named('site4_c').nullable()();
+  RealColumn get site5C => real().named('site5_c').nullable()();
+  RealColumn get site6C => real().named('site6_c').nullable()();
+  RealColumn get site7C => real().named('site7_c').nullable()();
+  TextColumn get site0Q =>
+      textEnum<TempQuality>().named('site0_q').nullable()();
+  TextColumn get site1Q =>
+      textEnum<TempQuality>().named('site1_q').nullable()();
+  TextColumn get site2Q =>
+      textEnum<TempQuality>().named('site2_q').nullable()();
+  TextColumn get site3Q =>
+      textEnum<TempQuality>().named('site3_q').nullable()();
+  TextColumn get site4Q =>
+      textEnum<TempQuality>().named('site4_q').nullable()();
+  TextColumn get site5Q =>
+      textEnum<TempQuality>().named('site5_q').nullable()();
+  TextColumn get site6Q =>
+      textEnum<TempQuality>().named('site6_q').nullable()();
+  TextColumn get site7Q =>
+      textEnum<TempQuality>().named('site7_q').nullable()();
 }
 
 @DataClassName('DailySummaryRow')
@@ -81,8 +120,14 @@ class DailySummaries extends Table {
   IntColumn get walkingMin => integer().nullable()();
   IntColumn get wornMin => integer().nullable()();
 
+  /// v1 days only (the two v1 sites); never written since v2.
   RealColumn get maxDeltaForefootC => real().nullable()();
   RealColumn get maxDeltaHeelC => real().nullable()();
+
+  /// v2: the day's largest |ΔT| over the 8 sites and the site it was at
+  /// (zone index).
+  RealColumn get maxDeltaC => real().nullable()();
+  IntColumn get maxDeltaSite => integer().nullable()();
   IntColumn get alertsL1 => integer().withDefault(const Constant(0))();
   IntColumn get alertsL2 => integer().withDefault(const Constant(0))();
   IntColumn get alertsL3 => integer().withDefault(const Constant(0))();
@@ -152,10 +197,28 @@ class AppDatabase extends _$AppDatabase {
   static const fileName = 'smartinsole';
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
+    onUpgrade: stepByStep(
+      from1To2: (m, schema) async {
+        final t = schema.temperatureReadings;
+        for (final c in [
+          t.site0C, t.site1C, t.site2C, t.site3C, //
+          t.site4C, t.site5C, t.site6C, t.site7C,
+          t.site0Q, t.site1Q, t.site2Q, t.site3Q,
+          t.site4Q, t.site5Q, t.site6Q, t.site7Q,
+        ]) {
+          await m.addColumn(t, c);
+        }
+        await m.addColumn(schema.dailySummary, schema.dailySummary.maxDeltaC);
+        await m.addColumn(
+          schema.dailySummary,
+          schema.dailySummary.maxDeltaSite,
+        );
+      },
+    ),
     beforeOpen: (_) => customStatement('PRAGMA foreign_keys = ON'),
   );
 }

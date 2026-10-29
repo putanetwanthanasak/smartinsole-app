@@ -42,16 +42,11 @@ class TemperatureRecorder {
       await temperatures.add(
         side: t.side,
         atMs: atMs,
-        forefootC: t.packet.forefootC,
-        heelC: t.packet.heelC,
+        celsius: t.packet.celsius,
         quality: t.packet.quality,
         timeFromArrival: t.fromArrival,
       );
-      await summaries.recordDelta(
-        atMs,
-        forefootC: snapshot.deltaForefootC,
-        heelC: snapshot.deltaHeelC,
-      );
+      await summaries.recordDelta(atMs, snapshot.deltaC);
       written++;
     } catch (e) {
       // A storage error must never break the BLE path; count it.
