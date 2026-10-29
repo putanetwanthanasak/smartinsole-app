@@ -24,8 +24,10 @@ const std::set<std::string> kNotEncodable = {
     "truncated_one_byte_short",
     "shorter_than_header",
     "empty",
-    "short_11_bytes",  // temperature
-    "short_7_bytes",   // status
+    "n8_one_byte_short",
+    "n8_extra_trailing_bytes",
+    "reserved_nonzero_ignored",  // temperature v2: the simulator sends reserved 0
+    "short_7_bytes",             // status
 };
 
 JsonDocument load(const char* file) {
@@ -97,26 +99,37 @@ void runSensorFile(const char* file, int expectedChecked) {
 
 void test_sensor_n6() { runSensorFile("sensor.json", 15); }
 void test_sensor_n4() { runSensorFile("sensor_n4.json", 3); }
-void test_sensor_n8() { runSensorFile("sensor_n8.json", 3); }
+void test_sensor_n8() { runSensorFile("sensor_n8.json", 6); }
 
 int16_t centi(JsonVariant c) {
   return c.isNull() ? kTempUnreadable : static_cast<int16_t>(std::lround(c.as<double>() * 100));
 }
 
-void test_temperature() {
-  JsonDocument doc = load("temperature.json");
+// Temperature v2 (contract v1.6 §3.2). The v1 file (temperature.json) is
+// no longer encodable: the simulator sends v2 only.
+void test_temperature_v2() {
+  JsonDocument doc = load("temperature_v2.json");
   int checked = 0, skipped = 0;
   for (JsonObject c : doc["cases"].as<JsonArray>()) {
-    if (skip(c, skipped)) continue;
     JsonObject e = c["expected"];
-    TemperatureReading r{centi(e["forefoot_c"]), centi(e["heel_c"]), e["quality"]};
+    if (!e["rejected"].isNull()) {
+      ++skipped;  // a packet the app must refuse
+      continue;
+    }
+    if (skip(c, skipped)) continue;
+    TEST_ASSERT_EQUAL_MESSAGE(kTempSiteCount, e["count"].as<int>(), c["name"]);
+    TemperatureReading r = {};
+    for (uint8_t i = 0; i < kTempSiteCount; ++i) {
+      r.temp[i] = centi(e["celsius"][i]);
+      r.quality[i] = e["quality"][i];
+    }
     uint8_t buf[kTemperatureBytes];
     size_t len = encodeTemperature(buf, e["seq"], e["t_ms"], r);
-    TEST_ASSERT_EQUAL(kTemperatureBytes, len);
+    TEST_ASSERT_EQUAL(32, len);
     checkHex(c, toHex(buf, len), checked);
   }
-  printf("temperature.json: %d matched, %d not encodable\n", checked, skipped);
-  TEST_ASSERT_EQUAL(9, checked);
+  printf("temperature_v2.json: %d matched, %d not encodable\n", checked, skipped);
+  TEST_ASSERT_EQUAL(7, checked);
 }
 
 void test_status() {
@@ -137,10 +150,13 @@ void test_status() {
   TEST_ASSERT_EQUAL(13, checked);
 }
 
-void test_normal_packet_is_200_bytes() {
+void test_packet_sizes() {
   TEST_ASSERT_EQUAL(200, sensorPacketSize(8, 6));
   TEST_ASSERT_EQUAL(104, sensorPacketSize(4, 6));
-  TEST_ASSERT_EQUAL(232, sensorPacketSize(8, 8));
+  TEST_ASSERT_EQUAL(232, sensorPacketSize(8, 8));  // the v1.6 insole
+  TEST_ASSERT_EQUAL(120, sensorPacketSize(4, 8));
+  TEST_ASSERT_EQUAL(28, sampleSize(8));
+  TEST_ASSERT_EQUAL(32, kTemperatureBytes);
   TEST_ASSERT_TRUE(kMaxSensorPacketBytes <= kTargetMtu - kAttHeaderBytes);
 }
 
@@ -151,11 +167,11 @@ void tearDown() {}
 
 int main() {
   UNITY_BEGIN();
-  RUN_TEST(test_normal_packet_is_200_bytes);
+  RUN_TEST(test_packet_sizes);
   RUN_TEST(test_sensor_n6);
   RUN_TEST(test_sensor_n4);
   RUN_TEST(test_sensor_n8);
-  RUN_TEST(test_temperature);
+  RUN_TEST(test_temperature_v2);
   RUN_TEST(test_status);
   return UNITY_END();
 }

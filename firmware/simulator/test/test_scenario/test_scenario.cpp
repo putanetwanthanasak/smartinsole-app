@@ -19,6 +19,9 @@ JsonDocument gThresholds;
 // Headroom over motion.walkingAccelG for the lowest gate window.
 constexpr double kGateMarginG = 0.01;
 
+// FSR channels of the default board (FSR_COUNT, Data Contract v1.6).
+constexpr uint8_t kN = 8;
+
 double th(const char* block, const char* key) { return gThresholds[block][key].as<double>(); }
 
 // Contract §5.1 with the served calibration, as in test_synth.cpp.
@@ -41,7 +44,7 @@ double accelDev(const Sample& s) {
 double lowestGateMean(Sample (*sample)(uint32_t, uint8_t, uint8_t), uint8_t side) {
   const int window = static_cast<int>(th("motion", "walkingWindowMs")) / kSamplePeriodMs;
   std::vector<double> dev;
-  for (uint32_t t = 0; t < 60000; t += kSamplePeriodMs) dev.push_back(accelDev(sample(t, side, 6)));
+  for (uint32_t t = 0; t < 60000; t += kSamplePeriodMs) dev.push_back(accelDev(sample(t, side, kN)));
   double lowest = 1e9;
   for (size_t i = 0; i + window <= dev.size(); ++i) {
     double sum = 0;
@@ -54,7 +57,7 @@ double lowestGateMean(Sample (*sample)(uint32_t, uint8_t, uint8_t), uint8_t side
 void test_commands() {
   scenario::Id id = scenario::Id::normal;
   TEST_ASSERT_TRUE(scenario::fromCommand('t', &id));
-  TEST_ASSERT_TRUE(id == scenario::Id::warmForefoot);
+  TEST_ASSERT_TRUE(id == scenario::Id::warmSite);
   TEST_ASSERT_TRUE(scenario::fromCommand('p', &id));
   TEST_ASSERT_TRUE(id == scenario::Id::highMeta1);
   TEST_ASSERT_TRUE(scenario::fromCommand('n', &id));
@@ -66,25 +69,34 @@ void test_commands() {
 
 void test_normal_is_the_walk_unchanged() {
   for (uint32_t t = 0; t < 5000; t += 20) {
-    Sample a = scenario::source(scenario::Id::normal).sample(t, 0, 6);
-    Sample b = synth::gaitSample(t, 0, 6);
+    Sample a = scenario::source(scenario::Id::normal).sample(t, 0, kN);
+    Sample b = synth::gaitSample(t, 0, kN);
     TEST_ASSERT_EQUAL_MEMORY(&b, &a, sizeof a);
   }
   TEST_ASSERT_EQUAL_PTR(&synth::walking(), &scenario::source(scenario::Id::normal));
 }
 
-void test_warm_forefoot_is_above_delta_c() {
-  // TEMP_DELTA: |dT| > temperature.deltaC; the other board stays normal.
+void test_warm_site_is_above_delta_c() {
+  // TEMP_DELTA at site 1 (MTH1) only: |dT| > temperature.deltaC there, every
+  // other site pair stays below it; the other board stays normal.
   double deltaC = th("temperature", "deltaC");
+  TEST_ASSERT_EQUAL(1, scenario::kWarmSite);
   for (uint8_t side : {0, 1}) {
     for (uint32_t t = 0; t < 3600000; t += 30000) {
       TemperatureReading warm = scenario::warmTemperature(t, side);
       TemperatureReading other = synth::temperature(t, 1 - side);
       TemperatureReading plain = synth::temperature(t, side);
-      TEST_ASSERT_EQUAL(plain.forefoot + scenario::kWarmForefootCentiC, warm.forefoot);
-      TEST_ASSERT_EQUAL(plain.heel, warm.heel);
-      TEST_ASSERT_EQUAL(0, warm.quality);
-      TEST_ASSERT_TRUE(std::abs(warm.forefoot - other.forefoot) / 100.0 > deltaC + 0.3);
+      for (uint8_t i = 0; i < kTempSiteCount; ++i) {
+        TEST_ASSERT_EQUAL(0, warm.quality[i]);
+        double d = std::abs(warm.temp[i] - other.temp[i]) / 100.0;
+        if (i == scenario::kWarmSite) {
+          TEST_ASSERT_EQUAL(plain.temp[i] + scenario::kWarmCentiC, warm.temp[i]);
+          TEST_ASSERT_TRUE(d > deltaC + 0.3);
+        } else {
+          TEST_ASSERT_EQUAL(plain.temp[i], warm.temp[i]);
+          TEST_ASSERT_TRUE(d < deltaC);
+        }
+      }
     }
   }
 }
@@ -104,9 +116,9 @@ void test_high_meta1_peak_pti_and_gate() {
     int steps = 0;
     uint32_t stanceStart = 0;
     for (uint32_t t = 0; t < 60000; t += kSamplePeriodMs) {
-      Sample s = scenario::highMeta1Sample(t, side, 6);
+      Sample s = scenario::highMeta1Sample(t, side, kN);
       double sum = 0;
-      for (int c = 0; c < 6; ++c) sum += kpa(s.fsr[c]);
+      for (int c = 0; c < kN; ++c) sum += kpa(s.fsr[c]);
       double m1 = kpa(s.fsr[1]);
       TEST_ASSERT_TRUE(s.fsr[1] < 4095);
       if (sum > contact) {
@@ -136,7 +148,7 @@ void test_high_meta1_peak_pti_and_gate() {
     TEST_ASSERT_TRUE_MESSAGE(lowest >= gateG + kGateMarginG, msg);
     // Accel stays inside the +-8 g range (no clamping).
     for (uint32_t t = 0; t < 1100; t += 20) {
-      Sample s = scenario::highMeta1Sample(t, side, 6);
+      Sample s = scenario::highMeta1Sample(t, side, kN);
       for (int a = 0; a < 3; ++a) TEST_ASSERT_TRUE(std::abs(s.accel[a]) < 32000);
     }
   }
@@ -144,8 +156,8 @@ void test_high_meta1_peak_pti_and_gate() {
 
 void test_high_meta1_other_channels_unchanged() {
   for (uint32_t t = 0; t < 5000; t += 20) {
-    Sample a = scenario::highMeta1Sample(t, 0, 6), b = synth::gaitSample(t, 0, 6);
-    for (int c = 0; c < 6; ++c) {
+    Sample a = scenario::highMeta1Sample(t, 0, kN), b = synth::gaitSample(t, 0, kN);
+    for (int c = 0; c < kN; ++c) {
       if (c != 1) TEST_ASSERT_EQUAL(b.fsr[c], a.fsr[c]);
     }
     TEST_ASSERT_TRUE(a.fsr[1] >= b.fsr[1]);
@@ -157,7 +169,7 @@ void test_high_meta1_other_channels_unchanged() {
 double meanGate(Sample (*sample)(uint32_t, uint8_t, uint8_t), uint8_t side) {
   double sum = 0;
   int n = 0;
-  for (uint32_t t = 0; t < 60000; t += kSamplePeriodMs, ++n) sum += accelDev(sample(t, side, 6));
+  for (uint32_t t = 0; t < 60000; t += kSamplePeriodMs, ++n) sum += accelDev(sample(t, side, kN));
   return sum / n;
 }
 
@@ -178,7 +190,7 @@ void test_normal_walk_keeps_the_gate_on() {
     TEST_ASSERT_TRUE_MESSAGE(mean >= 0.25 && mean <= 0.35, msg);
     // Inside the +-8 g range (no clamping).
     for (uint32_t t = 0; t < synth::kGaitCycleMs; t += kSamplePeriodMs) {
-      Sample s = synth::gaitSample(t, side, 6);
+      Sample s = synth::gaitSample(t, side, kN);
       for (int a = 0; a < 3; ++a) TEST_ASSERT_TRUE(std::abs(s.accel[a]) < 32000);
     }
   }
@@ -201,9 +213,9 @@ void test_normal_walk_one_step_per_stance() {
       double total = 0;
       int steps = 0;
       for (uint32_t t = 0; t < 60000; t += kSamplePeriodMs) {
-        Sample s = synth::gaitSample(t, side, 6);
+        Sample s = synth::gaitSample(t, side, kN);
         double sum = 0;
-        for (int c = 0; c < 6; ++c) sum += kpa(s.fsr[c], offset);
+        for (int c = 0; c < kN; ++c) sum += kpa(s.fsr[c], offset);
         if (sum > contact && !inStance) {
           inStance = true, start = t;
         } else if (sum <= contact && inStance) {
@@ -241,7 +253,7 @@ int main() {
   UNITY_BEGIN();
   RUN_TEST(test_commands);
   RUN_TEST(test_normal_is_the_walk_unchanged);
-  RUN_TEST(test_warm_forefoot_is_above_delta_c);
+  RUN_TEST(test_warm_site_is_above_delta_c);
   RUN_TEST(test_high_meta1_peak_pti_and_gate);
   RUN_TEST(test_high_meta1_other_channels_unchanged);
   RUN_TEST(test_normal_walk_keeps_the_gate_on);

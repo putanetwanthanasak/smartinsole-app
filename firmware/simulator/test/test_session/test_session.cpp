@@ -33,7 +33,11 @@ void test_samples_per_packet_by_mtu() {
   TEST_ASSERT_EQUAL(4, samplesPerPacket(185, 6));  // 104 <= 182
   TEST_ASSERT_EQUAL(0, samplesPerPacket(106, 6));  // 104 > 103
   TEST_ASSERT_EQUAL(0, samplesPerPacket(23, 6));   // default ATT MTU
-  TEST_ASSERT_EQUAL(8, samplesPerPacket(247, 8));  // 232 <= 244
+  TEST_ASSERT_EQUAL(8, samplesPerPacket(247, 8));  // 232 <= 244 (contract v1.6)
+  TEST_ASSERT_EQUAL(8, samplesPerPacket(235, 8));  // 232 <= 232
+  TEST_ASSERT_EQUAL(4, samplesPerPacket(234, 8));  // 232 > 231
+  TEST_ASSERT_EQUAL(4, samplesPerPacket(123, 8));  // 120 <= 120
+  TEST_ASSERT_EQUAL(0, samplesPerPacket(122, 8));  // 120 > 119
   TEST_ASSERT_EQUAL(8, samplesPerPacket(247, 4));
 }
 

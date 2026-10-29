@@ -10,11 +10,13 @@ namespace insole::scenario {
 
 enum class Id : uint8_t {
   normal,         // 'n': synth::walking() unchanged
-  warmForefoot,   // 't': this board's forefoot +3.0 degC
+  warmSite,       // 't': this board's temperature site kWarmSite +3.0 degC
   highMeta1,      // 'p': meta1 about 250 kPa with a long stance plateau
 };
 
-constexpr int16_t kWarmForefootCentiC = 300;
+// Site 1 (MTH1, next to FSR 1): the app's TEMP_DELTA names this site.
+constexpr uint8_t kWarmSite = 1;
+constexpr int16_t kWarmCentiC = 300;
 
 // meta1 (FSR index 1) plateau: about 249 kPa with the served calibration.
 constexpr uint16_t kHighMeta1Adc = 3180;

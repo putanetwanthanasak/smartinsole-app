@@ -13,10 +13,10 @@ struct Sample {
   int16_t gyro[3];             // 32.8 LSB/(deg/s)
 };
 
+// One reading of every temperature site (index = FSR channel index).
 struct TemperatureReading {
-  int16_t forefoot;  // 0.01 degC, kTempUnreadable if not read
-  int16_t heel;
-  uint8_t quality;   // 0 normal, 1 poor contact, 2 sensor fault
+  int16_t temp[kTempSiteCount];     // 0.01 degC, kTempUnreadable if not read
+  uint8_t quality[kTempSiteCount];  // 0 normal, 1 poor contact, 2 sensor fault
 };
 
 struct DeviceStatus {

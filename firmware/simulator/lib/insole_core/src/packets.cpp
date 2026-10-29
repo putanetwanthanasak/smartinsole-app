@@ -37,10 +37,10 @@ size_t encodeTemperature(uint8_t* out, uint16_t seq, uint32_t tMs,
                          const TemperatureReading& reading) {
   uint8_t* p = putU16(out, seq);
   p = putU32(p, tMs);
-  p = putI16(p, reading.forefoot);
-  p = putI16(p, reading.heel);
-  *p++ = reading.quality;
-  *p++ = 0;  // reserved
+  *p++ = kTempSiteCount;  // count
+  *p++ = 0;               // reserved
+  for (int16_t v : reading.temp) p = putI16(p, v);
+  for (uint8_t q : reading.quality) *p++ = q;
   return static_cast<size_t>(p - out);
 }
 

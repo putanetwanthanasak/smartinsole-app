@@ -72,19 +72,21 @@ void test_tare_takes_min_over_one_stride() {
   Tare tare;
   Sample s = {};
   TEST_ASSERT_FALSE(tare.feed(s));  // not active: ignored
-  TEST_ASSERT_TRUE(tare.begin(6));
-  TEST_ASSERT_FALSE(tare.begin(6));  // already running
+  TEST_ASSERT_TRUE(tare.begin(8));
+  TEST_ASSERT_FALSE(tare.begin(8));  // already running
   for (int i = 0; i < Tare::kWindowSamples; ++i) {
-    for (uint8_t c = 0; c < 6; ++c) s.fsr[c] = static_cast<uint16_t>(100 + c * 10 + (i % 7));
+    for (uint8_t c = 0; c < 8; ++c) s.fsr[c] = static_cast<uint16_t>(100 + c * 10 + (i % 7));
     if (i == 20) s.fsr[2] = 5;
+    if (i == 30) s.fsr[7] = 9;
     bool done = tare.feed(s);
     TEST_ASSERT_EQUAL(i == Tare::kWindowSamples - 1, done);
   }
   TEST_ASSERT_FALSE(tare.active());
-  const uint16_t want[6] = {100, 110, 5, 130, 140, 150};
-  TEST_ASSERT_EQUAL_UINT16_ARRAY(want, tare.offsets(), 6);
+  const uint16_t want[8] = {100, 110, 5, 130, 140, 150, 160, 9};
+  TEST_ASSERT_EQUAL_UINT16_ARRAY(want, tare.offsets(), 8);
+  TEST_ASSERT_TRUE(tare.begin(6));  // can run again, with any N
+  for (int i = 0; i < Tare::kWindowSamples; ++i) tare.feed(s);
   TEST_ASSERT_EQUAL(0, tare.offsets()[6]);  // unused channels
-  TEST_ASSERT_TRUE(tare.begin(6));          // can run again
 }
 
 void test_tare_on_walking_gives_unloaded_baseline() {

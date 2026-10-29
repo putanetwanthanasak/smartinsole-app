@@ -9,11 +9,11 @@
 #endif
 static_assert(FOOT_SIDE == 0 || FOOT_SIDE == 1, "FOOT_SIDE must be 0 or 1");
 
-// FSR channels per sample. The contract fixes 6; other values follow
-// FLUTTER-PLAN's 2N + 12 sample layout, which the contract does not have
-// yet (BACKLOG 15).
+// FSR channels per sample. Data Contract v1.6 fixes 8 (28-byte sample,
+// 232-byte packet); the app refuses any other N at connect. Other values
+// (the left_fsr6 env) are build checks of the 2N + 12 layout only.
 #ifndef FSR_COUNT
-#define FSR_COUNT 6
+#define FSR_COUNT 8
 #endif
 static_assert(FSR_COUNT >= 1 && FSR_COUNT <= insole::kMaxFsrCount,
               "FSR_COUNT must be 1..8");

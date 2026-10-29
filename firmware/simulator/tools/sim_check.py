@@ -103,14 +103,25 @@ def parse_sensor(b: bytes, n: int) -> dict:
             "samples": samples}
 
 
+TEMP_BYTES = 32  # temperature v2, Data Contract v1.6 §3.2
+TEMP_SITES = 8
+
+
 def parse_temperature(b: bytes) -> dict:
-    if len(b) < 12:
-        raise Reject("tooShort")
-    if len(b) > 12:
-        raise Reject("lengthMismatch")
-    seq, t, fore, heel, quality, _ = struct.unpack("<HIhhBB", b)
+    """Temperature v2 as the app reads it: exactly 32 bytes (the old 12-byte
+    packet included: tempLength), count 8 (tempCount), quality 0-2."""
+    if len(b) != TEMP_BYTES:
+        raise Reject("tempLength")
+    seq, t, count, _reserved = struct.unpack_from("<HIBB", b)
+    if count != TEMP_SITES:
+        raise Reject("tempCount")
+    raw = struct.unpack_from(f"<{TEMP_SITES}h", b, 8)
+    quality = list(b[24:24 + TEMP_SITES])
+    if any(q > 2 for q in quality):
+        raise Reject("invalidQuality")
     c = lambda v: None if v == -32768 else v / 100
-    return {"seq": seq, "t_ms": t, "forefoot_c": c(fore), "heel_c": c(heel), "quality": quality}
+    return {"seq": seq, "t_ms": t, "count": count, "celsius": [c(v) for v in raw],
+            "quality": quality}
 
 
 def parse_status(b: bytes) -> dict:
@@ -200,10 +211,12 @@ def selftest() -> bool:
                         fail(file, c["name"], f"kpa[{i}] {k} != {es['kpa'][i]}")
             checked += 1
 
-    for file, parse in (("temperature.json", parse_temperature), ("status.json", parse_status)):
+    for file, parse in (("temperature_v2.json", parse_temperature), ("status.json", parse_status)):
         for c in json.loads((VECTORS / file).read_text())["cases"]:
             exp = dict(c["expected"])
             want = exp.pop("rejected")
+            exp.pop("expected_bytes", None)
+            exp.pop("actual_bytes", None)
             try:
                 got = parse(bytes.fromhex(c["hex"]))
             except Reject as e:
@@ -218,6 +231,16 @@ def selftest() -> bool:
                 if got[k] != v:
                     fail(file, c["name"], f"{k} {got[k]} != {v}")
             checked += 1
+
+    # The old 12-byte packets are all refused since v1.6.
+    for c in json.loads((VECTORS / "temperature.json").read_text())["cases"]:
+        try:
+            parse_temperature(bytes.fromhex(c["hex"]))
+            fail("temperature.json", c["name"], "a v1 packet parsed as v2")
+        except Reject as e:
+            if e.reason != "tempLength":
+                fail("temperature.json", c["name"], f"rejected {e.reason}, expected tempLength")
+        checked += 1
 
     for c in json.loads((VECTORS / "calibration.json").read_text())["cases"]:
         try:
@@ -376,10 +399,10 @@ async def reconnect_check(dev, n: int, prev_t0, cycle: int, c: Checks):
 
     print(f"\nreconnect {cycle}: disconnected, connecting again ...")
     await asyncio.sleep(1.0)
-    got = []
+    got = []  # (characteristic, bytes)
     async with BleakClient(dev) as client:
-        await client.start_notify(SENSOR, lambda _, d: got.append(bytes(d)))
-        await client.start_notify(TEMPERATURE, lambda _, d: got.append(bytes(d)))
+        await client.start_notify(SENSOR, lambda _, d: got.append((SENSOR, bytes(d))))
+        await client.start_notify(TEMPERATURE, lambda _, d: got.append((TEMPERATURE, bytes(d))))
         await asyncio.sleep(1.0)
         before = len(got)
         await client.write_gatt_char(CONTROL, START_STREAM, response=True)
@@ -388,8 +411,8 @@ async def reconnect_check(dev, n: int, prev_t0, cycle: int, c: Checks):
         await asyncio.sleep(0.5)
     c.check(before == 0, f"reconnect {cycle}: nothing before START_STREAM", f"{before} packets")
     pkts = []
-    for b in got[before:]:
-        if len(b) == 12:
+    for chr_, b in got[before:]:
+        if chr_ != SENSOR:
             continue  # temperature
         try:
             pkts.append(parse_sensor(b, n))
@@ -463,7 +486,7 @@ def evaluate(run: Run, cal: dict, st_after: dict, c: Checks, args):
         try:
             temps.append((t, parse_temperature(b)))
         except Reject as e:
-            c.check(False, "temperature packet is 12 bytes", f"{len(b)} bytes ({e.reason})")
+            c.check(False, "temperature v2 packet (32 bytes, count 8)", f"{len(b)} bytes ({e.reason})")
     if temps:
         first_delay = temps[0][0] - run.start_at
         c.check(first_delay < 2.0, "first temperature right after START_STREAM",
@@ -476,10 +499,10 @@ def evaluate(run: Run, cal: dict, st_after: dict, c: Checks, args):
                 f"{len(temps)}, expected about {expected}")
         tseq = [p["seq"] for _, p in temps]
         c.check(tseq == list(range(len(tseq))), "temperature seq 0, 1, 2, ...")
-        c.check(all(p["quality"] == 0 and p["forefoot_c"] is not None and p["heel_c"] is not None
-                    for _, p in temps), "temperature readable, quality 0")
-        print(f"  temperature: forefoot {temps[0][1]['forefoot_c']}..{temps[-1][1]['forefoot_c']} C, "
-              f"heel {temps[0][1]['heel_c']}..{temps[-1][1]['heel_c']} C")
+        c.check(all(p["quality"] == [0] * TEMP_SITES and None not in p["celsius"]
+                    for _, p in temps), "temperature v2: all 8 sites readable, quality 0")
+        print(f"  temperature v2: first {temps[0][1]['celsius']} C, "
+              f"last {temps[-1][1]['celsius']} C")
     else:
         c.check(False, "received temperature packets")
 
@@ -670,7 +693,8 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--side", choices=["L", "R"], default="L")
     ap.add_argument("--duration", type=float, default=120, help="seconds of streaming")
-    ap.add_argument("--fsr-count", type=int, default=6)
+    ap.add_argument("--fsr-count", type=int, default=8,
+                    help="expected calibration N (8 since Data Contract v1.6)")
     ap.add_argument("--scan-timeout", type=float, default=20)
     ap.add_argument("--reconnects", type=int, default=2,
                     help="disconnect/reconnect cycles after the main run")

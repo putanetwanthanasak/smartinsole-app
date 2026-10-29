@@ -25,7 +25,13 @@ constexpr uint32_t kTemperaturePeriodMs = 30000;
 
 constexpr uint8_t kMaxFsrCount = 8;
 constexpr size_t kSensorHeaderBytes = 8;
-constexpr size_t kTemperatureBytes = 12;
+
+// Temperature v2 (Data Contract v1.6 §3.2): seq u16, t_ms u32, count u8,
+// reserved u8, temp int16 x 8 (0.01 degC), quality u8 x 8. Site i is the
+// NTC next to FSR i (shared/sensor_layout.json).
+constexpr uint8_t kTempSiteCount = 8;
+constexpr size_t kTemperatureBytes = 8 + 2 * kTempSiteCount + kTempSiteCount;
+static_assert(kTemperatureBytes == 32, "temperature v2 is 32 bytes");
 constexpr size_t kStatusBytes = 8;
 constexpr size_t kMaxCalibrationBytes = 512;
 

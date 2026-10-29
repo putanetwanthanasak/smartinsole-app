@@ -32,26 +32,29 @@ number.
 
 | Env | Flags | Use |
 |---|---|---|
-| `left`, `right` | `FOOT_SIDE=0/1`, `FSR_COUNT=6` | Flash these |
-| `left_fsr8` | `FSR_COUNT=8` | Build check only. N ≠ 6 follows FLUTTER-PLAN's `2N + 12` sample layout, which isn't in the Data Contract yet (BACKLOG 15) |
+| `left`, `right` | `FOOT_SIDE=0/1`, `FSR_COUNT=8` | Flash these (Data Contract v1.6: 8 FSR + 8 temperature sites per foot) |
+| `left_fsr6` | `FSR_COUNT=6` | Build check only: the pre-v1.6 six-channel walk. The app refuses N ≠ 8 at connect, so never flash it for the app |
 | `native` | — | Unity tests of `lib/insole_core` |
 
-`FSR_COUNT` can be 1–8. A `static_assert` keeps 8 samples within one
-MTU-247 notification.
+`FSR_COUNT` can be 1–8 (default 8). A `static_assert` keeps 8 samples
+within one MTU-247 notification. TARE offsets stored in NVS by a build with
+another N are ignored (length check), so a reflashed board serves the
+default `offset_adc` 12 until its next TARE.
 
 ## Live check from the laptop (bleak)
 
 ```
 python3 -m venv tools/.venv && tools/.venv/bin/pip install -r tools/requirements.txt
 tools/.venv/bin/python tools/sim_check.py --selftest
-tools/.venv/bin/python tools/sim_check.py --side L --duration 600
+tools/.venv/bin/python tools/sim_check.py --side L --duration 600   # --fsr-count 8 is the default
 ```
 
 The script first checks its own parsers against `shared/test_vectors/`,
 then runs the connect sequence: scan by service UUID, read status (checks
 `foot_side`), read calibration (N), subscribe, `START_STREAM`, stream,
 `STOP_STREAM`. It checks exact packet sizes, `seq` continuity, the 160 ms
-`t0` step, the 6.25 Hz rate, temperature every 30 s, status, and that the
+`t0` step, the 6.25 Hz rate, temperature v2 (32 bytes, 8 sites) every
+30 s, status, and that the
 stream stops. Then it reconnects twice (`--reconnects`) and checks that
 each new connection gets nothing before START, starts at `seq` 0, and that
 `t0` keeps counting from boot. Then it exercises every control opcode on
@@ -89,8 +92,9 @@ bare `ttyUSB` names and the LTE modem. Both scripts run on
 ### Scenario commands (S7)
 
 Each board takes one-character serial commands, read without blocking the
-50 Hz task: `n` normal walk, `t` this board's forefoot +3.0 °C (TEMP_DELTA
-after two temperature readings, about 60–90 s), `p` meta1 about 250 kPa
+50 Hz task: `n` normal walk, `t` this board's temperature site 1 (MTH1)
++3.0 °C, every other site unchanged (TEMP_DELTA for MTH1 on that foot after
+two temperature readings, about 60–90 s), `p` meta1 about 250 kPa
 with a long stance plateau (PRESSURE_PEAK at
 once; LOAD_CONCENTRATION and ASYMMETRY_PEAK after 20 steps; PRESSURE_PTI
 only once `p` steps dominate the app's 60-minute mean, about 7 minutes
@@ -153,16 +157,22 @@ sample steps and the boards' notify failures. Standard library only:
   Each connection has its own stream session: one central's STOP or
   disconnect never touches another's stream.
 - **Sensor stream** (`…01`): 50 Hz samples, 8 per packet at 6.25 Hz. Every
-  notification is exactly `8 + count × (2N + 12)` bytes (200 for N = 6),
+  notification is exactly `8 + count × (2N + 12)` bytes (232 for N = 8),
   never padded or truncated. If the link MTU can't fit 8 samples it sends 4
   (contract fallback); if it can't fit 4 it sends nothing and logs it.
   `seq` is per connection and restarts at 0 on each `START_STREAM`;
   `t0_ms` is ms since boot and never restarts. A new connection gets
   nothing before its own `START_STREAM` (BACKLOG 19, 20).
-- **Temperature** (`…02`): one packet at `START_STREAM`, then every 30 s.
+- **Temperature** (`…02`): temperature v2 (contract v1.6 §3.2, 32 bytes:
+  `seq`, `t_ms`, `count` 8, reserved, 8 × int16 0.01 °C, 8 × quality), one
+  packet at `START_STREAM`, then every 30 s. Site i sits next to FSR i;
+  sites differ by up to ~1.4 °C, the right foot 0.25–0.40 °C warmer, so
+  no TEMP_DELTA without `t`.
 - **Synthetic walking** stays below the app's watch level: zone peaks about
-  24–60 kPa (heel ~60) against `watchKpa` 75. A host test reads
-  `shared/thresholds.json` to enforce it; the firmware does not read it.
+  16–60 kPa (heel centre ~60, lateral heel ~49 at heel strike, medial arch
+  ~16 in mid-stance) against `watchKpa` 75. Channels 0–5 are the
+  pre-v1.6 walk unchanged. A host test reads `shared/thresholds.json` to
+  enforce it; the firmware does not read it.
 - **Status** (`…03`): read + notify on a state or battery change. Battery
   drains 1 % every 6 min and stops at 50 %, so `BATTERY_LOW` never fires on
   its own.
@@ -180,7 +190,8 @@ sample steps and the boards' notify failures. Standard library only:
   | `0x05 TARE` | device | Each channel's minimum over one stride (55 samples); packets in that window carry flags bit1. Result stored in NVS and served as `offset_adc` |
   | `0x06 REBOOT` | device | 300 ms later: stop advertising, disconnect every central, restart |
 - **Calibration** (`…05`): JSON for N channels using the contract §5.1
-  example coefficients (381 bytes for N = 6, so it is a long read).
+  example coefficients (479 bytes for N = 8, so it is a long read;
+  the 512-byte limit holds even with four-digit offsets).
   `offset_adc` is 12 until a TARE, then the tared value from NVS (survives
   REBOOT and power cycles). Centrals already connected see a new value
   only when they read again (BACKLOG 23).

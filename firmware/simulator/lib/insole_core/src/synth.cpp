@@ -13,31 +13,42 @@ struct Channel {
   float peakAdc;
 };
 
-// Contract FSR order (index 0..5): hallux, meta1, meta3, meta5, midfoot,
-// heel. Heel strike -> midfoot -> lateral (meta5) -> medial roll-off -> toe.
-// Normal walking stays below the app's watch level (shared/thresholds.json
-// pressure.watchKpa = 75) with margin. With the served calibration (contract
-// §5.1 example) the peaks are about hallux 40, meta1 50, meta3 45, meta5 32,
-// midfoot 24 and heel 60 kPa, including baseline and noise. Higher pressure
+// Contract v1.6 FSR order (shared/sensor_layout.json): 0 hallux, 1 MTH1,
+// 2 MTH2-3, 3 MTH5, 4 lateral midfoot, 5 heel centre, 6 medial arch,
+// 7 lateral heel. Heel strike (lateral heel, heel centre) -> midfoot and a
+// light medial-arch load in mid-stance -> lateral (MTH5) -> medial roll-off
+// -> toe. Normal walking stays below the app's watch level
+// (shared/thresholds.json pressure.watchKpa = 75) with margin. With the
+// served calibration (contract §5.1 example) the peaks are about hallux 40,
+// MTH1 50, MTH2-3 45, MTH5 32, midfoot 24, heel centre 60, medial arch 16
+// and lateral heel 49 kPa, including baseline and noise. Higher pressure
 // belongs to a scenario (BACKLOG 18). The midfoot is wide enough to carry
 // the load from heel to forefoot: the summed kPa stays above the app's
 // steps.contactKpa through the stance, so each stance is one step (S8A; a
-// narrower midfoot split it into a blip and a shorter step).
-constexpr Channel kSixChannels[6] = {
+// narrower midfoot split it into a blip and a shorter step). Indexes 0-5
+// are the pre-v1.6 six-channel walk unchanged (the left_fsr6 env).
+constexpr Channel kChannels[kMaxFsrCount] = {
     {0.86f, 0.28f, 1500}, {0.70f, 0.36f, 1710}, {0.64f, 0.36f, 1610},
-    {0.55f, 0.36f, 1300}, {0.38f, 0.48f, 1100},  {0.16f, 0.32f, 1880},
+    {0.55f, 0.36f, 1300}, {0.38f, 0.48f, 1100}, {0.16f, 0.32f, 1880},
+    {0.40f, 0.40f, 800},  {0.13f, 0.30f, 1700},
 };
 
 constexpr float kBaselineAdc = 30;  // unloaded reading, just above offset_adc
 constexpr float kNoiseAdc = 12;
 
 Channel channelFor(uint8_t c, uint8_t fsrCount) {
-  if (fsrCount == 6) return kSixChannels[c];
-  // No position table exists for N != 6 yet (BACKLOG 15): spread the
+  if (fsrCount == 6 || fsrCount == kMaxFsrCount) return kChannels[c];
+  // Any other N (build checks only; the app refuses N != 8): spread the
   // channels evenly from toe (index 0) to heel (last index).
   float pos = fsrCount == 1 ? 0.5f : static_cast<float>(c) / (fsrCount - 1);
   return {0.86f - 0.70f * pos, 0.34f, 1610};  // about 45 kPa
 }
+
+// Resting sole temperature per site, 0.01 degC (index = FSR channel): the
+// medial arch warmest, toes and heel coolest.
+constexpr int16_t kSiteBaseCentiC[kTempSiteCount] = {
+    3150, 3180, 3190, 3160, 3200, 3120, 3240, 3100,
+};
 
 // Deterministic noise in [-1, 1] from (t, channel): no RNG state.
 float noise(uint32_t t, uint32_t salt) {
@@ -104,12 +115,17 @@ Sample gaitSample(uint32_t tMs, uint8_t footSide, uint8_t fsrCount) {
 }
 
 TemperatureReading temperature(uint32_t tMs, uint8_t footSide) {
-  // Slow 10-minute drift. Right forefoot sits 0.4 degC warmer, well under
-  // the 2.2 degC delta-T threshold, so no TEMP_DELTA from normal running.
+  // Slow 10-minute drift, the same on both feet. The right foot sits
+  // 0.25-0.40 degC warmer (forefoot sites most), well under the 2.2 degC
+  // delta-T threshold, so no TEMP_DELTA from normal running.
   float drift = std::sin(2 * kPi * static_cast<float>(tMs % 600000u) / 600000.0f);
-  float fore = 3180 + 30 * drift + (footSide == 1 ? 40 : 0);
-  float heel = 3120 + 20 * drift + (footSide == 1 ? 25 : 0);
-  return {clampI16(fore), clampI16(heel), 0};
+  TemperatureReading r = {};
+  for (uint8_t i = 0; i < kTempSiteCount; ++i) {
+    float rightWarmer = footSide == 1 ? (i <= 3 ? 40 : 25) : 0;
+    r.temp[i] = clampI16(kSiteBaseCentiC[i] + 30 * drift + rightWarmer);
+    r.quality[i] = 0;
+  }
+  return r;
 }
 
 BatteryReading battery(uint32_t tMs) {
