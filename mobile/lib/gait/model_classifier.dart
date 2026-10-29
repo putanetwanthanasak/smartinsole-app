@@ -39,7 +39,7 @@ class ModelClassifier implements GaitClassifier {
     return resultOf(out.probs, input.atMs);
   }
 
-  /// Normalises and runs [rows] (raw 24-channel rows). Runs are queued,
+  /// Normalises and runs [rows] (raw 28-channel rows). Runs are queued,
   /// never overlapped: the runner answers one window at a time.
   Future<ModelOutput> runRows(List<List<double>> rows) {
     final window = normalizeWindow(rows, normalization);

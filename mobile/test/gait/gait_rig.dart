@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:smartinsole/device/model_channels.dart';
 import 'package:smartinsole/ble/packets.dart';
 import 'package:smartinsole/device/foot_sample.dart';
 import 'package:smartinsole/gait/gait_classifier.dart';
@@ -66,10 +67,11 @@ Step step(
   ptiKpaMs: [for (final v in ptiKpaS) v * 1000],
 );
 
-/// `shared/capture_fixture/expected.json`: the rows the app's pairFeet +
-/// modelRow make from the fixture's samples, and their (left, right) times.
+/// `shared/capture_fixture/schema2/expected.json`: the 28-channel rows the
+/// app's pairFeet + modelRow make from the fixture's samples, and their
+/// (left, right) times.
 Map<String, dynamic> captureFixture() => jsonDecode(
-  File('../shared/capture_fixture/expected.json').readAsStringSync(),
+  File('../shared/capture_fixture/schema2/expected.json').readAsStringSync(),
 ) as Map<String, dynamic>;
 
 /// The fixture's first [n] rows back as the two feet's samples.
@@ -82,16 +84,22 @@ Map<String, dynamic> captureFixture() => jsonDecode(
   for (var i = 0; i < n; i++) {
     final (l, r) = (pairs[i] as List, rows[i] as List);
     final v = [for (final x in r) (x as num).toDouble()];
+    const n = modelFsrCount;
     FootSample s(double t, List<double> foot) => FootSample(
       unixMs: t,
       deviceMs: t.round(),
-      fsrAdc: List.filled(6, 0),
-      fsrKpa: foot.sublist(0, 6),
-      accelG: foot.sublist(6, 9),
-      gyroDps: foot.sublist(9, 12),
+      fsrAdc: List.filled(n, 0),
+      fsrKpa: foot.sublist(0, n),
+      accelG: foot.sublist(n, n + 3),
+      gyroDps: foot.sublist(n + 3, n + 6),
     );
-    left.add(s((l[0] as num).toDouble(), v.sublist(0, 12)));
-    right.add(s((l[1] as num).toDouble(), v.sublist(12, 24)));
+    left.add(s((l[0] as num).toDouble(), v.sublist(0, modelChannelsPerFoot)));
+    right.add(
+      s(
+        (l[1] as num).toDouble(),
+        v.sublist(modelChannelsPerFoot, modelChannelCount),
+      ),
+    );
   }
   return (left, right);
 }

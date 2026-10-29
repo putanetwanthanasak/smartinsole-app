@@ -13,7 +13,7 @@ Nothing here sets a level: the gait result is never a risk level (rule 11).
 - `model_spec.dart` — `model_input.json` (window, stride, channel order)
   and `normalization.json` (validated against it).
 - `model_window.dart` — the 50 Hz path → `pairFeet` → the newest 100
-  consecutive rows → z-score → `[1,100,24]` `Float32List`.
+  consecutive rows → z-score → `[1,100,28]` `Float32List`.
 - `model_classifier.dart` — the model slot: `assets/models/` (release,
   empty until after data collection, late Nov) or `assets/models_dummy/`
   (debug/profile with `--dart-define=GAIT_MODEL=dummy`); `ModelMissing` / `ModelInvalid` /

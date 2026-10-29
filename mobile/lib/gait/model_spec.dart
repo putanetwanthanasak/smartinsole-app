@@ -37,7 +37,7 @@ class ModelInputSpec {
   /// the same one.
   final int version;
 
-  /// The 24 channel names, in model order.
+  /// The 28 channel names, in model order.
   final List<String> channels;
   final int sampleRateHz;
   final int windowSamples;
@@ -59,7 +59,7 @@ final modelInputSpecProvider = Provider<ModelInputSpec>(
 
 /// `normalization.json`, delivered with the model: the training set's
 /// z-score per channel (contract §7.1). Format:
-/// `{"version": 1, "channels": [24 names], "mean": [24], "std": [24]}`.
+/// `{"version": 2, "channels": [28 names], "mean": [28], "std": [28]}`.
 class Normalization {
   const Normalization({
     required this.channels,
