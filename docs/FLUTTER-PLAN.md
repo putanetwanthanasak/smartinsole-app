@@ -8,7 +8,7 @@
 
 ## 1. Goal and scope
 
-**Goal:** an Android app that shows live data from both insoles **and is the research capture tool for the volunteer study** (starts 2026-11-10). The researcher works alone, carries the phone while walking beside the volunteer, and records every trial on the phone. The existing web app on a laptop is kept only as a fallback capture tool.
+**Goal:** an Android app that shows live data from both insoles **and is the research capture tool for the volunteer study** (starts 2026-11-12, schedule v2.6). The researcher works alone, carries the phone while walking beside the volunteer, and records every trial on the phone. The existing web app on a laptop is kept only as a fallback capture tool.
 
 | In v1 | Not in v1 (but the architecture must allow it later) |
 |---|---|
@@ -35,7 +35,7 @@
 | Home status | 3 levels shown to patients (Safe / Be careful / Rest your feet) + No data |
 | Risk-level mapping | See section 7 |
 | Storage | On-device only |
-| Sensor count | App must support a variable number of FSR and NTC channels. Use 6 FSR + 2 NTC per foot for now (NTC may increase to 6 per foot). |
+| Sensor count | **8 FSR + 8 NTC per foot, NTC i next to FSR i** (final, user decision 2026-10-29; DATA-CONTRACT v1.6, `shared/sensor_layout.json`). The parser stays N-generic, but the app refuses an insole whose calibration has N ≠ 8, and the 12-byte v1.5 temperature packet. |
 | Risk decision | Contract rules (RuleBasedEngine). Gait result is context only. |
 | Daily foot check | 4 photos + 3 questions, no AI, photos stored on device only |
 | Study day | **The phone app is the only central for each insole and captures all research data (S4C).** The laptop web app is a fallback only, used if the phone capture fails; it is never connected at the same time as the phone during a session. The photo feature is not used with volunteers, so no feature flag is needed. |
@@ -68,7 +68,9 @@ smartinsole-app/
 │   └── CLAUDE.md
 ├── shared/
 │   ├── thresholds.json
-│   ├── sensor_layout.json
+│   ├── sensor_layout.json   ← 8 sites per foot: ids, names, mm positions (v1.6)
+│   ├── model_input.json     ← Model A channel order (28 channels)
+│   ├── capture_fixture/     ← schema1/ (6 FSR, frozen) and schema2/ (8 FSR)
 │   └── test_vectors/
 ├── firmware/simulator/      ← new simulator (PlatformIO, NimBLE)
 └── docs/
@@ -100,12 +102,13 @@ Check the latest stable version of each package when installing. Fonts must be b
 
 ## 5. Technical requirements (must match the repo docs)
 
-- **Sensor packet:** 8 samples/packet at 6.25 Hz (= 50 Hz), 200 bytes, little-endian, 8-byte header (`seq`, `t0_ms`, `count`, `flags`)
-- **Sample size:** `2N + 12` bytes, N = FSR count from the calibration blob
+- **Sensor packet:** 8 samples/packet at 6.25 Hz (= 50 Hz), 232 bytes at N = 8 (v1.6), little-endian, 8-byte header (`seq`, `t0_ms`, `count`, `flags`)
+- **Sample size:** `2N + 12` bytes, N = FSR count from the calibration blob; N must be 8 (28 bytes)
 - **Service UUID:** `f0a5c000-9b4d-4e8a-a3c1-72d6e1b45900` (scan by UUID, not by name)
 - **Connect sequence:** connect → `requestMtu(247)` → read status (check `foot_side`) → read calibration → enable notifications → `SYNC_TIME` → `START_STREAM`
 - **FSR:** `max(0, adc − offset_adc)` → V → R → `F = a·R^b` → `P = F / A / 1000` (kPa)
-- **Temperature:** `raw / 100` °C; `-32768` = could not read
+- **Temperature:** v2 packet, 32 bytes, 8 sites (`temp[8]`, `quality[8]`); `raw / 100` °C; `-32768` = could not read
+- **Model A input:** `[1, 100, 28]` (8 FSR + 3 accel + 3 gyro per foot), `shared/model_input.json` version 2
 
 ---
 
@@ -192,7 +195,7 @@ Levels 1–5 are still stored internally for reporting and for expert review.
 
 | From | Need | Before session |
 |---|---|---|
-| Phumirapee (hardware) | Real boards ready for a full rehearsal; final FSR/NTC count and positions; how many NTC the PCB supports; firmware follows the contract (exact-length packets, SET_RATE) | **2026-11-02** (study rehearsal) |
+| Phumirapee (hardware) | Real boards ready for SR, firmware on DATA-CONTRACT v1.6 (8 FSR + 8 NTC, temperature v2, 8-channel calibration JSON; Appendix C), exact-length packets, SET_RATE. Count and positions are final (2026-10-29) | **~2026-11-08** (SR 8–11 Nov; study starts 12 Nov) |
 | Putanet | Two ESP32 boards + PlatformIO installed | S2B |
 | Putanet | Approval of the remaining 5 screen designs | S6B |
 | Medical expert | Review of the alert/advice text that volunteers will see | **2026-11-05** (before the study) |

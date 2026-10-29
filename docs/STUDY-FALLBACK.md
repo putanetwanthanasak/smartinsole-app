@@ -1,5 +1,17 @@
 # Study-day fallback: capture on the laptop web app
 
+> **Warning (S8D, 2026-10-29): this fallback does not work with the
+> 8-sensor boards (DATA-CONTRACT v1.6).** The frozen web app reads only
+> the v1.5 format. With a v1.6 board it refuses the 8-channel calibration,
+> so Connect fails; past that, it would read the 28-byte samples at its
+> fixed 24-byte stride (wrong numbers, no error) and a 32-byte temperature
+> packet as 0.08 °C. Nothing usable can be captured. Until the user
+> decides what replaces it (`docs/BACKLOG.md` item 63, before S9), there
+> is no laptop fallback for the real boards. The steps below apply only to
+> a board still running v1.5 firmware (6 FSR, 12-byte temperature); the
+> simulator's `left_fsr6` build is not one (it sends temperature v2).
+> Details: report 037.
+
 Use this only when phone capture fails in the middle of a study session.
 The normal phone procedure is `docs/STUDY-CAPTURE.md`.
 Only one central may hold the insoles at a time, so the phone gives them up

@@ -1,6 +1,6 @@
 # lib/storage/
 
-Local storage (S6A): SQLite through drift, schema v1, behind one repository
+Local storage (S6A): SQLite through drift, schema v2 (S8D), behind one repository
 interface per area. Screens and services use the providers in
 `storage_providers.dart` and the plain models in `models.dart`; nothing
 outside this folder imports drift or `database.dart`'s row types.
@@ -10,7 +10,7 @@ outside this folder imports drift or `database.dart`'s row types.
 | `database.dart` | Tables, `AppDatabase` (file in app-private support dir, or in memory) |
 | `models.dart` | `AlertKind` (8 contract codes + foot-check finding, `patientVisible`), models, `retentionPeriod`, `captureStampOf` |
 | `local_date.dart` | UTC ms → local `YYYY-MM-DD` |
-| `alert_repository.dart` | `AlertRepository`: add, list/unread (one visibility rule), mark read, per capture |
+| `alert_repository.dart` | `AlertRepository`: add, list/unread (one visibility rule), mark read, per capture, `appendTempSite` (S8D) |
 | `temperature_repository.dart` | `TemperatureRepository`: every 30 s reading per foot |
 | `daily_summary_repository.dart` | `DailySummaryRepository`: max ΔT, alert counts, foot-check flag, activity (S8A) |
 | `foot_check_repository.dart` | `FootCheckRepository`: save (result decided here, rule 14) |
@@ -25,6 +25,13 @@ Rules:
 - No names or subject codes. A research capture is linked by its time stamp
   only (`captureStampOf`), and retention never deletes those alerts.
 - Mock and fake-BLE runs use an in-memory database, never the phone's file.
+- **Schema v2 (S8D) is additive: nothing on the phone is deleted.**
+  `temperature_readings` gained `site0_c…site7_c` and `site0_q…site7_q`
+  (a v1 row keeps `forefoot_c` / `heel_c` / `quality` and reads as
+  `isLegacy`, with no site values); `daily_summary` gained `max_delta_c` +
+  `max_delta_site` (the old forefoot / heel maxima stay); a new
+  `TEMP_DELTA` stores its site in `zone`, an old one keeps `site`
+  (`LegacyTempSite`) and gets nothing appended.
 - Schema change: bump `schemaVersion`, then from `mobile/` run
   `dart run build_runner build` and `dart run drift_dev make-migrations`
   (dumps `drift_schemas/`, writes migration steps and tests in `test/drift/`).

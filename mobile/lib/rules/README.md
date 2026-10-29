@@ -1,6 +1,6 @@
 # lib/rules/
 
-The alert rules (S7): DATA-CONTRACT v1.5 §8.3's 8 codes, their internal
+The alert rules (S7): DATA-CONTRACT §8.3's 8 codes (v1.6 since S8D: 8 zones, 8 temperature sites), their internal
 level 1–5, and the mapping to the patient's 3 levels (FLUTTER-PLAN §7).
 Every number comes from `shared/thresholds.json` through `Thresholds`
 (rule 12): `test/rules/no_threshold_literals_test.dart` fails on any
@@ -32,14 +32,14 @@ is the one file it skips).
   hold from timestamps each time it is asked (rule 2). Home reads
   `view(snapshot)` at 10 Hz.
 - **Alerts.** A rule that starts to hold raises one alert, unless the same
-  key (code + side + zone or site) was raised in the last
+  key (code + side + zone; `TEMP_DELTA`: code + side) was raised in the last
   `alerts.repeatMin` minutes. Exactly `repeatMin` later is allowed. On
   start the engine reads that memory back from the alerts table, so it
   holds across a restart. Each stored alert has the patient level shown at
   that moment, the numbers for the detail rows, the gait estimate
   (pressure codes only) and the open research capture's stamp.
 - **Foot map with pressure alerts (S6B).** Every pressure code
-  (`pressureCodes`) also stores `details.map = {left|right: {kpa: [6],
+  (`pressureCodes`) also stores `details.map = {left|right: {kpa: [8],
   levels: ["low", …]} | null}`: both feet's 2 s rolling-peak map at the
   moment it was raised, from the engine's own `RollingPeaks` fed by the
   same batches and the same `mapPeaksOf` rule as Home, so the alert
@@ -47,7 +47,17 @@ is the one file it skips).
   usable is `null` (drawn as No data). Alerts stored before S6B have no
   map; the detail then draws only the ringed zone (PEAK: its level;
   PTI / LOAD_CONCENTRATION: a plain outline, no level claimed) and every
-  other zone as a plain outline circle, never the No-data style.
+  other zone as a plain outline circle, never the No-data style. A map
+  stored before S8D has 6 entries; zones 6–7 draw as not recorded.
+- **`TEMP_DELTA` with 8 sites (S8D, contract v1.6 §8.3).** Each site keeps
+  its own run of reading pairs above `deltaC` (rule 6 per site). One alert
+  per warmer foot: it names the qualifying site with the largest |ΔT|
+  (`zone`), and `details.tempSites` lists every qualifying site with its
+  |ΔT| and when it qualified. A site that qualifies on the same foot while
+  that alert suppresses repeats is appended to it
+  (`AlertRepository.appendTempSite`) and logged, not raised again; sites
+  that qualify before the suppression memory is read back at start wait
+  for it.
 - **Status.** Both feet unusable → No data. Otherwise the best level-3+
   rule names the card: higher level first, then TEMP_DELTA > PTI > PEAK >
   LOAD_CONCENTRATION, then the one furthest past its threshold. A
@@ -57,7 +67,7 @@ is the one file it skips).
 
 | Code | Holds while (per foot, and per zone or site) |
 |---|---|
-| `TEMP_DELTA` (4) | `consecutiveReadings` reading pairs in a row with \|ΔT\| > `deltaC` at one site; a pair with no ΔT resets the run, a missed reading does not. Both feet usable. Side = the warmer foot |
+| `TEMP_DELTA` (4) | `consecutiveReadings` reading pairs in a row with \|ΔT\| > `deltaC` at one of the 8 sites; a pair with no ΔT at that site resets its run, a missed reading does not. Both feet usable. Side = the warmer foot; one alert per foot |
 | `PRESSURE_WATCH` (2) | A sample above `watchKpa` in the last `peakHoldMs` |
 | `PRESSURE_PEAK` (3) | A sample above `alertKpa` **while the gate is on** in the last `peakHoldMs` (rule 7) |
 | `PRESSURE_PTI` (3) | Mean per-step PTI over the last `ptiWindowMin` > `ptiKpaS`, ≥ `ptiMinSteps` steps, still walking |

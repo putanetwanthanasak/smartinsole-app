@@ -512,7 +512,13 @@ that builds each screen:
   screen's session builds it.
 - Reduce motion re-checked on the emulator — S5, where real animations arrive.
 
-## 15. Variable FSR count is not in the Data Contract yet **(found in S2A)**
+## 15. Variable FSR count is not in the Data Contract yet **(found in S2A)** — RESOLVED (S8D-1)
+
+Resolved by DATA-CONTRACT v1.6 (2026-10-29, report 037): N = 8 is fixed
+(§3.1: 28-byte samples, 232-byte packets, the site table with mm
+positions, `shared/sensor_layout.json`); the parser stays N-generic, but
+the app refuses an insole whose calibration has N ≠ 8. The simulator
+builds N = 8 by default. Original note:
 
 FLUTTER-PLAN §5 says a sample is `2N + 12` bytes, with N taken from the
 calibration blob, and the Flutter parser supports that (N = 4/6/8 are
@@ -525,7 +531,11 @@ from, and the FSR index → position table for other N (`sensor_layout.json`,
 S5). The S2B simulator's `FSR_COUNT` build flag depends on the same
 change.
 
-## 16. Variable NTC count has no wire format **(found in S2A)**
+## 16. Variable NTC count has no wire format **(found in S2A)** — RESOLVED (S8D-1)
+
+Resolved by DATA-CONTRACT v1.6 §3.2 (report 037): temperature packet v2,
+32 bytes with a `count` field (= 8), per-site temperature and quality;
+the 12-byte packet is rejected (`tempLength`). Original note:
 
 FLUTTER-PLAN §2 says NTC may increase to 6 per foot. The temperature packet
 (contract §3.2) is a fixed 12 bytes carrying exactly two values (forefoot,
@@ -1417,3 +1427,55 @@ more ahead, with a delivery window of 1 hour, so 19:00 may come as late as
 it too late, options are a window alarm (`setWindow`, e.g. 15 minutes) or
 exact alarms, which need `SCHEDULE_EXACT_ALARM` / `USE_EXACT_ALARM` and
 their policy review.
+
+## 63. The laptop web fallback cannot capture from 8-sensor boards **(found in S8D-1)** — OPEN, user decision before S9
+
+The frozen web app reads only DATA-CONTRACT v1.5. With a v1.6 board:
+`parseCalibrationJSON` (`src/ts/data/blePacketParser.ts`) throws unless the
+calibration lists exactly 6 channels, so Connect fails; past that, samples
+would be read at a fixed 24-byte stride (wrong values, no error) and a
+32-byte temperature packet as 0.08 °C (its `count` and `reserved` bytes
+read as `temp_forefoot`). Nothing usable can be captured, so the study has
+no laptop fallback for the real boards (report 037;
+`docs/STUDY-FALLBACK.md` carries a warning). Options for the user:
+(a) phone capture only, with the fallback dropped from the study-day plan;
+(b) a second Android phone with the app installed as the fallback;
+(c) a user-requested fix to the web app (allowed by `CLAUDE.md` as a bug
+that affects data capture): parse N from the calibration, v2 temperature.
+Decide before S9 (1 Nov) so S9/S10 can plan for it.
+
+## 64. `concentrationPct` 40 % was set for 6 sensors **(found in S8D-1)** — OPEN, check in SR
+
+`LOAD_CONCENTRATION` keeps `asymmetry.concentrationPct` 40 % (user decision
+2026-10-29: not changed silently). Over 8 zones an even load is 12.5 % per
+zone instead of 16.7 %, and the two new zones (medial arch, lateral heel)
+add to the sum, so the same foot reaches 40 % less often. SR records the
+top-zone share per walking trial on the real boards and the user decides
+whether to change the value before the study (12 Nov). A test documents
+the current behaviour (`alert_engine_test.dart`, "an even load over 8
+zones").
+
+## 65. `steps.contactKpa` and the gait PTI shares now sum 8 zones **(found in S8D-1)** — OPEN, check in SR
+
+`steps.contactKpa` (10) is compared with the sum of all zones' kPa, which
+now has 8 terms; `gait.toeHeelPtiPct` and `heelForefootPtiPct` are shares of
+a whole that now includes the medial arch and lateral midfoot (heel = sites
+5 + 7, forefoot = 0–3). All were tuned on 6 zones. Check them with SR's
+instructed gaits together with BACKLOG 49 and 51.
+
+## 66. Model B's temperature features name the old 2 sites **(found in S8D-1)** — OPEN, before Model B training
+
+DATA-CONTRACT §7.3 features 0–5 are forefoot / heel temperatures and ΔT.
+With 8 sites per foot they have to be redefined (per site, or the largest
+|ΔT| and its site) with the AI team before Model B is trained. Model A is
+not affected beyond its 28-channel input (done in S8D-1).
+
+## 67. Send DATA-CONTRACT v1.6 to the hardware team **(S8D-1)** — OPEN, user action, before the boards (~8 Nov)
+
+Appendix C of `docs/DATA-CONTRACT.md` is the one-page summary for the
+hardware team: channel order, the 232-byte sensor packet, temperature v2,
+the 8-channel calibration JSON, what the app rejects and how Diagnostics
+shows it, and hex examples generated from the test vectors. Ask them to
+confirm the Appendix B items. On the first real-board connection in SR,
+Diagnostics must show `N 8 · temperature v2, 8 sites · rejects 0` for each
+foot (`docs/SESSIONS.md` SR checklist).
