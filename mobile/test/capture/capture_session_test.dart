@@ -38,7 +38,10 @@ void main() {
       ];
       // Same channels, same order (§7.1) as the model's block of that foot.
       final start = modelChannelOffset(side);
-      expect(names, modelChannelNames.sublist(start, start + 12));
+      expect(
+        names,
+        modelChannelNames.sublist(start, start + modelChannelsPerFoot),
+      );
     }
   });
 
@@ -158,7 +161,9 @@ void main() {
         final end = j['endUnixMs']! as double;
 
         final csv = csvOf(rig, 'SI-001_00_calibration_a1');
-        expect(csv.header, csvColumns(6));
+        expect(csv.header, csvColumns(8));
+        expect(csv.header, contains('fsr7_kpa'));
+        expect(csv.header, contains('temp7_q'));
         for (final side in ['L', 'R']) {
           final rows = csv.side(side);
           // 30 s × 50 Hz, less at most one packet at each edge.
@@ -356,23 +361,37 @@ void main() {
         final rig = CaptureRig(async);
         rig.session.startRecording();
         rig.walk(const Duration(seconds: 1));
-        rig.left.temp(31.25, 30.5);
+        rig.left.temp(
+          31.25,
+          sites: {5: 30.5, 6: null},
+          qualityAt: {3: TempQuality.poorContact},
+        );
         rig.walk(const Duration(seconds: 10));
         final csv = csvOf(rig, 'TEST-001_00_calibration_a1');
         final withTemp = [
           for (final r in csv.rows)
-            if (r[csv.col('temp_forefoot_c')].isNotEmpty) r,
+            if (r[csv.col('temp_unix_ms')].isNotEmpty) r,
         ];
         expect(withTemp, hasLength(1));
-        expect(withTemp.single[csv.col('side')], 'L');
-        expect(withTemp.single[csv.col('temp_forefoot_c')], '31.25');
-        expect(withTemp.single[csv.col('temp_quality')], 'normal');
+        final row = withTemp.single;
+        expect(row[csv.col('side')], 'L');
+        expect(row[csv.col('temp0_c')], '31.25');
+        expect(row[csv.col('temp5_c')], '30.50');
+        expect(row[csv.col('temp6_c')], '', reason: 'could not read');
+        expect(row[csv.col('temp0_q')], 'normal');
+        expect(row[csv.col('temp3_q')], 'poorContact');
         final j = sidecar(rig, 'TEST-001_00_calibration_a1');
         final temps = ((j['feet']! as Map)['L']! as Map)['temps'] as List;
-        expect((temps.single as Map)['heelC'], 30.5);
-        // The calibration summary takes ΔT only from both feet (rule 4).
+        final t = temps.single as Map;
+        expect((t['celsius'] as List)[5], 30.5);
+        expect((t['quality'] as List)[3], 'poorContact');
+        // The calibration summary: per site, normal readings only, and ΔT
+        // only from both feet (rule 4).
         final sum = rig.session.calibrationSummary!;
-        expect(sum['startDeltaForefootC'], isNull);
+        final start = (sum['startTempC']! as Map)['L']! as List;
+        expect(start[0], 31.25);
+        expect(start[3], isNull, reason: 'poor contact is not a value');
+        expect(sum['startDeltaC'], List.filled(8, null));
         rig.dispose();
       });
     });
@@ -491,7 +510,7 @@ void main() {
     FootView view({
       FootConnection c = FootConnection.streaming,
       int? battery = 90,
-      int fsr = 6,
+      int fsr = 8,
     }) => FootView(
       side: FootSide.left,
       connection: c,
@@ -512,8 +531,8 @@ void main() {
         precheckIssues(view(c: FootConnection.stale), hasCalibration: true),
         contains('not streaming'),
       );
-      expect(precheckIssues(view(fsr: 8), hasCalibration: true), [
-        '8 FSR channels, need 6',
+      expect(precheckIssues(view(fsr: 6), hasCalibration: true), [
+        '6 FSR channels, need 8',
       ]);
       expect(precheckIssues(view(), hasCalibration: false), [
         'no calibration read',

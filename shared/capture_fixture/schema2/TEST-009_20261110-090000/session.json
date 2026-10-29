@@ -1,0 +1,142 @@
+{
+  "schema": 2,
+  "kind": "session",
+  "sessionId": "TEST-009_20261110-090000",
+  "createdUnixMs": 1794276000007,
+  "subject": {
+    "code": "TEST-009",
+    "sex": "female",
+    "ageRange": "26-30",
+    "footLengthCm": {
+      "L": 26.5,
+      "R": 26.0
+    }
+  },
+  "rehearsal": true,
+  "roomTempC": 25.5,
+  "orderSeed": 7,
+  "order": [
+    "normal",
+    "toe_walking",
+    "rotated_foot",
+    "heel_walking",
+    "antalgic"
+  ],
+  "painSide": "L",
+  "status": "open",
+  "appVersion": "1.0.0+1",
+  "timings": {
+    "calibrationS": 10.0,
+    "trialS": 30.0,
+    "practiceS": 5.0,
+    "endWarningS": 10,
+    "holdToActS": 2,
+    "minBatteryPct": 80
+  },
+  "calibrationSummary": {
+    "attempt": "TEST-009_00_calibration_a1",
+    "restingKpaMean": {
+      "L": [
+        124.1875,
+        134.1875,
+        144.1875,
+        154.1875,
+        164.1875,
+        174.1875,
+        184.1875,
+        194.1875
+      ],
+      "R": [
+        524.2532051282051,
+        534.2532051282051,
+        544.2532051282051,
+        554.2532051282051,
+        564.2532051282051,
+        574.2532051282051,
+        584.2532051282051,
+        594.2532051282051
+      ]
+    },
+    "startTempC": {
+      "L": [
+        31.0,
+        31.125,
+        31.25,
+        31.375,
+        31.5,
+        31.625,
+        null,
+        31.875
+      ],
+      "R": [
+        31.53,
+        31.78,
+        null,
+        32.28,
+        32.53,
+        32.78,
+        33.03,
+        33.28
+      ]
+    },
+    "startDeltaC": [
+      -0.5300000000000011,
+      -0.6550000000000011,
+      null,
+      -0.9050000000000011,
+      -1.0300000000000011,
+      -1.1550000000000011,
+      null,
+      -1.4050000000000011
+    ]
+  },
+  "trials": [
+    {
+      "trial": 0,
+      "label": "calibration",
+      "attempts": [
+        {
+          "attempt": 1,
+          "baseName": "TEST-009_00_calibration_a1",
+          "rotation": null,
+          "endReason": "stopped_early",
+          "valid": true,
+          "invalidReason": null,
+          "gapCount": 1,
+          "samples": {
+            "L": 320,
+            "R": 312
+          }
+        }
+      ]
+    },
+    {
+      "trial": 1,
+      "label": "normal",
+      "attempts": []
+    },
+    {
+      "trial": 2,
+      "label": "toe_walking",
+      "attempts": []
+    },
+    {
+      "trial": 3,
+      "label": "rotated_foot",
+      "attempts": []
+    },
+    {
+      "trial": 4,
+      "label": "heel_walking",
+      "attempts": []
+    },
+    {
+      "trial": 5,
+      "label": "antalgic",
+      "attempts": []
+    }
+  ],
+  "exports": [
+    "2026-11-10T09:00:07.407"
+  ]
+}

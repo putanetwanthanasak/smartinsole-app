@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import '../ble/ble_protocol.dart';
 import '../ble/calibration.dart';
 import '../ble/packets.dart';
 import '../device/foot_sample.dart';
@@ -10,7 +11,11 @@ import 'capture_protocol.dart';
 /// (one row per sample per foot), plus a JSON sidecar per attempt and one
 /// `session.json`. The Python loader (`tools/capture/load_capture.py`)
 /// reads exactly these names; bump [captureSchema] on any change.
-const captureSchema = 1;
+///
+/// Schema 2 (S8D, DATA-CONTRACT v1.6): 8 FSR channels per foot and 8
+/// temperature sites (`temp0_c`…`temp7_c`, `temp0_q`…`temp7_q`) in place
+/// of schema 1's `temp_forefoot_c` / `temp_heel_c` / `temp_quality`.
+const captureSchema = 2;
 
 /// Root of all capture data in the app's private storage.
 const researchDirName = 'research';
@@ -44,9 +49,15 @@ List<String> csvColumns(int fsrCount) => [
   'valid', // 0 inside a segment the researcher marked invalid
   ...footValueColumns(fsrCount),
   'temp_unix_ms', // set on the first row written after a reading arrives
-  'temp_forefoot_c',
-  'temp_heel_c',
-  'temp_quality',
+  ...tempColumns,
+];
+
+/// One reading's columns: °C per site (empty = could not read), then each
+/// site's quality (`normal` / `poorContact` / `sensorFault`). Site i is
+/// the NTC next to FSR i.
+final tempColumns = [
+  for (var i = 0; i < TempLayout.siteCount; i++) 'temp${i}_c',
+  for (var i = 0; i < TempLayout.siteCount; i++) 'temp${i}_q',
 ];
 
 String sideCode(FootSide side) => side == FootSide.left ? 'L' : 'R';
@@ -80,9 +91,13 @@ String csvRow({
     for (final g in s.accelG) _f(g, 6),
     for (final d in s.gyroDps) _f(d, 4),
     temp == null ? '' : _f(temp.unixMs, 3),
-    temp?.packet.forefootC == null ? '' : _f(temp!.packet.forefootC!, 2),
-    temp?.packet.heelC == null ? '' : _f(temp!.packet.heelC!, 2),
-    temp == null ? '' : temp.packet.quality.name,
+    for (var c = 0; c < TempLayout.siteCount; c++)
+      switch (temp?.packet.celsius[c]) {
+        final v? => _f(v, 2),
+        null => '',
+      },
+    for (var c = 0; c < TempLayout.siteCount; c++)
+      temp == null ? '' : temp.packet.quality[c].name,
   ].join(',');
 }
 

@@ -93,9 +93,8 @@ class FootRecord {
         {
           'unixMs': t.unixMs,
           'fromArrival': t.fromArrival,
-          'forefootC': t.packet.forefootC,
-          'heelC': t.packet.heelC,
-          'quality': t.packet.quality.name,
+          'celsius': t.packet.celsius,
+          'quality': [for (final q in t.packet.quality) q.name],
         },
     ],
   };
