@@ -41,7 +41,14 @@ Files shared between the Flutter app (`mobile/`) and the new simulator
   reproduce `expected.json` from them. Regenerate only after an intended
   format change: `UPDATE_CAPTURE_FIXTURE=1 flutter test
   test/capture/capture_fixture_test.dart` (in `mobile/`).
-- `sensor_layout.json` — not yet created (planned with the heatmap, S5).
+- **`sensor_layout.json`** (S8D, DATA-CONTRACT v1.6 §3.1) — the 8 sites per
+  foot in wire order (index = FSR channel = temperature site; NTC i sits
+  next to FSR i): stable id, English and Thai name, region and the
+  position in mm (left foot; the right foot mirrors), plus the display
+  transform that places a site on the app's 120×268 foot map. Ids 0–5 are
+  the ids stored alerts and capture files already use. The app mirrors it
+  in `mobile/lib/config/foot_layout.dart` (`test/config/foot_layout_test.dart`
+  keeps them identical); `tools/capture/load_capture.py` reads its ids.
 
 ## The web app still uses `public/thresholds.json`
 

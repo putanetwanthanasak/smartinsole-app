@@ -57,6 +57,7 @@ class RuleBasedClassifier implements GaitClassifier {
           case FootRegion.forefoot:
             forefoot += v;
           case FootRegion.lateral:
+          case FootRegion.arch:
             break;
         }
       }

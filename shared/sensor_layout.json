@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "about": "Where each FSR channel and each NTC temperature site sits on the insole (DATA-CONTRACT v1.6 section 3.1, user decision 2026-10-29). Index = FSR channel index on the wire = temperature site index in the v1.6 temperature packet: NTC i sits next to FSR i, so one list serves both. The Flutter app mirrors this file in mobile/lib/config/foot_layout.dart (a Dart test keeps them identical); tools/capture/load_capture.py reads the ids. Ids 0-5 are the ids stored alerts and capture files already use, kept even where the name changed.",
+  "units": "mm",
+  "frame": "Left foot seen from above. x is measured from the insole's lateral edge toward the medial side, y from the back edge of the heel toward the toes. The right foot is the mirror image: the same index has the same x and y measured from its own lateral edge and heel.",
+  "sites": [
+    { "index": 0, "id": "hallux", "nameEn": "Hallux", "nameTh": "นิ้วหัวแม่เท้า", "region": "forefoot", "mm": [70, 247] },
+    { "index": 1, "id": "meta1", "nameEn": "1st metatarsal head (MTH1)", "nameTh": "โคนนิ้วหัวแม่เท้า", "region": "forefoot", "mm": [75, 197] },
+    { "index": 2, "id": "meta3", "nameEn": "2nd-3rd metatarsal heads (MTH2-3)", "nameTh": "กลางหน้าเท้า", "region": "forefoot", "mm": [48, 205] },
+    { "index": 3, "id": "meta5", "nameEn": "5th metatarsal head (MTH5)", "nameTh": "โคนนิ้วก้อย", "region": "forefoot", "mm": [22, 197] },
+    { "index": 4, "id": "midfoot", "nameEn": "Lateral midfoot", "nameTh": "ขอบเท้าด้านนอก", "region": "lateral", "mm": [18, 140] },
+    { "index": 5, "id": "heel", "nameEn": "Heel centre", "nameTh": "กลางส้นเท้า", "region": "heel", "mm": [43, 38] },
+    { "index": 6, "id": "medialArch", "nameEn": "Medial arch", "nameTh": "อุ้งเท้า", "region": "arch", "mm": [59, 126] },
+    { "index": 7, "id": "lateralHeel", "nameEn": "Lateral heel", "nameTh": "ส้นเท้าด้านนอก", "region": "heel", "mm": [22, 82] }
+  ],
+  "regions": {
+    "about": "Coarse parts of the foot used in plain-Thai sentences and by the rule-based gait classes (forefoot share = forefoot sites, heel share = heel sites; lateral and arch are in neither).",
+    "forefoot": [0, 1, 2, 3],
+    "lateral": [4],
+    "arch": [6],
+    "heel": [5, 7]
+  },
+  "display": {
+    "about": "How the app places a site on its stylised foot map (DESIGN-SPEC section 5: a 120 x 268 view box per foot, left foot, toes at the top). view_x = x0 + scale * x_mm, view_y = y0 - scale * y_mm; the right foot uses viewBox width - view_x. One uniform scale, fitted to the old placeholder positions of sites 0-5; every site centre falls inside the outline.",
+    "viewBox": [120, 268],
+    "scale": 0.891,
+    "x0": 15.3,
+    "y0": 264.7
+  }
+}
