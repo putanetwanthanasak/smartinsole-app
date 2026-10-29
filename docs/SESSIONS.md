@@ -1,11 +1,11 @@
-# Claude Code Session Plan — SmartInsole Flutter App (v2.4)
+# Claude Code Session Plan — SmartInsole Flutter App (v2.6)
 
-> Updated 2026-10-24 (v2.5: S6A + S7 on Sat 24, S6B now includes the My feet shell and the Pressure tab. v2.4, 2026-10-22: two sessions a day, all sessions finish by 2026-10-27. v2.3, 2026-10-22: all sessions finish by 2026-10-31; model-input units fixed for S4C/S8A. v2.2: the phone app becomes the research capture tool; new sessions S4C and SR) · Use together with `docs/FLUTTER-PLAN.md` and `docs/design/DESIGN-SPEC.md`
+> Updated 2026-10-29 (v2.6: the real insole is final at 8 FSR + 8 NTC per foot; new session S8D (split S8D-1 / S8D-2); real boards about 8 Nov, SR 8–11 Nov, study starts 2026-11-12. v2.5, 2026-10-24: S6A + S7 on Sat 24, S6B now includes the My feet shell and the Pressure tab. v2.4, 2026-10-22: two sessions a day, all sessions finish by 2026-10-27. v2.3, 2026-10-22: all sessions finish by 2026-10-31; model-input units fixed for S4C/S8A. v2.2: the phone app becomes the research capture tool; new sessions S4C and SR) · Use together with `docs/FLUTTER-PLAN.md` and `docs/design/DESIGN-SPEC.md`
 > Run Claude Code on the Ubuntu machine in `~/smartinsole-app`
 
 ---
 
-## Status (2026-10-21)
+## Status (2026-10-29)
 
 | Session | Result | PR / report |
 |---|---|---|
@@ -19,13 +19,21 @@
 | S3A | ✅ Per-foot BLE (connect sequence, rules 8/9, reconnect), temporary debug screen, 183 tests; Note 10 checkpoint passed: both feet 6.25 Hz with 0 gaps, interval 11.25 ms | PR #20 · report 024 |
 | S3B | ✅ Web app fallback works with the new simulator: 9-min capture, both feet 26 984 rows, no lost packets, 20 ms spacing; resync steps of 160 ms (BACKLOG 28) and reconnect via the picker (BACKLOG 29) handled in `docs/STUDY-FALLBACK.md` | PR #21 · report 025 |
 | S4 | ✅ DeviceManager (50 Hz / 10 Hz, read-time staleness, ΔT), DeviceClock (no steps, never backwards), 7 mock presets, 242 tests; Note 10 checkpoint passed: L/R ≤ 3.4 ms (laptop-clock method, ±3 ms), 0 lost over 10.6 min, 20 ± 0.25 ms steps; BACKLOG 27 fixed and seen on the phone | PR #22 · report 026 |
-| S4C → S10 | ⏳ All finish by 2026-10-31 (see the schedule below); SR 2–5 Nov; study starts 2026-11-10 | — |
+| S4C | ✅ Research capture mode on the phone | PR #23 · report 027 |
+| S5 | ✅ Home (style D), 4-tab navigation | PR #24 · report 028 |
+| S6A | ✅ Local storage (drift), retention | PR #25 · report 029 |
+| S7 | ✅ AlertEngine (8 codes) | PR #26 · report 030 |
+| S6B | ✅ Alerts list and detail (part 1), My feet shell, Pressure and Temperature tabs (part 2) | PR #27, #29 · reports 031, 033 |
+| S8A | ✅ Gait tab, GaitClassifier + Model A slot | PR #30 · report 034 |
+| S8B | ✅ Connection, Settings, Researcher | PR #31 · report 035 |
+| S8C | ✅ Daily foot check, evening reminder | PR #32 · report 036 |
+| S8D → S10 | ⏳ S8D-1 30 Oct, S8D-2 31 Oct, S9 1–3 Nov, S10 4–5 Nov (schedule v2.6 below); SR 8–11 Nov; study starts 2026-11-12 | — |
 
-**Demo state of the app:** installed on the Note 10 as a release build; all screens are placeholders ("ยังไม่พร้อมใช้งาน") until their sessions.
+**Demo state of the app:** installed on the Note 10 as a release build (S8C); every screen is built. Until S8D-1 the app and the simulator boards are on 6 FSR + 2 temperature sites per foot.
 
 ## Study plan (decided 2026-10-21)
 
-- **Data collection starts 2026-11-10.** One researcher (the user) runs every session alone and walks beside the volunteer during the abnormal gaits.
+- **Data collection starts 2026-11-12** (moved from 10 Nov on 2026-10-29, inside the IRB window 1–30 Nov). One researcher (the user) runs every session alone and walks beside the volunteer during the abnormal gaits.
 - **The phone app is the research capture tool** (new session S4C). Each insole has exactly one central during a study session: the phone. The researcher carries the phone, so Bluetooth range and operating two devices are not a problem.
 - **The laptop web app is a fallback only.** S3B now only checks that it can still capture from the new simulator on its own. It is never connected at the same time as the phone during a study session. The dual-central test is dropped.
 - **The user is also the AI team**, so the CSV format is designed for training (S4C), not copied from the web app.
@@ -39,24 +47,24 @@ What the study protocol (proposal doc 03) needs from the app:
 | Volunteer usability tasks: pressure map, alert list, explain an alert message | Home with heatmap, Alerts screen, plain-Thai advice | S5 + S6B + S7 |
 | Alert text shown to volunteers | Reviewed by the medical expert | before 2026-11-05 |
 
-Schedule (v2.5, user decision 2026-10-24; v2.4 2026-10-22: two sessions a day, every session finished by 27 Oct):
+Schedule (v2.6, user decision 2026-10-29: the real insole is final at 8 FSR + 8 NTC per foot, NTC i next to FSR i; the IRB confirmed no amendment is needed; real boards ready about 8 Nov):
 
-| Date | Session 1 | Session 2 | Design needed (Claude chat) |
-|---|---|---|---|
-| Thu 22 Oct | S4 ✅ | S4C | user picks Home style A/B/C → Home, 4 states |
-| Fri 23 Oct | S4C Note 10 checkpoint | S5 | Alerts + Temperature |
-| Sat 24 Oct | S6A | S7 | My feet (gait) + Connection + Settings |
-| Sun 25 Oct | S6B (incl. My feet shell + Pressure tab) | S8A + S8B | Foot check (4 screens, new style) · advisor slides |
-| **Mon 26 Oct** | advisor meeting | S8C | — |
-| Tue 27 Oct | S9 (simulator boards) | S10 | — |
-| Wed 28 Oct – Sun 1 Nov | buffer · changes from the advisor · send alert text to the medical expert | | — |
-| Mon 2 – Thu 5 Nov | SR: real boards + full 75-minute rehearsal | | — |
-| Fri 6 – Mon 9 Nov | buffer, expert text changes, final install | | — |
-| **Tue 10 Nov** | study starts | | — |
+| Date | Session | Notes |
+|---|---|---|
+| Thu 29 Oct | S8C Note 10 run · S8D plan | S8C merged (PR #32) |
+| Fri 30 Oct | **S8D-1** (data path) + its Note 10 checkpoint | both simulator boards reflashed to 8 + 8 |
+| Sat 31 Oct | **S8D-2** (UI for 8 sites) | requires S8D-1 merged |
+| Sun 1 – Tue 3 Nov | S9 (integration + APK) | first item: BACKLOG 51; the user answers the web-fallback decision (BACKLOG 63) before S9 |
+| Wed 4 – Thu 5 Nov | S10 (wrap-up) | **medical text review by Thu 5 Nov** (Appendix A) |
+| Fri 6 – Sat 7 Nov | buffer | |
+| Sun 8 – Wed 11 Nov | SR with the real boards | boards ready about 8 Nov; the simulator if not |
+| **Thu 12 Nov** | **study starts** | IRB window 1–30 Nov; study phone build frozen 12–30 Nov |
 
-If a day slips, move S8A, S8B, S8C to after 10 Nov first (not needed for the study). Never drop S4C, S5, S6A, S7 or S6B. **During the study (10–30 Nov) the study phone's build is frozen:** new work goes on branches and is tested on the emulator or another phone.
+Earlier schedules (v2.5, 2026-10-24; v2.4, 2026-10-22) put SR on 2–5 Nov and the study start on 10 Nov; both are replaced by the table above.
 
-If real boards are not ready by 2 Nov, SR runs on the simulator and the real-board check moves to the buffer days.
+If a day slips, use the buffer (6–7 Nov) first. S8D-1 is needed for the study (the real boards speak only the v1.6 format); S8D-2 is the UI for 8 sites and S10 is wrap-up. **During the study (12–30 Nov) the study phone's build is frozen:** new work goes on branches and is tested on the emulator or another phone.
+
+If real boards are not ready by 8 Nov, SR runs on the simulator boards (8 + 8 since S8D-1) and the real-board checks move to the last SR days.
 
 ### Decisions made during S2A–S2C
 - Parser keeps `lengthMismatch`: every sensor notification must be exactly `8 + count × (2N + 12)` bytes; never padded.
@@ -86,8 +94,8 @@ If real boards are not ready by 2 Nov, SR runs on the simulator and the real-boa
 - **S8B:** REBOOT/TARE guard (BACKLOG 21).
 
 ### Waiting on others
-- **Phumirapee (hardware):** final FSR/NTC count and positions; NTC 6 per foot possible?; exact-length packets; SET_RATE must not change the real rate (or add a spacing field); contract gaps BACKLOG 15, 16, 19.
-- **Phumirapee:** when will the real boards be ready? Needed by 2026-11-02 for SR.
+- **Phumirapee (hardware):** firmware to DATA-CONTRACT v1.6 (8 FSR + 8 NTC, 232-byte sensor packets, 32-byte temperature v2; the contract's Appendix C is the hand-off the user sends); exact-length packets; SET_RATE must not change the real rate (or add a spacing field); contract gap BACKLOG 19. (Count and positions decided 2026-10-29.)
+- **Phumirapee:** real boards ready about 8 Nov for SR.
 - **Advisor (2026-10-26):** daily foot check in scope?; IRB notification needed?; medical expert to review advice text; NTC 6 per foot.
 - **User:** a full-app redesign started on 2026-10-20 (three Home directions A/B/C on the design canvas). Pick one before S5; the Alerts and Temperature designs are needed before S6B. DESIGN-SPEC is updated after the choice.
 
@@ -151,7 +159,7 @@ Additional info: [optional]
 
 **Simulator tooling:** PlatformIO; ESP32 on a CP2102 bridge (select the port by `/dev/serial/by-id/usb-Silicon_Labs_CP2102…`; the other ttyUSB is a Quectel LTE modem, never touch it); user `pumon` in `dialout`; laptop checks with `firmware/simulator/tools/sim_check.py` (bleak); phone checks with nRF Connect.
 
-**Note 10 checkpoints (user):** after S3A (both ESP32 connect) ✅, S4 (left/right timing), S4C (a full capture session on the phone), SR (study rehearsal with real boards), S8C (real camera), S9 (full 30-minute run).
+**Note 10 checkpoints (user):** after S3A (both ESP32 connect) ✅, S4 (left/right timing), S4C (a full capture session on the phone), SR (study rehearsal with real boards), S8C (real camera), S8D-1 (both simulator boards on 8 + 8), S9 (full 30-minute run).
 
 | Date | Session | Who | Work | Branch |
 |---|---|---|---|---|
@@ -170,12 +178,14 @@ Additional info: [optional]
 | 24 Oct | S6A ✅ | Claude Code | SQLite (drift) | `work/flutter-storage` |
 | 24 Oct | S7 | Claude Code | 8 alert rules + risk level + 3-level mapping | `work/flutter-rules` |
 | 25 Oct | S6B | Claude Code | My feet shell + Pressure, Temperature and Alerts screens | `work/flutter-temp-alerts` |
-| 2–5 Nov | SR | User + Claude Code | Study rehearsal with real boards | `work/study-readiness` |
+| 8–11 Nov | SR | User + Claude Code | Study rehearsal with real boards | `work/study-readiness` |
 | 25 Oct | S8A | Claude Code | Gait screen + model slot | `work/flutter-gait` |
 | 25 Oct | S8B | Claude Code | Connection + Settings screens | `work/flutter-connect-settings` |
-| 26 Oct | S8C | Claude Code + user | Daily foot check | `work/flutter-footcheck` |
-| 27 Oct | S9 | User + Claude Code | Integration test + APK | `work/flutter-integration` |
-| 27 Oct | S10 | Claude Code | Wrap-up + docs + screenshots | `work/flutter-wrapup` |
+| 26 Oct | S8C ✅ | Claude Code + user | Daily foot check | `work/flutter-footcheck` |
+| 30 Oct | S8D-1 | Claude Code + user | 8 FSR + 8 NTC: data path, simulator, contract v1.6 | `work/flutter-8-sensors` |
+| 31 Oct | S8D-2 | Claude Code | 8 FSR + 8 NTC: UI | `work/flutter-8-sensors-ui` |
+| 1–3 Nov | S9 | User + Claude Code | Integration test + APK | `work/flutter-integration` |
+| 4–5 Nov | S10 | Claude Code | Wrap-up + docs + screenshots | `work/flutter-wrapup` |
 
 ---
 
@@ -286,15 +296,16 @@ Additional info: [optional]
 - **Requires:** S4C, S5, S6A, S7, S6B merged; real boards from Phumirapee (fall back to the simulator if not ready).
 - **Do:** run the full protocol from proposal doc 03 end to end on the phone (about 75 minutes): device checklist, calibration, 5 trials, warm-compress alert check, the 3 usability tasks, export. Confirm the alert text the volunteers will see is the version the medical expert reviewed. Install the final build.
 - **Verify (user runs it, sends results):** all trial files complete at 50 Hz with no unexplained gaps; alerts appear with times recorded; nothing on the phone needs the laptop.
+- **First, on the first real-board connection (added in S8D, user decision 2026-10-29):** on Researcher › Diagnostics, each foot must show N = 8 (from its calibration), "temperature v2, 8 sites" and 0 rejects. If not, **stop** and compare the boards' packets and calibration JSON against DATA-CONTRACT v1.6 Appendix C before anything else: the app refuses N ≠ 8, the old 12-byte temperature packet and any temperature packet that is not 32 bytes with count 8, by design.
 - **Also check with the real boards (added in S7):**
   - **Step detection.** In one normal-gait trial, count the volunteer's steps by hand (per foot) and compare with the app's count of walking steps. These keys are provisional: `steps.contactKpa`, `minStanceMs` and `maxStanceMs`, the dip keys added in S9 (BACKLOG 51) and the walking gate `motion.*`. Adjust `thresholds.json` if the counts disagree. Kept after S9's fix (user decision 2026-10-25): a real foot with a weak midfoot is the case the fix targets, and only a hand count shows it works. Also note how many stances are rejected as too short (in the S7 simulator run, 16 of 43 right-foot stances were blips around `contactKpa`).
   - **Peak hold** (`pressure.peakHoldMs` 2500, provisional, user decision 2026-10-24). In the same trial, check that `PRESSURE_WATCH` / `PRESSURE_PEAK` hold steadily through a walk rather than ending and restarting between steps (one alert per walk, not one per stride), and that they end within a few seconds of stopping. Adjust it in `thresholds.json` if not.
   - **Walking gate statistic** (BACKLOG 42, user decision 2026-10-24). Record the gate statistic (mean |‖a‖ − 1 g| over `motion.walkingWindowMs`) in the standing calibration and in each normal-gait trial, and adjust `motion.walkingAccelG` in `thresholds.json` if standing and walking do not sit clearly on either side of it.
-  - **How often `PRESSURE_PTI` and `LOAD_CONCENTRATION` fire** during the normal-gait trials (from each session's `alerts.csv`). Both use provisional readings (BACKLOG 31); frequent firing on healthy volunteers' normal gait means the values need review before the study.
-  - **Rule-based gait classes** (added in S8A, user decision 2026-10-25). For each of the 5 gait trials, note the class the Gait tab shows (My feet › การเดิน, "(กฎพื้นฐาน)" results; the release build has no model) against the instructed gait, in a small confusion table (rows = instructed gait, columns = class shown; "no result" is a column). The `gait.*` keys in `thresholds.json` are provisional best guesses (DATA-CONTRACT §8 S8A addendum): tune them before 2026-11-10 if the table shows they misclassify. Rule-based classes are display-only estimates: they add no gait note (only Model A results do) and never change a level (rule 11). `rotated_foot` is model-only, so the rules can never show it.
+  - **How often `PRESSURE_PTI` and `LOAD_CONCENTRATION` fire** during the normal-gait trials (from each session's `alerts.csv`). Both use provisional readings (BACKLOG 31); frequent firing on healthy volunteers' normal gait means the values need review before the study. **`asymmetry.concentrationPct` (40 %) was set for 6 sensors and now divides by 8 zones** (an even share drops from 16.7 % to 12.5 %); S8D kept it unchanged on purpose. Record the per-step top-zone share in the normal-gait trials and decide whether 40 % still means "one point carries too much" (BACKLOG 64). The same goes for `steps.contactKpa` (now a sum over 8 zones) and the `gait.*` shares (BACKLOG 65).
+  - **Rule-based gait classes** (added in S8A, user decision 2026-10-25). For each of the 5 gait trials, note the class the Gait tab shows (My feet › การเดิน, "(กฎพื้นฐาน)" results; the release build has no model) against the instructed gait, in a small confusion table (rows = instructed gait, columns = class shown; "no result" is a column). The `gait.*` keys in `thresholds.json` are provisional best guesses (DATA-CONTRACT §8 S8A addendum): tune them before 2026-11-12 if the table shows they misclassify. Since S8D the heel share is zones 5 + 7 and the forefoot share zones 0–3, out of 8 zones (BACKLOG 65). Rule-based classes are display-only estimates: they add no gait note (only Model A results do) and never change a level (rule 11). `rotated_foot` is model-only, so the rules can never show it.
   - The warm-compress step is done with the session screen open, so its `TEMP_DELTA` lands in that session's `alerts.csv` (`docs/STUDY-CAPTURE.md`).
-- **Clear the test data before 2026-11-10 (added in S6B).** On the study phone, Research capture → **4 · App database (test data)** → *Clear app database (test data)* (2 confirmations; see `docs/STUDY-CAPTURE.md`). It deletes untagged alerts, temperature readings, daily summaries, foot checks and foot photos; it never deletes capture-tagged alerts, capture session folders or the export folder. Then restart the app and confirm on Researcher › Diagnostics (S8B) that "alerts N" equals "capture-tagged N".
-- **Done when:** the user is confident to run the study on 2026-11-10.
+- **Clear the test data before 2026-11-12 (added in S6B).** On the study phone, Research capture → **4 · App database (test data)** → *Clear app database (test data)* (2 confirmations; see `docs/STUDY-CAPTURE.md`). It deletes untagged alerts, temperature readings, daily summaries, foot checks and foot photos; it never deletes capture-tagged alerts, capture session folders or the export folder. Then restart the app and confirm on Researcher › Diagnostics (S8B) that "alerts N" equals "capture-tagged N".
+- **Done when:** the user is confident to run the study on 2026-11-12.
 
 ### S8A — Gait screen
 - **Do:** PAI, CoP, step count, label "estimate, not a diagnosis", animations. `GaitClassifier` interface with a rule-based implementation and a TFLite implementation in an isolate per DATA-CONTRACT §7: loads `assets/models/model_a.tflite` + `normalization.json` when present, input `[1,100,24]` (2 s window, 1 s stride, channel order §7.1, units as in S4C), outputs `gait_probs` [1,5] and `gait_embedding` [1,32]; falls back to the rules when the model is missing or confidence < 0.60. Prove the slot with a dummy model of the right shapes generated by a committed Python script (untrained weights): loads, channel order correct, inference ≤ 100 ms on the Note 10. Swapping in the real model after data collection (late Nov) must need only the two asset files. Model B stays out of scope (S7 rules give the status level).
@@ -313,6 +324,23 @@ Additional info: [optional]
 - **Do:** 4 screens per DESIGN-SPEC; Home card shown until today's check is done; camera with guide outline + self-timer; photos in the app's private folder; compare with yesterday; 3 questions; "not sure" = abnormal; abnormal result logged as an alert; in-app evening reminder; photos deletable.
 - **Verify:** unit/widget/golden tests for answer logic and the Home card · **You:** emulator (its virtual camera) for the flow · **User checkpoint:** real photos on the Note 10; photos do not appear in the gallery.
 - **Done when:** a full check takes about 1 minute and photos stay inside the app.
+
+### S8D — 8 FSR + 8 NTC per foot (new, user decision 2026-10-29)
+- **Requires:** S8C merged (PR #32, including the reminder fixes from its Note 10 run).
+- **Why:** the real insole is final: 8 FSR + 8 NTC per foot, NTC i next to FSR i; the IRB confirmed no amendment is needed. The contract is ours to define (v1.6); the user sends it to the hardware team.
+- **Contract (user decisions 2026-10-29):**
+  1. Channel order, same on both feet: 0 hallux, 1 MTH1, 2 MTH2–3, 3 MTH5, 4 lateral midfoot, 5 heel centre, 6 medial arch (new), 7 lateral heel (new). Indices 0–5 keep their old meaning. Approximate positions in mm (x from the lateral edge toward medial, y from the back edge of the heel; right foot mirrored): 0 (70, 247), 1 (75, 197), 2 (48, 205), 3 (22, 197), 4 (18, 140), 5 (43, 38), 6 (59, 126), 7 (22, 82).
+  2. Sensor stream: same format with N = 8 → 28-byte samples, 232-byte packets (fits MTU 247).
+  3. Temperature v2, 32 bytes, every 30 s: `seq` u16, `t_ms` u32, `count` u8 (= 8), reserved u8, temp int16 × 8 (0.01 °C, −32768 = invalid), quality u8 × 8 (0 ok, 1 poor contact, 2 error). The old 12-byte packet is not kept (rejected with a named reason).
+  4. DATA-CONTRACT v1.6. Model A input becomes 28 channels (8 FSR × 2 feet + 6 IMU × 2); temperature is still not a model input.
+- **Split** (too big for one session; plan approved 2026-10-29):
+  - **S8D-1 — data path** (30 Oct, `work/flutter-8-sensors`): contract v1.6 with a hardware appendix (Appendix C: exactly 8 calibration channels, what the app rejects, one generated hex example of each packet); `shared/sensor_layout.json`; parser and new test vectors; simulator 8 FSR + temperature v2 by default (`t` warms site 1, MTH1; `p` / `n` unchanged); DeviceManager ΔT per site for all 8 sites (rule 4); storage schema v2 (additive); AlertEngine: `TEMP_DELTA` over the 8 site pairs, one alert per warmer foot listing every qualifying site, peak / PTI / concentration / asymmetry over 8 zones (the 40 % share unchanged, flagged for SR); rule-based gait and CoP zone mapping; research capture schema 2, `load_capture.py` (old 6-FSR files still load), export; Model A slot `[1,100,28]` with a regenerated dummy and drop-in check; mechanical UI fallout (maps get 8 dots; the Temperature tab keeps its widgets on the two sites with the largest difference until S8D-2); Diagnostics shows N, temperature format and rejects. The web app stays frozen: the report says whether its fallback can still capture and what is lost.
+  - **S8D-2 — UI** (31 Oct, `work/flutter-8-sensors-ui`, requires S8D-1 merged): the Temperature tab for 8 sites (layout A, user decision 2026-10-29: both feet with 8 site dots, the 3 sites with the largest difference, one chart line = the largest difference of the 8 sites, details table × 8), the alert-detail temperature map with every qualifying site, dot sizes at 8 zones, zone names in all copy (Appendix A), DESIGN-SPEC, FLUTTER-PLAN, `mobile/CLAUDE.md`, BACKLOG.
+- **Zone names (user decision 2026-10-29, draft for the medical review):** 0 "นิ้วหัวแม่เท้า", 1 "โคนนิ้วหัวแม่เท้า", 2 "กลางหน้าเท้า", 3 "โคนนิ้วก้อย", 4 "ขอบเท้าด้านนอก", 5 "กลางส้นเท้า" (renamed), 6 "อุ้งเท้า", 7 "ส้นเท้าด้านนอก". The heel group for the gait rules and the heel-walking note is 5 + 7.
+- **`TEMP_DELTA` (user decision 2026-10-29):** rule 6 stays per site (the same site above `deltaC` on 2 consecutive reading pairs). One alert per warmer foot names the site with the largest difference; its details list every qualifying site with its difference and time, `alerts.csv` has a `temp_sites` column, and a site that qualifies on that foot during the 30-minute suppression is added to the open alert's details.
+- **Verify:** analyze/test, goldens, `node shared/test_vectors/generate.mjs --check`, `pio test -e native`, `load_capture.py --selftest` (schema 1 and 2), emulator + Dart MCP screenshots, `spec-reviewer`.
+- **Note 10 checkpoint (end of S8D-1, user):** both simulator boards on 8 + 8: connect, Diagnostics shows N = 8 and temperature v2 with 0 rejects, a 5-minute stream with no gaps, a `TEMP_DELTA` alert from `t`, a short capture → export → load.
+- **Done when:** both feet stream 8 + 8 on the phone with every rule and capture working, and S8D-2's screens show 8 sites per DESIGN-SPEC.
 
 ### S9 — Integration + APK
 - **First, before anything else in S9: one step per stance (BACKLOG 51, user decision 2026-10-25, must be done before SR).**
