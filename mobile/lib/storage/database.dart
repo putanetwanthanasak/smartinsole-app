@@ -121,7 +121,12 @@ class FootChecks extends Table {
   tables: [Alerts, TemperatureReadings, DailySummaries, FootChecks],
 )
 class AppDatabase extends _$AppDatabase {
-  AppDatabase(super.e);
+  AppDatabase(super.e, {this.inMemory = false});
+
+  /// True for [AppDatabase.memory]. Its foot photos go to a separate
+  /// folder (`footPhotoPath` in storage_providers.dart), never the real
+  /// one.
+  final bool inMemory;
 
   /// The app's file, `smartinsole.sqlite` in the app-private support folder
   /// (`/data/data/th.ac.kmutt.smartinsole/files`).
@@ -141,6 +146,7 @@ class AppDatabase extends _$AppDatabase {
       NativeDatabase.memory(),
       closeStreamsSynchronously: true,
     ),
+    inMemory: true,
   );
 
   static const fileName = 'smartinsole';

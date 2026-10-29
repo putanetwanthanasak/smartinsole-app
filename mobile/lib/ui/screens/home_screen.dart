@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_lucide/flutter_lucide.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../footcheck/footcheck_providers.dart';
+
 import '../../ble/packets.dart';
 import '../../rules/patient_status.dart';
 import '../../settings/settings_providers.dart';
@@ -47,12 +49,16 @@ class HomeScreen extends ConsumerWidget {
               _Header(date: thaiLongDate(now)),
               const _FootChips(),
               const _HomeStatusCard(),
-              // Shown unconditionally until S8C adds "done today" logic.
-              FootCheckCard(
-                onTap: () => ref
-                    .read(selectedTabProvider.notifier)
-                    .select(AppTab.footCheck),
-              ),
+              // Only while today's check is not saved (§6 item 4); hidden
+              // until the store has answered, so it never flashes.
+              if (ref.watch(
+                todayCheckProvider.select((c) => c.hasValue && c.value == null),
+              ))
+                FootCheckCard(
+                  onTap: () => ref
+                      .read(selectedTabProvider.notifier)
+                      .select(AppTab.footCheck),
+                ),
               const _PressureCard(),
               const _SmallCards(),
             ],

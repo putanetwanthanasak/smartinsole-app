@@ -17,6 +17,15 @@
         android:maxSdkVersion="30" />
     <uses-feature android:name="android.hardware.bluetooth_le"
         android:required="false" />
+    <!-- Daily foot check (S8C): camera photos go only to the app-private
+         foot_photos folder, never MediaStore. The evening reminder is an
+         inexact local notification (no exact-alarm permission), restored
+         after a reboot. POST_NOTIFICATIONS is asked at run time on 13+. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera"
+        android:required="false" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <!-- No backup, no device transfer: health and study data stay on this
          phone (S6A, rule 15). See res/xml/data_extraction_rules.xml. -->
     <application
@@ -49,6 +58,19 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <!-- flutter_local_notifications: show scheduled reminders, and
+             reschedule them after a reboot or an app update. -->
+        <receiver android:exported="false"
+            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
+        <receiver android:exported="false"
+            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON" />
+            </intent-filter>
+        </receiver>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

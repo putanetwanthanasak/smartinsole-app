@@ -1341,3 +1341,79 @@ property on both by-path ports. This is a dev-laptop setting, not in the
 repo; on another laptop, add the same rule. Sending `?` through the
 logger's `--commands` FIFO after a replug still confirms the scenario
 before a phone connects.
+
+## 56. The foot-check reminder shows "smartinsole" and the Flutter launcher icon **(found in S8C)** — OPEN, for S10
+
+The notification's header shows the app label `smartinsole` and the
+default Flutter launcher icon (the small status-bar icon is our
+`ic_stat_foot_check`). The Bluetooth-on and permission prompts also show
+"smartinsole" (report 035). S10 should set the Thai/English app name and a real
+launcher icon; nothing in `lib/notify/` needs to change.
+
+## 57. Front preview mirroring on the camera plugin's SurfaceTexture path is untested **(found in S8C)** — OPEN, Note 10 checkpoint
+
+`camera_android_camerax` mirrors the front preview only on its ImageReader
+path. On the SurfaceTexture path the app mirrors it itself, after asking
+`MainActivity` (`smartinsole/camera_preview`, `handlesCropAndRotation`).
+The emulator takes the ImageReader path, so the app's own mirror has only
+a widget test. The Note 10 checklist (report 036, items 3–4) logs the path
+and checks the preview. If a later plugin version mirrors on both paths,
+the preview would be mirrored twice; re-check after any `camera` upgrade.
+
+## 58. The MCP driver build keeps the database in memory **(found in S8C)** — OPEN, minor
+
+`test_driver/main_mcp.dart` runs with an in-memory database (mock and
+fake-BLE rule), so a restart or reboot on the emulator loses saved foot
+checks. Cross-day views (compare with yesterday, the 7-day row over real
+days, photo history over days) were checked only with widget tests and
+goldens. If an emulator check across restarts is needed, add a driver flag
+for a file database in the app's private folder (never the phone's real
+one).
+
+## 59. The Saved reminder for a finding older than yesterday is not designed **(found in S8C)** — OPEN, needs a design
+
+Saved shows "เมื่อวานพบสิ่งที่ควรให้แพทย์ดู …" only for yesterday's
+finding (§11.5). A finding from two or more days ago, with no check since,
+shows nothing on Saved; the alert stays in "แจ้งเตือน". Listed under
+"Not designed yet" in DESIGN-SPEC §14.
+
+## 60. Thai word breaking can split phrases in other running text **(found in S8C)** — OPEN, for S10
+
+Flutter's Thai line breaker split "ไม่แน่ใจ", "ตั้งเวลา" and "แพทย์ดู"
+in foot-check copy (report 036). These are now kept together with word
+joiners (U+2060) and checked by `test/footcheck/thai_line_break_test.dart`.
+Other screens' running text (alert details, Home advice, Settings lines)
+was not checked. S10's large-text pass should look for awkward splits at
+1.3 × "ใหญ่มาก" and add joiners, extending that test to cover them.
+
+## 61. Resources looked up by name must be kept in release builds **(found at the S8C Note 10 run)** — FIXED for the reminder; standing check for S9
+
+The release APK lacked the reminder's small icon `ic_stat_foot_check`:
+the release build's resource shrinker removes resources no code references
+by R id, and `flutter_local_notifications` looks the icon up by name. On
+the Note 10 reminder setup failed at every start ("invalid_icon"), so no
+reminder was ever scheduled. The emulator reminder checks (E15, E17, E18) ran a debug
+build, which does not shrink resources, and passed (report 036).
+
+Fixed with `android/app/src/main/res/raw/keep.xml` (`tools:keep`). Names
+looked up at runtime are now constants in
+`lib/notify/android_resources.dart`; `test/notify/android_resources_test.dart`
+fails if one is not kept or if lib/ passes a literal name to the plugin,
+and `tool/check_release_resources.sh` fails if a release APK lacks a kept
+resource (run after every release build; `mobile/CLAUDE.md`). Both were
+shown to fail with keep.xml removed.
+
+**For S9:** alert notifications add their icons and sounds to
+`AndroidResources` and keep.xml, and the Note 10 run uses a release APK
+that passed the check. Any other by-name lookup (`getIdentifier`) follows
+the same rule.
+
+## 62. Evening reminders may come up to 1 hour late **(found at the S8C Note 10 run)** — OPEN, for S10 if needed
+
+The reminders are inexact alarms (`inexactAllowWhileIdle`, no exact-alarm
+permission). On the Note 10, `dumpsys alarm` shows each one, set a day or
+more ahead, with a delivery window of 1 hour, so 19:00 may come as late as
+20:00. Accepted for now (DESIGN-SPEC §11.8, report 036). If patients find
+it too late, options are a window alarm (`setWindow`, e.g. 15 minutes) or
+exact alarms, which need `SCHEDULE_EXACT_ALARM` / `USE_EXACT_ALARM` and
+their policy review.

@@ -33,13 +33,26 @@ final databaseProvider = Provider<AppDatabase>((ref) {
 
 final localDatesProvider = Provider<LocalDates>((ref) => const LocalDates());
 
-/// Foot photos (S8C): `<app support>/foot_photos`, app-private.
-final footPhotoDirProvider = Provider<Future<Directory> Function()>(
-  (ref) =>
-      () async => Directory(
-        '${(await getApplicationSupportDirectory()).path}/foot_photos',
-      ),
-);
+/// Foot photos (S8C): `<app support>/foot_photos`, app-private. A run
+/// with an in-memory database (mock preset, emulator driver) uses its own
+/// cache folder: its start-up sweep sees no saved checks and would
+/// otherwise delete every real photo on the phone.
+String footPhotoPath({
+  required bool inMemory,
+  required String support,
+  required String cache,
+}) => inMemory ? '$cache/foot_photos_memory' : '$support/foot_photos';
+
+final footPhotoDirProvider = Provider<Future<Directory> Function()>((ref) {
+  final inMemory = ref.watch(databaseProvider).inMemory;
+  return () async => Directory(
+    footPhotoPath(
+      inMemory: inMemory,
+      support: (await getApplicationSupportDirectory()).path,
+      cache: (await getTemporaryDirectory()).path,
+    ),
+  );
+});
 
 final alertRepositoryProvider = Provider<AlertRepository>(
   (ref) => DriftAlertRepository(

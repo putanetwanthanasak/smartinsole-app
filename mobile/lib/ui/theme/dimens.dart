@@ -156,4 +156,40 @@ abstract final class Dimens {
   static const badgeRing = 2.0;
   static const badgeTop = -6.0;
   static const badgeRight = 2.0;
+
+  // Daily foot check (DESIGN-SPEC §11).
+  static const timeCardIcon = 26.0;
+  static const privacyIcon = 22.0;
+  static const viewfinderWidth = 342.0;
+  static const viewfinderHeight = 416.0;
+  static const guideWidth = 140.0;
+  static const guideHeight = 312.0;
+  static const guideStroke = 2.5;
+  static const guideDash = [7.0, 6.0];
+  static const camChipPaddingV = 8.0;
+  static const camChipPaddingH = 14.0;
+  static const countdownDisc = 132.0;
+  static const captureSlot = 60.0;
+  static const slotBorder = 2.0;
+  static const slotBadge = 22.0;
+  static const slotDash = [4.0, 3.0];
+  static const timerIcon = 26.0;
+  static const switchCameraIcon = 26.0; // S8C, §11.2
+  static const timerRing = 4.0;
+  static const shutterRing = 5.0;
+  static const shutterDisc = 58.0;
+  static const comparePhotoHeight = 196.0;
+  static const todayPhotoBorder = 3.0;
+  static const answerHeight = 56.0;
+  static const answerBorder = 2.0;
+  static const answerIcon = 20.0;
+  static const savedCircle = 64.0;
+  static const savedIcon = 34.0;
+  static const weekCircle = 32.0;
+  static const weekDayGap = 4.0;
+  static const weekMissedRing = 2.0;
+  static const weekMissedDash = [3.0, 3.0];
+  static const legendCircle = 16.0;
+  static const historyThumbGap = 8.0;
+  static const emptyFrameDash = [6.0, 5.0];
 }

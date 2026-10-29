@@ -25,6 +25,11 @@ abstract interface class AlertRepository {
   /// keep the first time.
   Future<void> markRead(int id, int atMs);
 
+  /// Marks the foot-check finding of check [footCheckId] read: Something
+  /// found is that alert's result screen, however it was opened (§7.2,
+  /// decision 7). Keeps an earlier read time.
+  Future<void> markFootCheckRead(int footCheckId, int atMs);
+
   /// Every alert of one research capture, all levels, oldest first (for
   /// the capture export, BACKLOG).
   Future<List<StoredAlert>> forCapture(String captureStamp);
@@ -99,6 +104,13 @@ class DriftAlertRepository implements AlertRepository {
   Future<void> markRead(int id, int atMs) =>
       (_db.update(_db.alerts)
             ..where((t) => t.id.equals(id) & t.readAtMs.isNull()))
+          .write(AlertsCompanion(readAtMs: Value(atMs)));
+
+  @override
+  Future<void> markFootCheckRead(int footCheckId, int atMs) =>
+      (_db.update(_db.alerts)..where(
+            (t) => t.footCheckId.equals(footCheckId) & t.readAtMs.isNull(),
+          ))
           .write(AlertsCompanion(readAtMs: Value(atMs)));
 
   @override

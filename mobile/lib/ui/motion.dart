@@ -96,6 +96,21 @@ abstract final class Motion {
   /// Home status change: the new icon scales from this to 1.
   static const statusIconFrom = 0.85;
 
+  /// Foot check › Capture (§12.2): the thumbnail flies into its slot
+  /// (`value`, scaling to [thumbFlyScale]) and fades over [thumbFade]
+  /// from [thumbFadeAt]; the next view name and guide fade in over
+  /// [viewFade]; countdown digits scale from [countdownFrom] with a fade
+  /// over [countdownDuration] (`enter` curve). One countdown step is
+  /// [countdownStep] (not an animation: it still runs under reduce motion).
+  static const thumbFlyScale = 0.43;
+  static const thumbFadeAt = Duration(milliseconds: 380);
+  static const thumbFade = Duration(milliseconds: 150);
+  static const viewFade = Duration(milliseconds: 200);
+  static const countdownDuration = Duration(milliseconds: 200);
+  static const countdownFrom = 0.8;
+  static const countdownStep = Duration(seconds: 1);
+  static const countdownSeconds = 3;
+
   /// True when the system asks for reduced motion.
   static bool reduced(BuildContext context) =>
       MediaQuery.maybeDisableAnimationsOf(context) ?? false;
