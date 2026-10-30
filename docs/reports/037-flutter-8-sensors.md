@@ -49,8 +49,9 @@ S8D-2 (`work/flutter-8-sensors-ui`, report 038) is the UI.
   builds, release drop-in of the dummy model, emulator screenshots, both
   boards live (56/56 each). The spec review found no blocker or major
   issue; its 4 minor findings are fixed, and its 5 spec gaps are fixed,
-  documented or noted (see below). **The Note 10 checkpoint is waiting on
-  the user.**
+  documented or noted (see below). **The Note 10 checkpoint was run on
+  2026-10-31** (driven over adb at the user's request): all 9 items met
+  their pass criteria. It is **waiting on the user's sign-off**.
 
 ## What changed
 
@@ -340,9 +341,10 @@ address only one board at a time. Each board was therefore done alone:
   store forefoot 0.08 °C and heel = site 0. During `sim_check`, the left
   board's site 1 read 31.75–31.85 °C, and the simulator drifts slowly, so
   the phone most likely rejected every packet in its connection
-  (16:21–16:48) and stored no reading. This was not checked on the phone
-  (`run-as` is blocked). Keep the Note 10's Bluetooth off until the new
-  build is installed (checkpoint item 1).
+  (16:21–16:48) and stored no reading. Confirmed on the phone on
+  2026-10-31 from the old app's own screens (checkpoint item 9): no
+  temperature row after 25 Oct, and its event log shows the packet
+  rejected as `invalidQuality` (byte 99).
 - The right board's first upload stopped partway ("Packet content
   transfer stopped"), right after it was plugged in. The second upload
   verified every segment.
@@ -358,7 +360,7 @@ address only one board at a time. Each board was therefore done alone:
 - `tool/check_release_resources.sh`: `ok drawable/ic_stat_foot_check`,
   all 1 runtime resource present.
 
-## Note 10 checkpoint — **waiting on user**
+## Note 10 checkpoint — run 2026-10-31, **waiting on user sign-off**
 
 Before the run:
 1. Leave the Note 10's Bluetooth **off** until item 1 is done: its
@@ -391,14 +393,59 @@ echo '?' > left.cmd        # expect "[scenario] n (normal walk)"
 | 2 | Connect both feet | Settings → "เชื่อมต่อแผ่นรองเท้า" (or it reconnects by itself to the remembered insoles) | Home shows both feet connected |
 | 3 | Format line | Settings → "ส่วนผู้วิจัย" (hold 2 s) → "ตรวจสอบระบบ"; wait 30 s for the first temperature packet | Each foot: `format N 8 · temperature v2, 8 sites · rejects 0` |
 | 4 | 5-minute stream | Leave both feet streaming 5 minutes, phone unlocked | Diagnostics, each foot: `seq … · gaps 0 (0 missing)` and `rejects 0`; about 6.2 packets/s each; My feet pressure shows 8 zones moving on both feet |
-| 5 | TEMP_DELTA from `t` | `echo t > left.cmd`; wait 60–90 s (2 temperature readings) | An alert for the **left** foot naming โคนนิ้วหัวแม่เท้า (MTH1), about 2.5 °C (+3.0 °C minus the boards' baseline difference at that site); Home turns "ควรพักเท้าตอนนี้"; the alert's "ดูตัวเลขละเอียด" lists 'จุดที่เกินเกณฑ์' with โคนนิ้วหัวแม่เท้า. Then `echo n > left.cmd` |
+| 5 | TEMP_DELTA from `t` | `echo t > left.cmd`; wait 60–90 s (2 temperature readings) | An alert for the **left** foot naming โคนนิ้วหัวแม่เท้า (MTH1), about 2.5 °C (+3.0 °C minus the boards' baseline difference at that site); Home turns "ควรพักเท้าตอนนี้"; the alert's "ตำแหน่งที่พบ" and "ดูตัวเลขละเอียด" name โคนนิ้วหัวแม่เท้า ('จุดที่เกินเกณฑ์' is listed only when 2 or more sites qualify, `alert_view.dart:454`; corrected on 2026-10-31). Then `echo n > left.cmd` |
 | 6 | Short capture | Researcher → "เริ่มเก็บข้อมูลวิจัย" with a new `TEST-` code; record the calibration trial (or one short trial) | The pre-checks pass with 8 FSR channels; the trial saves |
 | 7 | Export and load | On the laptop: `python3 tools/capture/export_capture.py --dest ~/smartinsole-data` (decide yourself whether to remove the staged copy when it asks), then `python3 tools/capture/load_capture.py check <session folder>` | `check` ends in `PASS` (50 Hz steps, no missing packets) |
 | 8 | 28 channels | `python3 -c "import sys, pathlib; sys.path.insert(0, 'tools/capture'); import load_capture as lc; s = lc.load_session(pathlib.Path(sys.argv[1])); [print(t.name, 'schema', t.schema, 'channels', len(lc.model_matrix(t)[0][0])) for t in s.trials]" <session folder>` | Every trial: `schema 2`, `channels 28` |
+| 9 | Old-app window (added 2026-10-31) | Before item 1's Bluetooth step, with the old S8C build: Alerts list and Diagnostics → Storage / Event log | No TEMP_DELTA or pressure alert, and no bogus temperature row, from the 30 Oct window when the old app met the reflashed left board |
 
 Afterwards, stop the logger by PID (`pgrep -f serial_log.py`), not with
 `pkill -f`. The `TEST-` session is test data; it is cleared with the rest
 before 12 Nov.
+
+### Results of the run (2026-10-31, 01:23–01:55)
+
+The user set up the hardware: the Note 10 on USB, the left board on the
+laptop, the right board on a USB charger. The user turned Bluetooth on
+after item 1. Claude drove the phone over adb (taps, screenshots,
+`dumpsys`) and changed no phone settings. The left board's serial log
+(`left_n10.log`, kept in the session scratchpad) ran from 01:23:16, before
+any phone connected. Screenshots 23–37 are in `037-flutter-8-sensors/`.
+
+| # | Result | Evidence |
+|---|---|---|
+| 9 | **Met.** The old app holds one alert from 30 Oct: DEVICE_LOST (left) at 16:53:12, 5 minutes after Bluetooth was switched off at 16:48:12 (`dumpsys bluetooth_manager`). There is no TEMP_DELTA and no pressure alert. Storage: LEFT 125 rows (latest 10/25 22:20:12), RIGHT 128 rows (latest 10/25 22:20:17), so **no temperature row was stored on 30 Oct**. The old app's event log shows `16:47:58.776 L rejected (invalidQuality #1): temperature quality byte 99`. It accepted the 8-channel calibration (`N = 8`) and streamed 84 packets, 0 lost, before Bluetooth went off | 23, 24 |
+| 1 | **Met.** `adb install -r` at 01:34:25 succeeded, and `firstInstallTime` stayed 2026-10-18. After the v1 → v2 migration, Storage is identical: LEFT 125 and RIGHT 128 rows with the same latest times, 10 alerts, latest DEVICE_LOST 10/30 16:53:12, 7 unread | 25 |
+| 2 | **Met.** The left foot auto-reconnected at 01:38:22 (board log), and so did the right. Home showed both feet connected (battery 97 % / 88 %) | 33 |
+| 3 | **Met.** Each foot: `format N 8 · temperature v2, 8 sites · rejects 0`, STREAMING, MTU 247, 8 samples per packet. Left sites 30.71–32.11 °C, right 31.53–32.93 °C, all quality normal | 26–28 |
+| 4 | **Met.** From 01:41:19 to 01:47:00: left 1161 → 3286 packets, seq 3285, `gaps 0 (0 missing)`, rejects 0, link losses 0, 6.30/s. Right 1190 → 3315 packets, gaps 0, rejects 0, link losses 0, 6.30/s. My feet: 8 dots per foot. Its "ดูตัวเลขละเอียด" table lists all 8 zones per foot, with 2 s peaks changing from frame to frame (e.g. lateral heel 49 / 48, medial arch 16 / 16 kPa). All dots stay in the low tier under the `n` walk | 29–32 |
+| 5 | **Met.** `t` at 01:49:17.555. The alert was raised at 01:49:54, and Home turned "ควรพักเท้าตอนนี้ / เท้าซ้ายอุ่นกว่าเท้าขวา 2.5 องศา" at 01:49:55, after 2 readings. Detail: "โคนนิ้วหัวแม่เท้าซ้ายอุ่นกว่าโคนนิ้วหัวแม่เท้าขวา"; `TEMP_DELTA`; โคนนิ้วหัวแม่เท้า left 34.7 °C, right 32.2 °C; ผลต่าง 2.5 °C (เกณฑ์ 2.2 °C); 2 consecutive readings; level 4 of 5. Only one site qualified, so there is no 'จุดที่เกินเกณฑ์' row (by design; item wording corrected above). `n` was sent at 01:51:17 | 33–35 |
+| 6 | **Met.** Pre-check: both feet streaming, battery ≥ 80 %, firmware and calibration read. `TEST-004`, calibration trial (10 s rehearsal timer): "Saved TEST-004_00_calibration_a1 · completed", left 500 / right 500 samples, no gaps | 36, 37 |
+| 7 | **Met.** In the app, "Export for USB (adb)" staged 4 files plus the manifest. `export_capture.py --dest ~/smartinsole-data --session TEST-004_20261031-015248`: every SHA-256 matches; L 500 samples, steps 20 ± 0.02 ms; R 500, steps 20 ± 0.25 ms; `alerts.csv` 0 alerts; **PASS**. Asked about removing the staged copy, the answer was "no": both `TEST-003_…` and `TEST-004_…` are still staged on the phone. `load_capture.py check` gives the same lines and ends in **PASS**. The WARN lines are the 5 trials not recorded | — |
+| 8 | **Met.** `TEST-004_00_calibration_a1 schema 2 channels 28`. The CSV header has `fsr0..7_adc/kpa` and `temp0..7_c/_q` | — |
+
+Also seen during the run:
+
+- **The old app's process was not running from 16:23 to 16:47 on 30 Oct.**
+  Its event log starts with "auto-reconnect #1 (app start)" at 16:47:54.
+  That is why no DEVICE_LOST followed the 16:23 disconnect. The board log
+  shows three old-app connections: 16:21:34–16:22:27, 16:22:29–16:23:09
+  and 16:47:56–16:48:12 (random addresses 57:96:3c:7a:ca:04 and
+  67:61:40:f5:1a:b8).
+- **Home's date line was stale after midnight.** At 00:36 on 31 Oct the
+  old app's Home read "วันศุกร์ 30 ตุลาคม": its process had been running
+  since 16:47 with nothing rebuilding Home. The current code reads the
+  clock the same way, so this is BACKLOG 68, not an S8D change.
+- **App notifications are switched off on the Note 10.**
+  `dumpsys notification` shows `allowNoti=false` for
+  `th.ac.kmutt.smartinsole`, so the TEMP_DELTA alert at 01:49 raised no
+  system notification. It is unknown whether this predates the run. No
+  setting was changed. Decision for the user below.
+- **One harness slip, no effect on the run.** A plain `open()` of the
+  left board's port (to test access) left the board in its bootloader
+  (DTR/RTS). An RTS pulse with DTR low booted it normally
+  (`side L, fsr_count 8`) before any phone connected. Open the CP2102
+  only through `serial_log.py`, which holds DTR and RTS low.
 
 ## Leftovers and notes for the next sessions
 
@@ -416,6 +463,8 @@ before 12 Nov.
 - **BACKLOG 67 (user, before ~8 Nov):** send DATA-CONTRACT v1.6
   Appendix C to the hardware team and ask them to confirm the
   Appendix B items.
+- **BACKLOG 68 (S9 or S10):** Home's date line can stay on yesterday
+  after midnight.
 - **Two boards on one laptop:** with both plugged in, by-id cannot tell
   them apart. For the checkpoint's `t` step, only the board that gets `t`
   needs to be on the laptop; the other can run from a USB charger.
@@ -425,8 +474,13 @@ before 12 Nov.
 1. **BACKLOG 63, before S9 (1 Nov):** the study-day fallback. Options:
    phone only, a second phone with the app, or a web-app fix.
 2. **BACKLOG 67:** send Appendix C to the hardware team (user action).
+3. **Note 10 checkpoint sign-off:** all 9 items met their pass criteria
+   (run 2026-10-31, results above).
+4. **App notifications are off on the Note 10** (`allowNoti=false`).
+   Switch them back on in Android settings if the study phone should show
+   alerts, or say if it was deliberate.
 
 ## Next session
 
-The Note 10 checkpoint above, then S8D-2 (UI) on
+The user's sign-off on the Note 10 checkpoint, then S8D-2 (UI) on
 `work/flutter-8-sensors-ui` once this PR is merged.

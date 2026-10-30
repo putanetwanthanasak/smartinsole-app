@@ -1479,3 +1479,16 @@ shows it, and hex examples generated from the test vectors. Ask them to
 confirm the Appendix B items. On the first real-board connection in SR,
 Diagnostics must show `N 8 · temperature v2, 8 sites · rejects 0` for each
 foot (`docs/SESSIONS.md` SR checklist).
+
+## 68. Home's date line can stay on yesterday after midnight **(found at the S8D-1 Note 10 run)** — OPEN, for S9 or S10
+
+On 2026-10-31 at 00:36 the Note 10's Home still read "วันศุกร์ 30 ตุลาคม":
+the app process had been running since 16:47 the day before with
+Bluetooth off, so nothing rebuilt `HomeScreen`. `HomeScreen.build` reads
+`clockProvider` once (`home_screen.dart:34`), and every section below it
+rebuilds through `select`, which does not touch the header. A fresh
+process showed 31 Oct. Fix: rebuild the header on a day change (a
+provider that ticks at local midnight, or on app resume) and add a test
+that crosses midnight. Check the other "today" labels (Alerts groups,
+Temperature tab `watchDay`, Foot check "วันนี้ยังไม่ได้ดูเท้า") for the same
+pattern.
