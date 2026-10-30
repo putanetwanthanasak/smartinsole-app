@@ -44,6 +44,7 @@ SCHEMA = 2  # what the app writes now
 SCHEMAS = (1, 2)  # what this loader reads
 REPO = Path(__file__).resolve().parents[2]
 MODEL_INPUT = REPO / "shared" / "model_input.json"
+SENSOR_LAYOUT = REPO / "shared" / "sensor_layout.json"
 FIXTURES = REPO / "shared" / "capture_fixture"
 
 SAMPLE_MS = 20.0
@@ -107,8 +108,9 @@ ALERT_LEVELS = {
     "DEVICE_LOST": 1, "BATTERY_LOW": 1,
 }
 ZONE_CODES = {"PRESSURE_WATCH", "PRESSURE_PEAK", "PRESSURE_PTI", "LOAD_CONCENTRATION"}
-ZONES = ("hallux", "meta1", "meta3", "meta5", "midfoot", "heel",
-         "medialArch", "lateralHeel")
+# Zone / temperature-site ids in channel order (DATA-CONTRACT v1.6 §3.1).
+ZONES = tuple(s["id"] for s in json.loads(
+    SENSOR_LAYOUT.read_text(encoding="utf-8"))["sites"])
 SITES = ("forefoot", "heel")  # TEMP_DELTA stored before the update
 PATIENT_STATUSES = ("noData", "safe", "careful", "rest")
 

@@ -1,4 +1,5 @@
-**STATUS: FILLED IN AND RECONCILED — MERGED TO v1.4.** This file merges the
+**STATUS: FILLED IN AND RECONCILED — MERGED TO v1.4, EXTENDED IN THIS REPO TO
+v1.5 AND v1.6 (see the v1.6 paragraph below).** This file merges the
 contract owner's authoritative `DATA-CONTRACT-v1.4-new.md` (adds §8.0
 clinical background; drops `GAIT_ABNORMAL` and replaces it with the §8.3.1
 gait-pattern advisory layer; carries the 1.2→1.3→1.4 revision history) with
@@ -564,9 +565,13 @@ Model A ต้องเสร็จก่อน Model B เสมอ เนื�
 > alert per warmer foot: it names the qualifying site with the largest |ΔT|
 > (stored as its zone id), its details list every qualifying site with its
 > |ΔT| and when it qualified (`tempSites`), and repeat suppression (§8.5) is
-> per code and foot (`TEMP_DELTA|side`). A site that qualifies on the same
-> foot while that alert suppresses repeats is added to the alert's
-> `tempSites`, not raised as a new alert.
+> per code and foot (`TEMP_DELTA|side`). Like every rule, the alert is
+> raised when the foot's condition starts to hold, not again while it
+> keeps holding. A site that qualifies on the same foot while that
+> condition holds, or while the alert suppresses repeats, is added to the
+> alert's `tempSites`, not raised as a new alert. An alert stored before
+> v1.6 (no `tempSites`) is never extended: during its suppression window
+> right after the update, a newly qualifying site is only logged.
 
 > **`GAIT_ABNORMAL` ถูกตัดออกใน v1.2** — เดิม (v1.1) กฎนี้ยิงแจ้งเตือนจาก `argmax` ของ Model A ตรงๆ เมื่อทายคลาส index 3 หรือ 4 (ตอนนั้นคือ `abnormal_gait`/`critical` ซึ่งเป็นระดับความเสี่ยง) แต่ v1.2 เปลี่ยนคลาสของโมเดลเป็นรูปแบบการเดิน (ข้อ 7.2) ทำให้ index 3/4 กลายเป็น `heel_walking`/`rotated_foot` ซึ่งเป็นแค่ท่าทาง ไม่มีนัยความเสี่ยงในตัวเอง การคงกฎเดิมไว้จะเตือนผิดทุกครั้งที่มีคนเดินลงส้นตามปกติ จึงตัดออกจากเกณฑ์แจ้งเตือนไปก่อน แทนที่ด้วยชั้นข้อความเสริมในข้อ 8.3.1 ที่ไม่สร้างเกณฑ์แจ้งเตือนใหม่ ไม่กระทบ `statusLevel`
 
@@ -659,13 +664,13 @@ S7 adds keys to the same file (local addendum below):
 
 > **S8A keys, readings and the Model A slot, added 2026-10-25, a local addendum to v1.5.** Additive only (the file's `"version"` stays 1); outside the original document and not yet sent back to the contract owner.
 > - **New keys:** `"model": { "highConfidence": 0.85 }` (the Gait tab shows 3 confidence segments "สูง" from here, 2 "ปานกลาง" from `minConfidence`; display only) and `"gait": { "ruleSteps": 4, "toeHeelPtiPct": 10, "heelForefootPtiPct": 15, "stanceAsymmetryPct": 15 }`.
-> - **`RuleBasedEngine` for gait (§7.5), provisional:** while both feet are usable and each foot's latest walking step (S7's definition above) ended within `steps.maxStanceMs`, on the last `gait.ruleSteps` walking steps of each foot (S7's step definition above), with zone PTI (∫kPa dt per step) summed over those steps of both feet, checked in this order: `toe_walking` when the heel zones' share of the total is below `toeHeelPtiPct`; `heel_walking` when the forefoot zones' share is below `heelForefootPtiPct` (v1.6: heel = sites 5 and 7, forefoot = sites 0–3; the lateral midfoot and the medial arch count only in the total); `antalgic` when the PAI formula (§8.2) on the two feet's mean stance durations is above `stanceAsymmetryPct`; otherwise `normal`. The rules never give `rotated_foot` (the FSR cannot see foot rotation). The four values are best guesses tuned on the app's mock walks and the simulator; SR records the rules' class for each instructed gait trial and tunes them before 2026-11-10 (`docs/SESSIONS.md`). Rule-based results never add a gait note (§8.3.1 uses Model A results only) and, like every gait result, never change a level (§8.4).
+> - **`RuleBasedEngine` for gait (§7.5), provisional:** while both feet are usable and each foot's latest walking step (S7's definition above) ended within `steps.maxStanceMs`, on the last `gait.ruleSteps` walking steps of each foot (S7's step definition above), with zone PTI (∫kPa dt per step) summed over those steps of both feet, checked in this order: `toe_walking` when the heel zones' share of the total is below `toeHeelPtiPct`; `heel_walking` when the forefoot zones' share is below `heelForefootPtiPct` (v1.6: heel = sites 5 and 7, forefoot = sites 0–3; the lateral midfoot and the medial arch count only in the total); `antalgic` when the PAI formula (§8.2) on the two feet's mean stance durations is above `stanceAsymmetryPct`; otherwise `normal`. The rules never give `rotated_foot` (the FSR cannot see foot rotation). The four values are best guesses tuned on the app's mock walks and the simulator; SR records the rules' class for each instructed gait trial and tunes them before the study starts on 2026-11-12 (`docs/SESSIONS.md`). Rule-based results never add a gait note (§8.3.1 uses Model A results only) and, like every gait result, never change a level (§8.4).
 > - **PTI Asymmetry Index (§8.2, Model B feature 7), display only:** the PAI formula on each foot's mean whole-foot PTI per walking step (the sum of the zones' ∫kPa dt) over the walking steps of the last 5 minutes; no value unless both feet are usable. Shown on the Gait tab with `asymmetry.ptiPct` as a reference ("ยังไม่ใช้แจ้งเตือน"); no alert uses it yet.
 > - **Model A slot (§7.1–7.2):** the app reads `mobile/assets/models/model_a.tflite` and `normalization.json`. `normalization.json` is `{"version": 2, "channels": [28 names in the order of shared/model_input.json], "mean": [28], "std": [28]}` (v1.6; version 1 had 24 channels and is refused) (any other keys are ignored); a `"version"` other than `shared/model_input.json`'s, a different channel order, a missing channel or a std ≤ 0 is refused (the reason shows on the BLE debug screen). The model must take `[1, 100, 28]` float32 (v1.6) and give `[1, 5]` and `[1, 32]` float32 outputs (found by shape, so their order does not matter), using TFLite builtin ops only (no Flex / Select TF ops). An optional `check.json` (a window, its normalised form and the expected outputs) is run once and shown on the BLE debug screen. A missing or refused model means rules only, with the reason on that screen.
 
 > **`motion` เพิ่มใน v1.5 — ดูข้อ 8.3.2.** สี่บล็อกแรก (`pressure`/`temperature`/`asymmetry`/`model`) มาจากเจ้าของสัญญา; `motion` เป็นการเพิ่มเติมนอกเอกสารต้นฉบับ ยังไม่ส่งกลับให้เจ้าของสัญญา — เหมือนสถานะของสูตร §5.1 ที่แก้ไขในรีโปนี้แต่ยังไม่อัปสตรีม
 
-`{ "version": 1, ... }` ในบล็อกนี้คือเลขเวอร์ชันของ**ไฟล์ `thresholds.json` เอง** (schema ของไฟล์ค่าคงที่รันไทม์) แยกจากเลขเวอร์ชันของเอกสารสัญญาฉบับนี้ (v1.5) — สองเลขนี้ไม่ผูกกัน
+`{ "version": 1, ... }` ในบล็อกนี้คือเลขเวอร์ชันของ**ไฟล์ `thresholds.json` เอง** (schema ของไฟล์ค่าคงที่รันไทม์) แยกจากเลขเวอร์ชันของเอกสารสัญญาฉบับนี้ (v1.6) — สองเลขนี้ไม่ผูกกัน
 
 ### 8.4 การรวมผล (Fusion)
 
@@ -785,6 +790,7 @@ refuses, and shows why per foot on Researcher › Diagnostics.
 | A 32-byte temperature packet whose count is not 8 | Drops it and counts it | reject `tempCount` |
 | A temperature quality byte above 2 | Drops the packet and counts it | reject `invalidQuality` |
 | A sensor packet whose length does not match its count at N = 8 | Drops it and counts it | reject `lengthMismatch` or `truncated` |
+| A sensor packet shorter than its 8-byte header, or a status packet shorter than 8 bytes | Drops it and counts it | reject `tooShort` |
 
 On a correct board, Diagnostics shows `format N 8 · temperature v2, 8
 sites · rejects 0` for each foot once the first temperature packet has

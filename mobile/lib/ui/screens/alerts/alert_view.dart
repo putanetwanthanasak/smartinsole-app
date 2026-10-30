@@ -329,10 +329,12 @@ FootMapView _footMapView(
   List<PressureLevel?>? levels,
   List<Object?>? kpa,
 ) {
-  if (levels == null || levels.contains(null)) {
+  if (levels == null || levels.every((l) => l == null)) {
     return FootMapView(side: side);
   }
-  final l = levels.cast<PressureLevel>();
+  // A null zone in a stored map is one a 6-zone map did not record
+  // (zones 6–7, before S8D); it never makes the foot "no data".
+  final l = [for (final x in levels) x ?? PressureLevel.low];
   double k(int c) =>
       kpa != null && c < kpa.length ? (kpa[c] as num).toDouble() : 0;
   int? top;

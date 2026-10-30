@@ -1258,7 +1258,7 @@ room, so nothing is needed for the study. Options for S9: per-ABI APKs
 dummy model (`assets/models_dummy/`, 266 KB with `check.json`) is also in
 release builds, never loaded there.
 
-## 49. Rule-based gait classes are provisional **(found in S8A, before 2026-11-10)** — OPEN, for SR
+## 49. Rule-based gait classes are provisional **(found in S8A, before the study start, 2026-11-12)** — OPEN, for SR
 
 The `gait.*` keys (`ruleSteps` 4, `toeHeelPtiPct` 10,
 `heelForefootPtiPct` 15, `stanceAsymmetryPct` 15; DATA-CONTRACT §8 S8A

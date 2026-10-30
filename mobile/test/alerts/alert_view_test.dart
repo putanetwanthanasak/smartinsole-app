@@ -242,7 +242,7 @@ void main() {
               'left': {
                 'kpa': [90, 236, 60, 30, 20, 40, 20, 30],
                 'levels': [
-                  'moderate',
+                  'medium',
                   'high',
                   'low',
                   'low',
@@ -281,7 +281,10 @@ void main() {
                 'kpa': [20.0, 236.5, 85.0, 20.0, 20.0, 60.0],
                 'levels': ['low', 'high', 'medium', 'low', 'low', 'low'],
               },
-              'right': null,
+              'right': {
+                'kpa': [20.0, 40.0, 30.0, 20.0, 20.0, 110.0],
+                'levels': ['low', 'low', 'low', 'low', 'low', 'medium'],
+              },
             },
           },
         ),
@@ -291,6 +294,10 @@ void main() {
       expect(v.levels[FootSide.left], hasLength(8));
       expect(v.levels[FootSide.left]![1], PressureLevel.high);
       expect(v.levels[FootSide.left]!.sublist(6), [null, null]);
+      // The other foot was recorded: its label comes from its 6 zones,
+      // never "ยังไม่มีข้อมูล" because zones 6–7 did not exist then.
+      expect(v.levels[FootSide.right]!.sublist(6), [null, null]);
+      expect(v.labels[FootSide.right], 'เท้าขวา ส้นเท้ารับน้ำหนักปานกลาง');
     });
 
     test('older PEAK without a map: only the ringed zone has a level', () {
