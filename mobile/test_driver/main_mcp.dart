@@ -17,6 +17,8 @@
 //   oneBoard   only the right insole: the left foot is not found
 //   btOff      both insoles, the phone's Bluetooth off at start (the panel's
 //              button turns it on)
+//   fsr6       a left insole whose calibration lists 6 FSR (refused,
+//              contract v1.6) + a right one with 8
 // A flutter_driver requestData (not in the Dart MCP tool) changes the fake
 // while the app runs:
 //   bt-off / bt-on       the phone's Bluetooth
@@ -49,6 +51,10 @@ List<FakeInsole> _insoles() => switch (_scenario) {
   'oneBoard' => [FakeInsole(id: _right, name: 'SMARTINSOLE-R', footSide: 1)],
   'mtu23' => [
     FakeInsole(id: _left, name: 'SMARTINSOLE-L', mtu: 23),
+    FakeInsole(id: _right, name: 'SMARTINSOLE-R', footSide: 1),
+  ],
+  'fsr6' => [
+    FakeInsole(id: _left, name: 'SMARTINSOLE-L', fsrCount: 6),
     FakeInsole(id: _right, name: 'SMARTINSOLE-R', footSide: 1),
   ],
   _ => [
