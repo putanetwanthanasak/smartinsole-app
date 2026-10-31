@@ -7,7 +7,6 @@ import '../../../config/thresholds.dart';
 import '../../../device/rolling_peaks.dart';
 import '../../../rules/alert_code.dart';
 import '../../../rules/alert_copy.dart';
-import '../../../rules/alert_engine.dart' show deltaAbove;
 import '../../../rules/patient_status.dart';
 import '../../../rules/pressure_level.dart';
 import '../../clock.dart';
@@ -327,25 +326,21 @@ class TempSiteView {
 
 /// Each of the 8 sites, in zone order. With a foot missing every site is
 /// unreadable (rule 4).
-List<TempSiteView> tempSites(TempTabView v, Thresholds t) => [
-  for (var i = 0; i < footLayout.zones.length; i++) _tempSite(v, i, t),
+List<TempSiteView> tempSites(TempTabView v) => [
+  for (var i = 0; i < footLayout.zones.length; i++) _tempSite(v, i),
 ];
 
-TempSiteView _tempSite(TempTabView v, int site, Thresholds t) {
+TempSiteView _tempSite(TempTabView v, int site) {
   final d = v.bothUsable ? v.delta(site) : null;
   if (d == null) return TempSiteView(site: site);
   final alert = v.alerts[site];
   // The same rule as Home's note: warmer once one reading is above the
-  // threshold; the ring only while TEMP_DELTA holds (2 readings).
-  final warmer =
-      alert?.warmerSide ??
-      (deltaAbove(d, t.deltaC)
-          ? (d > 0 ? FootSide.left : FootSide.right)
-          : null);
+  // threshold (on the unrounded ΔT); the ring only while TEMP_DELTA holds
+  // (2 readings), and while it holds its foot stays the warmer one.
   return TempSiteView(
     site: site,
     deltaC: d.abs(),
-    warmer: warmer,
+    warmer: alert?.warmerSide ?? v.warmerAt(site),
     alerting: alert != null,
   );
 }
@@ -356,9 +351,9 @@ const topSiteCount = 3;
 /// The rows of "จุดที่ต่างกันมากที่สุดตอนนี้": sites where `TEMP_DELTA`
 /// holds first, then the largest |ΔT|; equal ones keep zone order. Only
 /// sites with a two-foot reading; none unless both feet stream.
-List<TempSiteView> topSites(TempTabView v, Thresholds t) {
+List<TempSiteView> topSites(TempTabView v) {
   final sites = [
-    for (final s in tempSites(v, t))
+    for (final s in tempSites(v))
       if (!s.unreadable) s,
   ];
   // Stable: List.sort is not, so the zone index breaks ties.
@@ -379,9 +374,10 @@ String? topSitesEmptyLine(TempTabView v) => !v.bothUsable
     ? 'ยังวัดไม่ได้'
     : null;
 
-/// A map's TalkBack label (S8D-2 draft): "เท้าซ้าย กลางส้นเท้าและส้นเท้า
-/// ด้านนอกอุ่นกว่าเท้าขวา", "เท้าซ้าย ใกล้เคียงกับเท้าขวาทุกจุด", or
-/// "เท้าซ้าย ยังวัดความอุ่นไม่ได้".
+/// A map's TalkBack label (S8D-2 draft): "เท้าซ้าย กลางส้นเท้า และส้นเท้า
+/// ด้านนอกอุ่นกว่าเท้าขวา"; "เท้าซ้าย ไม่มีจุดที่อุ่นกว่าเท้าขวา" when only
+/// the other foot has warmer sites; "เท้าซ้าย ใกล้เคียงกับเท้าขวาทุกจุดที่
+/// วัดได้" when no site has a warmer foot; "เท้าซ้าย ยังวัดความอุ่นไม่ได้".
 String tempMapLabel(FootSide side, List<TempSiteView> sites) {
   final o = _foot(otherSide(side));
   if (sites.every((s) => s.unreadable)) {
@@ -393,8 +389,11 @@ String tempMapLabel(FootSide side, List<TempSiteView> sites) {
   ];
   final unreadable = sites.where((s) => s.unreadable).length;
   final rest = unreadable == 0 ? '' : ' ยังวัดไม่ได้ $unreadable จุด';
-  if (warm.isEmpty) return '${_foot(side)} ใกล้เคียงกับ$oทุกจุดที่วัดได้$rest';
-  return '${_foot(side)} ${joinTh(warm)}อุ่นกว่า$o$rest';
+  if (warm.isNotEmpty) return '${_foot(side)} ${joinTh(warm)}อุ่นกว่า$o$rest';
+  if (sites.any((s) => s.warmer != null)) {
+    return '${_foot(side)} ไม่มีจุดที่อุ่นกว่า$o$rest';
+  }
+  return '${_foot(side)} ใกล้เคียงกับ$oทุกจุดที่วัดได้$rest';
 }
 
 /// "Lavery et al. (2004)" → "Lavery et al., 2004", to sit inside the

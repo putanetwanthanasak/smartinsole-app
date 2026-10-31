@@ -393,12 +393,13 @@ class _ChartPainter extends CustomPainter {
       // overlap the band or gap label or leave the plot.
       final e = label(chartEndLabel(last), _endStyle);
       const clear = TempChartColors.lastDotRadius + TempChartColors.lastDotRing;
-      final ex = (c.dx - e.width).clamp(
-        plot.left + Dimens.textGap,
-        plot.right - Dimens.textGap - e.width,
-      );
+      // A name wider than the plot is dropped before clamping (the bounds
+      // would cross).
+      final minX = plot.left + Dimens.textGap;
+      final maxX = plot.right - Dimens.textGap - e.width;
+      final ex = maxX < minX ? null : (c.dx - e.width).clamp(minX, maxX);
       Rect at(double ey) => Rect.fromLTWH(
-        ex - Dimens.textGap,
+        ex! - Dimens.textGap,
         ey,
         e.width + Dimens.textGap * 2,
         e.height,
@@ -409,14 +410,16 @@ class _ChartPainter extends CustomPainter {
           r.bottom <= plot.bottom &&
           !(gapLabelRect?.overlaps(r) ?? false) &&
           !(bandLabelRect?.overlaps(r) ?? false);
-      final rect = [
-        at(c.dy - clear - Dimens.textGap - e.height),
-        at(c.dy + clear + Dimens.textGap),
-        // Under the gap label, when it sits by the dot (the band label at
-        // the right and the gap label below it leave no room by the dot).
-        if (gapLabelRect case final g?) at(g.bottom + Dimens.textGap),
-      ].where(free).firstOrNull;
-      if (rect != null) {
+      final rect = ex == null
+          ? null
+          : [
+              at(c.dy - clear - Dimens.textGap - e.height),
+              at(c.dy + clear + Dimens.textGap),
+              // Under the gap label, when it sits by the dot (the band label at
+              // the right and the gap label below it leave no room by the dot).
+              if (gapLabelRect case final g?) at(g.bottom + Dimens.textGap),
+            ].where(free).firstOrNull;
+      if (rect != null && ex != null) {
         final ey = rect.top;
         endLabel = () {
           canvas.drawRRect(

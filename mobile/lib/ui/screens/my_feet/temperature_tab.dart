@@ -80,7 +80,7 @@ class TemperatureTab extends ConsumerWidget {
           view: tempBanner(v, latestAt: latest, since: since),
         ),
         const SizedBox(height: Dimens.sectionGap),
-        _MapCard(view: v, thresholds: t),
+        _MapCard(view: v),
         const SizedBox(height: Dimens.sectionGap),
         _ChartCard(view: v, readings: readings, drawInKey: drawInKey),
         const SizedBox(height: Dimens.sectionGap),
@@ -97,15 +97,14 @@ class TemperatureTab extends ConsumerWidget {
 /// "ความอุ่นซ้าย–ขวา ตอนนี้" (§8.2, layout A): both feet with their 8
 /// sites, the legend, then "จุดที่ต่างกันมากที่สุดตอนนี้" with the top 3.
 class _MapCard extends StatelessWidget {
-  const _MapCard({required this.view, required this.thresholds});
+  const _MapCard({required this.view});
 
   final TempTabView view;
-  final Thresholds thresholds;
 
   @override
   Widget build(BuildContext context) {
-    final sites = tempSites(view, thresholds);
-    final top = topSites(view, thresholds);
+    final sites = tempSites(view);
+    final top = topSites(view);
     final empty = topSitesEmptyLine(view);
     return AppCard(
       key: const ValueKey('temp-map-card'),

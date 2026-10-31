@@ -64,6 +64,16 @@ TempTabView _temp({
   List<TempQuality> q([Map<int, TempQuality> at = const {}]) => [
     for (var i = 0; i < TempLayout.siteCount; i++) at[i] ?? TempQuality.normal,
   ];
+  final List<double?> d = left && right
+      ? [
+          for (var i = 0; i < TempLayout.siteCount; i++)
+            i == _fore
+                ? fore
+                : i == _heel
+                ? heel
+                : other,
+        ]
+      : const [];
   return TempTabView(
     left: TempFootView(
       side: FootSide.left,
@@ -78,19 +88,24 @@ TempTabView _temp({
       quality: right ? q() : const [],
     ),
     minute: DateTime(2026, 10, 25, 13),
-    deltaC: left && right
-        ? [
-            for (var i = 0; i < TempLayout.siteCount; i++)
-              i == _fore
-                  ? fore
-                  : i == _heel
-                  ? heel
-                  : other,
-          ]
-        : const [],
+    deltaC: d,
+    warmerAbove: warmerOf(d, testThresholds.deltaC),
     alerts: alerts,
   );
 }
+
+/// Both feet streaming with per-site ΔT [d] (left minus right).
+TempTabView _deltas(
+  List<double?> d, {
+  Map<int, TempAlertView> alerts = const {},
+}) => TempTabView(
+  left: _temp().left,
+  right: _temp().right,
+  minute: DateTime(2026),
+  deltaC: d,
+  warmerAbove: warmerOf(d, testThresholds.deltaC),
+  alerts: alerts,
+);
 
 TempAlertView _alert(int site, double d, {int? consecutive = 2}) =>
     TempAlertView(
@@ -293,11 +308,11 @@ void main() {
 
   group('temperature sites (layout A)', () {
     test('close, warmer above the threshold, alerting', () {
-      final close = tempSites(_temp(), t)[_heel];
+      final close = tempSites(_temp())[_heel];
       expect(close.note, 'ใกล้เคียงกัน');
       expect(close.markOn(FootSide.left), TempSiteMark.plain);
       expect(close.markOn(FootSide.right), TempSiteMark.plain);
-      final over = tempSites(_temp(fore: -2.6), t)[_fore];
+      final over = tempSites(_temp(fore: -2.6))[_fore];
       expect(over.note, 'เท้าขวาอุ่นกว่า');
       expect(over.deltaC, 2.6);
       expect(over.alerting, isFalse);
@@ -306,35 +321,63 @@ void main() {
       expect(over.markOn(FootSide.left), TempSiteMark.plain);
       final alerting = tempSites(
         _temp(fore: -2.6, alerts: {_fore: _alert(_fore, 2.6)}),
-        t,
       )[_fore];
       expect(alerting.alerting, isTrue);
       expect(alerting.markOn(FootSide.right), TempSiteMark.warmRinged);
       expect(alerting.rowMark, TempSiteMark.warmRinged);
     });
 
+    test('warmer is decided on the unrounded ΔT (Home and the engine)', () {
+      // 2.21 is above 2.2 but shows as 2.2.
+      expect(warmerOf([2.21, -2.21, 2.2, null], t.deltaC), [
+        FootSide.left,
+        FootSide.right,
+        null,
+        null,
+      ]);
+      final v = TempTabView(
+        left: _temp().left,
+        right: _temp().right,
+        minute: DateTime(2026),
+        deltaC: const [0.1, 2.2, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1],
+        warmerAbove: warmerOf(const [
+          0.1,
+          2.21,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+        ], t.deltaC),
+      );
+      final s = tempSites(v)[_fore];
+      expect(s.deltaC, 2.2);
+      expect(s.warmer, FootSide.left);
+      expect(s.markOn(FootSide.left), TempSiteMark.warm);
+    });
+
     test('exactly deltaC is close (above means more than)', () {
-      expect(tempSites(_temp(fore: t.deltaC), t)[_fore].warmer, isNull);
+      expect(tempSites(_temp(fore: t.deltaC))[_fore].warmer, isNull);
     });
 
     test('while TEMP_DELTA holds the alert\'s foot is warmer, even after a '
         'reading back under the threshold', () {
       final s = tempSites(
         _temp(fore: -0.4, alerts: {_fore: _alert(_fore, 2.6)}),
-        t,
       )[_fore];
       expect(s.warmer, FootSide.right);
       expect(s.markOn(FootSide.right), TempSiteMark.warmRinged);
     });
 
     test('rule 4/5: one foot missing, every site unreadable, never close', () {
-      for (final s in tempSites(_temp(right: false), t)) {
+      for (final s in tempSites(_temp(right: false))) {
         expect(s.unreadable, isTrue);
         expect(s.note, 'ยังวัดไม่ได้');
         expect(s.markOn(FootSide.left), TempSiteMark.unreadable);
         expect(s.markOn(FootSide.right), TempSiteMark.unreadable);
       }
-      expect(topSites(_temp(right: false), t), isEmpty);
+      expect(topSites(_temp(right: false)), isEmpty);
       expect(
         topSitesEmptyLine(_temp(right: false)),
         'ต้องเชื่อมต่อทั้งสองข้าง',
@@ -342,12 +385,12 @@ void main() {
     });
 
     test('a site with no two-foot reading is unreadable; the others count', () {
-      final sites = tempSites(_temp(fore: null), t);
+      final sites = tempSites(_temp(fore: null));
       expect(sites[_fore].unreadable, isTrue);
       expect(sites[_fore].markOn(FootSide.left), TempSiteMark.unreadable);
       expect(sites[_heel].unreadable, isFalse);
       expect(
-        topSites(_temp(fore: null), t).map((s) => s.site),
+        topSites(_temp(fore: null)).map((s) => s.site),
         isNot(contains(_fore)),
       );
       expect(topSitesEmptyLine(_temp(fore: null)), isNull);
@@ -355,49 +398,41 @@ void main() {
 
     test('no site compares: no rows, "ยังวัดไม่ได้"', () {
       final v = _temp(fore: null, heel: null, other: null);
-      expect(topSites(v, t), isEmpty);
+      expect(topSites(v), isEmpty);
       expect(topSitesEmptyLine(v), 'ยังวัดไม่ได้');
     });
 
     test('top 3: alerting first, then the largest |ΔT|, ties in zone '
         'order', () {
-      List<int> top(TempTabView v) => [for (final s in topSites(v, t)) s.site];
+      List<int> top(TempTabView v) => [for (final s in topSites(v)) s.site];
       expect(top(_temp()), [_fore, 0, 2], reason: '0.3, then 0.1s in order');
-      final big = TempTabView(
-        left: _temp().left,
-        right: _temp().right,
-        minute: DateTime(2026),
-        deltaC: [0.1, 0.2, 1.4, 0.1, 0.1, 0.1, 0.1, -1.9],
-      );
+      final big = _deltas([0.1, 0.2, 1.4, 0.1, 0.1, 0.1, 0.1, -1.9]);
       expect(top(big), [7, 2, 1]);
-      final alerting = TempTabView(
-        left: _temp().left,
-        right: _temp().right,
-        minute: DateTime(2026),
-        deltaC: [0.1, 0.2, 2.9, 0.1, 0.1, -2.3, 0.1, -2.5],
+      final alerting = _deltas(
+        [0.1, 0.2, 2.9, 0.1, 0.1, -2.3, 0.1, -2.5],
         alerts: {5: _alert(5, 2.3), 7: _alert(7, 2.5, consecutive: null)},
       );
       expect(top(alerting), [7, 5, 2]);
     });
 
     test('map labels name the warmer sites', () {
-      final v = TempTabView(
-        left: _temp().left,
-        right: _temp().right,
-        minute: DateTime(2026),
-        deltaC: [0.1, 0.2, 0.1, 0.1, 0.1, -2.3, 0.1, -2.5],
-      );
-      final sites = tempSites(v, t);
+      final v = _deltas([0.1, 0.2, 0.1, 0.1, 0.1, -2.3, 0.1, -2.5]);
+      final sites = tempSites(v);
       expect(
         tempMapLabel(FootSide.right, sites),
         'เท้าขวา กลางส้นเท้า และส้นเท้าด้านนอกอุ่นกว่าเท้าซ้าย',
       );
       expect(
         tempMapLabel(FootSide.left, sites),
+        'เท้าซ้าย ไม่มีจุดที่อุ่นกว่าเท้าขวา',
+        reason: 'not "close at every site": the right foot is warmer at two',
+      );
+      expect(
+        tempMapLabel(FootSide.left, tempSites(_temp())),
         'เท้าซ้าย ใกล้เคียงกับเท้าขวาทุกจุดที่วัดได้',
       );
       expect(
-        tempMapLabel(FootSide.left, tempSites(_temp(right: false), t)),
+        tempMapLabel(FootSide.left, tempSites(_temp(right: false))),
         'เท้าซ้าย ยังวัดความอุ่นไม่ได้',
       );
     });

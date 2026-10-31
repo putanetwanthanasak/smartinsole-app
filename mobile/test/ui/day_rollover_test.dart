@@ -38,6 +38,26 @@ void main() {
     expect(find.text(thaiLongDate(day2)), findsOneWidget);
   });
 
+  testWidgets('Home: a midnight timer that fires on the old day (the wall '
+      'clock moved back) asks again at the next midnight', (t) async {
+    var shift = Duration.zero;
+    final clock = fakeTimeClock(t, DateTime(2026, 10, 18, 23, 30));
+    await pumpApp(t, now: () => clock().add(shift));
+    expect(find.text(thaiLongDate(day1)), findsOneWidget);
+
+    // The clock is set back an hour; the timer still fires 30 min on, at
+    // 23:00 by the wall clock.
+    shift = const Duration(hours: -1);
+    await t.pump(const Duration(minutes: 30, seconds: 1));
+    await t.pump();
+    expect(find.text(thaiLongDate(day1)), findsOneWidget);
+
+    // An hour later it is past midnight by the wall clock too.
+    await t.pump(const Duration(hours: 1));
+    await t.pump();
+    expect(find.text(thaiLongDate(day2)), findsOneWidget);
+  });
+
   testWidgets('Alerts: "วันนี้" becomes "เมื่อวาน" at midnight', (t) async {
     final (db, _) = await seededDatabase(t);
     await pumpApp(
