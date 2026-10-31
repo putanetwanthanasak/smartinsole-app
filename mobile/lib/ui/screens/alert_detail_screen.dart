@@ -118,11 +118,12 @@ class _AlertDetailScreenState extends ConsumerState<AlertDetailScreen> {
         _MapCard(
           caption: temp.caption,
           captionColor: look.palette.text,
+          subCaption: temp.sitesLine,
           legend: const TempSiteLegend(textStyle: AppText.secondary),
           foot: (side) => TempSiteMap(
             key: ValueKey('detail-map-${side.name}'),
             side: side,
-            warmSite: side == temp.warmSide ? temp.site : null,
+            marks: temp.marksOf(side),
             semanticLabel: temp.labels[side]!,
             width: Dimens.homeFootWidth,
             height: Dimens.homeFootHeight,
@@ -190,10 +191,14 @@ class _MapCard extends StatelessWidget {
     required this.captionColor,
     required this.legend,
     required this.foot,
+    this.subCaption,
   });
 
   final String caption;
   final Color captionColor;
+
+  /// Under [caption] in `inkMuted` (the TEMP_DELTA sites line).
+  final String? subCaption;
   final Widget legend;
   final Widget Function(FootSide side) foot;
 
@@ -239,6 +244,15 @@ class _MapCard extends StatelessWidget {
             textAlign: TextAlign.center,
             style: AppText.labelStrong.copyWith(color: captionColor),
           ),
+          if (subCaption case final line?) ...[
+            const SizedBox(height: Dimens.textGap),
+            Text(
+              line,
+              key: const ValueKey('detail-map-sites'),
+              textAlign: TextAlign.center,
+              style: AppText.secondary,
+            ),
+          ],
           const SizedBox(height: Dimens.buttonGap),
           legend,
         ],

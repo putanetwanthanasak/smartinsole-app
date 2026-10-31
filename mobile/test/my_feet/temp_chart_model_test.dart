@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smartinsole/ble/ble_protocol.dart';
 import 'package:smartinsole/ble/packets.dart';
+import 'package:smartinsole/rules/alert_copy.dart' show nbsp;
 import 'package:smartinsole/storage/models.dart';
 import 'package:smartinsole/ui/screens/my_feet/temp_chart_model.dart';
 
@@ -9,19 +10,16 @@ final _period = TempLayout.notifyPeriod.inMilliseconds;
 const _deltaC = 2.2;
 const _both = {FootSide.left: true, FootSide.right: true};
 
-/// The two sites the chart draws here (INTERIM, S8D-1): MTH1 (the old
-/// forefoot site's role) and the heel centre.
-const _fore = 1;
+const _mth1 = 1;
 const _heel = 5;
-const _sites = [_fore, _heel];
+const _lateralHeel = 7;
 
-/// One reading: [fore] at MTH1, [heel] at the heel centre, 30.5 °C at the
-/// other sites; [quality] at every site.
+/// One reading: 31 °C at every site except [sites] (site → °C, null:
+/// could not read); [quality] at every site.
 TemperatureReading _r(
   FootSide side,
   int atMs, {
-  double? fore = 31,
-  double? heel = 30,
+  Map<int, double?> sites = const {},
   TempQuality quality = TempQuality.normal,
 }) => TemperatureReading(
   atMs: atMs,
@@ -29,11 +27,7 @@ TemperatureReading _r(
   side: side,
   siteC: [
     for (var i = 0; i < TempLayout.siteCount; i++)
-      i == _fore
-          ? fore
-          : i == _heel
-          ? heel
-          : 30.5,
+      sites.containsKey(i) ? sites[i] : 31,
   ],
   siteQuality: List.filled(TempLayout.siteCount, quality),
   quality: quality,
@@ -44,14 +38,15 @@ TempChartData _chart(
   List<TemperatureReading> readings, {
   required DateTime now,
   required Map<FootSide, bool> usable,
-}) => tempChartOf(readings, now: now, usable: usable, sites: _sites);
+}) => tempChartOf(readings, now: now, usable: usable);
 
 /// Both feet every period from [fromMs] for [n] readings; the right foot
-/// 5 s after the left, its forefoot [rightFore] (by index).
+/// 5 s after the left, with [right] (by index) as its sites (MTH1 0.3 °C
+/// warmer by default).
 List<TemperatureReading> _day2(
   int fromMs,
   int n, {
-  double Function(int i)? rightFore,
+  Map<int, double?> Function(int i)? right,
   bool Function(int i)? rightMissing,
 }) => [
   for (var i = 0; i < n; i++) ...[
@@ -60,7 +55,7 @@ List<TemperatureReading> _day2(
       _r(
         FootSide.right,
         fromMs + i * _period + 5000,
-        fore: rightFore?.call(i) ?? 31.3,
+        sites: right?.call(i) ?? const {_mth1: 31.3},
       ),
   ],
 ];
@@ -82,9 +77,9 @@ void main() {
       usable: _both,
     );
     // The first left reading has no right partner yet.
-    expect(d.runsOf(_fore).single.length, 7);
-    expect(d.last(_fore)!.deltaC, closeTo(0.3, 1e-9));
-    expect(d.last(_heel)!.deltaC, 0);
+    expect(d.runs.single.length, 7);
+    expect(d.last!.deltaC, closeTo(0.3, 1e-9));
+    expect(d.last!.site, _mth1);
     expect(d.gaps, isEmpty);
     expect(d.startMs, t0);
   });
@@ -104,14 +99,75 @@ void main() {
     expect(_chart(rs, now: _day, usable: _both).isEmpty, isTrue);
   });
 
-  test('a missing site value makes no point at that site only', () {
+  test('one line: the largest |ΔT| of the 8 sites, with its site', () {
     final rs = [
-      _r(FootSide.left, t0),
-      _r(FootSide.right, t0 + 1000, heel: null),
+      _r(FootSide.left, t0, sites: {_heel: 30}),
+      _r(FootSide.right, t0 + 1000, sites: {_mth1: 32.0, _lateralHeel: 33.1}),
     ];
     final d = _chart(rs, now: _day, usable: _both);
-    expect(d.runs[_fore], hasLength(1));
-    expect(d.runs[_heel], isEmpty);
+    final p = d.runs.single.single;
+    expect(p.site, _lateralHeel);
+    expect(p.deltaC, closeTo(2.1, 1e-9));
+  });
+
+  test('equal |ΔT| at two sites: the lower zone', () {
+    final rs = [
+      _r(FootSide.left, t0),
+      _r(FootSide.right, t0 + 1000, sites: {_heel: 32, _mth1: 30}),
+    ];
+    expect(_chart(rs, now: _day, usable: _both).last!.site, _mth1);
+  });
+
+  test('a site the sensor could not read is left out; the others count', () {
+    final rs = [
+      _r(FootSide.left, t0),
+      _r(FootSide.right, t0 + 1000, sites: {_heel: null, _mth1: 31.4}),
+    ];
+    final d = _chart(rs, now: _day, usable: _both);
+    expect(d.last!.site, _mth1);
+    expect(d.last!.deltaC, closeTo(0.4, 1e-9));
+  });
+
+  test('no site with a two-foot reading: no point', () {
+    final rs = [
+      _r(FootSide.left, t0),
+      _r(
+        FootSide.right,
+        t0 + 1000,
+        sites: {for (var i = 0; i < TempLayout.siteCount; i++) i: null},
+      ),
+    ];
+    expect(_chart(rs, now: _day, usable: _both).isEmpty, isTrue);
+  });
+
+  test('two points above the band in a row from different sites '
+      '(no TEMP_DELTA: the rule counts each site, rule 6)', () {
+    // Reading 8: MTH1 above; reading 9: lateral heel above; MTH1 back.
+    // The alert engine raises nothing for this (alert_engine_test: "per
+    // site: two different sites above once each is no alert").
+    final rs = _day2(
+      t0,
+      10,
+      right: (i) => switch (i) {
+        8 => const {_mth1: 33.6},
+        9 => const {_lateralHeel: 33.5},
+        _ => const {_mth1: 31.3},
+      },
+    );
+    final end = DateTime.fromMillisecondsSinceEpoch(rs.last.atMs);
+    final d = _chart(rs, now: end, usable: _both);
+    final last2 = d.runs.single.sublist(d.runs.single.length - 2);
+    expect([for (final p in last2) p.site], [_mth1, _lateralHeel]);
+    expect(last2.every((p) => p.deltaC > _deltaC), isTrue);
+    expect(chartEndLabel(d.last!), 'ส้นเท้าด้านนอก');
+    // The summary reads as one stretch above the band, named by the last
+    // point's site.
+    expect(
+      chartSummary(d, deltaC: _deltaC),
+      'กราฟความต่างของความอุ่นวันนี้ '
+      'จุดที่ต่างกันมากที่สุดขึ้นถึงระดับที่ควรระวังตั้งแต่ราว 08:04 '
+      'ตอนนี้ 2.5$nbspองศาที่ส้นเท้าด้านนอก',
+    );
   });
 
   test('a gap that ended: the line breaks and the gap is closed', () {
@@ -119,7 +175,7 @@ void main() {
     final rs = _day2(t0, 30, rightMissing: (i) => i >= 10 && i < 20);
     final end = DateTime.fromMillisecondsSinceEpoch(rs.last.atMs);
     final d = _chart(rs, now: end, usable: _both);
-    expect(d.runs[_fore], hasLength(2));
+    expect(d.runs, hasLength(2));
     final g = d.gaps.single;
     expect(g.side, FootSide.right);
     expect(g.ongoing, isFalse);
@@ -132,7 +188,7 @@ void main() {
     final end = DateTime.fromMillisecondsSinceEpoch(rs.last.atMs);
     final d = _chart(rs, now: end, usable: _both);
     expect(d.gaps, isEmpty);
-    expect(d.runs[_fore], hasLength(1));
+    expect(d.runs, hasLength(1));
   });
 
   test('a foot that is not usable now has an open gap from its last row', () {
@@ -162,8 +218,21 @@ void main() {
   });
 
   group('summary', () {
+    test('never above: the next half degree', () {
+      final rs = _day2(t0, 5);
+      final end = DateTime.fromMillisecondsSinceEpoch(rs.last.atMs);
+      expect(
+        chartSummary(
+          _chart(rs, now: end, usable: _both),
+          deltaC: _deltaC,
+        ),
+        'กราฟความต่างของความอุ่นวันนี้ '
+        'จุดที่ต่างกันมากที่สุดต่ำกว่า 0.5$nbspองศาตลอด',
+      );
+    });
+
     test('above now: from when, and the value', () {
-      final rs = _day2(t0, 20, rightFore: (i) => i >= 10 ? 33.6 : 31.3);
+      final rs = _day2(t0, 20, right: (i) => {_mth1: i >= 10 ? 33.6 : 31.3});
       final end = DateTime.fromMillisecondsSinceEpoch(rs.last.atMs);
       final s = chartSummary(
         _chart(rs, now: end, usable: _both),
@@ -172,14 +241,17 @@ void main() {
       expect(
         s,
         'กราฟความต่างของความอุ่นวันนี้ '
-        'กลางส้นเท้าต่ำกว่า 0.5 องศาตลอด '
-        'โคนนิ้วหัวแม่เท้าขึ้นถึงระดับที่ควรระวังตั้งแต่ราว 08:05 '
-        'ตอนนี้ 2.6 องศา',
+        'จุดที่ต่างกันมากที่สุดขึ้นถึงระดับที่ควรระวังตั้งแต่ราว 08:05 '
+        'ตอนนี้ 2.6$nbspองศาที่โคนนิ้วหัวแม่เท้า',
       );
     });
 
     test('above earlier, and an open gap', () {
-      final rs = _day2(t0, 20, rightFore: (i) => i >= 4 && i < 8 ? 33.6 : 31.3);
+      final rs = _day2(
+        t0,
+        20,
+        right: (i) => {_mth1: i >= 4 && i < 8 ? 33.6 : 31.3},
+      );
       final end = DateTime.fromMillisecondsSinceEpoch(rs.last.atMs);
       final s = chartSummary(
         _chart(
@@ -191,7 +263,9 @@ void main() {
       );
       expect(
         s,
-        contains('โคนนิ้วหัวแม่เท้าเคยขึ้นถึงระดับที่ควรระวังช่วง 08:02–08:04'),
+        contains(
+          'จุดที่ต่างกันมากที่สุดเคยขึ้นถึงระดับที่ควรระวังช่วง 08:02–08:04',
+        ),
       );
       expect(s, contains('ล่าสุด 0.3 องศา'));
       expect(s, endsWith('ขาดข้อมูลเท้าขวาตั้งแต่ 08:09'));

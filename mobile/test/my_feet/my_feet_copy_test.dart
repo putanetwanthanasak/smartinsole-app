@@ -8,6 +8,7 @@ import 'package:smartinsole/rules/patient_status.dart';
 import 'package:smartinsole/rules/pressure_level.dart';
 import 'package:smartinsole/ui/screens/home/home_model.dart';
 import 'package:smartinsole/ui/screens/my_feet/my_feet_copy.dart';
+import 'package:smartinsole/ui/widgets/temp_site_map.dart' show TempSiteMark;
 import 'package:smartinsole/ui/screens/my_feet/my_feet_model.dart';
 
 import '../helpers/pump_app.dart' show testThresholds;
@@ -37,8 +38,7 @@ PressureFootView _none(FootSide side) =>
 final _lows = List.filled(footLayout.zones.length, _low);
 final _flat = [40, 45, 50, 30, 25, 60, 20, 35];
 
-/// MTH1 and the heel centre: the two sites the interim cards show by
-/// default ([interimDefaultSites]).
+/// MTH1 and the heel centre.
 const _fore = 1;
 const _heel = 5;
 
@@ -291,49 +291,115 @@ void main() {
     });
   });
 
-  group('site cards', () {
+  group('temperature sites (layout A)', () {
     test('close, warmer above the threshold, alerting', () {
-      expect(siteCard(_temp(), _heel, t).note, 'ใกล้เคียงกัน');
-      final over = siteCard(_temp(fore: -2.6), _fore, t);
-      expect(over.note, 'ขวาอุ่นกว่า');
+      final close = tempSites(_temp(), t)[_heel];
+      expect(close.note, 'ใกล้เคียงกัน');
+      expect(close.markOn(FootSide.left), TempSiteMark.plain);
+      expect(close.markOn(FootSide.right), TempSiteMark.plain);
+      final over = tempSites(_temp(fore: -2.6), t)[_fore];
+      expect(over.note, 'เท้าขวาอุ่นกว่า');
       expect(over.deltaC, 2.6);
       expect(over.alerting, isFalse);
       expect(over.siteTh, 'โคนนิ้วหัวแม่เท้า');
-      final alerting = siteCard(
+      expect(over.markOn(FootSide.right), TempSiteMark.warm);
+      expect(over.markOn(FootSide.left), TempSiteMark.plain);
+      final alerting = tempSites(
         _temp(fore: -2.6, alerts: {_fore: _alert(_fore, 2.6)}),
-        _fore,
         t,
-      );
+      )[_fore];
       expect(alerting.alerting, isTrue);
+      expect(alerting.markOn(FootSide.right), TempSiteMark.warmRinged);
+      expect(alerting.rowMark, TempSiteMark.warmRinged);
     });
 
-    test('rule 4: one foot missing shows no number', () {
-      final c = siteCard(_temp(right: false), _fore, t);
-      expect(c.deltaC, isNull);
-      expect(c.missing, isTrue);
-      expect(c.note, 'ต้องเชื่อมต่อทั้งสองข้าง');
-      expect(siteCard(_temp(fore: null), _fore, t).note, 'ยังวัดไม่ได้');
+    test('exactly deltaC is close (above means more than)', () {
+      expect(tempSites(_temp(fore: t.deltaC), t)[_fore].warmer, isNull);
     });
 
-    test('INTERIM: the two shown sites, in zone order: alerting first, then '
-        'the largest |ΔT|, then MTH1 and the heel centre', () {
-      expect(_temp(left: false).shownSites, [_fore, _heel]);
-      expect(_temp().shownSites, [0, _fore], reason: '0.3, then 0.1 at 0');
+    test('while TEMP_DELTA holds the alert\'s foot is warmer, even after a '
+        'reading back under the threshold', () {
+      final s = tempSites(
+        _temp(fore: -0.4, alerts: {_fore: _alert(_fore, 2.6)}),
+        t,
+      )[_fore];
+      expect(s.warmer, FootSide.right);
+      expect(s.markOn(FootSide.right), TempSiteMark.warmRinged);
+    });
+
+    test('rule 4/5: one foot missing, every site unreadable, never close', () {
+      for (final s in tempSites(_temp(right: false), t)) {
+        expect(s.unreadable, isTrue);
+        expect(s.note, 'ยังวัดไม่ได้');
+        expect(s.markOn(FootSide.left), TempSiteMark.unreadable);
+        expect(s.markOn(FootSide.right), TempSiteMark.unreadable);
+      }
+      expect(topSites(_temp(right: false), t), isEmpty);
+      expect(
+        topSitesEmptyLine(_temp(right: false)),
+        'ต้องเชื่อมต่อทั้งสองข้าง',
+      );
+    });
+
+    test('a site with no two-foot reading is unreadable; the others count', () {
+      final sites = tempSites(_temp(fore: null), t);
+      expect(sites[_fore].unreadable, isTrue);
+      expect(sites[_fore].markOn(FootSide.left), TempSiteMark.unreadable);
+      expect(sites[_heel].unreadable, isFalse);
+      expect(
+        topSites(_temp(fore: null), t).map((s) => s.site),
+        isNot(contains(_fore)),
+      );
+      expect(topSitesEmptyLine(_temp(fore: null)), isNull);
+    });
+
+    test('no site compares: no rows, "ยังวัดไม่ได้"', () {
+      final v = _temp(fore: null, heel: null, other: null);
+      expect(topSites(v, t), isEmpty);
+      expect(topSitesEmptyLine(v), 'ยังวัดไม่ได้');
+    });
+
+    test('top 3: alerting first, then the largest |ΔT|, ties in zone '
+        'order', () {
+      List<int> top(TempTabView v) => [for (final s in topSites(v, t)) s.site];
+      expect(top(_temp()), [_fore, 0, 2], reason: '0.3, then 0.1s in order');
       final big = TempTabView(
         left: _temp().left,
         right: _temp().right,
         minute: DateTime(2026),
         deltaC: [0.1, 0.2, 1.4, 0.1, 0.1, 0.1, 0.1, -1.9],
       );
-      expect(big.shownSites, [2, 7]);
+      expect(top(big), [7, 2, 1]);
       final alerting = TempTabView(
         left: _temp().left,
         right: _temp().right,
         minute: DateTime(2026),
-        deltaC: [0.1, 0.2, 1.4, 0.1, 0.1, -2.3, 0.1, -2.5],
+        deltaC: [0.1, 0.2, 2.9, 0.1, 0.1, -2.3, 0.1, -2.5],
         alerts: {5: _alert(5, 2.3), 7: _alert(7, 2.5, consecutive: null)},
       );
-      expect(alerting.shownSites, [5, 7]);
+      expect(top(alerting), [7, 5, 2]);
+    });
+
+    test('map labels name the warmer sites', () {
+      final v = TempTabView(
+        left: _temp().left,
+        right: _temp().right,
+        minute: DateTime(2026),
+        deltaC: [0.1, 0.2, 0.1, 0.1, 0.1, -2.3, 0.1, -2.5],
+      );
+      final sites = tempSites(v, t);
+      expect(
+        tempMapLabel(FootSide.right, sites),
+        'เท้าขวา กลางส้นเท้า และส้นเท้าด้านนอกอุ่นกว่าเท้าซ้าย',
+      );
+      expect(
+        tempMapLabel(FootSide.left, sites),
+        'เท้าซ้าย ใกล้เคียงกับเท้าขวาทุกจุดที่วัดได้',
+      );
+      expect(
+        tempMapLabel(FootSide.left, tempSites(_temp(right: false), t)),
+        'เท้าซ้าย ยังวัดความอุ่นไม่ได้',
+      );
     });
   });
 
@@ -352,12 +418,6 @@ void main() {
       );
       String row(String label) =>
           rows.firstWhere((r) => r.label == label).value;
-      expect(row('โคนนิ้วหัวแม่เท้า'), 'ซ้าย 31.0 · ขวา 30.7 · ต่าง 0.3 °C');
-      expect(row('กลางส้นเท้า'), 'ซ้าย 30.6 · ขวา 30.6 · ต่าง 0.0 °C');
-      expect(
-        rows.where((r) => r.value.startsWith('ซ้าย ')),
-        hasLength(TempLayout.siteCount),
-      );
       expect(
         row('วัดทุก'),
         '${TempLayout.notifyPeriod.inSeconds} วินาที · ล่าสุด 12:57:31',
@@ -421,11 +481,26 @@ void main() {
       );
       expect(rows.first.label, 'เท้าขวา');
       expect(rows.first.value, 'ยังไม่ได้เชื่อมต่อ');
-      expect(rows.any((r) => r.value.contains(' · ต่าง ')), isFalse);
+      // The table keeps the streaming foot's values; "ต่าง" needs both.
+      final table = tempTable(_temp(right: false));
       expect(
-        rows.firstWhere((r) => r.label == 'โคนนิ้วหัวแม่เท้า').value,
-        'ซ้าย 31.0 · ขวา — °C',
+        table[_fore],
+        const TempTableRow('โคนนิ้วหัวแม่เท้า', '31.0', '—', '—'),
       );
+    });
+
+    test('the table: จุด / ซ้าย / ขวา / ต่าง for the 8 sites', () {
+      final table = tempTable(_temp(fore: -0.3));
+      expect(table, hasLength(TempLayout.siteCount));
+      expect(
+        table[_fore],
+        const TempTableRow('โคนนิ้วหัวแม่เท้า', '31.0', '30.7', '0.3'),
+      );
+      expect(
+        table[_heel],
+        const TempTableRow('กลางส้นเท้า', '30.6', '30.6', '0.0'),
+      );
+      expect(tempTable(_temp(left: false, right: false)), isEmpty);
     });
   });
 }

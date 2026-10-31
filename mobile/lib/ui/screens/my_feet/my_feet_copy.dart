@@ -12,6 +12,7 @@ import '../../../rules/patient_status.dart';
 import '../../../rules/pressure_level.dart';
 import '../../clock.dart';
 import '../../widgets/details_expander.dart';
+import '../../widgets/temp_site_map.dart' show TempSiteMark;
 import 'my_feet_model.dart';
 
 // My feet copy (DESIGN-SPEC §8). Banner titles and lines from the boards
@@ -264,65 +265,136 @@ BannerView tempBanner(
   );
 }
 
-/// One site card (§8.2).
+/// One temperature site on the Temperature tab (§8.2, layout A): its map
+/// dots and, for the top 3, its row in "จุดที่ต่างกันมากที่สุดตอนนี้".
 @immutable
-class SiteCardView {
-  const SiteCardView({
+class TempSiteView {
+  const TempSiteView({
     required this.site,
-    required this.note,
     this.deltaC,
+    this.warmer,
     this.alerting = false,
   });
 
   /// Zone index.
   final int site;
 
-  /// |ΔT| rounded to 0.1 °C; null shows "—" (rule 4).
+  /// |ΔT| rounded to 0.1 °C; null when there is no two-foot reading at
+  /// this site (rule 4): "ยังวัดไม่ได้", never "close".
   final double? deltaC;
 
-  /// `TEMP_DELTA` holds here: the Rest colour, icon and red site dot.
+  /// The warmer foot, once one reading is above the threshold (Home's
+  /// note rule) or while `TEMP_DELTA` holds; null for "ใกล้เคียงกัน".
+  final FootSide? warmer;
+
+  /// `TEMP_DELTA` holds here: the ring on the map, the Rest colour and
+  /// icon in the row.
   final bool alerting;
-  final String note;
 
   String get siteTh => _siteTh(site);
-  bool get missing => deltaC == null;
+  bool get unreadable => deltaC == null;
+
+  /// "เท้าซ้ายอุ่นกว่า" / "ใกล้เคียงกัน" / "ยังวัดไม่ได้". S8D-2 draft.
+  String get note => unreadable
+      ? 'ยังวัดไม่ได้'
+      : warmer == null
+      ? 'ใกล้เคียงกัน'
+      : '${_foot(warmer!)}อุ่นกว่า';
+
+  /// The dot on [side]'s map.
+  TempSiteMark markOn(FootSide side) => unreadable
+      ? TempSiteMark.unreadable
+      : warmer != side
+      ? TempSiteMark.plain
+      : alerting
+      ? TempSiteMark.warmRinged
+      : TempSiteMark.warm;
+
+  /// The row's dot: the warmer foot's.
+  TempSiteMark get rowMark => markOn(warmer ?? FootSide.left);
 
   @override
   bool operator ==(Object other) =>
-      other is SiteCardView &&
+      other is TempSiteView &&
       other.site == site &&
       other.deltaC == deltaC &&
-      other.alerting == alerting &&
-      other.note == note;
+      other.warmer == warmer &&
+      other.alerting == alerting;
 
   @override
-  int get hashCode => Object.hash(site, deltaC, alerting, note);
+  int get hashCode => Object.hash(site, deltaC, warmer, alerting);
 }
 
-SiteCardView siteCard(TempTabView v, int site, Thresholds t) {
+/// Each of the 8 sites, in zone order. With a foot missing every site is
+/// unreadable (rule 4).
+List<TempSiteView> tempSites(TempTabView v, Thresholds t) => [
+  for (var i = 0; i < footLayout.zones.length; i++) _tempSite(v, i, t),
+];
+
+TempSiteView _tempSite(TempTabView v, int site, Thresholds t) {
   final d = v.bothUsable ? v.delta(site) : null;
-  if (d == null) {
-    return SiteCardView(
-      site: site,
-      // S6B draft: both feet stream but this site cannot be compared.
-      note: v.bothUsable ? 'ยังวัดไม่ได้' : 'ต้องเชื่อมต่อทั้งสองข้าง',
-    );
-  }
+  if (d == null) return TempSiteView(site: site);
   final alert = v.alerts[site];
-  final warmer = d > 0 ? FootSide.left : FootSide.right;
   // The same rule as Home's note: warmer once one reading is above the
-  // threshold; the Rest look only while TEMP_DELTA holds (2 readings).
-  final over = deltaAbove(d, t.deltaC);
-  return SiteCardView(
+  // threshold; the ring only while TEMP_DELTA holds (2 readings).
+  final warmer =
+      alert?.warmerSide ??
+      (deltaAbove(d, t.deltaC)
+          ? (d > 0 ? FootSide.left : FootSide.right)
+          : null);
+  return TempSiteView(
     site: site,
     deltaC: d.abs(),
+    warmer: warmer,
     alerting: alert != null,
-    note: alert != null
-        ? '${sideTh(alert.warmerSide)}อุ่นกว่า'
-        : over
-        ? '${sideTh(warmer)}อุ่นกว่า'
-        : 'ใกล้เคียงกัน',
   );
+}
+
+/// How many sites "จุดที่ต่างกันมากที่สุดตอนนี้" names (layout A).
+const topSiteCount = 3;
+
+/// The rows of "จุดที่ต่างกันมากที่สุดตอนนี้": sites where `TEMP_DELTA`
+/// holds first, then the largest |ΔT|; equal ones keep zone order. Only
+/// sites with a two-foot reading; none unless both feet stream.
+List<TempSiteView> topSites(TempTabView v, Thresholds t) {
+  final sites = [
+    for (final s in tempSites(v, t))
+      if (!s.unreadable) s,
+  ];
+  // Stable: List.sort is not, so the zone index breaks ties.
+  sites.sort((a, b) {
+    if (a.alerting != b.alerting) return a.alerting ? -1 : 1;
+    final d = b.deltaC!.compareTo(a.deltaC!);
+    return d != 0 ? d : a.site.compareTo(b.site);
+  });
+  return sites.take(topSiteCount).toList();
+}
+
+/// Instead of the top rows when there are none: "ต้องเชื่อมต่อทั้งสองข้าง"
+/// with a foot missing, "ยังวัดไม่ได้" when no site can be compared.
+/// S8D-2 draft.
+String? topSitesEmptyLine(TempTabView v) => !v.bothUsable
+    ? 'ต้องเชื่อมต่อทั้งสองข้าง'
+    : v.noDelta
+    ? 'ยังวัดไม่ได้'
+    : null;
+
+/// A map's TalkBack label (S8D-2 draft): "เท้าซ้าย กลางส้นเท้าและส้นเท้า
+/// ด้านนอกอุ่นกว่าเท้าขวา", "เท้าซ้าย ใกล้เคียงกับเท้าขวาทุกจุด", or
+/// "เท้าซ้าย ยังวัดความอุ่นไม่ได้".
+String tempMapLabel(FootSide side, List<TempSiteView> sites) {
+  final o = _foot(otherSide(side));
+  if (sites.every((s) => s.unreadable)) {
+    return '${_foot(side)} ยังวัดความอุ่นไม่ได้';
+  }
+  final warm = [
+    for (final s in sites)
+      if (!s.unreadable && s.warmer == side) s.siteTh,
+  ];
+  final unreadable = sites.where((s) => s.unreadable).length;
+  final rest = unreadable == 0 ? '' : ' ยังวัดไม่ได้ $unreadable จุด';
+  if (warm.isEmpty) return '${_foot(side)} ใกล้เคียงกับ$oทุกจุดที่วัดได้$rest';
+  return '${_foot(side)} ${joinTh(warm)}อุ่นกว่า$o$rest';
 }
 
 /// "Lavery et al. (2004)" → "Lavery et al., 2004", to sit inside the
@@ -346,11 +418,9 @@ String _qualityTh(TempQuality q) => switch (q) {
   TempQuality.sensorFault => 'เซนเซอร์ผิดปกติ',
 };
 
-/// The Temperature details rows (§8.2). [latestAt] is the newest stored
-/// reading today; [since] is when each foot's data stopped.
-///
-/// INTERIM (S8D-1): one row per site, "ซ้าย · ขวา · ต่าง", until S8D-2's
-/// table (จุด / ซ้าย / ขวา / ต่าง).
+/// The Temperature details rows (§8.2) under the table "อุณหภูมิตอนนี้
+/// (°C)" ([TempTableRow]). [latestAt] is the newest stored reading today;
+/// [since] is when each foot's data stopped.
 List<DetailRow> tempDetailRows(
   TempTabView v,
   Thresholds t, {
@@ -363,19 +433,10 @@ List<DetailRow> tempDetailRows(
     return at == null ? 'ยังไม่ได้เชื่อมต่อ' : 'ไม่มีข้อมูลตั้งแต่ ${hhmm(at)}';
   }
 
-  final sites = [
-    for (var i = 0; i < footLayout.zones.length; i++)
-      DetailRow(
-        _siteTh(i),
-        'ซ้าย ${_cOr(v.left.at(i))} · ขวา ${_cOr(v.right.at(i))}'
-        '${v.bothUsable ? ' · ต่าง ${_cOr(v.delta(i)?.abs())}' : ''} °C',
-      ),
-  ];
   if (!v.bothUsable) {
     return [
       for (final f in [v.left, v.right])
         if (!f.usable) DetailRow(_foot(f.side), gone(f.side)),
-      if (v.left.usable || v.right.usable) ...sites,
       threshold,
     ];
   }
@@ -401,7 +462,6 @@ List<DetailRow> tempDetailRows(
       if (a.consecutive != null) a,
   ];
   return [
-    ...sites,
     if (counted.isNotEmpty)
       DetailRow(
         'วัดเกินเกณฑ์ติดกัน',
@@ -421,3 +481,39 @@ List<DetailRow> tempDetailRows(
     ),
   ];
 }
+
+/// One row of the table "อุณหภูมิตอนนี้ (°C)" (§8.2): จุด / ซ้าย / ขวา /
+/// ต่าง, "—" where a value is missing ("ต่าง" needs both feet, rule 4).
+@immutable
+class TempTableRow {
+  const TempTableRow(this.site, this.left, this.right, this.delta);
+
+  final String site;
+  final String left;
+  final String right;
+  final String delta;
+
+  @override
+  bool operator ==(Object other) =>
+      other is TempTableRow &&
+      other.site == site &&
+      other.left == left &&
+      other.right == right &&
+      other.delta == delta;
+
+  @override
+  int get hashCode => Object.hash(site, left, right, delta);
+}
+
+/// The 8 table rows; empty when neither foot streams.
+List<TempTableRow> tempTable(TempTabView v) => !v.left.usable && !v.right.usable
+    ? const []
+    : [
+        for (var i = 0; i < footLayout.zones.length; i++)
+          TempTableRow(
+            _siteTh(i),
+            _cOr(v.left.at(i)),
+            _cOr(v.right.at(i)),
+            v.bothUsable ? _cOr(v.delta(i)?.abs()) : '—',
+          ),
+      ];

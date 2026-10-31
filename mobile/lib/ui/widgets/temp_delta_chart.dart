@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../config/foot_layout.dart';
 import '../../rules/alert_engine.dart' show deltaAbove;
 import '../clock.dart';
 import '../motion.dart';
@@ -10,9 +9,11 @@ import '../theme/dimens.dart';
 import '../theme/typography.dart';
 import 'foot_map.dart' show dashedPath;
 
-/// "ความต่างของความอุ่นวันนี้" (DESIGN-SPEC §1, §8.2): |ΔT| per site
-/// over today, the alert band and dashed line at [deltaC], and connection
-/// gaps. One screen-reader image with [semanticLabel] (the summary).
+/// "ความต่างของความอุ่นวันนี้" (DESIGN-SPEC §1, §8.2): one line, the
+/// largest |ΔT| of the 8 sites at each reading, with the last point's site
+/// named beside it; the alert band and dashed line at [deltaC], and
+/// connection gaps. One screen-reader image with [semanticLabel] (the
+/// summary).
 ///
 /// The lines draw in from left to right (`value`) when the chart first
 /// shows and whenever [drawInKey] changes (the tab is opened again); new
@@ -126,6 +127,9 @@ class _ChartPainter extends CustomPainter {
   static final _gapStyle = AppText.secondary.copyWith(
     color: TempChartColors.gapLabel,
   );
+  static final _endStyle = AppText.secondary.copyWith(
+    color: TempChartColors.endLabel,
+  );
 
   /// Grid lines and their labels, °C (§8.2: "0°" "1°" "2°" "3°").
   static const _ticks = [0, 1, 2, 3];
@@ -196,6 +200,7 @@ class _ChartPainter extends CustomPainter {
       p.paint(canvas, Offset(yLabelW - p.width, ty - p.height / 2));
     }
     final band = label('ระดับที่ควรระวัง', _bandStyle);
+    Rect? bandLabelRect;
     if (bandBottom - bandTop >= band.height) {
       // Left of the band, or right when a gap line would cross it.
       bool crossed(double from) => data.gaps.any((g) {
@@ -205,13 +210,12 @@ class _ChartPainter extends CustomPainter {
       });
       final atLeft = plot.left + Dimens.tightGap;
       final atRight = plot.right - Dimens.tightGap - band.width;
-      band.paint(
-        canvas,
-        Offset(
-          crossed(atLeft) && !crossed(atRight) ? atRight : atLeft,
-          bandTop + Dimens.textGap / 2,
-        ),
+      final at = Offset(
+        crossed(atLeft) && !crossed(atRight) ? atRight : atLeft,
+        bandTop + Dimens.textGap / 2,
       );
+      band.paint(canvas, at);
+      bandLabelRect = at & band.size;
     }
     canvas
       ..drawPath(
@@ -272,6 +276,7 @@ class _ChartPainter extends CustomPainter {
     // "ขาดข้อมูล / HH:mm–HH:mm" once data came back, on a backdrop over
     // the lines.
     void Function()? gapLabel;
+    Rect? gapLabelRect;
     for (var i = 0; i < data.gaps.length; i++) {
       final g = data.gaps[i];
       final gx = x(g.fromMs);
@@ -310,6 +315,12 @@ class _ChartPainter extends CustomPainter {
           plot.top,
           plot.bottom - a.height - b.height,
         );
+        gapLabelRect = Rect.fromLTWH(
+          lx - Dimens.textGap,
+          ly,
+          w + Dimens.textGap * 2,
+          a.height + b.height,
+        );
         gapLabel = () {
           canvas.drawRRect(
             RRect.fromRectAndRadius(
@@ -342,118 +353,86 @@ class _ChartPainter extends CustomPainter {
           size.height,
         ),
       );
-    // INTERIM (S8D-1): the first site in the old forefoot style (dashed),
-    // the second in the old heel style (solid).
-    for (final site in data.sites) {
-      final heel = site != data.sites.first;
-      final paint = Paint()
-        ..color = heel ? TempChartColors.heel : TempChartColors.forefoot
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = heel
-            ? TempChartColors.heelWidth
-            : TempChartColors.forefootWidth
-        ..strokeJoin = StrokeJoin.round
-        ..strokeCap = StrokeCap.round;
-      for (final run in data.runsOf(site)) {
-        final path = Path()..moveTo(x(run.first.atMs), y(run.first.deltaC));
-        for (final p in run.skip(1)) {
-          path.lineTo(x(p.atMs), y(p.deltaC));
-        }
-        if (run.length == 1) {
-          path.lineTo(x(run.first.atMs) + 0.01, y(run.first.deltaC));
-        }
-        canvas.drawPath(
-          heel ? path : dashedPath(path, TempChartColors.forefootDash),
-          paint,
-        );
+    final paint = Paint()
+      ..color = TempChartColors.line
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = TempChartColors.lineWidth
+      ..strokeJoin = StrokeJoin.round
+      ..strokeCap = StrokeCap.round;
+    for (final run in data.runs) {
+      final path = Path()..moveTo(x(run.first.atMs), y(run.first.deltaC));
+      for (final p in run.skip(1)) {
+        path.lineTo(x(p.atMs), y(p.deltaC));
       }
+      if (run.length == 1) {
+        path.lineTo(x(run.first.atMs) + 0.01, y(run.first.deltaC));
+      }
+      canvas.drawPath(path, paint);
     }
-    if (progress.value >= 1) {
-      for (final site in data.sites) {
-        final last = data.last(site);
-        if (last == null) continue;
-        final c = Offset(x(last.atMs), y(last.deltaC));
-        canvas
-          ..drawCircle(
-            c,
-            TempChartColors.lastDotRadius + TempChartColors.lastDotRing,
-            Paint()..color = AppColors.surface,
-          )
-          ..drawCircle(
-            c,
-            TempChartColors.lastDotRadius,
-            Paint()
-              ..color = deltaAbove(last.deltaC, deltaC)
-                  ? TempChartColors.lastDotAlert
-                  : TempChartColors.lastDot,
+    final last = data.last;
+    void Function()? endLabel;
+    if (progress.value >= 1 && last != null) {
+      final c = Offset(x(last.atMs), y(last.deltaC));
+      canvas
+        ..drawCircle(
+          c,
+          TempChartColors.lastDotRadius + TempChartColors.lastDotRing,
+          Paint()..color = AppColors.surface,
+        )
+        ..drawCircle(
+          c,
+          TempChartColors.lastDotRadius,
+          Paint()
+            ..color = deltaAbove(last.deltaC, deltaC)
+                ? TempChartColors.lastDotAlert
+                : TempChartColors.lastDot,
+        );
+      // The end label: the site's name, right-aligned to the dot, above it
+      // or else below it, on the gap label's backdrop. Moved left to stay
+      // inside the plot; dropped rather than overlap the band or gap label
+      // or leave the plot.
+      final e = label(chartEndLabel(last), _endStyle);
+      const clear = TempChartColors.lastDotRadius + TempChartColors.lastDotRing;
+      final ex = (c.dx - e.width).clamp(
+        plot.left + Dimens.textGap,
+        plot.right - Dimens.textGap - e.width,
+      );
+      Rect at(double ey) => Rect.fromLTWH(
+        ex - Dimens.textGap,
+        ey,
+        e.width + Dimens.textGap * 2,
+        e.height,
+      );
+      bool free(Rect r) =>
+          r.width <= plot.width &&
+          r.top >= plot.top &&
+          r.bottom <= plot.bottom &&
+          !(gapLabelRect?.overlaps(r) ?? false) &&
+          !(bandLabelRect?.overlaps(r) ?? false);
+      final rect = [
+        at(c.dy - clear - Dimens.textGap - e.height),
+        at(c.dy + clear + Dimens.textGap),
+      ].where(free).firstOrNull;
+      if (rect != null) {
+        final ey = rect.top;
+        endLabel = () {
+          canvas.drawRRect(
+            RRect.fromRectAndRadius(
+              rect,
+              const Radius.circular(TempChartColors.gapLabelBackdropRadius),
+            ),
+            Paint()..color = TempChartColors.gapLabelBackdrop,
           );
+          e.paint(canvas, Offset(ex, ey));
+        };
       }
     }
     canvas.restore();
     gapLabel?.call();
+    endLabel?.call();
   }
 
   @override
   bool shouldRepaint(_ChartPainter old) =>
       old.data != data || old.deltaC != deltaC || old.scaler != scaler;
-}
-
-/// Legend: the two line styles with their sites' names (INTERIM, S8D-1:
-/// [sites] as the chart's). Hidden from screen readers; the chart has its
-/// own summary.
-class TempChartLegend extends StatelessWidget {
-  const TempChartLegend({super.key, required this.sites});
-
-  final List<int> sites;
-
-  @override
-  Widget build(BuildContext context) {
-    Widget item(bool heel, String label) => Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        CustomPaint(
-          size: const Size(Dimens.iconButtonIcon, Dimens.smallCardIcon),
-          painter: _LegendLine(heel: heel),
-        ),
-        const SizedBox(width: Dimens.tightGap),
-        Text(label, style: AppText.secondary),
-      ],
-    );
-    return ExcludeSemantics(
-      child: Wrap(
-        alignment: WrapAlignment.center,
-        spacing: Dimens.cardGap,
-        runSpacing: Dimens.tightGap,
-        children: [
-          for (final site in sites.reversed)
-            item(site != sites.first, footLayout.zones[site].nameTh),
-        ],
-      ),
-    );
-  }
-}
-
-class _LegendLine extends CustomPainter {
-  _LegendLine({required this.heel});
-
-  final bool heel;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final path = Path()
-      ..moveTo(0, size.height / 2)
-      ..lineTo(size.width, size.height / 2);
-    canvas.drawPath(
-      heel ? path : dashedPath(path, TempChartColors.forefootDash),
-      Paint()
-        ..color = heel ? TempChartColors.heel : TempChartColors.forefoot
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = heel
-            ? TempChartColors.heelWidth
-            : TempChartColors.forefootWidth,
-    );
-  }
-
-  @override
-  bool shouldRepaint(_LegendLine old) => old.heel != heel;
 }

@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../ble/packets.dart';
 import '../../../config/foot_layout.dart';
 import '../../../config/thresholds.dart';
-import '../../../rules/alert_copy.dart' show formatDelta, nbsp;
+import '../../../rules/alert_copy.dart' show formatDelta, nbsp, sideTh;
 import '../../../storage/models.dart';
 import '../../../storage/storage_providers.dart';
 import '../../theme/colors.dart';
@@ -13,7 +13,6 @@ import '../../theme/dimens.dart';
 import '../../theme/typography.dart';
 import '../../widgets/app_card.dart';
 import '../../widgets/details_expander.dart';
-import '../../widgets/motion_widgets.dart';
 import '../../widgets/temp_delta_chart.dart';
 import '../../widgets/temp_site_map.dart';
 import 'my_feet_copy.dart';
@@ -54,9 +53,11 @@ DateTime? _latestOf(List<TemperatureReading> readings) => readings.isEmpty
     ? null
     : DateTime.fromMillisecondsSinceEpoch(readings.last.atMs);
 
-/// My feet › "อุณหภูมิ" (DESIGN-SPEC §8.2): banner, the two site cards,
-/// today's chart, and the numbers behind "ดูตัวเลขละเอียด". Two-foot values
-/// are "—" unless both feet stream (rule 4).
+/// My feet › "อุณหภูมิ" (DESIGN-SPEC §8.2, layout A): banner, the map card
+/// (both feet's 8 sites and the top 3), today's chart (one line, the
+/// largest |ΔT| of the 8 sites), and the table and rows behind
+/// "ดูตัวเลขละเอียด". Two-foot values are "—" unless both feet stream
+/// (rule 4).
 class TemperatureTab extends ConsumerWidget {
   const TemperatureTab({super.key, required this.drawInKey});
 
@@ -70,6 +71,7 @@ class TemperatureTab extends ConsumerWidget {
     final t = ref.watch(thresholdsProvider);
     final since = _sinceOf(v, readings);
     final latest = _latestOf(readings);
+    final table = tempTable(v);
     return Column(
       key: const ValueKey('temperature-tab'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -78,15 +80,13 @@ class TemperatureTab extends ConsumerWidget {
           view: tempBanner(v, latestAt: latest, since: since),
         ),
         const SizedBox(height: Dimens.sectionGap),
-        TwoColumns(
-          left: _SiteCard(view: siteCard(v, v.shownSites.first, t)),
-          right: _SiteCard(view: siteCard(v, v.shownSites.last, t)),
-        ),
+        _MapCard(view: v, thresholds: t),
         const SizedBox(height: Dimens.sectionGap),
         _ChartCard(view: v, readings: readings, drawInKey: drawInKey),
         const SizedBox(height: Dimens.sectionGap),
         DetailsExpander(
           key: const ValueKey('temperature-details'),
+          leading: table.isEmpty ? null : _TempTable(rows: table),
           rows: tempDetailRows(v, t, latestAt: latest, since: since),
         ),
       ],
@@ -94,79 +94,150 @@ class TemperatureTab extends ConsumerWidget {
   }
 }
 
-/// One site card (§8.2): icon with the site dot, site name, the difference
-/// (36/700), "ต่างกันซ้าย–ขวา", and the note.
-class _SiteCard extends StatelessWidget {
-  const _SiteCard({required this.view});
+/// "ความอุ่นซ้าย–ขวา ตอนนี้" (§8.2, layout A): both feet with their 8
+/// sites, the legend, then "จุดที่ต่างกันมากที่สุดตอนนี้" with the top 3.
+class _MapCard extends StatelessWidget {
+  const _MapCard({required this.view, required this.thresholds});
 
-  final SiteCardView view;
+  final TempTabView view;
+  final Thresholds thresholds;
+
+  @override
+  Widget build(BuildContext context) {
+    final sites = tempSites(view, thresholds);
+    final top = topSites(view, thresholds);
+    final empty = topSitesEmptyLine(view);
+    return AppCard(
+      key: const ValueKey('temp-map-card'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text('ความอุ่นซ้าย–ขวา ตอนนี้', style: AppText.cardTitle),
+          const SizedBox(height: Dimens.cardGap),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (final side in FootSide.values) ...[
+                if (side == FootSide.right)
+                  const SizedBox(width: Dimens.feetFootGap),
+                Column(
+                  children: [
+                    TempSiteMap(
+                      key: ValueKey('temp-map-${side.name}'),
+                      side: side,
+                      marks: [for (final s in sites) s.markOn(side)],
+                      semanticLabel: tempMapLabel(side, sites),
+                      width: Dimens.feetFootWidth,
+                      height: Dimens.feetFootHeight,
+                      dashedOutline: !view.foot(side).usable,
+                    ),
+                    const SizedBox(height: Dimens.tightGap),
+                    ExcludeSemantics(
+                      child: Text(
+                        sideTh(side),
+                        style: AppText.labelStrong.copyWith(
+                          color: AppColors.inkMuted,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: Dimens.cardGap),
+          const TempSiteLegend(
+            textStyle: AppText.secondary,
+            items: [
+              (TempSiteMark.warm, 'จุดที่อุ่นกว่า'),
+              (TempSiteMark.plain, 'ใกล้เคียงกัน'),
+              (TempSiteMark.unreadable, 'ยังวัดไม่ได้'),
+            ],
+          ),
+          const SizedBox(height: Dimens.cardGap),
+          if (empty != null)
+            Text(
+              empty,
+              key: const ValueKey('temp-top-empty'),
+              style: AppText.labelStrong.copyWith(color: AppColors.inkMuted),
+              textAlign: TextAlign.center,
+            )
+          else ...[
+            Text(
+              'จุดที่ต่างกันมากที่สุดตอนนี้',
+              style: AppText.labelStrong.copyWith(
+                color: AppColors.inkMuted,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: Dimens.tightGap),
+            for (final s in top) _SiteRow(view: s),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// One row of "จุดที่ต่างกันมากที่สุดตอนนี้": dot, site over note, and
+/// "{x.x}°" (the Rest colour with `octagon-alert` while `TEMP_DELTA`
+/// holds there).
+class _SiteRow extends StatelessWidget {
+  const _SiteRow({required this.view});
+
+  final TempSiteView view;
 
   @override
   Widget build(BuildContext context) {
     final rest = StatusColors.rest;
-    final d = view.deltaC;
-    return AppCard(
-      key: ValueKey('site-card-${footLayout.zones[view.site].id}'),
-      padding: const EdgeInsets.all(Dimens.smallCardPadding),
-      child: MergeSemantics(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    final d = view.deltaC!;
+    return MergeSemantics(
+      child: Container(
+        key: ValueKey('temp-row-${footLayout.zones[view.site].id}'),
+        padding: const EdgeInsets.symmetric(vertical: Dimens.detailRowPaddingV),
+        decoration: topDivider,
+        child: Row(
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                TempSiteIcon(
-                  site: view.site,
-                  state: view.missing
-                      ? SiteIconState.missing
-                      : view.alerting
-                      ? SiteIconState.alerting
-                      : SiteIconState.normal,
-                ),
-                const SizedBox(width: Dimens.tightGap),
-                Expanded(child: Text(view.siteTh, style: AppText.bodyStrong)),
-              ],
-            ),
-            const SizedBox(height: Dimens.tightGap),
-            if (d == null)
-              Text(
-                '—',
-                style: AppText.bigNumber.copyWith(color: AppColors.inkMuted),
-              )
-            else
-              Semantics(
-                label: '${formatDelta(d)}$nbspองศา',
-                excludeSemantics: true,
-                child: AnimatedNumber(
-                  value: d,
-                  format: (x) => '${formatDelta(x)}°',
-                  style: AppText.bigNumber.copyWith(
-                    color: view.alerting ? rest.text : null,
-                  ),
+            SizedBox(
+              width: FootDotColors.high.radius * Dimens.zoneRowDotScale * 2,
+              child: Center(
+                child: TempSiteDot(
+                  mark: view.rowMark,
+                  radius: TempSiteColors.radius * Dimens.zoneRowDotScale,
                 ),
               ),
-            const Text('ต่างกันซ้าย–ขวา', style: AppText.secondary),
-            const SizedBox(height: Dimens.tightGap),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (view.alerting) ...[
-                  Icon(
-                    LucideIcons.octagon_alert,
-                    size: Dimens.smallCardIcon,
-                    color: rest.icon,
-                  ),
-                  const SizedBox(width: Dimens.textGap),
+            ),
+            const SizedBox(width: Dimens.buttonGap),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(view.siteTh, style: AppText.bodyStrong),
+                  Text(view.note, style: AppText.secondary),
                 ],
-                Expanded(
-                  child: Text(
-                    view.note,
-                    style: AppText.labelStrong.copyWith(
-                      color: view.alerting ? rest.text : null,
-                    ),
-                  ),
+              ),
+            ),
+            const SizedBox(width: Dimens.tightGap),
+            if (view.alerting) ...[
+              Icon(
+                LucideIcons.octagon_alert,
+                size: Dimens.tagIcon,
+                color: rest.icon,
+              ),
+              const SizedBox(width: Dimens.textGap),
+            ],
+            Semantics(
+              label: '${formatDelta(d)}$nbspองศา',
+              excludeSemantics: true,
+              child: Text(
+                '${formatDelta(d)}°',
+                style: AppText.labelStrong.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: view.alerting ? rest.text : AppColors.ink,
+                  fontFeatures: const [FontFeature.tabularFigures()],
                 ),
-              ],
+              ),
             ),
           ],
         ),
@@ -193,7 +264,6 @@ class _ChartCard extends ConsumerWidget {
       readings,
       now: view.minute,
       usable: {for (final s in FootSide.values) s: view.foot(s).usable},
-      sites: view.shownSites,
     );
     return AppCard(
       key: const ValueKey('temp-chart-card'),
@@ -224,13 +294,68 @@ class _ChartCard extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: Dimens.buttonGap),
-          TempChartLegend(sites: view.shownSites),
-          const SizedBox(height: Dimens.buttonGap),
+          // S8D-2 draft: the line can switch sites; the alert counts each
+          // site on its own (rule 6).
           Text(
-            'แอปจะเตือนเมื่อเส้นขึ้นไปถึงแถบสีแดงติดกัน '
+            'แอปจะเตือนเมื่อจุดเดียวกันขึ้นถึงแถบสีแดงติดกัน '
             '${t.consecutiveReadings}$nbspครั้ง',
+            key: const ValueKey('temp-chart-note'),
             style: AppText.secondary,
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// "อุณหภูมิตอนนี้ (°C)": sites down, "ซ้าย" / "ขวา" / "ต่าง" across,
+/// numbers right-aligned in 64 px columns with tabular figures (§8.2,
+/// modelled on Pressure's kPa table).
+class _TempTable extends StatelessWidget {
+  const _TempTable({required this.rows});
+
+  final List<TempTableRow> rows;
+
+  static const _column = 64.0;
+
+  @override
+  Widget build(BuildContext context) {
+    const numbers = TextStyle(fontFeatures: [FontFeature.tabularFigures()]);
+    final value = AppText.labelStrong.merge(numbers);
+    Widget row(TempTableRow r, {bool header = false}) {
+      final style = header ? AppText.secondary : value;
+      return Container(
+        padding: const EdgeInsets.symmetric(vertical: Dimens.textGap * 2),
+        decoration: header ? null : topDivider,
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                r.site,
+                style: header ? AppText.secondary : AppText.labelStrong,
+              ),
+            ),
+            for (final v in [r.left, r.right, r.delta])
+              SizedBox(
+                width: _column,
+                child: Text(v, style: style, textAlign: TextAlign.end),
+              ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      key: const ValueKey('temp-table'),
+      padding: const EdgeInsets.only(bottom: Dimens.tightGap),
+      decoration: topDivider,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SizedBox(height: Dimens.detailRowPaddingV),
+          Text('อุณหภูมิตอนนี้ (°C)', style: AppText.secondary),
+          row(const TempTableRow('จุด', 'ซ้าย', 'ขวา', 'ต่าง'), header: true),
+          for (final r in rows) row(r),
         ],
       ),
     );
