@@ -309,14 +309,15 @@ class _ChartCard extends ConsumerWidget {
 }
 
 /// "อุณหภูมิตอนนี้ (°C)": sites down, "ซ้าย" / "ขวา" / "ต่าง" across,
-/// numbers right-aligned in 64 px columns with tabular figures (§8.2,
-/// modelled on Pressure's kPa table).
+/// numbers right-aligned in 52 px columns with tabular figures (§8.2,
+/// modelled on Pressure's kPa table; three columns, so narrower than its
+/// 64, leaving the site names room at 100 % text).
 class _TempTable extends StatelessWidget {
   const _TempTable({required this.rows});
 
   final List<TempTableRow> rows;
 
-  static const _column = 64.0;
+  static const _column = 52.0;
 
   @override
   Widget build(BuildContext context) {
