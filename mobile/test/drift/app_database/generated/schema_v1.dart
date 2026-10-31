@@ -4,7 +4,7 @@
 //
 import 'package:drift/drift.dart';
 
-class FootChecks extends Table with TableInfo {
+class FootChecks extends Table with TableInfo<FootChecks, FootChecksData> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
@@ -129,8 +129,58 @@ class FootChecks extends Table with TableInfo {
   @override
   Set<GeneratedColumn> get $primaryKey => {id};
   @override
-  Never map(Map<String, dynamic> data, {String? tablePrefix}) {
-    throw UnsupportedError('TableInfo.map in schema verification code');
+  FootChecksData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return FootChecksData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      atMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}at_ms'],
+      )!,
+      localDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}local_date'],
+      )!,
+      qRedness: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}q_redness'],
+      ),
+      qWound: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}q_wound'],
+      ),
+      qSwelling: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}q_swelling'],
+      ),
+      result: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}result'],
+      )!,
+      photoSoleLeft: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}photo_sole_left'],
+      ),
+      photoSoleRight: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}photo_sole_right'],
+      ),
+      photoTopLeft: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}photo_top_left'],
+      ),
+      photoTopRight: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}photo_top_right'],
+      ),
+      answerOnly: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}answer_only'],
+      )!,
+    );
   }
 
   @override
@@ -142,7 +192,414 @@ class FootChecks extends Table with TableInfo {
   bool get dontWriteConstraints => true;
 }
 
-class Alerts extends Table with TableInfo {
+class FootChecksData extends DataClass implements Insertable<FootChecksData> {
+  final int id;
+  final int atMs;
+  final String localDate;
+  final String? qRedness;
+  final String? qWound;
+  final String? qSwelling;
+  final String result;
+  final String? photoSoleLeft;
+  final String? photoSoleRight;
+  final String? photoTopLeft;
+  final String? photoTopRight;
+  final int answerOnly;
+  const FootChecksData({
+    required this.id,
+    required this.atMs,
+    required this.localDate,
+    this.qRedness,
+    this.qWound,
+    this.qSwelling,
+    required this.result,
+    this.photoSoleLeft,
+    this.photoSoleRight,
+    this.photoTopLeft,
+    this.photoTopRight,
+    required this.answerOnly,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['at_ms'] = Variable<int>(atMs);
+    map['local_date'] = Variable<String>(localDate);
+    if (!nullToAbsent || qRedness != null) {
+      map['q_redness'] = Variable<String>(qRedness);
+    }
+    if (!nullToAbsent || qWound != null) {
+      map['q_wound'] = Variable<String>(qWound);
+    }
+    if (!nullToAbsent || qSwelling != null) {
+      map['q_swelling'] = Variable<String>(qSwelling);
+    }
+    map['result'] = Variable<String>(result);
+    if (!nullToAbsent || photoSoleLeft != null) {
+      map['photo_sole_left'] = Variable<String>(photoSoleLeft);
+    }
+    if (!nullToAbsent || photoSoleRight != null) {
+      map['photo_sole_right'] = Variable<String>(photoSoleRight);
+    }
+    if (!nullToAbsent || photoTopLeft != null) {
+      map['photo_top_left'] = Variable<String>(photoTopLeft);
+    }
+    if (!nullToAbsent || photoTopRight != null) {
+      map['photo_top_right'] = Variable<String>(photoTopRight);
+    }
+    map['answer_only'] = Variable<int>(answerOnly);
+    return map;
+  }
+
+  FootChecksCompanion toCompanion(bool nullToAbsent) {
+    return FootChecksCompanion(
+      id: Value(id),
+      atMs: Value(atMs),
+      localDate: Value(localDate),
+      qRedness: qRedness == null && nullToAbsent
+          ? const Value.absent()
+          : Value(qRedness),
+      qWound: qWound == null && nullToAbsent
+          ? const Value.absent()
+          : Value(qWound),
+      qSwelling: qSwelling == null && nullToAbsent
+          ? const Value.absent()
+          : Value(qSwelling),
+      result: Value(result),
+      photoSoleLeft: photoSoleLeft == null && nullToAbsent
+          ? const Value.absent()
+          : Value(photoSoleLeft),
+      photoSoleRight: photoSoleRight == null && nullToAbsent
+          ? const Value.absent()
+          : Value(photoSoleRight),
+      photoTopLeft: photoTopLeft == null && nullToAbsent
+          ? const Value.absent()
+          : Value(photoTopLeft),
+      photoTopRight: photoTopRight == null && nullToAbsent
+          ? const Value.absent()
+          : Value(photoTopRight),
+      answerOnly: Value(answerOnly),
+    );
+  }
+
+  factory FootChecksData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return FootChecksData(
+      id: serializer.fromJson<int>(json['id']),
+      atMs: serializer.fromJson<int>(json['atMs']),
+      localDate: serializer.fromJson<String>(json['localDate']),
+      qRedness: serializer.fromJson<String?>(json['qRedness']),
+      qWound: serializer.fromJson<String?>(json['qWound']),
+      qSwelling: serializer.fromJson<String?>(json['qSwelling']),
+      result: serializer.fromJson<String>(json['result']),
+      photoSoleLeft: serializer.fromJson<String?>(json['photoSoleLeft']),
+      photoSoleRight: serializer.fromJson<String?>(json['photoSoleRight']),
+      photoTopLeft: serializer.fromJson<String?>(json['photoTopLeft']),
+      photoTopRight: serializer.fromJson<String?>(json['photoTopRight']),
+      answerOnly: serializer.fromJson<int>(json['answerOnly']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'atMs': serializer.toJson<int>(atMs),
+      'localDate': serializer.toJson<String>(localDate),
+      'qRedness': serializer.toJson<String?>(qRedness),
+      'qWound': serializer.toJson<String?>(qWound),
+      'qSwelling': serializer.toJson<String?>(qSwelling),
+      'result': serializer.toJson<String>(result),
+      'photoSoleLeft': serializer.toJson<String?>(photoSoleLeft),
+      'photoSoleRight': serializer.toJson<String?>(photoSoleRight),
+      'photoTopLeft': serializer.toJson<String?>(photoTopLeft),
+      'photoTopRight': serializer.toJson<String?>(photoTopRight),
+      'answerOnly': serializer.toJson<int>(answerOnly),
+    };
+  }
+
+  FootChecksData copyWith({
+    int? id,
+    int? atMs,
+    String? localDate,
+    Value<String?> qRedness = const Value.absent(),
+    Value<String?> qWound = const Value.absent(),
+    Value<String?> qSwelling = const Value.absent(),
+    String? result,
+    Value<String?> photoSoleLeft = const Value.absent(),
+    Value<String?> photoSoleRight = const Value.absent(),
+    Value<String?> photoTopLeft = const Value.absent(),
+    Value<String?> photoTopRight = const Value.absent(),
+    int? answerOnly,
+  }) => FootChecksData(
+    id: id ?? this.id,
+    atMs: atMs ?? this.atMs,
+    localDate: localDate ?? this.localDate,
+    qRedness: qRedness.present ? qRedness.value : this.qRedness,
+    qWound: qWound.present ? qWound.value : this.qWound,
+    qSwelling: qSwelling.present ? qSwelling.value : this.qSwelling,
+    result: result ?? this.result,
+    photoSoleLeft: photoSoleLeft.present
+        ? photoSoleLeft.value
+        : this.photoSoleLeft,
+    photoSoleRight: photoSoleRight.present
+        ? photoSoleRight.value
+        : this.photoSoleRight,
+    photoTopLeft: photoTopLeft.present ? photoTopLeft.value : this.photoTopLeft,
+    photoTopRight: photoTopRight.present
+        ? photoTopRight.value
+        : this.photoTopRight,
+    answerOnly: answerOnly ?? this.answerOnly,
+  );
+  FootChecksData copyWithCompanion(FootChecksCompanion data) {
+    return FootChecksData(
+      id: data.id.present ? data.id.value : this.id,
+      atMs: data.atMs.present ? data.atMs.value : this.atMs,
+      localDate: data.localDate.present ? data.localDate.value : this.localDate,
+      qRedness: data.qRedness.present ? data.qRedness.value : this.qRedness,
+      qWound: data.qWound.present ? data.qWound.value : this.qWound,
+      qSwelling: data.qSwelling.present ? data.qSwelling.value : this.qSwelling,
+      result: data.result.present ? data.result.value : this.result,
+      photoSoleLeft: data.photoSoleLeft.present
+          ? data.photoSoleLeft.value
+          : this.photoSoleLeft,
+      photoSoleRight: data.photoSoleRight.present
+          ? data.photoSoleRight.value
+          : this.photoSoleRight,
+      photoTopLeft: data.photoTopLeft.present
+          ? data.photoTopLeft.value
+          : this.photoTopLeft,
+      photoTopRight: data.photoTopRight.present
+          ? data.photoTopRight.value
+          : this.photoTopRight,
+      answerOnly: data.answerOnly.present
+          ? data.answerOnly.value
+          : this.answerOnly,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FootChecksData(')
+          ..write('id: $id, ')
+          ..write('atMs: $atMs, ')
+          ..write('localDate: $localDate, ')
+          ..write('qRedness: $qRedness, ')
+          ..write('qWound: $qWound, ')
+          ..write('qSwelling: $qSwelling, ')
+          ..write('result: $result, ')
+          ..write('photoSoleLeft: $photoSoleLeft, ')
+          ..write('photoSoleRight: $photoSoleRight, ')
+          ..write('photoTopLeft: $photoTopLeft, ')
+          ..write('photoTopRight: $photoTopRight, ')
+          ..write('answerOnly: $answerOnly')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    atMs,
+    localDate,
+    qRedness,
+    qWound,
+    qSwelling,
+    result,
+    photoSoleLeft,
+    photoSoleRight,
+    photoTopLeft,
+    photoTopRight,
+    answerOnly,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is FootChecksData &&
+          other.id == this.id &&
+          other.atMs == this.atMs &&
+          other.localDate == this.localDate &&
+          other.qRedness == this.qRedness &&
+          other.qWound == this.qWound &&
+          other.qSwelling == this.qSwelling &&
+          other.result == this.result &&
+          other.photoSoleLeft == this.photoSoleLeft &&
+          other.photoSoleRight == this.photoSoleRight &&
+          other.photoTopLeft == this.photoTopLeft &&
+          other.photoTopRight == this.photoTopRight &&
+          other.answerOnly == this.answerOnly);
+}
+
+class FootChecksCompanion extends UpdateCompanion<FootChecksData> {
+  final Value<int> id;
+  final Value<int> atMs;
+  final Value<String> localDate;
+  final Value<String?> qRedness;
+  final Value<String?> qWound;
+  final Value<String?> qSwelling;
+  final Value<String> result;
+  final Value<String?> photoSoleLeft;
+  final Value<String?> photoSoleRight;
+  final Value<String?> photoTopLeft;
+  final Value<String?> photoTopRight;
+  final Value<int> answerOnly;
+  const FootChecksCompanion({
+    this.id = const Value.absent(),
+    this.atMs = const Value.absent(),
+    this.localDate = const Value.absent(),
+    this.qRedness = const Value.absent(),
+    this.qWound = const Value.absent(),
+    this.qSwelling = const Value.absent(),
+    this.result = const Value.absent(),
+    this.photoSoleLeft = const Value.absent(),
+    this.photoSoleRight = const Value.absent(),
+    this.photoTopLeft = const Value.absent(),
+    this.photoTopRight = const Value.absent(),
+    this.answerOnly = const Value.absent(),
+  });
+  FootChecksCompanion.insert({
+    this.id = const Value.absent(),
+    required int atMs,
+    required String localDate,
+    this.qRedness = const Value.absent(),
+    this.qWound = const Value.absent(),
+    this.qSwelling = const Value.absent(),
+    required String result,
+    this.photoSoleLeft = const Value.absent(),
+    this.photoSoleRight = const Value.absent(),
+    this.photoTopLeft = const Value.absent(),
+    this.photoTopRight = const Value.absent(),
+    required int answerOnly,
+  }) : atMs = Value(atMs),
+       localDate = Value(localDate),
+       result = Value(result),
+       answerOnly = Value(answerOnly);
+  static Insertable<FootChecksData> custom({
+    Expression<int>? id,
+    Expression<int>? atMs,
+    Expression<String>? localDate,
+    Expression<String>? qRedness,
+    Expression<String>? qWound,
+    Expression<String>? qSwelling,
+    Expression<String>? result,
+    Expression<String>? photoSoleLeft,
+    Expression<String>? photoSoleRight,
+    Expression<String>? photoTopLeft,
+    Expression<String>? photoTopRight,
+    Expression<int>? answerOnly,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (atMs != null) 'at_ms': atMs,
+      if (localDate != null) 'local_date': localDate,
+      if (qRedness != null) 'q_redness': qRedness,
+      if (qWound != null) 'q_wound': qWound,
+      if (qSwelling != null) 'q_swelling': qSwelling,
+      if (result != null) 'result': result,
+      if (photoSoleLeft != null) 'photo_sole_left': photoSoleLeft,
+      if (photoSoleRight != null) 'photo_sole_right': photoSoleRight,
+      if (photoTopLeft != null) 'photo_top_left': photoTopLeft,
+      if (photoTopRight != null) 'photo_top_right': photoTopRight,
+      if (answerOnly != null) 'answer_only': answerOnly,
+    });
+  }
+
+  FootChecksCompanion copyWith({
+    Value<int>? id,
+    Value<int>? atMs,
+    Value<String>? localDate,
+    Value<String?>? qRedness,
+    Value<String?>? qWound,
+    Value<String?>? qSwelling,
+    Value<String>? result,
+    Value<String?>? photoSoleLeft,
+    Value<String?>? photoSoleRight,
+    Value<String?>? photoTopLeft,
+    Value<String?>? photoTopRight,
+    Value<int>? answerOnly,
+  }) {
+    return FootChecksCompanion(
+      id: id ?? this.id,
+      atMs: atMs ?? this.atMs,
+      localDate: localDate ?? this.localDate,
+      qRedness: qRedness ?? this.qRedness,
+      qWound: qWound ?? this.qWound,
+      qSwelling: qSwelling ?? this.qSwelling,
+      result: result ?? this.result,
+      photoSoleLeft: photoSoleLeft ?? this.photoSoleLeft,
+      photoSoleRight: photoSoleRight ?? this.photoSoleRight,
+      photoTopLeft: photoTopLeft ?? this.photoTopLeft,
+      photoTopRight: photoTopRight ?? this.photoTopRight,
+      answerOnly: answerOnly ?? this.answerOnly,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (atMs.present) {
+      map['at_ms'] = Variable<int>(atMs.value);
+    }
+    if (localDate.present) {
+      map['local_date'] = Variable<String>(localDate.value);
+    }
+    if (qRedness.present) {
+      map['q_redness'] = Variable<String>(qRedness.value);
+    }
+    if (qWound.present) {
+      map['q_wound'] = Variable<String>(qWound.value);
+    }
+    if (qSwelling.present) {
+      map['q_swelling'] = Variable<String>(qSwelling.value);
+    }
+    if (result.present) {
+      map['result'] = Variable<String>(result.value);
+    }
+    if (photoSoleLeft.present) {
+      map['photo_sole_left'] = Variable<String>(photoSoleLeft.value);
+    }
+    if (photoSoleRight.present) {
+      map['photo_sole_right'] = Variable<String>(photoSoleRight.value);
+    }
+    if (photoTopLeft.present) {
+      map['photo_top_left'] = Variable<String>(photoTopLeft.value);
+    }
+    if (photoTopRight.present) {
+      map['photo_top_right'] = Variable<String>(photoTopRight.value);
+    }
+    if (answerOnly.present) {
+      map['answer_only'] = Variable<int>(answerOnly.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FootChecksCompanion(')
+          ..write('id: $id, ')
+          ..write('atMs: $atMs, ')
+          ..write('localDate: $localDate, ')
+          ..write('qRedness: $qRedness, ')
+          ..write('qWound: $qWound, ')
+          ..write('qSwelling: $qSwelling, ')
+          ..write('result: $result, ')
+          ..write('photoSoleLeft: $photoSoleLeft, ')
+          ..write('photoSoleRight: $photoSoleRight, ')
+          ..write('photoTopLeft: $photoTopLeft, ')
+          ..write('photoTopRight: $photoTopRight, ')
+          ..write('answerOnly: $answerOnly')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class Alerts extends Table with TableInfo<Alerts, AlertsData> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
@@ -312,8 +769,78 @@ class Alerts extends Table with TableInfo {
   @override
   Set<GeneratedColumn> get $primaryKey => {id};
   @override
-  Never map(Map<String, dynamic> data, {String? tablePrefix}) {
-    throw UnsupportedError('TableInfo.map in schema verification code');
+  AlertsData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return AlertsData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      code: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}code'],
+      )!,
+      level: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}level'],
+      )!,
+      patientStatus: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}patient_status'],
+      )!,
+      side: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}side'],
+      ),
+      zone: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}zone'],
+      ),
+      site: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}site'],
+      ),
+      measuredValue: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}measured_value'],
+      ),
+      threshold: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}threshold'],
+      ),
+      gaitClass: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}gait_class'],
+      ),
+      gaitConfidence: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}gait_confidence'],
+      ),
+      details: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}details'],
+      ),
+      atMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}at_ms'],
+      )!,
+      localDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}local_date'],
+      )!,
+      readAtMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}read_at_ms'],
+      ),
+      captureStamp: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}capture_stamp'],
+      ),
+      footCheckId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}foot_check_id'],
+      ),
+    );
   }
 
   @override
@@ -325,7 +852,539 @@ class Alerts extends Table with TableInfo {
   bool get dontWriteConstraints => true;
 }
 
-class TemperatureReadings extends Table with TableInfo {
+class AlertsData extends DataClass implements Insertable<AlertsData> {
+  final int id;
+  final String code;
+  final int level;
+  final String patientStatus;
+  final String? side;
+  final String? zone;
+  final String? site;
+  final double? measuredValue;
+  final double? threshold;
+  final String? gaitClass;
+  final double? gaitConfidence;
+  final String? details;
+  final int atMs;
+  final String localDate;
+  final int? readAtMs;
+  final String? captureStamp;
+  final int? footCheckId;
+  const AlertsData({
+    required this.id,
+    required this.code,
+    required this.level,
+    required this.patientStatus,
+    this.side,
+    this.zone,
+    this.site,
+    this.measuredValue,
+    this.threshold,
+    this.gaitClass,
+    this.gaitConfidence,
+    this.details,
+    required this.atMs,
+    required this.localDate,
+    this.readAtMs,
+    this.captureStamp,
+    this.footCheckId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['code'] = Variable<String>(code);
+    map['level'] = Variable<int>(level);
+    map['patient_status'] = Variable<String>(patientStatus);
+    if (!nullToAbsent || side != null) {
+      map['side'] = Variable<String>(side);
+    }
+    if (!nullToAbsent || zone != null) {
+      map['zone'] = Variable<String>(zone);
+    }
+    if (!nullToAbsent || site != null) {
+      map['site'] = Variable<String>(site);
+    }
+    if (!nullToAbsent || measuredValue != null) {
+      map['measured_value'] = Variable<double>(measuredValue);
+    }
+    if (!nullToAbsent || threshold != null) {
+      map['threshold'] = Variable<double>(threshold);
+    }
+    if (!nullToAbsent || gaitClass != null) {
+      map['gait_class'] = Variable<String>(gaitClass);
+    }
+    if (!nullToAbsent || gaitConfidence != null) {
+      map['gait_confidence'] = Variable<double>(gaitConfidence);
+    }
+    if (!nullToAbsent || details != null) {
+      map['details'] = Variable<String>(details);
+    }
+    map['at_ms'] = Variable<int>(atMs);
+    map['local_date'] = Variable<String>(localDate);
+    if (!nullToAbsent || readAtMs != null) {
+      map['read_at_ms'] = Variable<int>(readAtMs);
+    }
+    if (!nullToAbsent || captureStamp != null) {
+      map['capture_stamp'] = Variable<String>(captureStamp);
+    }
+    if (!nullToAbsent || footCheckId != null) {
+      map['foot_check_id'] = Variable<int>(footCheckId);
+    }
+    return map;
+  }
+
+  AlertsCompanion toCompanion(bool nullToAbsent) {
+    return AlertsCompanion(
+      id: Value(id),
+      code: Value(code),
+      level: Value(level),
+      patientStatus: Value(patientStatus),
+      side: side == null && nullToAbsent ? const Value.absent() : Value(side),
+      zone: zone == null && nullToAbsent ? const Value.absent() : Value(zone),
+      site: site == null && nullToAbsent ? const Value.absent() : Value(site),
+      measuredValue: measuredValue == null && nullToAbsent
+          ? const Value.absent()
+          : Value(measuredValue),
+      threshold: threshold == null && nullToAbsent
+          ? const Value.absent()
+          : Value(threshold),
+      gaitClass: gaitClass == null && nullToAbsent
+          ? const Value.absent()
+          : Value(gaitClass),
+      gaitConfidence: gaitConfidence == null && nullToAbsent
+          ? const Value.absent()
+          : Value(gaitConfidence),
+      details: details == null && nullToAbsent
+          ? const Value.absent()
+          : Value(details),
+      atMs: Value(atMs),
+      localDate: Value(localDate),
+      readAtMs: readAtMs == null && nullToAbsent
+          ? const Value.absent()
+          : Value(readAtMs),
+      captureStamp: captureStamp == null && nullToAbsent
+          ? const Value.absent()
+          : Value(captureStamp),
+      footCheckId: footCheckId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(footCheckId),
+    );
+  }
+
+  factory AlertsData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return AlertsData(
+      id: serializer.fromJson<int>(json['id']),
+      code: serializer.fromJson<String>(json['code']),
+      level: serializer.fromJson<int>(json['level']),
+      patientStatus: serializer.fromJson<String>(json['patientStatus']),
+      side: serializer.fromJson<String?>(json['side']),
+      zone: serializer.fromJson<String?>(json['zone']),
+      site: serializer.fromJson<String?>(json['site']),
+      measuredValue: serializer.fromJson<double?>(json['measuredValue']),
+      threshold: serializer.fromJson<double?>(json['threshold']),
+      gaitClass: serializer.fromJson<String?>(json['gaitClass']),
+      gaitConfidence: serializer.fromJson<double?>(json['gaitConfidence']),
+      details: serializer.fromJson<String?>(json['details']),
+      atMs: serializer.fromJson<int>(json['atMs']),
+      localDate: serializer.fromJson<String>(json['localDate']),
+      readAtMs: serializer.fromJson<int?>(json['readAtMs']),
+      captureStamp: serializer.fromJson<String?>(json['captureStamp']),
+      footCheckId: serializer.fromJson<int?>(json['footCheckId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'code': serializer.toJson<String>(code),
+      'level': serializer.toJson<int>(level),
+      'patientStatus': serializer.toJson<String>(patientStatus),
+      'side': serializer.toJson<String?>(side),
+      'zone': serializer.toJson<String?>(zone),
+      'site': serializer.toJson<String?>(site),
+      'measuredValue': serializer.toJson<double?>(measuredValue),
+      'threshold': serializer.toJson<double?>(threshold),
+      'gaitClass': serializer.toJson<String?>(gaitClass),
+      'gaitConfidence': serializer.toJson<double?>(gaitConfidence),
+      'details': serializer.toJson<String?>(details),
+      'atMs': serializer.toJson<int>(atMs),
+      'localDate': serializer.toJson<String>(localDate),
+      'readAtMs': serializer.toJson<int?>(readAtMs),
+      'captureStamp': serializer.toJson<String?>(captureStamp),
+      'footCheckId': serializer.toJson<int?>(footCheckId),
+    };
+  }
+
+  AlertsData copyWith({
+    int? id,
+    String? code,
+    int? level,
+    String? patientStatus,
+    Value<String?> side = const Value.absent(),
+    Value<String?> zone = const Value.absent(),
+    Value<String?> site = const Value.absent(),
+    Value<double?> measuredValue = const Value.absent(),
+    Value<double?> threshold = const Value.absent(),
+    Value<String?> gaitClass = const Value.absent(),
+    Value<double?> gaitConfidence = const Value.absent(),
+    Value<String?> details = const Value.absent(),
+    int? atMs,
+    String? localDate,
+    Value<int?> readAtMs = const Value.absent(),
+    Value<String?> captureStamp = const Value.absent(),
+    Value<int?> footCheckId = const Value.absent(),
+  }) => AlertsData(
+    id: id ?? this.id,
+    code: code ?? this.code,
+    level: level ?? this.level,
+    patientStatus: patientStatus ?? this.patientStatus,
+    side: side.present ? side.value : this.side,
+    zone: zone.present ? zone.value : this.zone,
+    site: site.present ? site.value : this.site,
+    measuredValue: measuredValue.present
+        ? measuredValue.value
+        : this.measuredValue,
+    threshold: threshold.present ? threshold.value : this.threshold,
+    gaitClass: gaitClass.present ? gaitClass.value : this.gaitClass,
+    gaitConfidence: gaitConfidence.present
+        ? gaitConfidence.value
+        : this.gaitConfidence,
+    details: details.present ? details.value : this.details,
+    atMs: atMs ?? this.atMs,
+    localDate: localDate ?? this.localDate,
+    readAtMs: readAtMs.present ? readAtMs.value : this.readAtMs,
+    captureStamp: captureStamp.present ? captureStamp.value : this.captureStamp,
+    footCheckId: footCheckId.present ? footCheckId.value : this.footCheckId,
+  );
+  AlertsData copyWithCompanion(AlertsCompanion data) {
+    return AlertsData(
+      id: data.id.present ? data.id.value : this.id,
+      code: data.code.present ? data.code.value : this.code,
+      level: data.level.present ? data.level.value : this.level,
+      patientStatus: data.patientStatus.present
+          ? data.patientStatus.value
+          : this.patientStatus,
+      side: data.side.present ? data.side.value : this.side,
+      zone: data.zone.present ? data.zone.value : this.zone,
+      site: data.site.present ? data.site.value : this.site,
+      measuredValue: data.measuredValue.present
+          ? data.measuredValue.value
+          : this.measuredValue,
+      threshold: data.threshold.present ? data.threshold.value : this.threshold,
+      gaitClass: data.gaitClass.present ? data.gaitClass.value : this.gaitClass,
+      gaitConfidence: data.gaitConfidence.present
+          ? data.gaitConfidence.value
+          : this.gaitConfidence,
+      details: data.details.present ? data.details.value : this.details,
+      atMs: data.atMs.present ? data.atMs.value : this.atMs,
+      localDate: data.localDate.present ? data.localDate.value : this.localDate,
+      readAtMs: data.readAtMs.present ? data.readAtMs.value : this.readAtMs,
+      captureStamp: data.captureStamp.present
+          ? data.captureStamp.value
+          : this.captureStamp,
+      footCheckId: data.footCheckId.present
+          ? data.footCheckId.value
+          : this.footCheckId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AlertsData(')
+          ..write('id: $id, ')
+          ..write('code: $code, ')
+          ..write('level: $level, ')
+          ..write('patientStatus: $patientStatus, ')
+          ..write('side: $side, ')
+          ..write('zone: $zone, ')
+          ..write('site: $site, ')
+          ..write('measuredValue: $measuredValue, ')
+          ..write('threshold: $threshold, ')
+          ..write('gaitClass: $gaitClass, ')
+          ..write('gaitConfidence: $gaitConfidence, ')
+          ..write('details: $details, ')
+          ..write('atMs: $atMs, ')
+          ..write('localDate: $localDate, ')
+          ..write('readAtMs: $readAtMs, ')
+          ..write('captureStamp: $captureStamp, ')
+          ..write('footCheckId: $footCheckId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    code,
+    level,
+    patientStatus,
+    side,
+    zone,
+    site,
+    measuredValue,
+    threshold,
+    gaitClass,
+    gaitConfidence,
+    details,
+    atMs,
+    localDate,
+    readAtMs,
+    captureStamp,
+    footCheckId,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is AlertsData &&
+          other.id == this.id &&
+          other.code == this.code &&
+          other.level == this.level &&
+          other.patientStatus == this.patientStatus &&
+          other.side == this.side &&
+          other.zone == this.zone &&
+          other.site == this.site &&
+          other.measuredValue == this.measuredValue &&
+          other.threshold == this.threshold &&
+          other.gaitClass == this.gaitClass &&
+          other.gaitConfidence == this.gaitConfidence &&
+          other.details == this.details &&
+          other.atMs == this.atMs &&
+          other.localDate == this.localDate &&
+          other.readAtMs == this.readAtMs &&
+          other.captureStamp == this.captureStamp &&
+          other.footCheckId == this.footCheckId);
+}
+
+class AlertsCompanion extends UpdateCompanion<AlertsData> {
+  final Value<int> id;
+  final Value<String> code;
+  final Value<int> level;
+  final Value<String> patientStatus;
+  final Value<String?> side;
+  final Value<String?> zone;
+  final Value<String?> site;
+  final Value<double?> measuredValue;
+  final Value<double?> threshold;
+  final Value<String?> gaitClass;
+  final Value<double?> gaitConfidence;
+  final Value<String?> details;
+  final Value<int> atMs;
+  final Value<String> localDate;
+  final Value<int?> readAtMs;
+  final Value<String?> captureStamp;
+  final Value<int?> footCheckId;
+  const AlertsCompanion({
+    this.id = const Value.absent(),
+    this.code = const Value.absent(),
+    this.level = const Value.absent(),
+    this.patientStatus = const Value.absent(),
+    this.side = const Value.absent(),
+    this.zone = const Value.absent(),
+    this.site = const Value.absent(),
+    this.measuredValue = const Value.absent(),
+    this.threshold = const Value.absent(),
+    this.gaitClass = const Value.absent(),
+    this.gaitConfidence = const Value.absent(),
+    this.details = const Value.absent(),
+    this.atMs = const Value.absent(),
+    this.localDate = const Value.absent(),
+    this.readAtMs = const Value.absent(),
+    this.captureStamp = const Value.absent(),
+    this.footCheckId = const Value.absent(),
+  });
+  AlertsCompanion.insert({
+    this.id = const Value.absent(),
+    required String code,
+    required int level,
+    required String patientStatus,
+    this.side = const Value.absent(),
+    this.zone = const Value.absent(),
+    this.site = const Value.absent(),
+    this.measuredValue = const Value.absent(),
+    this.threshold = const Value.absent(),
+    this.gaitClass = const Value.absent(),
+    this.gaitConfidence = const Value.absent(),
+    this.details = const Value.absent(),
+    required int atMs,
+    required String localDate,
+    this.readAtMs = const Value.absent(),
+    this.captureStamp = const Value.absent(),
+    this.footCheckId = const Value.absent(),
+  }) : code = Value(code),
+       level = Value(level),
+       patientStatus = Value(patientStatus),
+       atMs = Value(atMs),
+       localDate = Value(localDate);
+  static Insertable<AlertsData> custom({
+    Expression<int>? id,
+    Expression<String>? code,
+    Expression<int>? level,
+    Expression<String>? patientStatus,
+    Expression<String>? side,
+    Expression<String>? zone,
+    Expression<String>? site,
+    Expression<double>? measuredValue,
+    Expression<double>? threshold,
+    Expression<String>? gaitClass,
+    Expression<double>? gaitConfidence,
+    Expression<String>? details,
+    Expression<int>? atMs,
+    Expression<String>? localDate,
+    Expression<int>? readAtMs,
+    Expression<String>? captureStamp,
+    Expression<int>? footCheckId,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (code != null) 'code': code,
+      if (level != null) 'level': level,
+      if (patientStatus != null) 'patient_status': patientStatus,
+      if (side != null) 'side': side,
+      if (zone != null) 'zone': zone,
+      if (site != null) 'site': site,
+      if (measuredValue != null) 'measured_value': measuredValue,
+      if (threshold != null) 'threshold': threshold,
+      if (gaitClass != null) 'gait_class': gaitClass,
+      if (gaitConfidence != null) 'gait_confidence': gaitConfidence,
+      if (details != null) 'details': details,
+      if (atMs != null) 'at_ms': atMs,
+      if (localDate != null) 'local_date': localDate,
+      if (readAtMs != null) 'read_at_ms': readAtMs,
+      if (captureStamp != null) 'capture_stamp': captureStamp,
+      if (footCheckId != null) 'foot_check_id': footCheckId,
+    });
+  }
+
+  AlertsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? code,
+    Value<int>? level,
+    Value<String>? patientStatus,
+    Value<String?>? side,
+    Value<String?>? zone,
+    Value<String?>? site,
+    Value<double?>? measuredValue,
+    Value<double?>? threshold,
+    Value<String?>? gaitClass,
+    Value<double?>? gaitConfidence,
+    Value<String?>? details,
+    Value<int>? atMs,
+    Value<String>? localDate,
+    Value<int?>? readAtMs,
+    Value<String?>? captureStamp,
+    Value<int?>? footCheckId,
+  }) {
+    return AlertsCompanion(
+      id: id ?? this.id,
+      code: code ?? this.code,
+      level: level ?? this.level,
+      patientStatus: patientStatus ?? this.patientStatus,
+      side: side ?? this.side,
+      zone: zone ?? this.zone,
+      site: site ?? this.site,
+      measuredValue: measuredValue ?? this.measuredValue,
+      threshold: threshold ?? this.threshold,
+      gaitClass: gaitClass ?? this.gaitClass,
+      gaitConfidence: gaitConfidence ?? this.gaitConfidence,
+      details: details ?? this.details,
+      atMs: atMs ?? this.atMs,
+      localDate: localDate ?? this.localDate,
+      readAtMs: readAtMs ?? this.readAtMs,
+      captureStamp: captureStamp ?? this.captureStamp,
+      footCheckId: footCheckId ?? this.footCheckId,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (code.present) {
+      map['code'] = Variable<String>(code.value);
+    }
+    if (level.present) {
+      map['level'] = Variable<int>(level.value);
+    }
+    if (patientStatus.present) {
+      map['patient_status'] = Variable<String>(patientStatus.value);
+    }
+    if (side.present) {
+      map['side'] = Variable<String>(side.value);
+    }
+    if (zone.present) {
+      map['zone'] = Variable<String>(zone.value);
+    }
+    if (site.present) {
+      map['site'] = Variable<String>(site.value);
+    }
+    if (measuredValue.present) {
+      map['measured_value'] = Variable<double>(measuredValue.value);
+    }
+    if (threshold.present) {
+      map['threshold'] = Variable<double>(threshold.value);
+    }
+    if (gaitClass.present) {
+      map['gait_class'] = Variable<String>(gaitClass.value);
+    }
+    if (gaitConfidence.present) {
+      map['gait_confidence'] = Variable<double>(gaitConfidence.value);
+    }
+    if (details.present) {
+      map['details'] = Variable<String>(details.value);
+    }
+    if (atMs.present) {
+      map['at_ms'] = Variable<int>(atMs.value);
+    }
+    if (localDate.present) {
+      map['local_date'] = Variable<String>(localDate.value);
+    }
+    if (readAtMs.present) {
+      map['read_at_ms'] = Variable<int>(readAtMs.value);
+    }
+    if (captureStamp.present) {
+      map['capture_stamp'] = Variable<String>(captureStamp.value);
+    }
+    if (footCheckId.present) {
+      map['foot_check_id'] = Variable<int>(footCheckId.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AlertsCompanion(')
+          ..write('id: $id, ')
+          ..write('code: $code, ')
+          ..write('level: $level, ')
+          ..write('patientStatus: $patientStatus, ')
+          ..write('side: $side, ')
+          ..write('zone: $zone, ')
+          ..write('site: $site, ')
+          ..write('measuredValue: $measuredValue, ')
+          ..write('threshold: $threshold, ')
+          ..write('gaitClass: $gaitClass, ')
+          ..write('gaitConfidence: $gaitConfidence, ')
+          ..write('details: $details, ')
+          ..write('atMs: $atMs, ')
+          ..write('localDate: $localDate, ')
+          ..write('readAtMs: $readAtMs, ')
+          ..write('captureStamp: $captureStamp, ')
+          ..write('footCheckId: $footCheckId')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class TemperatureReadings extends Table
+    with TableInfo<TemperatureReadings, TemperatureReadingsData> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
@@ -414,8 +1473,45 @@ class TemperatureReadings extends Table with TableInfo {
   @override
   Set<GeneratedColumn> get $primaryKey => {id};
   @override
-  Never map(Map<String, dynamic> data, {String? tablePrefix}) {
-    throw UnsupportedError('TableInfo.map in schema verification code');
+  TemperatureReadingsData map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return TemperatureReadingsData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      atMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}at_ms'],
+      )!,
+      localDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}local_date'],
+      )!,
+      side: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}side'],
+      )!,
+      forefootC: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}forefoot_c'],
+      ),
+      heelC: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}heel_c'],
+      ),
+      quality: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}quality'],
+      )!,
+      timeFromArrival: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}time_from_arrival'],
+      )!,
+    );
   }
 
   @override
@@ -427,7 +1523,292 @@ class TemperatureReadings extends Table with TableInfo {
   bool get dontWriteConstraints => true;
 }
 
-class DailySummary extends Table with TableInfo {
+class TemperatureReadingsData extends DataClass
+    implements Insertable<TemperatureReadingsData> {
+  final int id;
+  final int atMs;
+  final String localDate;
+  final String side;
+  final double? forefootC;
+  final double? heelC;
+  final String quality;
+  final int timeFromArrival;
+  const TemperatureReadingsData({
+    required this.id,
+    required this.atMs,
+    required this.localDate,
+    required this.side,
+    this.forefootC,
+    this.heelC,
+    required this.quality,
+    required this.timeFromArrival,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['at_ms'] = Variable<int>(atMs);
+    map['local_date'] = Variable<String>(localDate);
+    map['side'] = Variable<String>(side);
+    if (!nullToAbsent || forefootC != null) {
+      map['forefoot_c'] = Variable<double>(forefootC);
+    }
+    if (!nullToAbsent || heelC != null) {
+      map['heel_c'] = Variable<double>(heelC);
+    }
+    map['quality'] = Variable<String>(quality);
+    map['time_from_arrival'] = Variable<int>(timeFromArrival);
+    return map;
+  }
+
+  TemperatureReadingsCompanion toCompanion(bool nullToAbsent) {
+    return TemperatureReadingsCompanion(
+      id: Value(id),
+      atMs: Value(atMs),
+      localDate: Value(localDate),
+      side: Value(side),
+      forefootC: forefootC == null && nullToAbsent
+          ? const Value.absent()
+          : Value(forefootC),
+      heelC: heelC == null && nullToAbsent
+          ? const Value.absent()
+          : Value(heelC),
+      quality: Value(quality),
+      timeFromArrival: Value(timeFromArrival),
+    );
+  }
+
+  factory TemperatureReadingsData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return TemperatureReadingsData(
+      id: serializer.fromJson<int>(json['id']),
+      atMs: serializer.fromJson<int>(json['atMs']),
+      localDate: serializer.fromJson<String>(json['localDate']),
+      side: serializer.fromJson<String>(json['side']),
+      forefootC: serializer.fromJson<double?>(json['forefootC']),
+      heelC: serializer.fromJson<double?>(json['heelC']),
+      quality: serializer.fromJson<String>(json['quality']),
+      timeFromArrival: serializer.fromJson<int>(json['timeFromArrival']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'atMs': serializer.toJson<int>(atMs),
+      'localDate': serializer.toJson<String>(localDate),
+      'side': serializer.toJson<String>(side),
+      'forefootC': serializer.toJson<double?>(forefootC),
+      'heelC': serializer.toJson<double?>(heelC),
+      'quality': serializer.toJson<String>(quality),
+      'timeFromArrival': serializer.toJson<int>(timeFromArrival),
+    };
+  }
+
+  TemperatureReadingsData copyWith({
+    int? id,
+    int? atMs,
+    String? localDate,
+    String? side,
+    Value<double?> forefootC = const Value.absent(),
+    Value<double?> heelC = const Value.absent(),
+    String? quality,
+    int? timeFromArrival,
+  }) => TemperatureReadingsData(
+    id: id ?? this.id,
+    atMs: atMs ?? this.atMs,
+    localDate: localDate ?? this.localDate,
+    side: side ?? this.side,
+    forefootC: forefootC.present ? forefootC.value : this.forefootC,
+    heelC: heelC.present ? heelC.value : this.heelC,
+    quality: quality ?? this.quality,
+    timeFromArrival: timeFromArrival ?? this.timeFromArrival,
+  );
+  TemperatureReadingsData copyWithCompanion(TemperatureReadingsCompanion data) {
+    return TemperatureReadingsData(
+      id: data.id.present ? data.id.value : this.id,
+      atMs: data.atMs.present ? data.atMs.value : this.atMs,
+      localDate: data.localDate.present ? data.localDate.value : this.localDate,
+      side: data.side.present ? data.side.value : this.side,
+      forefootC: data.forefootC.present ? data.forefootC.value : this.forefootC,
+      heelC: data.heelC.present ? data.heelC.value : this.heelC,
+      quality: data.quality.present ? data.quality.value : this.quality,
+      timeFromArrival: data.timeFromArrival.present
+          ? data.timeFromArrival.value
+          : this.timeFromArrival,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TemperatureReadingsData(')
+          ..write('id: $id, ')
+          ..write('atMs: $atMs, ')
+          ..write('localDate: $localDate, ')
+          ..write('side: $side, ')
+          ..write('forefootC: $forefootC, ')
+          ..write('heelC: $heelC, ')
+          ..write('quality: $quality, ')
+          ..write('timeFromArrival: $timeFromArrival')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    atMs,
+    localDate,
+    side,
+    forefootC,
+    heelC,
+    quality,
+    timeFromArrival,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is TemperatureReadingsData &&
+          other.id == this.id &&
+          other.atMs == this.atMs &&
+          other.localDate == this.localDate &&
+          other.side == this.side &&
+          other.forefootC == this.forefootC &&
+          other.heelC == this.heelC &&
+          other.quality == this.quality &&
+          other.timeFromArrival == this.timeFromArrival);
+}
+
+class TemperatureReadingsCompanion
+    extends UpdateCompanion<TemperatureReadingsData> {
+  final Value<int> id;
+  final Value<int> atMs;
+  final Value<String> localDate;
+  final Value<String> side;
+  final Value<double?> forefootC;
+  final Value<double?> heelC;
+  final Value<String> quality;
+  final Value<int> timeFromArrival;
+  const TemperatureReadingsCompanion({
+    this.id = const Value.absent(),
+    this.atMs = const Value.absent(),
+    this.localDate = const Value.absent(),
+    this.side = const Value.absent(),
+    this.forefootC = const Value.absent(),
+    this.heelC = const Value.absent(),
+    this.quality = const Value.absent(),
+    this.timeFromArrival = const Value.absent(),
+  });
+  TemperatureReadingsCompanion.insert({
+    this.id = const Value.absent(),
+    required int atMs,
+    required String localDate,
+    required String side,
+    this.forefootC = const Value.absent(),
+    this.heelC = const Value.absent(),
+    required String quality,
+    required int timeFromArrival,
+  }) : atMs = Value(atMs),
+       localDate = Value(localDate),
+       side = Value(side),
+       quality = Value(quality),
+       timeFromArrival = Value(timeFromArrival);
+  static Insertable<TemperatureReadingsData> custom({
+    Expression<int>? id,
+    Expression<int>? atMs,
+    Expression<String>? localDate,
+    Expression<String>? side,
+    Expression<double>? forefootC,
+    Expression<double>? heelC,
+    Expression<String>? quality,
+    Expression<int>? timeFromArrival,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (atMs != null) 'at_ms': atMs,
+      if (localDate != null) 'local_date': localDate,
+      if (side != null) 'side': side,
+      if (forefootC != null) 'forefoot_c': forefootC,
+      if (heelC != null) 'heel_c': heelC,
+      if (quality != null) 'quality': quality,
+      if (timeFromArrival != null) 'time_from_arrival': timeFromArrival,
+    });
+  }
+
+  TemperatureReadingsCompanion copyWith({
+    Value<int>? id,
+    Value<int>? atMs,
+    Value<String>? localDate,
+    Value<String>? side,
+    Value<double?>? forefootC,
+    Value<double?>? heelC,
+    Value<String>? quality,
+    Value<int>? timeFromArrival,
+  }) {
+    return TemperatureReadingsCompanion(
+      id: id ?? this.id,
+      atMs: atMs ?? this.atMs,
+      localDate: localDate ?? this.localDate,
+      side: side ?? this.side,
+      forefootC: forefootC ?? this.forefootC,
+      heelC: heelC ?? this.heelC,
+      quality: quality ?? this.quality,
+      timeFromArrival: timeFromArrival ?? this.timeFromArrival,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (atMs.present) {
+      map['at_ms'] = Variable<int>(atMs.value);
+    }
+    if (localDate.present) {
+      map['local_date'] = Variable<String>(localDate.value);
+    }
+    if (side.present) {
+      map['side'] = Variable<String>(side.value);
+    }
+    if (forefootC.present) {
+      map['forefoot_c'] = Variable<double>(forefootC.value);
+    }
+    if (heelC.present) {
+      map['heel_c'] = Variable<double>(heelC.value);
+    }
+    if (quality.present) {
+      map['quality'] = Variable<String>(quality.value);
+    }
+    if (timeFromArrival.present) {
+      map['time_from_arrival'] = Variable<int>(timeFromArrival.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TemperatureReadingsCompanion(')
+          ..write('id: $id, ')
+          ..write('atMs: $atMs, ')
+          ..write('localDate: $localDate, ')
+          ..write('side: $side, ')
+          ..write('forefootC: $forefootC, ')
+          ..write('heelC: $heelC, ')
+          ..write('quality: $quality, ')
+          ..write('timeFromArrival: $timeFromArrival')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class DailySummary extends Table
+    with TableInfo<DailySummary, DailySummaryData> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
@@ -567,8 +1948,62 @@ class DailySummary extends Table with TableInfo {
   @override
   Set<GeneratedColumn> get $primaryKey => {localDate};
   @override
-  Never map(Map<String, dynamic> data, {String? tablePrefix}) {
-    throw UnsupportedError('TableInfo.map in schema verification code');
+  DailySummaryData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DailySummaryData(
+      localDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}local_date'],
+      )!,
+      steps: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}steps'],
+      ),
+      walkingMin: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}walking_min'],
+      ),
+      wornMin: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}worn_min'],
+      ),
+      maxDeltaForefootC: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}max_delta_forefoot_c'],
+      ),
+      maxDeltaHeelC: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}max_delta_heel_c'],
+      ),
+      alertsL1: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}alerts_l1'],
+      )!,
+      alertsL2: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}alerts_l2'],
+      )!,
+      alertsL3: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}alerts_l3'],
+      )!,
+      alertsL4: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}alerts_l4'],
+      )!,
+      alertsL5: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}alerts_l5'],
+      )!,
+      footCheckDone: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}foot_check_done'],
+      )!,
+      updatedAtMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at_ms'],
+      )!,
+    );
   }
 
   @override
@@ -580,6 +2015,438 @@ class DailySummary extends Table with TableInfo {
   List<String> get customConstraints => const ['PRIMARY KEY(local_date)'];
   @override
   bool get dontWriteConstraints => true;
+}
+
+class DailySummaryData extends DataClass
+    implements Insertable<DailySummaryData> {
+  final String localDate;
+  final int? steps;
+  final int? walkingMin;
+  final int? wornMin;
+  final double? maxDeltaForefootC;
+  final double? maxDeltaHeelC;
+  final int alertsL1;
+  final int alertsL2;
+  final int alertsL3;
+  final int alertsL4;
+  final int alertsL5;
+  final int footCheckDone;
+  final int updatedAtMs;
+  const DailySummaryData({
+    required this.localDate,
+    this.steps,
+    this.walkingMin,
+    this.wornMin,
+    this.maxDeltaForefootC,
+    this.maxDeltaHeelC,
+    required this.alertsL1,
+    required this.alertsL2,
+    required this.alertsL3,
+    required this.alertsL4,
+    required this.alertsL5,
+    required this.footCheckDone,
+    required this.updatedAtMs,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['local_date'] = Variable<String>(localDate);
+    if (!nullToAbsent || steps != null) {
+      map['steps'] = Variable<int>(steps);
+    }
+    if (!nullToAbsent || walkingMin != null) {
+      map['walking_min'] = Variable<int>(walkingMin);
+    }
+    if (!nullToAbsent || wornMin != null) {
+      map['worn_min'] = Variable<int>(wornMin);
+    }
+    if (!nullToAbsent || maxDeltaForefootC != null) {
+      map['max_delta_forefoot_c'] = Variable<double>(maxDeltaForefootC);
+    }
+    if (!nullToAbsent || maxDeltaHeelC != null) {
+      map['max_delta_heel_c'] = Variable<double>(maxDeltaHeelC);
+    }
+    map['alerts_l1'] = Variable<int>(alertsL1);
+    map['alerts_l2'] = Variable<int>(alertsL2);
+    map['alerts_l3'] = Variable<int>(alertsL3);
+    map['alerts_l4'] = Variable<int>(alertsL4);
+    map['alerts_l5'] = Variable<int>(alertsL5);
+    map['foot_check_done'] = Variable<int>(footCheckDone);
+    map['updated_at_ms'] = Variable<int>(updatedAtMs);
+    return map;
+  }
+
+  DailySummaryCompanion toCompanion(bool nullToAbsent) {
+    return DailySummaryCompanion(
+      localDate: Value(localDate),
+      steps: steps == null && nullToAbsent
+          ? const Value.absent()
+          : Value(steps),
+      walkingMin: walkingMin == null && nullToAbsent
+          ? const Value.absent()
+          : Value(walkingMin),
+      wornMin: wornMin == null && nullToAbsent
+          ? const Value.absent()
+          : Value(wornMin),
+      maxDeltaForefootC: maxDeltaForefootC == null && nullToAbsent
+          ? const Value.absent()
+          : Value(maxDeltaForefootC),
+      maxDeltaHeelC: maxDeltaHeelC == null && nullToAbsent
+          ? const Value.absent()
+          : Value(maxDeltaHeelC),
+      alertsL1: Value(alertsL1),
+      alertsL2: Value(alertsL2),
+      alertsL3: Value(alertsL3),
+      alertsL4: Value(alertsL4),
+      alertsL5: Value(alertsL5),
+      footCheckDone: Value(footCheckDone),
+      updatedAtMs: Value(updatedAtMs),
+    );
+  }
+
+  factory DailySummaryData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DailySummaryData(
+      localDate: serializer.fromJson<String>(json['localDate']),
+      steps: serializer.fromJson<int?>(json['steps']),
+      walkingMin: serializer.fromJson<int?>(json['walkingMin']),
+      wornMin: serializer.fromJson<int?>(json['wornMin']),
+      maxDeltaForefootC: serializer.fromJson<double?>(
+        json['maxDeltaForefootC'],
+      ),
+      maxDeltaHeelC: serializer.fromJson<double?>(json['maxDeltaHeelC']),
+      alertsL1: serializer.fromJson<int>(json['alertsL1']),
+      alertsL2: serializer.fromJson<int>(json['alertsL2']),
+      alertsL3: serializer.fromJson<int>(json['alertsL3']),
+      alertsL4: serializer.fromJson<int>(json['alertsL4']),
+      alertsL5: serializer.fromJson<int>(json['alertsL5']),
+      footCheckDone: serializer.fromJson<int>(json['footCheckDone']),
+      updatedAtMs: serializer.fromJson<int>(json['updatedAtMs']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'localDate': serializer.toJson<String>(localDate),
+      'steps': serializer.toJson<int?>(steps),
+      'walkingMin': serializer.toJson<int?>(walkingMin),
+      'wornMin': serializer.toJson<int?>(wornMin),
+      'maxDeltaForefootC': serializer.toJson<double?>(maxDeltaForefootC),
+      'maxDeltaHeelC': serializer.toJson<double?>(maxDeltaHeelC),
+      'alertsL1': serializer.toJson<int>(alertsL1),
+      'alertsL2': serializer.toJson<int>(alertsL2),
+      'alertsL3': serializer.toJson<int>(alertsL3),
+      'alertsL4': serializer.toJson<int>(alertsL4),
+      'alertsL5': serializer.toJson<int>(alertsL5),
+      'footCheckDone': serializer.toJson<int>(footCheckDone),
+      'updatedAtMs': serializer.toJson<int>(updatedAtMs),
+    };
+  }
+
+  DailySummaryData copyWith({
+    String? localDate,
+    Value<int?> steps = const Value.absent(),
+    Value<int?> walkingMin = const Value.absent(),
+    Value<int?> wornMin = const Value.absent(),
+    Value<double?> maxDeltaForefootC = const Value.absent(),
+    Value<double?> maxDeltaHeelC = const Value.absent(),
+    int? alertsL1,
+    int? alertsL2,
+    int? alertsL3,
+    int? alertsL4,
+    int? alertsL5,
+    int? footCheckDone,
+    int? updatedAtMs,
+  }) => DailySummaryData(
+    localDate: localDate ?? this.localDate,
+    steps: steps.present ? steps.value : this.steps,
+    walkingMin: walkingMin.present ? walkingMin.value : this.walkingMin,
+    wornMin: wornMin.present ? wornMin.value : this.wornMin,
+    maxDeltaForefootC: maxDeltaForefootC.present
+        ? maxDeltaForefootC.value
+        : this.maxDeltaForefootC,
+    maxDeltaHeelC: maxDeltaHeelC.present
+        ? maxDeltaHeelC.value
+        : this.maxDeltaHeelC,
+    alertsL1: alertsL1 ?? this.alertsL1,
+    alertsL2: alertsL2 ?? this.alertsL2,
+    alertsL3: alertsL3 ?? this.alertsL3,
+    alertsL4: alertsL4 ?? this.alertsL4,
+    alertsL5: alertsL5 ?? this.alertsL5,
+    footCheckDone: footCheckDone ?? this.footCheckDone,
+    updatedAtMs: updatedAtMs ?? this.updatedAtMs,
+  );
+  DailySummaryData copyWithCompanion(DailySummaryCompanion data) {
+    return DailySummaryData(
+      localDate: data.localDate.present ? data.localDate.value : this.localDate,
+      steps: data.steps.present ? data.steps.value : this.steps,
+      walkingMin: data.walkingMin.present
+          ? data.walkingMin.value
+          : this.walkingMin,
+      wornMin: data.wornMin.present ? data.wornMin.value : this.wornMin,
+      maxDeltaForefootC: data.maxDeltaForefootC.present
+          ? data.maxDeltaForefootC.value
+          : this.maxDeltaForefootC,
+      maxDeltaHeelC: data.maxDeltaHeelC.present
+          ? data.maxDeltaHeelC.value
+          : this.maxDeltaHeelC,
+      alertsL1: data.alertsL1.present ? data.alertsL1.value : this.alertsL1,
+      alertsL2: data.alertsL2.present ? data.alertsL2.value : this.alertsL2,
+      alertsL3: data.alertsL3.present ? data.alertsL3.value : this.alertsL3,
+      alertsL4: data.alertsL4.present ? data.alertsL4.value : this.alertsL4,
+      alertsL5: data.alertsL5.present ? data.alertsL5.value : this.alertsL5,
+      footCheckDone: data.footCheckDone.present
+          ? data.footCheckDone.value
+          : this.footCheckDone,
+      updatedAtMs: data.updatedAtMs.present
+          ? data.updatedAtMs.value
+          : this.updatedAtMs,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DailySummaryData(')
+          ..write('localDate: $localDate, ')
+          ..write('steps: $steps, ')
+          ..write('walkingMin: $walkingMin, ')
+          ..write('wornMin: $wornMin, ')
+          ..write('maxDeltaForefootC: $maxDeltaForefootC, ')
+          ..write('maxDeltaHeelC: $maxDeltaHeelC, ')
+          ..write('alertsL1: $alertsL1, ')
+          ..write('alertsL2: $alertsL2, ')
+          ..write('alertsL3: $alertsL3, ')
+          ..write('alertsL4: $alertsL4, ')
+          ..write('alertsL5: $alertsL5, ')
+          ..write('footCheckDone: $footCheckDone, ')
+          ..write('updatedAtMs: $updatedAtMs')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    localDate,
+    steps,
+    walkingMin,
+    wornMin,
+    maxDeltaForefootC,
+    maxDeltaHeelC,
+    alertsL1,
+    alertsL2,
+    alertsL3,
+    alertsL4,
+    alertsL5,
+    footCheckDone,
+    updatedAtMs,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DailySummaryData &&
+          other.localDate == this.localDate &&
+          other.steps == this.steps &&
+          other.walkingMin == this.walkingMin &&
+          other.wornMin == this.wornMin &&
+          other.maxDeltaForefootC == this.maxDeltaForefootC &&
+          other.maxDeltaHeelC == this.maxDeltaHeelC &&
+          other.alertsL1 == this.alertsL1 &&
+          other.alertsL2 == this.alertsL2 &&
+          other.alertsL3 == this.alertsL3 &&
+          other.alertsL4 == this.alertsL4 &&
+          other.alertsL5 == this.alertsL5 &&
+          other.footCheckDone == this.footCheckDone &&
+          other.updatedAtMs == this.updatedAtMs);
+}
+
+class DailySummaryCompanion extends UpdateCompanion<DailySummaryData> {
+  final Value<String> localDate;
+  final Value<int?> steps;
+  final Value<int?> walkingMin;
+  final Value<int?> wornMin;
+  final Value<double?> maxDeltaForefootC;
+  final Value<double?> maxDeltaHeelC;
+  final Value<int> alertsL1;
+  final Value<int> alertsL2;
+  final Value<int> alertsL3;
+  final Value<int> alertsL4;
+  final Value<int> alertsL5;
+  final Value<int> footCheckDone;
+  final Value<int> updatedAtMs;
+  final Value<int> rowid;
+  const DailySummaryCompanion({
+    this.localDate = const Value.absent(),
+    this.steps = const Value.absent(),
+    this.walkingMin = const Value.absent(),
+    this.wornMin = const Value.absent(),
+    this.maxDeltaForefootC = const Value.absent(),
+    this.maxDeltaHeelC = const Value.absent(),
+    this.alertsL1 = const Value.absent(),
+    this.alertsL2 = const Value.absent(),
+    this.alertsL3 = const Value.absent(),
+    this.alertsL4 = const Value.absent(),
+    this.alertsL5 = const Value.absent(),
+    this.footCheckDone = const Value.absent(),
+    this.updatedAtMs = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  DailySummaryCompanion.insert({
+    required String localDate,
+    this.steps = const Value.absent(),
+    this.walkingMin = const Value.absent(),
+    this.wornMin = const Value.absent(),
+    this.maxDeltaForefootC = const Value.absent(),
+    this.maxDeltaHeelC = const Value.absent(),
+    this.alertsL1 = const Value.absent(),
+    this.alertsL2 = const Value.absent(),
+    this.alertsL3 = const Value.absent(),
+    this.alertsL4 = const Value.absent(),
+    this.alertsL5 = const Value.absent(),
+    this.footCheckDone = const Value.absent(),
+    required int updatedAtMs,
+    this.rowid = const Value.absent(),
+  }) : localDate = Value(localDate),
+       updatedAtMs = Value(updatedAtMs);
+  static Insertable<DailySummaryData> custom({
+    Expression<String>? localDate,
+    Expression<int>? steps,
+    Expression<int>? walkingMin,
+    Expression<int>? wornMin,
+    Expression<double>? maxDeltaForefootC,
+    Expression<double>? maxDeltaHeelC,
+    Expression<int>? alertsL1,
+    Expression<int>? alertsL2,
+    Expression<int>? alertsL3,
+    Expression<int>? alertsL4,
+    Expression<int>? alertsL5,
+    Expression<int>? footCheckDone,
+    Expression<int>? updatedAtMs,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (localDate != null) 'local_date': localDate,
+      if (steps != null) 'steps': steps,
+      if (walkingMin != null) 'walking_min': walkingMin,
+      if (wornMin != null) 'worn_min': wornMin,
+      if (maxDeltaForefootC != null) 'max_delta_forefoot_c': maxDeltaForefootC,
+      if (maxDeltaHeelC != null) 'max_delta_heel_c': maxDeltaHeelC,
+      if (alertsL1 != null) 'alerts_l1': alertsL1,
+      if (alertsL2 != null) 'alerts_l2': alertsL2,
+      if (alertsL3 != null) 'alerts_l3': alertsL3,
+      if (alertsL4 != null) 'alerts_l4': alertsL4,
+      if (alertsL5 != null) 'alerts_l5': alertsL5,
+      if (footCheckDone != null) 'foot_check_done': footCheckDone,
+      if (updatedAtMs != null) 'updated_at_ms': updatedAtMs,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  DailySummaryCompanion copyWith({
+    Value<String>? localDate,
+    Value<int?>? steps,
+    Value<int?>? walkingMin,
+    Value<int?>? wornMin,
+    Value<double?>? maxDeltaForefootC,
+    Value<double?>? maxDeltaHeelC,
+    Value<int>? alertsL1,
+    Value<int>? alertsL2,
+    Value<int>? alertsL3,
+    Value<int>? alertsL4,
+    Value<int>? alertsL5,
+    Value<int>? footCheckDone,
+    Value<int>? updatedAtMs,
+    Value<int>? rowid,
+  }) {
+    return DailySummaryCompanion(
+      localDate: localDate ?? this.localDate,
+      steps: steps ?? this.steps,
+      walkingMin: walkingMin ?? this.walkingMin,
+      wornMin: wornMin ?? this.wornMin,
+      maxDeltaForefootC: maxDeltaForefootC ?? this.maxDeltaForefootC,
+      maxDeltaHeelC: maxDeltaHeelC ?? this.maxDeltaHeelC,
+      alertsL1: alertsL1 ?? this.alertsL1,
+      alertsL2: alertsL2 ?? this.alertsL2,
+      alertsL3: alertsL3 ?? this.alertsL3,
+      alertsL4: alertsL4 ?? this.alertsL4,
+      alertsL5: alertsL5 ?? this.alertsL5,
+      footCheckDone: footCheckDone ?? this.footCheckDone,
+      updatedAtMs: updatedAtMs ?? this.updatedAtMs,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (localDate.present) {
+      map['local_date'] = Variable<String>(localDate.value);
+    }
+    if (steps.present) {
+      map['steps'] = Variable<int>(steps.value);
+    }
+    if (walkingMin.present) {
+      map['walking_min'] = Variable<int>(walkingMin.value);
+    }
+    if (wornMin.present) {
+      map['worn_min'] = Variable<int>(wornMin.value);
+    }
+    if (maxDeltaForefootC.present) {
+      map['max_delta_forefoot_c'] = Variable<double>(maxDeltaForefootC.value);
+    }
+    if (maxDeltaHeelC.present) {
+      map['max_delta_heel_c'] = Variable<double>(maxDeltaHeelC.value);
+    }
+    if (alertsL1.present) {
+      map['alerts_l1'] = Variable<int>(alertsL1.value);
+    }
+    if (alertsL2.present) {
+      map['alerts_l2'] = Variable<int>(alertsL2.value);
+    }
+    if (alertsL3.present) {
+      map['alerts_l3'] = Variable<int>(alertsL3.value);
+    }
+    if (alertsL4.present) {
+      map['alerts_l4'] = Variable<int>(alertsL4.value);
+    }
+    if (alertsL5.present) {
+      map['alerts_l5'] = Variable<int>(alertsL5.value);
+    }
+    if (footCheckDone.present) {
+      map['foot_check_done'] = Variable<int>(footCheckDone.value);
+    }
+    if (updatedAtMs.present) {
+      map['updated_at_ms'] = Variable<int>(updatedAtMs.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DailySummaryCompanion(')
+          ..write('localDate: $localDate, ')
+          ..write('steps: $steps, ')
+          ..write('walkingMin: $walkingMin, ')
+          ..write('wornMin: $wornMin, ')
+          ..write('maxDeltaForefootC: $maxDeltaForefootC, ')
+          ..write('maxDeltaHeelC: $maxDeltaHeelC, ')
+          ..write('alertsL1: $alertsL1, ')
+          ..write('alertsL2: $alertsL2, ')
+          ..write('alertsL3: $alertsL3, ')
+          ..write('alertsL4: $alertsL4, ')
+          ..write('alertsL5: $alertsL5, ')
+          ..write('footCheckDone: $footCheckDone, ')
+          ..write('updatedAtMs: $updatedAtMs, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
 }
 
 class DatabaseAtV1 extends GeneratedDatabase {

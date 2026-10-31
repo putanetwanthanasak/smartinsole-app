@@ -55,3 +55,26 @@ Map<String, Object?> calibrationBlob(int n) => {
       {'index': i, 'a': 1.23e5, 'b': -1.05, 'offset_adc': 12},
   ],
 };
+
+/// Site temperatures in 0.01 °C for [buildTempPacket]'s default.
+const defaultTempRaw = [3180, 3120, 3150, 3100, 3200, 3090, 3240, 3070];
+
+/// A temperature v2 packet (contract v1.6 §3.2). [count] defaults to the
+/// number of sites; [quality] to all 0.
+Uint8List buildTempPacket({
+  int seq = 0,
+  required int tMs,
+  List<int> raw = defaultTempRaw,
+  List<int>? quality,
+  int? count,
+}) {
+  final data = ByteData(TempLayout.packetBytes)
+    ..setUint16(0, seq, Endian.little)
+    ..setUint32(2, tMs, Endian.little)
+    ..setUint8(TempLayout.countOffset, count ?? raw.length);
+  for (var i = 0; i < raw.length; i++) {
+    data.setInt16(TempLayout.tempOffset + 2 * i, raw[i], Endian.little);
+    data.setUint8(TempLayout.qualityOffset + i, quality?[i] ?? 0);
+  }
+  return data.buffer.asUint8List();
+}

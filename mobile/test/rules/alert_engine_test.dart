@@ -15,15 +15,15 @@ import 'rules_rig.dart';
 
 void main() {
   final t = testThresholds;
-  const zero = <double>[0, 0, 0, 0, 0, 0];
+  const zero = <double>[0, 0, 0, 0, 0, 0, 0, 0];
 
   /// [k] kPa at [channel] only, during every stance.
   List<double> at(int channel, double k) => [
-    for (var c = 0; c < 6; c++) c == channel ? k : 0,
+    for (var c = 0; c < footLayout.zones.length; c++) c == channel ? k : 0,
   ];
 
   /// A light normal walk, nothing near any boundary.
-  const light = Gait(kpa: [20, 20, 20, 20, 20, 20]);
+  const light = Gait(kpa: [20, 20, 20, 20, 20, 20, 20, 20]);
 
   /// Strides for [steps] steps of one foot.
   Duration strides(int steps, Gait g) =>
@@ -167,8 +167,8 @@ void main() {
   });
 
   group('LOAD_CONCENTRATION (level 3; same zone, consecutive steps)', () {
-    Gait conc(double top) =>
-        Gait(kpa: [top, 10, 10, 10, 10, 20]); // 40 of 100 = exactly 40 %
+    // 40 of 100 = exactly 40 % (the share over all 8 zones).
+    Gait conc(double top) => Gait(kpa: [top, 10, 10, 10, 10, 10, 0, 10]);
 
     test('above concentrationPct, not at it', () {
       final rig = RulesRig()..stream();
@@ -193,14 +193,14 @@ void main() {
       rig.walkBoth(const Duration(milliseconds: 1000), conc(60));
       expect(codes(rig), contains(AlertCode.loadConcentration));
       // The heel takes over: a new run of the heel, from 1.
-      const heel = Gait(kpa: [10, 10, 10, 10, 10, 60]);
+      const heel = Gait(kpa: [10, 10, 10, 10, 10, 60, 10, 10]);
       rig.walkBoth(const Duration(milliseconds: 1000), heel);
       expect(codes(rig), isNot(contains(AlertCode.loadConcentration)));
     });
 
     test('never while standing', () {
       final rig = RulesRig()..stream();
-      final g = Gait.standing(const [60, 10, 10, 10, 10, 0]);
+      final g = Gait.standing(const [60, 10, 10, 10, 10, 0, 0, 0]);
       rig.run(const Duration(seconds: 30), left: g, right: g);
       expect(codes(rig), isNot(contains(AlertCode.loadConcentration)));
     });
@@ -255,68 +255,204 @@ void main() {
     });
   });
 
-  group('TEMP_DELTA (level 4; 2 consecutive readings, rule 6)', () {
+  group('TEMP_DELTA (level 4; the same site 2 readings in a row, rule 6)', () {
     final over = t.deltaC + 0.4;
 
-    void pair(RulesRig rig, double l, double r) {
+    /// One reading pair: every site at 31 °C on both feet, except [left]
+    /// and [right] (site → °C).
+    void pair(
+      RulesRig rig, {
+      Map<int, double> left = const {},
+      Map<int, double> right = const {},
+      Map<int, TempQuality> rightQuality = const {},
+    }) {
       rig.walkBoth(const Duration(milliseconds: 320), light);
       rig
-        ..temp(FootSide.left, l, 30)
-        ..temp(FootSide.right, r, 30);
+        ..temp(FootSide.left, 31, sites: left)
+        ..temp(FootSide.right, 31, sites: right, qualityAt: rightQuality);
     }
+
+    List<String> zonesOf(StoredAlert a) => [
+      for (final e in TempSiteEntry.listOf(a.details)) e.zone,
+    ];
 
     test('two pairs above deltaC at one site; the warmer foot', () async {
       final rig = RulesRig()..stream();
-      pair(rig, 31.0, 31.0 + over);
-      expect(rig.engine.overCount(TempSite.forefoot), 1);
+      pair(rig, right: {1: 31 + over});
+      expect(rig.engine.overCount(1), 1);
       expect(rig.view().status, PatientStatus.safe);
-      pair(rig, 31.0, 31.0 + over);
+      pair(rig, right: {1: 31 + over});
       final s = rig.view().status;
       expect(s.level, PatientLevel.rest);
       expect(s.cause!.side, FootSide.right);
-      expect(s.cause!.site, TempSite.forefoot);
+      expect(s.cause!.channel, 1);
       expect(s.cause!.deltaC, closeTo(over, 1e-9));
       final a = (await rig.stored()).single;
       expect(a.kind, AlertKind.tempDelta);
       expect(a.patientLevel, PatientLevel.rest);
+      expect(a.zone, 'meta1');
+      expect(a.legacySite, isNull);
       expect(a.details!['consecutive'], 2);
-      expect(a.details!['rightC'], 31.0 + over);
+      expect(a.details!['rightC'], 31 + over);
+      expect(a.details!['leftC'], 31);
+      expect(a.details!['siteDeltaC'], hasLength(footLayout.zones.length));
+      expect(zonesOf(a), ['meta1']);
     });
 
     test('exactly deltaC is not above, and resets the run', () {
       final rig = RulesRig()..stream();
-      pair(rig, 31.0 + over, 31.0);
-      pair(rig, 31.0 + t.deltaC, 31.0);
-      expect(rig.engine.overCount(TempSite.forefoot), 0);
-      pair(rig, 31.0 + over, 31.0);
+      pair(rig, left: {1: 31 + over});
+      pair(rig, left: {1: 31 + t.deltaC});
+      expect(rig.engine.overCount(1), 0);
+      pair(rig, left: {1: 31 + over});
       expect(rig.view().status, PatientStatus.safe);
-      pair(rig, 31.0 + over, 31.0);
+      pair(rig, left: {1: 31 + over});
       expect(rig.view().status.level, PatientLevel.rest);
       expect(rig.view().status.cause!.side, FootSide.left);
     });
 
-    test('a pair without a ΔT (poor contact) resets the run', () {
+    test('a pair without a ΔT at that site (poor contact) resets its run; '
+        'poor contact elsewhere does not', () {
       final rig = RulesRig()..stream();
-      pair(rig, 31.0 + over, 31.0);
-      rig.walkBoth(const Duration(milliseconds: 320), light);
-      rig
-        ..temp(FootSide.left, 31.0 + over, 30)
-        ..temp(FootSide.right, 31.0, 30, quality: TempQuality.poorContact);
-      expect(rig.engine.overCount(TempSite.forefoot), 0);
+      pair(rig, left: {1: 31 + over});
+      pair(
+        rig,
+        left: {1: 31 + over},
+        rightQuality: {1: TempQuality.poorContact},
+      );
+      expect(rig.engine.overCount(1), 0);
+      pair(rig, left: {1: 31 + over});
+      pair(
+        rig,
+        left: {1: 31 + over},
+        rightQuality: {4: TempQuality.sensorFault},
+      );
+      expect(rig.engine.overCount(1), 2);
+      expect(rig.view().status.level, PatientLevel.rest);
     });
 
     test('a reading missed in between keeps the run', () {
       final rig = RulesRig()..stream();
-      pair(rig, 31.0, 31.0 + over);
+      pair(rig, right: {1: 31 + over});
       // The right foot's next reading is lost; the left sends two.
       rig.walkBoth(const Duration(milliseconds: 320), light);
-      rig.temp(FootSide.left, 31.0, 30);
+      rig.temp(FootSide.left, 31);
       rig.walkBoth(const Duration(milliseconds: 320), light);
       rig
-        ..temp(FootSide.left, 31.0, 30)
-        ..temp(FootSide.right, 31.0 + over, 30);
-      expect(rig.engine.overCount(TempSite.forefoot), 2);
+        ..temp(FootSide.left, 31)
+        ..temp(FootSide.right, 31, sites: {1: 31 + over});
+      expect(rig.engine.overCount(1), 2);
       expect(rig.view().status.level, PatientLevel.rest);
+    });
+
+    test('per site: two different sites above once each is no alert', () {
+      final rig = RulesRig()..stream();
+      pair(rig, right: {1: 31 + over});
+      pair(rig, right: {5: 31 + over});
+      expect(rig.engine.overCount(1), 0);
+      expect(rig.engine.overCount(5), 1);
+      expect(rig.view().status, PatientStatus.safe);
+    });
+
+    test('one alert per warmer foot: it names the largest |ΔT| and lists '
+        'every qualifying site, largest first', () async {
+      final rig = RulesRig()..stream();
+      final sites = {5: 31 + over, 7: 31 + over + 0.3, 2: 31 + over};
+      pair(rig, right: sites);
+      pair(rig, right: sites);
+      final temps = rig.view().conditions.where(
+        (c) => c.code == AlertCode.tempDelta,
+      );
+      expect(temps, hasLength(1));
+      expect(temps.single.channel, 7);
+      final a = (await rig.stored()).single;
+      expect(a.zone, 'lateralHeel');
+      expect(a.measuredValue, closeTo(over + 0.3, 1e-9));
+      // Equal |ΔT|: the lower index first.
+      expect(zonesOf(a), ['lateralHeel', 'meta3', 'heel']);
+    });
+
+    test('both feet warmer at different sites: one alert each', () async {
+      final rig = RulesRig()..stream();
+      pair(rig, left: {1: 31 + over}, right: {5: 31 + over});
+      pair(rig, left: {1: 31 + over}, right: {5: 31 + over});
+      final stored = await rig.stored();
+      expect(
+        {for (final a in stored) a.side: a.zone},
+        {FootSide.left: 'meta1', FootSide.right: 'heel'},
+      );
+    });
+
+    group('sites that qualify during suppression (user decision '
+        '2026-10-29)', () {
+      Future<StoredAlert> only(RulesRig rig) async {
+        final all = await rig.stored();
+        expect(all.where((a) => a.kind == AlertKind.tempDelta), hasLength(1));
+        return all.single;
+      }
+
+      test('a second site is appended to the open alert, not raised '
+          'again', () async {
+        final rig = RulesRig()..stream();
+        pair(rig, right: {5: 31 + over});
+        pair(rig, right: {5: 31 + over});
+        expect(zonesOf(await only(rig)), ['heel']);
+        pair(rig, right: {5: 31 + over, 7: 31 + over - 0.2});
+        pair(rig, right: {5: 31 + over, 7: 31 + over - 0.2});
+        final a = await only(rig);
+        expect(zonesOf(a), ['heel', 'lateralHeel']);
+        expect(a.zone, 'heel', reason: 'the named site stays');
+        final added = TempSiteEntry.listOf(a.details).last;
+        expect(added.deltaC, closeTo(over - 0.2, 1e-9));
+        expect(added.atMs, rig.now().millisecondsSinceEpoch);
+      });
+
+      test('a site already listed is never added twice', () async {
+        final rig = RulesRig()..stream();
+        for (var i = 0; i < 5; i++) {
+          pair(rig, right: {5: 31 + over});
+        }
+        expect(zonesOf(await only(rig)), ['heel']);
+      });
+
+      test('after repeatMin a new alert is raised', () async {
+        final rig = RulesRig()..stream();
+        pair(rig, right: {5: 31 + over});
+        pair(rig, right: {5: 31 + over});
+        await only(rig);
+        rig.pause(Duration(minutes: t.repeatMin + 1));
+        pair(rig, right: {5: 31 + over, 7: 31 + over});
+        pair(rig, right: {5: 31 + over, 7: 31 + over});
+        final all = [
+          for (final a in await rig.stored())
+            if (a.kind == AlertKind.tempDelta) a,
+        ];
+        expect(all, hasLength(2));
+        expect(zonesOf(all.first), ['heel'], reason: 'the old one unchanged');
+        expect(zonesOf(all.last), ['heel', 'lateralHeel']);
+      });
+
+      test('survives an app restart (memory from the alerts table)', () async {
+        final db = AppDatabase.memory();
+        addTearDown(db.close);
+        final rig = RulesRig(db: db)..stream();
+        pair(rig, right: {5: 31 + over});
+        pair(rig, right: {5: 31 + over});
+        await only(rig);
+        // Restart: a new engine on the same database.
+        rig.engine.stop();
+        rig.engine = rig.newEngine();
+        pair(rig, right: {5: 31 + over, 3: 31 + over});
+        pair(rig, right: {5: 31 + over, 3: 31 + over});
+        final a = await only(rig);
+        expect(zonesOf(a), ['heel', 'meta5']);
+        // The other foot is a different alert.
+        pair(rig, left: {0: 31 + over});
+        pair(rig, left: {0: 31 + over});
+        final all = await rig.stored();
+        expect(all, hasLength(2));
+        expect(all.last.side, FootSide.left);
+      });
     });
   });
 
@@ -452,7 +588,7 @@ void main() {
           strideMs: 1000,
           stanceMs: 1000,
           kpa: [
-            20, 20, 20, 20, 20, 20, //
+            20, 20, 20, 20, 20, 20, 20, 20, //
           ],
         );
 
@@ -567,12 +703,12 @@ void main() {
       );
       expect(rules.status.cause!.code, AlertCode.pressurePti);
       rig
-        ..temp(FootSide.left, 34, 30)
-        ..temp(FootSide.right, 31, 30);
+        ..temp(FootSide.left, 31, sites: {1: 34})
+        ..temp(FootSide.right, 31);
       rig.walkBoth(const Duration(milliseconds: 320), g);
       rig
-        ..temp(FootSide.left, 34, 30)
-        ..temp(FootSide.right, 31, 30);
+        ..temp(FootSide.left, 31, sites: {1: 34})
+        ..temp(FootSide.right, 31);
       expect(rig.view().status.level, PatientLevel.rest);
       expect(rig.view().status.cause!.code, AlertCode.tempDelta);
     });
@@ -650,6 +786,10 @@ void main() {
       expect(note('toe_walking', min - 0.01, 'meta1'), isNull);
       expect(note('toe_walking', 0.9, 'heel'), isNull, reason: 'zone');
       expect(note('heel_walking', 0.9, 'heel'), contains('ลงส้น'));
+      // Both heel sites (user decision 2026-10-29); not the arch.
+      expect(note('heel_walking', 0.9, 'lateralHeel'), contains('ลงส้น'));
+      expect(note('heel_walking', 0.9, 'medialArch'), isNull);
+      expect(note('toe_walking', 0.9, 'lateralHeel'), isNull);
       expect(note('antalgic', 0.9, 'meta5'), contains('ไม่สมมาตร'));
       expect(note('normal', 0.9, 'meta1'), isNull);
       expect(
@@ -719,7 +859,8 @@ void main() {
       rig.walkBoth(const Duration(seconds: 3), light);
       expect(
         rig.engine.pressureFigures(FootSide.left).concentrationPct,
-        closeTo(100 / 6, 1e-9),
+        closeTo(100 / 8, 1e-9),
+        reason: 'an even load over 8 zones (BACKLOG 64)',
       );
       final stand = Gait.standing(zero);
       rig.run(
@@ -801,7 +942,7 @@ void main() {
       rig.walkBoth(const Duration(seconds: 3), light);
       rig.walkBoth(
         const Duration(seconds: 4),
-        Gait(kpa: [20, t.alertKpa + 30, t.watchKpa + 10, 20, 20, 60]),
+        Gait(kpa: [20, t.alertKpa + 30, t.watchKpa + 10, 20, 20, 60, 20, 20]),
         right: light,
       );
       final peak = (await rig.stored()).firstWhere(
@@ -817,7 +958,16 @@ void main() {
         ]);
       }
       final left = map['left']! as Map<String, Object?>;
-      expect(left['levels'], ['low', 'high', 'medium', 'low', 'low', 'low']);
+      expect(left['levels'], [
+        'low',
+        'high',
+        'medium',
+        'low',
+        'low',
+        'low',
+        'low',
+        'low',
+      ]);
       // The rest of the details are unchanged.
       expect(peak.details!['walking'], true);
     });
@@ -844,10 +994,10 @@ void main() {
         Gait(kpa: at(5, t.alertKpa + 30)),
         right: light,
       );
-      rig.temp(FootSide.left, 31, 30);
-      rig.temp(FootSide.right, 31 + t.deltaC + 1, 30);
-      rig.temp(FootSide.left, 31, 30);
-      rig.temp(FootSide.right, 31 + t.deltaC + 1, 30);
+      rig.temp(FootSide.left, 31);
+      rig.temp(FootSide.right, 31, sites: {1: 31 + t.deltaC + 1});
+      rig.temp(FootSide.left, 31);
+      rig.temp(FootSide.right, 31, sites: {1: 31 + t.deltaC + 1});
       final stored = await rig.stored();
       final kinds = {for (final a in stored) a.kind};
       expect(
@@ -878,6 +1028,8 @@ void main() {
       'meta5',
       'midfoot',
       'heel',
+      'medialArch',
+      'lateralHeel',
     ]);
     expect(zero, hasLength(footLayout.zones.length));
   });

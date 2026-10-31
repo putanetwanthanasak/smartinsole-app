@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smartinsole/ble/ble_protocol.dart';
 import 'package:smartinsole/ble/packets.dart';
-import 'package:smartinsole/config/foot_layout.dart';
 import 'package:smartinsole/device/mock_data_source.dart';
 import 'package:smartinsole/storage/database.dart';
 import 'package:smartinsole/storage/local_date.dart';
@@ -35,14 +34,14 @@ Future<(DriftTemperatureRepository, int)> _seed(
 void main() {
   final today = _dates.of(_now.millisecondsSinceEpoch);
 
-  for (final (preset, site, openGap) in [
-    (MockPreset.safe, TempSite.heel, false),
-    (MockPreset.watch, TempSite.heel, false),
-    (MockPreset.rest, TempSite.forefoot, false),
-    (MockPreset.oneFootMissing, TempSite.heel, true),
+  for (final (preset, sites, openGap) in [
+    (MockPreset.safe, [5], false),
+    (MockPreset.watch, [5], false),
+    (MockPreset.rest, [5, 7], false),
+    (MockPreset.oneFootMissing, [5], true),
   ]) {
-    test('${preset.name}: one period above deltaC at the '
-        '${site.name}, one right-foot gap', () async {
+    test('${preset.name}: one period above deltaC at sites $sites, one '
+        'right-foot gap', () async {
       final (repo, n) = await _seed(preset);
       final rows = await repo.watchDay(today).first;
       expect(rows, hasLength(n));
@@ -58,30 +57,38 @@ void main() {
         rows,
         now: _now,
         usable: {FootSide.left: true, FootSide.right: !openGap},
+        sites: [for (var i = 0; i < TempLayout.siteCount; i++) i],
       );
-      final runs = chart.runs[site]!;
-      final points = [for (final r in runs) ...r];
-      final above = points.where((p) => p.deltaC > testThresholds.deltaC);
-      expect(above, isNotEmpty);
-      // One period: the points above are consecutive.
-      final first = points.indexOf(above.first);
-      final last = points.indexOf(above.last);
-      expect(last - first + 1, above.length);
-      // The other site stays below.
-      final other = site == TempSite.heel ? TempSite.forefoot : TempSite.heel;
-      expect(
-        chart.runs[other]!
-            .expand((r) => r)
-            .every((p) => p.deltaC < testThresholds.deltaC),
-        isTrue,
-      );
+      for (final site in sites) {
+        final points = [for (final r in chart.runsOf(site)) ...r];
+        final above = points.where((p) => p.deltaC > testThresholds.deltaC);
+        expect(above, isNotEmpty, reason: 'site $site');
+        // One period: the points above are consecutive.
+        final first = points.indexOf(above.first);
+        final last = points.indexOf(above.last);
+        expect(last - first + 1, above.length, reason: 'site $site');
+      }
+      // The other sites stay below.
+      for (var other = 0; other < TempLayout.siteCount; other++) {
+        if (sites.contains(other)) continue;
+        expect(
+          chart
+              .runsOf(other)
+              .expand((r) => r)
+              .every((p) => p.deltaC < testThresholds.deltaC),
+          isTrue,
+          reason: 'site $other',
+        );
+      }
 
       final gaps = chart.gaps.where((g) => g.side == FootSide.right);
       expect(gaps, hasLength(1));
       expect(gaps.single.ongoing, openGap);
       if (preset == MockPreset.rest) {
         // Above up to the end, joining the live mock's 2.6 °C.
-        expect(chart.last(site)!.deltaC, greaterThan(testThresholds.deltaC));
+        for (final site in sites) {
+          expect(chart.last(site)!.deltaC, greaterThan(testThresholds.deltaC));
+        }
       }
     });
   }
@@ -94,9 +101,8 @@ void main() {
     await repo.add(
       side: FootSide.left,
       atMs: live,
-      forefootC: 31,
-      heelC: 30,
-      quality: TempQuality.normal,
+      celsius: List.filled(TempLayout.siteCount, 31),
+      quality: List.filled(TempLayout.siteCount, TempQuality.normal),
       timeFromArrival: false,
     );
     await seedSampleDay(

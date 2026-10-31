@@ -825,14 +825,14 @@ class $AlertsTable extends Alerts with TableInfo<$AlertsTable, AlertRow> {
     requiredDuringInsert: false,
   );
   @override
-  late final GeneratedColumnWithTypeConverter<TempSite?, String> site =
+  late final GeneratedColumnWithTypeConverter<LegacyTempSite?, String> site =
       GeneratedColumn<String>(
         'site',
         aliasedName,
         true,
         type: DriftSqlType.string,
         requiredDuringInsert: false,
-      ).withConverter<TempSite?>($AlertsTable.$convertersiten);
+      ).withConverter<LegacyTempSite?>($AlertsTable.$convertersiten);
   static const VerificationMeta _measuredValueMeta = const VerificationMeta(
     'measuredValue',
   );
@@ -1166,9 +1166,9 @@ class $AlertsTable extends Alerts with TableInfo<$AlertsTable, AlertRow> {
       const EnumNameConverter<FootSide>(FootSide.values);
   static JsonTypeConverter2<FootSide?, String?, String?> $convertersiden =
       JsonTypeConverter2.asNullable($converterside);
-  static JsonTypeConverter2<TempSite, String, String> $convertersite =
-      const EnumNameConverter<TempSite>(TempSite.values);
-  static JsonTypeConverter2<TempSite?, String?, String?> $convertersiten =
+  static JsonTypeConverter2<LegacyTempSite, String, String> $convertersite =
+      const EnumNameConverter<LegacyTempSite>(LegacyTempSite.values);
+  static JsonTypeConverter2<LegacyTempSite?, String?, String?> $convertersiten =
       JsonTypeConverter2.asNullable($convertersite);
   static TypeConverter<Map<String, Object?>, String> $converterdetails =
       const _JsonMapConverter();
@@ -1186,8 +1186,14 @@ class AlertRow extends DataClass implements Insertable<AlertRow> {
   final int level;
   final PatientLevel patientStatus;
   final FootSide? side;
+
+  /// Zone id (`FootZone.id`). Since v2 also the temperature site of a
+  /// `TEMP_DELTA` (site i = zone i).
   final String? zone;
-  final TempSite? site;
+
+  /// The v1 temperature site of a `TEMP_DELTA` raised before v2
+  /// (forefoot or heel); never written since.
+  final LegacyTempSite? site;
   final double? measuredValue;
   final double? threshold;
   final String? gaitClass;
@@ -1379,7 +1385,7 @@ class AlertRow extends DataClass implements Insertable<AlertRow> {
     PatientLevel? patientStatus,
     Value<FootSide?> side = const Value.absent(),
     Value<String?> zone = const Value.absent(),
-    Value<TempSite?> site = const Value.absent(),
+    Value<LegacyTempSite?> site = const Value.absent(),
     Value<double?> measuredValue = const Value.absent(),
     Value<double?> threshold = const Value.absent(),
     Value<String?> gaitClass = const Value.absent(),
@@ -1519,7 +1525,7 @@ class AlertsCompanion extends UpdateCompanion<AlertRow> {
   final Value<PatientLevel> patientStatus;
   final Value<FootSide?> side;
   final Value<String?> zone;
-  final Value<TempSite?> site;
+  final Value<LegacyTempSite?> site;
   final Value<double?> measuredValue;
   final Value<double?> threshold;
   final Value<String?> gaitClass;
@@ -1619,7 +1625,7 @@ class AlertsCompanion extends UpdateCompanion<AlertRow> {
     Value<PatientLevel>? patientStatus,
     Value<FootSide?>? side,
     Value<String?>? zone,
-    Value<TempSite?>? site,
+    Value<LegacyTempSite?>? site,
     Value<double?>? measuredValue,
     Value<double?>? threshold,
     Value<String?>? gaitClass,
@@ -1835,6 +1841,166 @@ class $TemperatureReadingsTable extends TemperatureReadings
       'CHECK ("time_from_arrival" IN (0, 1))',
     ),
   );
+  static const VerificationMeta _site0CMeta = const VerificationMeta('site0C');
+  @override
+  late final GeneratedColumn<double> site0C = GeneratedColumn<double>(
+    'site0_c',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _site1CMeta = const VerificationMeta('site1C');
+  @override
+  late final GeneratedColumn<double> site1C = GeneratedColumn<double>(
+    'site1_c',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _site2CMeta = const VerificationMeta('site2C');
+  @override
+  late final GeneratedColumn<double> site2C = GeneratedColumn<double>(
+    'site2_c',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _site3CMeta = const VerificationMeta('site3C');
+  @override
+  late final GeneratedColumn<double> site3C = GeneratedColumn<double>(
+    'site3_c',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _site4CMeta = const VerificationMeta('site4C');
+  @override
+  late final GeneratedColumn<double> site4C = GeneratedColumn<double>(
+    'site4_c',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _site5CMeta = const VerificationMeta('site5C');
+  @override
+  late final GeneratedColumn<double> site5C = GeneratedColumn<double>(
+    'site5_c',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _site6CMeta = const VerificationMeta('site6C');
+  @override
+  late final GeneratedColumn<double> site6C = GeneratedColumn<double>(
+    'site6_c',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _site7CMeta = const VerificationMeta('site7C');
+  @override
+  late final GeneratedColumn<double> site7C = GeneratedColumn<double>(
+    'site7_c',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<TempQuality?, String> site0Q =
+      GeneratedColumn<String>(
+        'site0_q',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      ).withConverter<TempQuality?>(
+        $TemperatureReadingsTable.$convertersite0Qn,
+      );
+  @override
+  late final GeneratedColumnWithTypeConverter<TempQuality?, String> site1Q =
+      GeneratedColumn<String>(
+        'site1_q',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      ).withConverter<TempQuality?>(
+        $TemperatureReadingsTable.$convertersite1Qn,
+      );
+  @override
+  late final GeneratedColumnWithTypeConverter<TempQuality?, String> site2Q =
+      GeneratedColumn<String>(
+        'site2_q',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      ).withConverter<TempQuality?>(
+        $TemperatureReadingsTable.$convertersite2Qn,
+      );
+  @override
+  late final GeneratedColumnWithTypeConverter<TempQuality?, String> site3Q =
+      GeneratedColumn<String>(
+        'site3_q',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      ).withConverter<TempQuality?>(
+        $TemperatureReadingsTable.$convertersite3Qn,
+      );
+  @override
+  late final GeneratedColumnWithTypeConverter<TempQuality?, String> site4Q =
+      GeneratedColumn<String>(
+        'site4_q',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      ).withConverter<TempQuality?>(
+        $TemperatureReadingsTable.$convertersite4Qn,
+      );
+  @override
+  late final GeneratedColumnWithTypeConverter<TempQuality?, String> site5Q =
+      GeneratedColumn<String>(
+        'site5_q',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      ).withConverter<TempQuality?>(
+        $TemperatureReadingsTable.$convertersite5Qn,
+      );
+  @override
+  late final GeneratedColumnWithTypeConverter<TempQuality?, String> site6Q =
+      GeneratedColumn<String>(
+        'site6_q',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      ).withConverter<TempQuality?>(
+        $TemperatureReadingsTable.$convertersite6Qn,
+      );
+  @override
+  late final GeneratedColumnWithTypeConverter<TempQuality?, String> site7Q =
+      GeneratedColumn<String>(
+        'site7_q',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      ).withConverter<TempQuality?>(
+        $TemperatureReadingsTable.$convertersite7Qn,
+      );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1845,6 +2011,22 @@ class $TemperatureReadingsTable extends TemperatureReadings
     heelC,
     quality,
     timeFromArrival,
+    site0C,
+    site1C,
+    site2C,
+    site3C,
+    site4C,
+    site5C,
+    site6C,
+    site7C,
+    site0Q,
+    site1Q,
+    site2Q,
+    site3Q,
+    site4Q,
+    site5Q,
+    site6Q,
+    site7Q,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1900,6 +2082,54 @@ class $TemperatureReadingsTable extends TemperatureReadings
     } else if (isInserting) {
       context.missing(_timeFromArrivalMeta);
     }
+    if (data.containsKey('site0_c')) {
+      context.handle(
+        _site0CMeta,
+        site0C.isAcceptableOrUnknown(data['site0_c']!, _site0CMeta),
+      );
+    }
+    if (data.containsKey('site1_c')) {
+      context.handle(
+        _site1CMeta,
+        site1C.isAcceptableOrUnknown(data['site1_c']!, _site1CMeta),
+      );
+    }
+    if (data.containsKey('site2_c')) {
+      context.handle(
+        _site2CMeta,
+        site2C.isAcceptableOrUnknown(data['site2_c']!, _site2CMeta),
+      );
+    }
+    if (data.containsKey('site3_c')) {
+      context.handle(
+        _site3CMeta,
+        site3C.isAcceptableOrUnknown(data['site3_c']!, _site3CMeta),
+      );
+    }
+    if (data.containsKey('site4_c')) {
+      context.handle(
+        _site4CMeta,
+        site4C.isAcceptableOrUnknown(data['site4_c']!, _site4CMeta),
+      );
+    }
+    if (data.containsKey('site5_c')) {
+      context.handle(
+        _site5CMeta,
+        site5C.isAcceptableOrUnknown(data['site5_c']!, _site5CMeta),
+      );
+    }
+    if (data.containsKey('site6_c')) {
+      context.handle(
+        _site6CMeta,
+        site6C.isAcceptableOrUnknown(data['site6_c']!, _site6CMeta),
+      );
+    }
+    if (data.containsKey('site7_c')) {
+      context.handle(
+        _site7CMeta,
+        site7C.isAcceptableOrUnknown(data['site7_c']!, _site7CMeta),
+      );
+    }
     return context;
   }
 
@@ -1945,6 +2175,86 @@ class $TemperatureReadingsTable extends TemperatureReadings
         DriftSqlType.bool,
         data['${effectivePrefix}time_from_arrival'],
       )!,
+      site0C: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}site0_c'],
+      ),
+      site1C: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}site1_c'],
+      ),
+      site2C: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}site2_c'],
+      ),
+      site3C: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}site3_c'],
+      ),
+      site4C: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}site4_c'],
+      ),
+      site5C: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}site5_c'],
+      ),
+      site6C: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}site6_c'],
+      ),
+      site7C: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}site7_c'],
+      ),
+      site0Q: $TemperatureReadingsTable.$convertersite0Qn.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}site0_q'],
+        ),
+      ),
+      site1Q: $TemperatureReadingsTable.$convertersite1Qn.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}site1_q'],
+        ),
+      ),
+      site2Q: $TemperatureReadingsTable.$convertersite2Qn.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}site2_q'],
+        ),
+      ),
+      site3Q: $TemperatureReadingsTable.$convertersite3Qn.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}site3_q'],
+        ),
+      ),
+      site4Q: $TemperatureReadingsTable.$convertersite4Qn.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}site4_q'],
+        ),
+      ),
+      site5Q: $TemperatureReadingsTable.$convertersite5Qn.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}site5_q'],
+        ),
+      ),
+      site6Q: $TemperatureReadingsTable.$convertersite6Qn.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}site6_q'],
+        ),
+      ),
+      site7Q: $TemperatureReadingsTable.$convertersite7Qn.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}site7_q'],
+        ),
+      ),
     );
   }
 
@@ -1957,6 +2267,38 @@ class $TemperatureReadingsTable extends TemperatureReadings
       const EnumNameConverter<FootSide>(FootSide.values);
   static JsonTypeConverter2<TempQuality, String, String> $converterquality =
       const EnumNameConverter<TempQuality>(TempQuality.values);
+  static JsonTypeConverter2<TempQuality, String, String> $convertersite0Q =
+      const EnumNameConverter<TempQuality>(TempQuality.values);
+  static JsonTypeConverter2<TempQuality?, String?, String?> $convertersite0Qn =
+      JsonTypeConverter2.asNullable($convertersite0Q);
+  static JsonTypeConverter2<TempQuality, String, String> $convertersite1Q =
+      const EnumNameConverter<TempQuality>(TempQuality.values);
+  static JsonTypeConverter2<TempQuality?, String?, String?> $convertersite1Qn =
+      JsonTypeConverter2.asNullable($convertersite1Q);
+  static JsonTypeConverter2<TempQuality, String, String> $convertersite2Q =
+      const EnumNameConverter<TempQuality>(TempQuality.values);
+  static JsonTypeConverter2<TempQuality?, String?, String?> $convertersite2Qn =
+      JsonTypeConverter2.asNullable($convertersite2Q);
+  static JsonTypeConverter2<TempQuality, String, String> $convertersite3Q =
+      const EnumNameConverter<TempQuality>(TempQuality.values);
+  static JsonTypeConverter2<TempQuality?, String?, String?> $convertersite3Qn =
+      JsonTypeConverter2.asNullable($convertersite3Q);
+  static JsonTypeConverter2<TempQuality, String, String> $convertersite4Q =
+      const EnumNameConverter<TempQuality>(TempQuality.values);
+  static JsonTypeConverter2<TempQuality?, String?, String?> $convertersite4Qn =
+      JsonTypeConverter2.asNullable($convertersite4Q);
+  static JsonTypeConverter2<TempQuality, String, String> $convertersite5Q =
+      const EnumNameConverter<TempQuality>(TempQuality.values);
+  static JsonTypeConverter2<TempQuality?, String?, String?> $convertersite5Qn =
+      JsonTypeConverter2.asNullable($convertersite5Q);
+  static JsonTypeConverter2<TempQuality, String, String> $convertersite6Q =
+      const EnumNameConverter<TempQuality>(TempQuality.values);
+  static JsonTypeConverter2<TempQuality?, String?, String?> $convertersite6Qn =
+      JsonTypeConverter2.asNullable($convertersite6Q);
+  static JsonTypeConverter2<TempQuality, String, String> $convertersite7Q =
+      const EnumNameConverter<TempQuality>(TempQuality.values);
+  static JsonTypeConverter2<TempQuality?, String?, String?> $convertersite7Qn =
+      JsonTypeConverter2.asNullable($convertersite7Q);
 }
 
 class TemperatureRow extends DataClass implements Insertable<TemperatureRow> {
@@ -1964,10 +2306,30 @@ class TemperatureRow extends DataClass implements Insertable<TemperatureRow> {
   final int atMs;
   final String localDate;
   final FootSide side;
+
+  /// v1 rows only (the 12-byte packet's two sites); null since v2.
   final double? forefootC;
   final double? heelC;
+
+  /// v1: the packet's quality. v2: the worst of the 8 sites' qualities.
   final TempQuality quality;
   final bool timeFromArrival;
+  final double? site0C;
+  final double? site1C;
+  final double? site2C;
+  final double? site3C;
+  final double? site4C;
+  final double? site5C;
+  final double? site6C;
+  final double? site7C;
+  final TempQuality? site0Q;
+  final TempQuality? site1Q;
+  final TempQuality? site2Q;
+  final TempQuality? site3Q;
+  final TempQuality? site4Q;
+  final TempQuality? site5Q;
+  final TempQuality? site6Q;
+  final TempQuality? site7Q;
   const TemperatureRow({
     required this.id,
     required this.atMs,
@@ -1977,6 +2339,22 @@ class TemperatureRow extends DataClass implements Insertable<TemperatureRow> {
     this.heelC,
     required this.quality,
     required this.timeFromArrival,
+    this.site0C,
+    this.site1C,
+    this.site2C,
+    this.site3C,
+    this.site4C,
+    this.site5C,
+    this.site6C,
+    this.site7C,
+    this.site0Q,
+    this.site1Q,
+    this.site2Q,
+    this.site3Q,
+    this.site4Q,
+    this.site5Q,
+    this.site6Q,
+    this.site7Q,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -2001,6 +2379,70 @@ class TemperatureRow extends DataClass implements Insertable<TemperatureRow> {
       );
     }
     map['time_from_arrival'] = Variable<bool>(timeFromArrival);
+    if (!nullToAbsent || site0C != null) {
+      map['site0_c'] = Variable<double>(site0C);
+    }
+    if (!nullToAbsent || site1C != null) {
+      map['site1_c'] = Variable<double>(site1C);
+    }
+    if (!nullToAbsent || site2C != null) {
+      map['site2_c'] = Variable<double>(site2C);
+    }
+    if (!nullToAbsent || site3C != null) {
+      map['site3_c'] = Variable<double>(site3C);
+    }
+    if (!nullToAbsent || site4C != null) {
+      map['site4_c'] = Variable<double>(site4C);
+    }
+    if (!nullToAbsent || site5C != null) {
+      map['site5_c'] = Variable<double>(site5C);
+    }
+    if (!nullToAbsent || site6C != null) {
+      map['site6_c'] = Variable<double>(site6C);
+    }
+    if (!nullToAbsent || site7C != null) {
+      map['site7_c'] = Variable<double>(site7C);
+    }
+    if (!nullToAbsent || site0Q != null) {
+      map['site0_q'] = Variable<String>(
+        $TemperatureReadingsTable.$convertersite0Qn.toSql(site0Q),
+      );
+    }
+    if (!nullToAbsent || site1Q != null) {
+      map['site1_q'] = Variable<String>(
+        $TemperatureReadingsTable.$convertersite1Qn.toSql(site1Q),
+      );
+    }
+    if (!nullToAbsent || site2Q != null) {
+      map['site2_q'] = Variable<String>(
+        $TemperatureReadingsTable.$convertersite2Qn.toSql(site2Q),
+      );
+    }
+    if (!nullToAbsent || site3Q != null) {
+      map['site3_q'] = Variable<String>(
+        $TemperatureReadingsTable.$convertersite3Qn.toSql(site3Q),
+      );
+    }
+    if (!nullToAbsent || site4Q != null) {
+      map['site4_q'] = Variable<String>(
+        $TemperatureReadingsTable.$convertersite4Qn.toSql(site4Q),
+      );
+    }
+    if (!nullToAbsent || site5Q != null) {
+      map['site5_q'] = Variable<String>(
+        $TemperatureReadingsTable.$convertersite5Qn.toSql(site5Q),
+      );
+    }
+    if (!nullToAbsent || site6Q != null) {
+      map['site6_q'] = Variable<String>(
+        $TemperatureReadingsTable.$convertersite6Qn.toSql(site6Q),
+      );
+    }
+    if (!nullToAbsent || site7Q != null) {
+      map['site7_q'] = Variable<String>(
+        $TemperatureReadingsTable.$convertersite7Qn.toSql(site7Q),
+      );
+    }
     return map;
   }
 
@@ -2018,6 +2460,54 @@ class TemperatureRow extends DataClass implements Insertable<TemperatureRow> {
           : Value(heelC),
       quality: Value(quality),
       timeFromArrival: Value(timeFromArrival),
+      site0C: site0C == null && nullToAbsent
+          ? const Value.absent()
+          : Value(site0C),
+      site1C: site1C == null && nullToAbsent
+          ? const Value.absent()
+          : Value(site1C),
+      site2C: site2C == null && nullToAbsent
+          ? const Value.absent()
+          : Value(site2C),
+      site3C: site3C == null && nullToAbsent
+          ? const Value.absent()
+          : Value(site3C),
+      site4C: site4C == null && nullToAbsent
+          ? const Value.absent()
+          : Value(site4C),
+      site5C: site5C == null && nullToAbsent
+          ? const Value.absent()
+          : Value(site5C),
+      site6C: site6C == null && nullToAbsent
+          ? const Value.absent()
+          : Value(site6C),
+      site7C: site7C == null && nullToAbsent
+          ? const Value.absent()
+          : Value(site7C),
+      site0Q: site0Q == null && nullToAbsent
+          ? const Value.absent()
+          : Value(site0Q),
+      site1Q: site1Q == null && nullToAbsent
+          ? const Value.absent()
+          : Value(site1Q),
+      site2Q: site2Q == null && nullToAbsent
+          ? const Value.absent()
+          : Value(site2Q),
+      site3Q: site3Q == null && nullToAbsent
+          ? const Value.absent()
+          : Value(site3Q),
+      site4Q: site4Q == null && nullToAbsent
+          ? const Value.absent()
+          : Value(site4Q),
+      site5Q: site5Q == null && nullToAbsent
+          ? const Value.absent()
+          : Value(site5Q),
+      site6Q: site6Q == null && nullToAbsent
+          ? const Value.absent()
+          : Value(site6Q),
+      site7Q: site7Q == null && nullToAbsent
+          ? const Value.absent()
+          : Value(site7Q),
     );
   }
 
@@ -2039,6 +2529,38 @@ class TemperatureRow extends DataClass implements Insertable<TemperatureRow> {
         serializer.fromJson<String>(json['quality']),
       ),
       timeFromArrival: serializer.fromJson<bool>(json['timeFromArrival']),
+      site0C: serializer.fromJson<double?>(json['site0C']),
+      site1C: serializer.fromJson<double?>(json['site1C']),
+      site2C: serializer.fromJson<double?>(json['site2C']),
+      site3C: serializer.fromJson<double?>(json['site3C']),
+      site4C: serializer.fromJson<double?>(json['site4C']),
+      site5C: serializer.fromJson<double?>(json['site5C']),
+      site6C: serializer.fromJson<double?>(json['site6C']),
+      site7C: serializer.fromJson<double?>(json['site7C']),
+      site0Q: $TemperatureReadingsTable.$convertersite0Qn.fromJson(
+        serializer.fromJson<String?>(json['site0Q']),
+      ),
+      site1Q: $TemperatureReadingsTable.$convertersite1Qn.fromJson(
+        serializer.fromJson<String?>(json['site1Q']),
+      ),
+      site2Q: $TemperatureReadingsTable.$convertersite2Qn.fromJson(
+        serializer.fromJson<String?>(json['site2Q']),
+      ),
+      site3Q: $TemperatureReadingsTable.$convertersite3Qn.fromJson(
+        serializer.fromJson<String?>(json['site3Q']),
+      ),
+      site4Q: $TemperatureReadingsTable.$convertersite4Qn.fromJson(
+        serializer.fromJson<String?>(json['site4Q']),
+      ),
+      site5Q: $TemperatureReadingsTable.$convertersite5Qn.fromJson(
+        serializer.fromJson<String?>(json['site5Q']),
+      ),
+      site6Q: $TemperatureReadingsTable.$convertersite6Qn.fromJson(
+        serializer.fromJson<String?>(json['site6Q']),
+      ),
+      site7Q: $TemperatureReadingsTable.$convertersite7Qn.fromJson(
+        serializer.fromJson<String?>(json['site7Q']),
+      ),
     );
   }
   @override
@@ -2057,6 +2579,38 @@ class TemperatureRow extends DataClass implements Insertable<TemperatureRow> {
         $TemperatureReadingsTable.$converterquality.toJson(quality),
       ),
       'timeFromArrival': serializer.toJson<bool>(timeFromArrival),
+      'site0C': serializer.toJson<double?>(site0C),
+      'site1C': serializer.toJson<double?>(site1C),
+      'site2C': serializer.toJson<double?>(site2C),
+      'site3C': serializer.toJson<double?>(site3C),
+      'site4C': serializer.toJson<double?>(site4C),
+      'site5C': serializer.toJson<double?>(site5C),
+      'site6C': serializer.toJson<double?>(site6C),
+      'site7C': serializer.toJson<double?>(site7C),
+      'site0Q': serializer.toJson<String?>(
+        $TemperatureReadingsTable.$convertersite0Qn.toJson(site0Q),
+      ),
+      'site1Q': serializer.toJson<String?>(
+        $TemperatureReadingsTable.$convertersite1Qn.toJson(site1Q),
+      ),
+      'site2Q': serializer.toJson<String?>(
+        $TemperatureReadingsTable.$convertersite2Qn.toJson(site2Q),
+      ),
+      'site3Q': serializer.toJson<String?>(
+        $TemperatureReadingsTable.$convertersite3Qn.toJson(site3Q),
+      ),
+      'site4Q': serializer.toJson<String?>(
+        $TemperatureReadingsTable.$convertersite4Qn.toJson(site4Q),
+      ),
+      'site5Q': serializer.toJson<String?>(
+        $TemperatureReadingsTable.$convertersite5Qn.toJson(site5Q),
+      ),
+      'site6Q': serializer.toJson<String?>(
+        $TemperatureReadingsTable.$convertersite6Qn.toJson(site6Q),
+      ),
+      'site7Q': serializer.toJson<String?>(
+        $TemperatureReadingsTable.$convertersite7Qn.toJson(site7Q),
+      ),
     };
   }
 
@@ -2069,6 +2623,22 @@ class TemperatureRow extends DataClass implements Insertable<TemperatureRow> {
     Value<double?> heelC = const Value.absent(),
     TempQuality? quality,
     bool? timeFromArrival,
+    Value<double?> site0C = const Value.absent(),
+    Value<double?> site1C = const Value.absent(),
+    Value<double?> site2C = const Value.absent(),
+    Value<double?> site3C = const Value.absent(),
+    Value<double?> site4C = const Value.absent(),
+    Value<double?> site5C = const Value.absent(),
+    Value<double?> site6C = const Value.absent(),
+    Value<double?> site7C = const Value.absent(),
+    Value<TempQuality?> site0Q = const Value.absent(),
+    Value<TempQuality?> site1Q = const Value.absent(),
+    Value<TempQuality?> site2Q = const Value.absent(),
+    Value<TempQuality?> site3Q = const Value.absent(),
+    Value<TempQuality?> site4Q = const Value.absent(),
+    Value<TempQuality?> site5Q = const Value.absent(),
+    Value<TempQuality?> site6Q = const Value.absent(),
+    Value<TempQuality?> site7Q = const Value.absent(),
   }) => TemperatureRow(
     id: id ?? this.id,
     atMs: atMs ?? this.atMs,
@@ -2078,6 +2648,22 @@ class TemperatureRow extends DataClass implements Insertable<TemperatureRow> {
     heelC: heelC.present ? heelC.value : this.heelC,
     quality: quality ?? this.quality,
     timeFromArrival: timeFromArrival ?? this.timeFromArrival,
+    site0C: site0C.present ? site0C.value : this.site0C,
+    site1C: site1C.present ? site1C.value : this.site1C,
+    site2C: site2C.present ? site2C.value : this.site2C,
+    site3C: site3C.present ? site3C.value : this.site3C,
+    site4C: site4C.present ? site4C.value : this.site4C,
+    site5C: site5C.present ? site5C.value : this.site5C,
+    site6C: site6C.present ? site6C.value : this.site6C,
+    site7C: site7C.present ? site7C.value : this.site7C,
+    site0Q: site0Q.present ? site0Q.value : this.site0Q,
+    site1Q: site1Q.present ? site1Q.value : this.site1Q,
+    site2Q: site2Q.present ? site2Q.value : this.site2Q,
+    site3Q: site3Q.present ? site3Q.value : this.site3Q,
+    site4Q: site4Q.present ? site4Q.value : this.site4Q,
+    site5Q: site5Q.present ? site5Q.value : this.site5Q,
+    site6Q: site6Q.present ? site6Q.value : this.site6Q,
+    site7Q: site7Q.present ? site7Q.value : this.site7Q,
   );
   TemperatureRow copyWithCompanion(TemperatureReadingsCompanion data) {
     return TemperatureRow(
@@ -2091,6 +2677,22 @@ class TemperatureRow extends DataClass implements Insertable<TemperatureRow> {
       timeFromArrival: data.timeFromArrival.present
           ? data.timeFromArrival.value
           : this.timeFromArrival,
+      site0C: data.site0C.present ? data.site0C.value : this.site0C,
+      site1C: data.site1C.present ? data.site1C.value : this.site1C,
+      site2C: data.site2C.present ? data.site2C.value : this.site2C,
+      site3C: data.site3C.present ? data.site3C.value : this.site3C,
+      site4C: data.site4C.present ? data.site4C.value : this.site4C,
+      site5C: data.site5C.present ? data.site5C.value : this.site5C,
+      site6C: data.site6C.present ? data.site6C.value : this.site6C,
+      site7C: data.site7C.present ? data.site7C.value : this.site7C,
+      site0Q: data.site0Q.present ? data.site0Q.value : this.site0Q,
+      site1Q: data.site1Q.present ? data.site1Q.value : this.site1Q,
+      site2Q: data.site2Q.present ? data.site2Q.value : this.site2Q,
+      site3Q: data.site3Q.present ? data.site3Q.value : this.site3Q,
+      site4Q: data.site4Q.present ? data.site4Q.value : this.site4Q,
+      site5Q: data.site5Q.present ? data.site5Q.value : this.site5Q,
+      site6Q: data.site6Q.present ? data.site6Q.value : this.site6Q,
+      site7Q: data.site7Q.present ? data.site7Q.value : this.site7Q,
     );
   }
 
@@ -2104,13 +2706,29 @@ class TemperatureRow extends DataClass implements Insertable<TemperatureRow> {
           ..write('forefootC: $forefootC, ')
           ..write('heelC: $heelC, ')
           ..write('quality: $quality, ')
-          ..write('timeFromArrival: $timeFromArrival')
+          ..write('timeFromArrival: $timeFromArrival, ')
+          ..write('site0C: $site0C, ')
+          ..write('site1C: $site1C, ')
+          ..write('site2C: $site2C, ')
+          ..write('site3C: $site3C, ')
+          ..write('site4C: $site4C, ')
+          ..write('site5C: $site5C, ')
+          ..write('site6C: $site6C, ')
+          ..write('site7C: $site7C, ')
+          ..write('site0Q: $site0Q, ')
+          ..write('site1Q: $site1Q, ')
+          ..write('site2Q: $site2Q, ')
+          ..write('site3Q: $site3Q, ')
+          ..write('site4Q: $site4Q, ')
+          ..write('site5Q: $site5Q, ')
+          ..write('site6Q: $site6Q, ')
+          ..write('site7Q: $site7Q')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     atMs,
     localDate,
@@ -2119,7 +2737,23 @@ class TemperatureRow extends DataClass implements Insertable<TemperatureRow> {
     heelC,
     quality,
     timeFromArrival,
-  );
+    site0C,
+    site1C,
+    site2C,
+    site3C,
+    site4C,
+    site5C,
+    site6C,
+    site7C,
+    site0Q,
+    site1Q,
+    site2Q,
+    site3Q,
+    site4Q,
+    site5Q,
+    site6Q,
+    site7Q,
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2131,7 +2765,23 @@ class TemperatureRow extends DataClass implements Insertable<TemperatureRow> {
           other.forefootC == this.forefootC &&
           other.heelC == this.heelC &&
           other.quality == this.quality &&
-          other.timeFromArrival == this.timeFromArrival);
+          other.timeFromArrival == this.timeFromArrival &&
+          other.site0C == this.site0C &&
+          other.site1C == this.site1C &&
+          other.site2C == this.site2C &&
+          other.site3C == this.site3C &&
+          other.site4C == this.site4C &&
+          other.site5C == this.site5C &&
+          other.site6C == this.site6C &&
+          other.site7C == this.site7C &&
+          other.site0Q == this.site0Q &&
+          other.site1Q == this.site1Q &&
+          other.site2Q == this.site2Q &&
+          other.site3Q == this.site3Q &&
+          other.site4Q == this.site4Q &&
+          other.site5Q == this.site5Q &&
+          other.site6Q == this.site6Q &&
+          other.site7Q == this.site7Q);
 }
 
 class TemperatureReadingsCompanion extends UpdateCompanion<TemperatureRow> {
@@ -2143,6 +2793,22 @@ class TemperatureReadingsCompanion extends UpdateCompanion<TemperatureRow> {
   final Value<double?> heelC;
   final Value<TempQuality> quality;
   final Value<bool> timeFromArrival;
+  final Value<double?> site0C;
+  final Value<double?> site1C;
+  final Value<double?> site2C;
+  final Value<double?> site3C;
+  final Value<double?> site4C;
+  final Value<double?> site5C;
+  final Value<double?> site6C;
+  final Value<double?> site7C;
+  final Value<TempQuality?> site0Q;
+  final Value<TempQuality?> site1Q;
+  final Value<TempQuality?> site2Q;
+  final Value<TempQuality?> site3Q;
+  final Value<TempQuality?> site4Q;
+  final Value<TempQuality?> site5Q;
+  final Value<TempQuality?> site6Q;
+  final Value<TempQuality?> site7Q;
   const TemperatureReadingsCompanion({
     this.id = const Value.absent(),
     this.atMs = const Value.absent(),
@@ -2152,6 +2818,22 @@ class TemperatureReadingsCompanion extends UpdateCompanion<TemperatureRow> {
     this.heelC = const Value.absent(),
     this.quality = const Value.absent(),
     this.timeFromArrival = const Value.absent(),
+    this.site0C = const Value.absent(),
+    this.site1C = const Value.absent(),
+    this.site2C = const Value.absent(),
+    this.site3C = const Value.absent(),
+    this.site4C = const Value.absent(),
+    this.site5C = const Value.absent(),
+    this.site6C = const Value.absent(),
+    this.site7C = const Value.absent(),
+    this.site0Q = const Value.absent(),
+    this.site1Q = const Value.absent(),
+    this.site2Q = const Value.absent(),
+    this.site3Q = const Value.absent(),
+    this.site4Q = const Value.absent(),
+    this.site5Q = const Value.absent(),
+    this.site6Q = const Value.absent(),
+    this.site7Q = const Value.absent(),
   });
   TemperatureReadingsCompanion.insert({
     this.id = const Value.absent(),
@@ -2162,6 +2844,22 @@ class TemperatureReadingsCompanion extends UpdateCompanion<TemperatureRow> {
     this.heelC = const Value.absent(),
     required TempQuality quality,
     required bool timeFromArrival,
+    this.site0C = const Value.absent(),
+    this.site1C = const Value.absent(),
+    this.site2C = const Value.absent(),
+    this.site3C = const Value.absent(),
+    this.site4C = const Value.absent(),
+    this.site5C = const Value.absent(),
+    this.site6C = const Value.absent(),
+    this.site7C = const Value.absent(),
+    this.site0Q = const Value.absent(),
+    this.site1Q = const Value.absent(),
+    this.site2Q = const Value.absent(),
+    this.site3Q = const Value.absent(),
+    this.site4Q = const Value.absent(),
+    this.site5Q = const Value.absent(),
+    this.site6Q = const Value.absent(),
+    this.site7Q = const Value.absent(),
   }) : atMs = Value(atMs),
        localDate = Value(localDate),
        side = Value(side),
@@ -2176,6 +2874,22 @@ class TemperatureReadingsCompanion extends UpdateCompanion<TemperatureRow> {
     Expression<double>? heelC,
     Expression<String>? quality,
     Expression<bool>? timeFromArrival,
+    Expression<double>? site0C,
+    Expression<double>? site1C,
+    Expression<double>? site2C,
+    Expression<double>? site3C,
+    Expression<double>? site4C,
+    Expression<double>? site5C,
+    Expression<double>? site6C,
+    Expression<double>? site7C,
+    Expression<String>? site0Q,
+    Expression<String>? site1Q,
+    Expression<String>? site2Q,
+    Expression<String>? site3Q,
+    Expression<String>? site4Q,
+    Expression<String>? site5Q,
+    Expression<String>? site6Q,
+    Expression<String>? site7Q,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -2186,6 +2900,22 @@ class TemperatureReadingsCompanion extends UpdateCompanion<TemperatureRow> {
       if (heelC != null) 'heel_c': heelC,
       if (quality != null) 'quality': quality,
       if (timeFromArrival != null) 'time_from_arrival': timeFromArrival,
+      if (site0C != null) 'site0_c': site0C,
+      if (site1C != null) 'site1_c': site1C,
+      if (site2C != null) 'site2_c': site2C,
+      if (site3C != null) 'site3_c': site3C,
+      if (site4C != null) 'site4_c': site4C,
+      if (site5C != null) 'site5_c': site5C,
+      if (site6C != null) 'site6_c': site6C,
+      if (site7C != null) 'site7_c': site7C,
+      if (site0Q != null) 'site0_q': site0Q,
+      if (site1Q != null) 'site1_q': site1Q,
+      if (site2Q != null) 'site2_q': site2Q,
+      if (site3Q != null) 'site3_q': site3Q,
+      if (site4Q != null) 'site4_q': site4Q,
+      if (site5Q != null) 'site5_q': site5Q,
+      if (site6Q != null) 'site6_q': site6Q,
+      if (site7Q != null) 'site7_q': site7Q,
     });
   }
 
@@ -2198,6 +2928,22 @@ class TemperatureReadingsCompanion extends UpdateCompanion<TemperatureRow> {
     Value<double?>? heelC,
     Value<TempQuality>? quality,
     Value<bool>? timeFromArrival,
+    Value<double?>? site0C,
+    Value<double?>? site1C,
+    Value<double?>? site2C,
+    Value<double?>? site3C,
+    Value<double?>? site4C,
+    Value<double?>? site5C,
+    Value<double?>? site6C,
+    Value<double?>? site7C,
+    Value<TempQuality?>? site0Q,
+    Value<TempQuality?>? site1Q,
+    Value<TempQuality?>? site2Q,
+    Value<TempQuality?>? site3Q,
+    Value<TempQuality?>? site4Q,
+    Value<TempQuality?>? site5Q,
+    Value<TempQuality?>? site6Q,
+    Value<TempQuality?>? site7Q,
   }) {
     return TemperatureReadingsCompanion(
       id: id ?? this.id,
@@ -2208,6 +2954,22 @@ class TemperatureReadingsCompanion extends UpdateCompanion<TemperatureRow> {
       heelC: heelC ?? this.heelC,
       quality: quality ?? this.quality,
       timeFromArrival: timeFromArrival ?? this.timeFromArrival,
+      site0C: site0C ?? this.site0C,
+      site1C: site1C ?? this.site1C,
+      site2C: site2C ?? this.site2C,
+      site3C: site3C ?? this.site3C,
+      site4C: site4C ?? this.site4C,
+      site5C: site5C ?? this.site5C,
+      site6C: site6C ?? this.site6C,
+      site7C: site7C ?? this.site7C,
+      site0Q: site0Q ?? this.site0Q,
+      site1Q: site1Q ?? this.site1Q,
+      site2Q: site2Q ?? this.site2Q,
+      site3Q: site3Q ?? this.site3Q,
+      site4Q: site4Q ?? this.site4Q,
+      site5Q: site5Q ?? this.site5Q,
+      site6Q: site6Q ?? this.site6Q,
+      site7Q: site7Q ?? this.site7Q,
     );
   }
 
@@ -2242,6 +3004,70 @@ class TemperatureReadingsCompanion extends UpdateCompanion<TemperatureRow> {
     if (timeFromArrival.present) {
       map['time_from_arrival'] = Variable<bool>(timeFromArrival.value);
     }
+    if (site0C.present) {
+      map['site0_c'] = Variable<double>(site0C.value);
+    }
+    if (site1C.present) {
+      map['site1_c'] = Variable<double>(site1C.value);
+    }
+    if (site2C.present) {
+      map['site2_c'] = Variable<double>(site2C.value);
+    }
+    if (site3C.present) {
+      map['site3_c'] = Variable<double>(site3C.value);
+    }
+    if (site4C.present) {
+      map['site4_c'] = Variable<double>(site4C.value);
+    }
+    if (site5C.present) {
+      map['site5_c'] = Variable<double>(site5C.value);
+    }
+    if (site6C.present) {
+      map['site6_c'] = Variable<double>(site6C.value);
+    }
+    if (site7C.present) {
+      map['site7_c'] = Variable<double>(site7C.value);
+    }
+    if (site0Q.present) {
+      map['site0_q'] = Variable<String>(
+        $TemperatureReadingsTable.$convertersite0Qn.toSql(site0Q.value),
+      );
+    }
+    if (site1Q.present) {
+      map['site1_q'] = Variable<String>(
+        $TemperatureReadingsTable.$convertersite1Qn.toSql(site1Q.value),
+      );
+    }
+    if (site2Q.present) {
+      map['site2_q'] = Variable<String>(
+        $TemperatureReadingsTable.$convertersite2Qn.toSql(site2Q.value),
+      );
+    }
+    if (site3Q.present) {
+      map['site3_q'] = Variable<String>(
+        $TemperatureReadingsTable.$convertersite3Qn.toSql(site3Q.value),
+      );
+    }
+    if (site4Q.present) {
+      map['site4_q'] = Variable<String>(
+        $TemperatureReadingsTable.$convertersite4Qn.toSql(site4Q.value),
+      );
+    }
+    if (site5Q.present) {
+      map['site5_q'] = Variable<String>(
+        $TemperatureReadingsTable.$convertersite5Qn.toSql(site5Q.value),
+      );
+    }
+    if (site6Q.present) {
+      map['site6_q'] = Variable<String>(
+        $TemperatureReadingsTable.$convertersite6Qn.toSql(site6Q.value),
+      );
+    }
+    if (site7Q.present) {
+      map['site7_q'] = Variable<String>(
+        $TemperatureReadingsTable.$convertersite7Qn.toSql(site7Q.value),
+      );
+    }
     return map;
   }
 
@@ -2255,7 +3081,23 @@ class TemperatureReadingsCompanion extends UpdateCompanion<TemperatureRow> {
           ..write('forefootC: $forefootC, ')
           ..write('heelC: $heelC, ')
           ..write('quality: $quality, ')
-          ..write('timeFromArrival: $timeFromArrival')
+          ..write('timeFromArrival: $timeFromArrival, ')
+          ..write('site0C: $site0C, ')
+          ..write('site1C: $site1C, ')
+          ..write('site2C: $site2C, ')
+          ..write('site3C: $site3C, ')
+          ..write('site4C: $site4C, ')
+          ..write('site5C: $site5C, ')
+          ..write('site6C: $site6C, ')
+          ..write('site7C: $site7C, ')
+          ..write('site0Q: $site0Q, ')
+          ..write('site1Q: $site1Q, ')
+          ..write('site2Q: $site2Q, ')
+          ..write('site3Q: $site3Q, ')
+          ..write('site4Q: $site4Q, ')
+          ..write('site5Q: $site5Q, ')
+          ..write('site6Q: $site6Q, ')
+          ..write('site7Q: $site7Q')
           ..write(')'))
         .toString();
   }
@@ -2330,6 +3172,28 @@ class $DailySummariesTable extends DailySummaries
     aliasedName,
     true,
     type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _maxDeltaCMeta = const VerificationMeta(
+    'maxDeltaC',
+  );
+  @override
+  late final GeneratedColumn<double> maxDeltaC = GeneratedColumn<double>(
+    'max_delta_c',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _maxDeltaSiteMeta = const VerificationMeta(
+    'maxDeltaSite',
+  );
+  @override
+  late final GeneratedColumn<int> maxDeltaSite = GeneratedColumn<int>(
+    'max_delta_site',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
   static const VerificationMeta _alertsL1Meta = const VerificationMeta(
@@ -2426,6 +3290,8 @@ class $DailySummariesTable extends DailySummaries
     wornMin,
     maxDeltaForefootC,
     maxDeltaHeelC,
+    maxDeltaC,
+    maxDeltaSite,
     alertsL1,
     alertsL2,
     alertsL3,
@@ -2487,6 +3353,21 @@ class $DailySummariesTable extends DailySummaries
         maxDeltaHeelC.isAcceptableOrUnknown(
           data['max_delta_heel_c']!,
           _maxDeltaHeelCMeta,
+        ),
+      );
+    }
+    if (data.containsKey('max_delta_c')) {
+      context.handle(
+        _maxDeltaCMeta,
+        maxDeltaC.isAcceptableOrUnknown(data['max_delta_c']!, _maxDeltaCMeta),
+      );
+    }
+    if (data.containsKey('max_delta_site')) {
+      context.handle(
+        _maxDeltaSiteMeta,
+        maxDeltaSite.isAcceptableOrUnknown(
+          data['max_delta_site']!,
+          _maxDeltaSiteMeta,
         ),
       );
     }
@@ -2573,6 +3454,14 @@ class $DailySummariesTable extends DailySummaries
         DriftSqlType.double,
         data['${effectivePrefix}max_delta_heel_c'],
       ),
+      maxDeltaC: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}max_delta_c'],
+      ),
+      maxDeltaSite: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}max_delta_site'],
+      ),
       alertsL1: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}alerts_l1'],
@@ -2615,8 +3504,15 @@ class DailySummaryRow extends DataClass implements Insertable<DailySummaryRow> {
   final int? steps;
   final int? walkingMin;
   final int? wornMin;
+
+  /// v1 days only (the two v1 sites); never written since v2.
   final double? maxDeltaForefootC;
   final double? maxDeltaHeelC;
+
+  /// v2: the day's largest |ΔT| over the 8 sites and the site it was at
+  /// (zone index).
+  final double? maxDeltaC;
+  final int? maxDeltaSite;
   final int alertsL1;
   final int alertsL2;
   final int alertsL3;
@@ -2631,6 +3527,8 @@ class DailySummaryRow extends DataClass implements Insertable<DailySummaryRow> {
     this.wornMin,
     this.maxDeltaForefootC,
     this.maxDeltaHeelC,
+    this.maxDeltaC,
+    this.maxDeltaSite,
     required this.alertsL1,
     required this.alertsL2,
     required this.alertsL3,
@@ -2657,6 +3555,12 @@ class DailySummaryRow extends DataClass implements Insertable<DailySummaryRow> {
     }
     if (!nullToAbsent || maxDeltaHeelC != null) {
       map['max_delta_heel_c'] = Variable<double>(maxDeltaHeelC);
+    }
+    if (!nullToAbsent || maxDeltaC != null) {
+      map['max_delta_c'] = Variable<double>(maxDeltaC);
+    }
+    if (!nullToAbsent || maxDeltaSite != null) {
+      map['max_delta_site'] = Variable<int>(maxDeltaSite);
     }
     map['alerts_l1'] = Variable<int>(alertsL1);
     map['alerts_l2'] = Variable<int>(alertsL2);
@@ -2686,6 +3590,12 @@ class DailySummaryRow extends DataClass implements Insertable<DailySummaryRow> {
       maxDeltaHeelC: maxDeltaHeelC == null && nullToAbsent
           ? const Value.absent()
           : Value(maxDeltaHeelC),
+      maxDeltaC: maxDeltaC == null && nullToAbsent
+          ? const Value.absent()
+          : Value(maxDeltaC),
+      maxDeltaSite: maxDeltaSite == null && nullToAbsent
+          ? const Value.absent()
+          : Value(maxDeltaSite),
       alertsL1: Value(alertsL1),
       alertsL2: Value(alertsL2),
       alertsL3: Value(alertsL3),
@@ -2710,6 +3620,8 @@ class DailySummaryRow extends DataClass implements Insertable<DailySummaryRow> {
         json['maxDeltaForefootC'],
       ),
       maxDeltaHeelC: serializer.fromJson<double?>(json['maxDeltaHeelC']),
+      maxDeltaC: serializer.fromJson<double?>(json['maxDeltaC']),
+      maxDeltaSite: serializer.fromJson<int?>(json['maxDeltaSite']),
       alertsL1: serializer.fromJson<int>(json['alertsL1']),
       alertsL2: serializer.fromJson<int>(json['alertsL2']),
       alertsL3: serializer.fromJson<int>(json['alertsL3']),
@@ -2729,6 +3641,8 @@ class DailySummaryRow extends DataClass implements Insertable<DailySummaryRow> {
       'wornMin': serializer.toJson<int?>(wornMin),
       'maxDeltaForefootC': serializer.toJson<double?>(maxDeltaForefootC),
       'maxDeltaHeelC': serializer.toJson<double?>(maxDeltaHeelC),
+      'maxDeltaC': serializer.toJson<double?>(maxDeltaC),
+      'maxDeltaSite': serializer.toJson<int?>(maxDeltaSite),
       'alertsL1': serializer.toJson<int>(alertsL1),
       'alertsL2': serializer.toJson<int>(alertsL2),
       'alertsL3': serializer.toJson<int>(alertsL3),
@@ -2746,6 +3660,8 @@ class DailySummaryRow extends DataClass implements Insertable<DailySummaryRow> {
     Value<int?> wornMin = const Value.absent(),
     Value<double?> maxDeltaForefootC = const Value.absent(),
     Value<double?> maxDeltaHeelC = const Value.absent(),
+    Value<double?> maxDeltaC = const Value.absent(),
+    Value<int?> maxDeltaSite = const Value.absent(),
     int? alertsL1,
     int? alertsL2,
     int? alertsL3,
@@ -2764,6 +3680,8 @@ class DailySummaryRow extends DataClass implements Insertable<DailySummaryRow> {
     maxDeltaHeelC: maxDeltaHeelC.present
         ? maxDeltaHeelC.value
         : this.maxDeltaHeelC,
+    maxDeltaC: maxDeltaC.present ? maxDeltaC.value : this.maxDeltaC,
+    maxDeltaSite: maxDeltaSite.present ? maxDeltaSite.value : this.maxDeltaSite,
     alertsL1: alertsL1 ?? this.alertsL1,
     alertsL2: alertsL2 ?? this.alertsL2,
     alertsL3: alertsL3 ?? this.alertsL3,
@@ -2786,6 +3704,10 @@ class DailySummaryRow extends DataClass implements Insertable<DailySummaryRow> {
       maxDeltaHeelC: data.maxDeltaHeelC.present
           ? data.maxDeltaHeelC.value
           : this.maxDeltaHeelC,
+      maxDeltaC: data.maxDeltaC.present ? data.maxDeltaC.value : this.maxDeltaC,
+      maxDeltaSite: data.maxDeltaSite.present
+          ? data.maxDeltaSite.value
+          : this.maxDeltaSite,
       alertsL1: data.alertsL1.present ? data.alertsL1.value : this.alertsL1,
       alertsL2: data.alertsL2.present ? data.alertsL2.value : this.alertsL2,
       alertsL3: data.alertsL3.present ? data.alertsL3.value : this.alertsL3,
@@ -2809,6 +3731,8 @@ class DailySummaryRow extends DataClass implements Insertable<DailySummaryRow> {
           ..write('wornMin: $wornMin, ')
           ..write('maxDeltaForefootC: $maxDeltaForefootC, ')
           ..write('maxDeltaHeelC: $maxDeltaHeelC, ')
+          ..write('maxDeltaC: $maxDeltaC, ')
+          ..write('maxDeltaSite: $maxDeltaSite, ')
           ..write('alertsL1: $alertsL1, ')
           ..write('alertsL2: $alertsL2, ')
           ..write('alertsL3: $alertsL3, ')
@@ -2828,6 +3752,8 @@ class DailySummaryRow extends DataClass implements Insertable<DailySummaryRow> {
     wornMin,
     maxDeltaForefootC,
     maxDeltaHeelC,
+    maxDeltaC,
+    maxDeltaSite,
     alertsL1,
     alertsL2,
     alertsL3,
@@ -2846,6 +3772,8 @@ class DailySummaryRow extends DataClass implements Insertable<DailySummaryRow> {
           other.wornMin == this.wornMin &&
           other.maxDeltaForefootC == this.maxDeltaForefootC &&
           other.maxDeltaHeelC == this.maxDeltaHeelC &&
+          other.maxDeltaC == this.maxDeltaC &&
+          other.maxDeltaSite == this.maxDeltaSite &&
           other.alertsL1 == this.alertsL1 &&
           other.alertsL2 == this.alertsL2 &&
           other.alertsL3 == this.alertsL3 &&
@@ -2862,6 +3790,8 @@ class DailySummariesCompanion extends UpdateCompanion<DailySummaryRow> {
   final Value<int?> wornMin;
   final Value<double?> maxDeltaForefootC;
   final Value<double?> maxDeltaHeelC;
+  final Value<double?> maxDeltaC;
+  final Value<int?> maxDeltaSite;
   final Value<int> alertsL1;
   final Value<int> alertsL2;
   final Value<int> alertsL3;
@@ -2877,6 +3807,8 @@ class DailySummariesCompanion extends UpdateCompanion<DailySummaryRow> {
     this.wornMin = const Value.absent(),
     this.maxDeltaForefootC = const Value.absent(),
     this.maxDeltaHeelC = const Value.absent(),
+    this.maxDeltaC = const Value.absent(),
+    this.maxDeltaSite = const Value.absent(),
     this.alertsL1 = const Value.absent(),
     this.alertsL2 = const Value.absent(),
     this.alertsL3 = const Value.absent(),
@@ -2893,6 +3825,8 @@ class DailySummariesCompanion extends UpdateCompanion<DailySummaryRow> {
     this.wornMin = const Value.absent(),
     this.maxDeltaForefootC = const Value.absent(),
     this.maxDeltaHeelC = const Value.absent(),
+    this.maxDeltaC = const Value.absent(),
+    this.maxDeltaSite = const Value.absent(),
     this.alertsL1 = const Value.absent(),
     this.alertsL2 = const Value.absent(),
     this.alertsL3 = const Value.absent(),
@@ -2910,6 +3844,8 @@ class DailySummariesCompanion extends UpdateCompanion<DailySummaryRow> {
     Expression<int>? wornMin,
     Expression<double>? maxDeltaForefootC,
     Expression<double>? maxDeltaHeelC,
+    Expression<double>? maxDeltaC,
+    Expression<int>? maxDeltaSite,
     Expression<int>? alertsL1,
     Expression<int>? alertsL2,
     Expression<int>? alertsL3,
@@ -2926,6 +3862,8 @@ class DailySummariesCompanion extends UpdateCompanion<DailySummaryRow> {
       if (wornMin != null) 'worn_min': wornMin,
       if (maxDeltaForefootC != null) 'max_delta_forefoot_c': maxDeltaForefootC,
       if (maxDeltaHeelC != null) 'max_delta_heel_c': maxDeltaHeelC,
+      if (maxDeltaC != null) 'max_delta_c': maxDeltaC,
+      if (maxDeltaSite != null) 'max_delta_site': maxDeltaSite,
       if (alertsL1 != null) 'alerts_l1': alertsL1,
       if (alertsL2 != null) 'alerts_l2': alertsL2,
       if (alertsL3 != null) 'alerts_l3': alertsL3,
@@ -2944,6 +3882,8 @@ class DailySummariesCompanion extends UpdateCompanion<DailySummaryRow> {
     Value<int?>? wornMin,
     Value<double?>? maxDeltaForefootC,
     Value<double?>? maxDeltaHeelC,
+    Value<double?>? maxDeltaC,
+    Value<int?>? maxDeltaSite,
     Value<int>? alertsL1,
     Value<int>? alertsL2,
     Value<int>? alertsL3,
@@ -2960,6 +3900,8 @@ class DailySummariesCompanion extends UpdateCompanion<DailySummaryRow> {
       wornMin: wornMin ?? this.wornMin,
       maxDeltaForefootC: maxDeltaForefootC ?? this.maxDeltaForefootC,
       maxDeltaHeelC: maxDeltaHeelC ?? this.maxDeltaHeelC,
+      maxDeltaC: maxDeltaC ?? this.maxDeltaC,
+      maxDeltaSite: maxDeltaSite ?? this.maxDeltaSite,
       alertsL1: alertsL1 ?? this.alertsL1,
       alertsL2: alertsL2 ?? this.alertsL2,
       alertsL3: alertsL3 ?? this.alertsL3,
@@ -2991,6 +3933,12 @@ class DailySummariesCompanion extends UpdateCompanion<DailySummaryRow> {
     }
     if (maxDeltaHeelC.present) {
       map['max_delta_heel_c'] = Variable<double>(maxDeltaHeelC.value);
+    }
+    if (maxDeltaC.present) {
+      map['max_delta_c'] = Variable<double>(maxDeltaC.value);
+    }
+    if (maxDeltaSite.present) {
+      map['max_delta_site'] = Variable<int>(maxDeltaSite.value);
     }
     if (alertsL1.present) {
       map['alerts_l1'] = Variable<int>(alertsL1.value);
@@ -3028,6 +3976,8 @@ class DailySummariesCompanion extends UpdateCompanion<DailySummaryRow> {
           ..write('wornMin: $wornMin, ')
           ..write('maxDeltaForefootC: $maxDeltaForefootC, ')
           ..write('maxDeltaHeelC: $maxDeltaHeelC, ')
+          ..write('maxDeltaC: $maxDeltaC, ')
+          ..write('maxDeltaSite: $maxDeltaSite, ')
           ..write('alertsL1: $alertsL1, ')
           ..write('alertsL2: $alertsL2, ')
           ..write('alertsL3: $alertsL3, ')
@@ -3546,7 +4496,7 @@ typedef $$AlertsTableCreateCompanionBuilder = AlertsCompanion Function({
   required PatientLevel patientStatus,
   Value<FootSide?> side,
   Value<String?> zone,
-  Value<TempSite?> site,
+  Value<LegacyTempSite?> site,
   Value<double?> measuredValue,
   Value<double?> threshold,
   Value<String?> gaitClass,
@@ -3565,7 +4515,7 @@ typedef $$AlertsTableUpdateCompanionBuilder = AlertsCompanion Function({
   Value<PatientLevel> patientStatus,
   Value<FootSide?> side,
   Value<String?> zone,
-  Value<TempSite?> site,
+  Value<LegacyTempSite?> site,
   Value<double?> measuredValue,
   Value<double?> threshold,
   Value<String?> gaitClass,
@@ -3642,11 +4592,11 @@ class $$AlertsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnWithTypeConverterFilters<TempSite?, TempSite, String> get site =>
-      $composableBuilder(
-        column: $table.site,
-        builder: (column) => ColumnWithTypeConverterFilters(column),
-      );
+  ColumnWithTypeConverterFilters<LegacyTempSite?, LegacyTempSite, String>
+  get site => $composableBuilder(
+    column: $table.site,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
 
   ColumnFilters<double> get measuredValue => $composableBuilder(
     column: $table.measuredValue,
@@ -3865,7 +4815,7 @@ class $$AlertsTableAnnotationComposer
   GeneratedColumn<String> get zone =>
       $composableBuilder(column: $table.zone, builder: (column) => column);
 
-  GeneratedColumnWithTypeConverter<TempSite?, String> get site =>
+  GeneratedColumnWithTypeConverter<LegacyTempSite?, String> get site =>
       $composableBuilder(column: $table.site, builder: (column) => column);
 
   GeneratedColumn<double> get measuredValue => $composableBuilder(
@@ -3959,7 +4909,7 @@ class $$AlertsTableTableManager
                 Value<PatientLevel> patientStatus = const Value.absent(),
                 Value<FootSide?> side = const Value.absent(),
                 Value<String?> zone = const Value.absent(),
-                Value<TempSite?> site = const Value.absent(),
+                Value<LegacyTempSite?> site = const Value.absent(),
                 Value<double?> measuredValue = const Value.absent(),
                 Value<double?> threshold = const Value.absent(),
                 Value<String?> gaitClass = const Value.absent(),
@@ -3997,7 +4947,7 @@ class $$AlertsTableTableManager
                 required PatientLevel patientStatus,
                 Value<FootSide?> side = const Value.absent(),
                 Value<String?> zone = const Value.absent(),
-                Value<TempSite?> site = const Value.absent(),
+                Value<LegacyTempSite?> site = const Value.absent(),
                 Value<double?> measuredValue = const Value.absent(),
                 Value<double?> threshold = const Value.absent(),
                 Value<String?> gaitClass = const Value.absent(),
@@ -4102,6 +5052,22 @@ typedef $$TemperatureReadingsTableCreateCompanionBuilder =
       Value<double?> heelC,
       required TempQuality quality,
       required bool timeFromArrival,
+      Value<double?> site0C,
+      Value<double?> site1C,
+      Value<double?> site2C,
+      Value<double?> site3C,
+      Value<double?> site4C,
+      Value<double?> site5C,
+      Value<double?> site6C,
+      Value<double?> site7C,
+      Value<TempQuality?> site0Q,
+      Value<TempQuality?> site1Q,
+      Value<TempQuality?> site2Q,
+      Value<TempQuality?> site3Q,
+      Value<TempQuality?> site4Q,
+      Value<TempQuality?> site5Q,
+      Value<TempQuality?> site6Q,
+      Value<TempQuality?> site7Q,
     });
 typedef $$TemperatureReadingsTableUpdateCompanionBuilder =
     TemperatureReadingsCompanion Function({
@@ -4113,6 +5079,22 @@ typedef $$TemperatureReadingsTableUpdateCompanionBuilder =
       Value<double?> heelC,
       Value<TempQuality> quality,
       Value<bool> timeFromArrival,
+      Value<double?> site0C,
+      Value<double?> site1C,
+      Value<double?> site2C,
+      Value<double?> site3C,
+      Value<double?> site4C,
+      Value<double?> site5C,
+      Value<double?> site6C,
+      Value<double?> site7C,
+      Value<TempQuality?> site0Q,
+      Value<TempQuality?> site1Q,
+      Value<TempQuality?> site2Q,
+      Value<TempQuality?> site3Q,
+      Value<TempQuality?> site4Q,
+      Value<TempQuality?> site5Q,
+      Value<TempQuality?> site6Q,
+      Value<TempQuality?> site7Q,
     });
 
 class $$TemperatureReadingsTableFilterComposer
@@ -4165,6 +5147,94 @@ class $$TemperatureReadingsTableFilterComposer
     column: $table.timeFromArrival,
     builder: (column) => ColumnFilters(column),
   );
+
+  ColumnFilters<double> get site0C => $composableBuilder(
+    column: $table.site0C,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get site1C => $composableBuilder(
+    column: $table.site1C,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get site2C => $composableBuilder(
+    column: $table.site2C,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get site3C => $composableBuilder(
+    column: $table.site3C,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get site4C => $composableBuilder(
+    column: $table.site4C,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get site5C => $composableBuilder(
+    column: $table.site5C,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get site6C => $composableBuilder(
+    column: $table.site6C,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get site7C => $composableBuilder(
+    column: $table.site7C,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<TempQuality?, TempQuality, String>
+  get site0Q => $composableBuilder(
+    column: $table.site0Q,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<TempQuality?, TempQuality, String>
+  get site1Q => $composableBuilder(
+    column: $table.site1Q,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<TempQuality?, TempQuality, String>
+  get site2Q => $composableBuilder(
+    column: $table.site2Q,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<TempQuality?, TempQuality, String>
+  get site3Q => $composableBuilder(
+    column: $table.site3Q,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<TempQuality?, TempQuality, String>
+  get site4Q => $composableBuilder(
+    column: $table.site4Q,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<TempQuality?, TempQuality, String>
+  get site5Q => $composableBuilder(
+    column: $table.site5Q,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<TempQuality?, TempQuality, String>
+  get site6Q => $composableBuilder(
+    column: $table.site6Q,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<TempQuality?, TempQuality, String>
+  get site7Q => $composableBuilder(
+    column: $table.site7Q,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
 }
 
 class $$TemperatureReadingsTableOrderingComposer
@@ -4215,6 +5285,86 @@ class $$TemperatureReadingsTableOrderingComposer
     column: $table.timeFromArrival,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<double> get site0C => $composableBuilder(
+    column: $table.site0C,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get site1C => $composableBuilder(
+    column: $table.site1C,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get site2C => $composableBuilder(
+    column: $table.site2C,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get site3C => $composableBuilder(
+    column: $table.site3C,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get site4C => $composableBuilder(
+    column: $table.site4C,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get site5C => $composableBuilder(
+    column: $table.site5C,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get site6C => $composableBuilder(
+    column: $table.site6C,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get site7C => $composableBuilder(
+    column: $table.site7C,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get site0Q => $composableBuilder(
+    column: $table.site0Q,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get site1Q => $composableBuilder(
+    column: $table.site1Q,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get site2Q => $composableBuilder(
+    column: $table.site2Q,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get site3Q => $composableBuilder(
+    column: $table.site3Q,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get site4Q => $composableBuilder(
+    column: $table.site4Q,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get site5Q => $composableBuilder(
+    column: $table.site5Q,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get site6Q => $composableBuilder(
+    column: $table.site6Q,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get site7Q => $composableBuilder(
+    column: $table.site7Q,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$TemperatureReadingsTableAnnotationComposer
@@ -4251,6 +5401,54 @@ class $$TemperatureReadingsTableAnnotationComposer
     column: $table.timeFromArrival,
     builder: (column) => column,
   );
+
+  GeneratedColumn<double> get site0C =>
+      $composableBuilder(column: $table.site0C, builder: (column) => column);
+
+  GeneratedColumn<double> get site1C =>
+      $composableBuilder(column: $table.site1C, builder: (column) => column);
+
+  GeneratedColumn<double> get site2C =>
+      $composableBuilder(column: $table.site2C, builder: (column) => column);
+
+  GeneratedColumn<double> get site3C =>
+      $composableBuilder(column: $table.site3C, builder: (column) => column);
+
+  GeneratedColumn<double> get site4C =>
+      $composableBuilder(column: $table.site4C, builder: (column) => column);
+
+  GeneratedColumn<double> get site5C =>
+      $composableBuilder(column: $table.site5C, builder: (column) => column);
+
+  GeneratedColumn<double> get site6C =>
+      $composableBuilder(column: $table.site6C, builder: (column) => column);
+
+  GeneratedColumn<double> get site7C =>
+      $composableBuilder(column: $table.site7C, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<TempQuality?, String> get site0Q =>
+      $composableBuilder(column: $table.site0Q, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<TempQuality?, String> get site1Q =>
+      $composableBuilder(column: $table.site1Q, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<TempQuality?, String> get site2Q =>
+      $composableBuilder(column: $table.site2Q, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<TempQuality?, String> get site3Q =>
+      $composableBuilder(column: $table.site3Q, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<TempQuality?, String> get site4Q =>
+      $composableBuilder(column: $table.site4Q, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<TempQuality?, String> get site5Q =>
+      $composableBuilder(column: $table.site5Q, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<TempQuality?, String> get site6Q =>
+      $composableBuilder(column: $table.site6Q, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<TempQuality?, String> get site7Q =>
+      $composableBuilder(column: $table.site7Q, builder: (column) => column);
 }
 
 class $$TemperatureReadingsTableTableManager
@@ -4304,6 +5502,22 @@ class $$TemperatureReadingsTableTableManager
                 Value<double?> heelC = const Value.absent(),
                 Value<TempQuality> quality = const Value.absent(),
                 Value<bool> timeFromArrival = const Value.absent(),
+                Value<double?> site0C = const Value.absent(),
+                Value<double?> site1C = const Value.absent(),
+                Value<double?> site2C = const Value.absent(),
+                Value<double?> site3C = const Value.absent(),
+                Value<double?> site4C = const Value.absent(),
+                Value<double?> site5C = const Value.absent(),
+                Value<double?> site6C = const Value.absent(),
+                Value<double?> site7C = const Value.absent(),
+                Value<TempQuality?> site0Q = const Value.absent(),
+                Value<TempQuality?> site1Q = const Value.absent(),
+                Value<TempQuality?> site2Q = const Value.absent(),
+                Value<TempQuality?> site3Q = const Value.absent(),
+                Value<TempQuality?> site4Q = const Value.absent(),
+                Value<TempQuality?> site5Q = const Value.absent(),
+                Value<TempQuality?> site6Q = const Value.absent(),
+                Value<TempQuality?> site7Q = const Value.absent(),
               }) => TemperatureReadingsCompanion(
                 id: id,
                 atMs: atMs,
@@ -4313,6 +5527,22 @@ class $$TemperatureReadingsTableTableManager
                 heelC: heelC,
                 quality: quality,
                 timeFromArrival: timeFromArrival,
+                site0C: site0C,
+                site1C: site1C,
+                site2C: site2C,
+                site3C: site3C,
+                site4C: site4C,
+                site5C: site5C,
+                site6C: site6C,
+                site7C: site7C,
+                site0Q: site0Q,
+                site1Q: site1Q,
+                site2Q: site2Q,
+                site3Q: site3Q,
+                site4Q: site4Q,
+                site5Q: site5Q,
+                site6Q: site6Q,
+                site7Q: site7Q,
               ),
           createCompanionCallback:
               ({
@@ -4324,6 +5554,22 @@ class $$TemperatureReadingsTableTableManager
                 Value<double?> heelC = const Value.absent(),
                 required TempQuality quality,
                 required bool timeFromArrival,
+                Value<double?> site0C = const Value.absent(),
+                Value<double?> site1C = const Value.absent(),
+                Value<double?> site2C = const Value.absent(),
+                Value<double?> site3C = const Value.absent(),
+                Value<double?> site4C = const Value.absent(),
+                Value<double?> site5C = const Value.absent(),
+                Value<double?> site6C = const Value.absent(),
+                Value<double?> site7C = const Value.absent(),
+                Value<TempQuality?> site0Q = const Value.absent(),
+                Value<TempQuality?> site1Q = const Value.absent(),
+                Value<TempQuality?> site2Q = const Value.absent(),
+                Value<TempQuality?> site3Q = const Value.absent(),
+                Value<TempQuality?> site4Q = const Value.absent(),
+                Value<TempQuality?> site5Q = const Value.absent(),
+                Value<TempQuality?> site6Q = const Value.absent(),
+                Value<TempQuality?> site7Q = const Value.absent(),
               }) => TemperatureReadingsCompanion.insert(
                 id: id,
                 atMs: atMs,
@@ -4333,6 +5579,22 @@ class $$TemperatureReadingsTableTableManager
                 heelC: heelC,
                 quality: quality,
                 timeFromArrival: timeFromArrival,
+                site0C: site0C,
+                site1C: site1C,
+                site2C: site2C,
+                site3C: site3C,
+                site4C: site4C,
+                site5C: site5C,
+                site6C: site6C,
+                site7C: site7C,
+                site0Q: site0Q,
+                site1Q: site1Q,
+                site2Q: site2Q,
+                site3Q: site3Q,
+                site4Q: site4Q,
+                site5Q: site5Q,
+                site6Q: site6Q,
+                site7Q: site7Q,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -4380,6 +5642,8 @@ typedef $$DailySummariesTableCreateCompanionBuilder =
       Value<int?> wornMin,
       Value<double?> maxDeltaForefootC,
       Value<double?> maxDeltaHeelC,
+      Value<double?> maxDeltaC,
+      Value<int?> maxDeltaSite,
       Value<int> alertsL1,
       Value<int> alertsL2,
       Value<int> alertsL3,
@@ -4397,6 +5661,8 @@ typedef $$DailySummariesTableUpdateCompanionBuilder =
       Value<int?> wornMin,
       Value<double?> maxDeltaForefootC,
       Value<double?> maxDeltaHeelC,
+      Value<double?> maxDeltaC,
+      Value<int?> maxDeltaSite,
       Value<int> alertsL1,
       Value<int> alertsL2,
       Value<int> alertsL3,
@@ -4443,6 +5709,16 @@ class $$DailySummariesTableFilterComposer
 
   ColumnFilters<double> get maxDeltaHeelC => $composableBuilder(
     column: $table.maxDeltaHeelC,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get maxDeltaC => $composableBuilder(
+    column: $table.maxDeltaC,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get maxDeltaSite => $composableBuilder(
+    column: $table.maxDeltaSite,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4521,6 +5797,16 @@ class $$DailySummariesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<double> get maxDeltaC => $composableBuilder(
+    column: $table.maxDeltaC,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get maxDeltaSite => $composableBuilder(
+    column: $table.maxDeltaSite,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get alertsL1 => $composableBuilder(
     column: $table.alertsL1,
     builder: (column) => ColumnOrderings(column),
@@ -4587,6 +5873,14 @@ class $$DailySummariesTableAnnotationComposer
 
   GeneratedColumn<double> get maxDeltaHeelC => $composableBuilder(
     column: $table.maxDeltaHeelC,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get maxDeltaC =>
+      $composableBuilder(column: $table.maxDeltaC, builder: (column) => column);
+
+  GeneratedColumn<int> get maxDeltaSite => $composableBuilder(
+    column: $table.maxDeltaSite,
     builder: (column) => column,
   );
 
@@ -4659,6 +5953,8 @@ class $$DailySummariesTableTableManager
                 Value<int?> wornMin = const Value.absent(),
                 Value<double?> maxDeltaForefootC = const Value.absent(),
                 Value<double?> maxDeltaHeelC = const Value.absent(),
+                Value<double?> maxDeltaC = const Value.absent(),
+                Value<int?> maxDeltaSite = const Value.absent(),
                 Value<int> alertsL1 = const Value.absent(),
                 Value<int> alertsL2 = const Value.absent(),
                 Value<int> alertsL3 = const Value.absent(),
@@ -4674,6 +5970,8 @@ class $$DailySummariesTableTableManager
                 wornMin: wornMin,
                 maxDeltaForefootC: maxDeltaForefootC,
                 maxDeltaHeelC: maxDeltaHeelC,
+                maxDeltaC: maxDeltaC,
+                maxDeltaSite: maxDeltaSite,
                 alertsL1: alertsL1,
                 alertsL2: alertsL2,
                 alertsL3: alertsL3,
@@ -4691,6 +5989,8 @@ class $$DailySummariesTableTableManager
                 Value<int?> wornMin = const Value.absent(),
                 Value<double?> maxDeltaForefootC = const Value.absent(),
                 Value<double?> maxDeltaHeelC = const Value.absent(),
+                Value<double?> maxDeltaC = const Value.absent(),
+                Value<int?> maxDeltaSite = const Value.absent(),
                 Value<int> alertsL1 = const Value.absent(),
                 Value<int> alertsL2 = const Value.absent(),
                 Value<int> alertsL3 = const Value.absent(),
@@ -4706,6 +6006,8 @@ class $$DailySummariesTableTableManager
                 wornMin: wornMin,
                 maxDeltaForefootC: maxDeltaForefootC,
                 maxDeltaHeelC: maxDeltaHeelC,
+                maxDeltaC: maxDeltaC,
+                maxDeltaSite: maxDeltaSite,
                 alertsL1: alertsL1,
                 alertsL2: alertsL2,
                 alertsL3: alertsL3,

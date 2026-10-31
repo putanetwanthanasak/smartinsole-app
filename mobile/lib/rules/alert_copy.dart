@@ -1,5 +1,6 @@
 import '../ble/packets.dart';
 import '../config/foot_layout.dart';
+import '../storage/models.dart' show LegacyTempSite;
 import 'alert_code.dart';
 
 // Plain-Thai copy for every alert code (rule 13), built from code + side +
@@ -53,14 +54,16 @@ class AlertCopy {
   final String? homeAdvice;
 }
 
-/// The copy for [code] about [side], at FSR [channel] (pressure codes) or
-/// temperature [site] (`TEMP_DELTA`). [value] is the measured value in the
-/// code's unit, [threshold] the boundary it crossed.
+/// The copy for [code] about [side], at zone [channel] (the FSR channel
+/// for pressure codes, the temperature site for `TEMP_DELTA`; site i =
+/// zone i). A `TEMP_DELTA` stored before schema v2 names its v1 site in
+/// [legacySite] instead. [value] is the measured value in the code's unit,
+/// [threshold] the boundary it crossed.
 AlertCopy alertCopyFor(
   AlertCode code, {
   required FootSide side,
   int? channel,
-  TempSite? site,
+  LegacyTempSite? legacySite,
   double? value,
   double? threshold,
 }) {
@@ -71,9 +74,7 @@ AlertCopy alertCopyFor(
   final zoneName = zone?.nameTh ?? 'เท้า';
   switch (code) {
     case AlertCode.tempDelta:
-      final siteName = site == null
-          ? 'เท้า'
-          : footLayout.tempSites.firstWhere((t) => t.site == site).nameTh;
+      final siteName = zone?.nameTh ?? legacyTempSiteTh(legacySite);
       final x = value == null ? '' : ' ${formatDelta(value)}$nbspองศา';
       return AlertCopy(
         title: 'เท้า$sอุ่นกว่าเท้า$other',
@@ -205,3 +206,11 @@ AlertCopy alertCopyFor(
 const _needBothFeet =
     'แอปต้องได้รับข้อมูลจากแผ่นรองเท้าทั้งสองข้าง '
     'จึงจะเทียบน้ำหนักและความอุ่นของเท้าได้';
+
+/// The v1 temperature sites' names, for `TEMP_DELTA` alerts stored before
+/// schema v2 (the 2-site layout's names); "เท้า" when there is none.
+String legacyTempSiteTh(LegacyTempSite? site) => switch (site) {
+  LegacyTempSite.forefoot => 'หน้าเท้า',
+  LegacyTempSite.heel => 'ส้นเท้า',
+  null => 'เท้า',
+};

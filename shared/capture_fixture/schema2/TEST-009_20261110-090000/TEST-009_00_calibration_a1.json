@@ -1,0 +1,330 @@
+{
+  "schema": 2,
+  "kind": "trial",
+  "sessionId": "TEST-009_20261110-090000",
+  "subject": "TEST-009",
+  "rehearsal": true,
+  "trial": 0,
+  "label": "calibration",
+  "gait": null,
+  "attempt": 1,
+  "painSide": null,
+  "rotation": null,
+  "csv": "TEST-009_00_calibration_a1.csv",
+  "columns": [
+    "unix_ms",
+    "device_ms",
+    "side",
+    "conn_session",
+    "seq",
+    "i",
+    "missing_before",
+    "saturated",
+    "calibrating",
+    "valid",
+    "fsr0_adc",
+    "fsr1_adc",
+    "fsr2_adc",
+    "fsr3_adc",
+    "fsr4_adc",
+    "fsr5_adc",
+    "fsr6_adc",
+    "fsr7_adc",
+    "fsr0_kpa",
+    "fsr1_kpa",
+    "fsr2_kpa",
+    "fsr3_kpa",
+    "fsr4_kpa",
+    "fsr5_kpa",
+    "fsr6_kpa",
+    "fsr7_kpa",
+    "accel_x_g",
+    "accel_y_g",
+    "accel_z_g",
+    "gyro_x_dps",
+    "gyro_y_dps",
+    "gyro_z_dps",
+    "temp_unix_ms",
+    "temp0_c",
+    "temp1_c",
+    "temp2_c",
+    "temp3_c",
+    "temp4_c",
+    "temp5_c",
+    "temp6_c",
+    "temp7_c",
+    "temp0_q",
+    "temp1_q",
+    "temp2_q",
+    "temp3_q",
+    "temp4_q",
+    "temp5_q",
+    "temp6_q",
+    "temp7_q"
+  ],
+  "plannedS": 10.0,
+  "startUnixMs": 1794276000007.0,
+  "endUnixMs": 1794276006407.001,
+  "durationS": 6.4000009765625,
+  "endReason": "stopped_early",
+  "valid": true,
+  "invalidReason": null,
+  "invalidSegments": [],
+  "gaps": [
+    {
+      "side": "R",
+      "kind": "seq_gap",
+      "fromUnixMs": 1794276003207.0,
+      "toUnixMs": 1794276003387.0,
+      "missingPackets": 1
+    }
+  ],
+  "feet": {
+    "L": {
+      "calibration": {
+        "deviceId": "L-001",
+        "rPulldownOhm": 10000.0,
+        "sensorAreaM2": 0.000113,
+        "channels": [
+          {
+            "index": 0,
+            "a": 123000.0,
+            "b": -1.05,
+            "offsetAdc": 12.0
+          },
+          {
+            "index": 1,
+            "a": 123000.0,
+            "b": -1.05,
+            "offsetAdc": 12.0
+          },
+          {
+            "index": 2,
+            "a": 123000.0,
+            "b": -1.05,
+            "offsetAdc": 12.0
+          },
+          {
+            "index": 3,
+            "a": 123000.0,
+            "b": -1.05,
+            "offsetAdc": 12.0
+          },
+          {
+            "index": 4,
+            "a": 123000.0,
+            "b": -1.05,
+            "offsetAdc": 12.0
+          },
+          {
+            "index": 5,
+            "a": 123000.0,
+            "b": -1.05,
+            "offsetAdc": 12.0
+          },
+          {
+            "index": 6,
+            "a": 123000.0,
+            "b": -1.05,
+            "offsetAdc": 12.0
+          },
+          {
+            "index": 7,
+            "a": 123000.0,
+            "b": -1.05,
+            "offsetAdc": 12.0
+          }
+        ]
+      },
+      "firmware": "1.2",
+      "batteryStartPct": 90,
+      "batteryEndPct": 90,
+      "packets": 40,
+      "samples": 320,
+      "missingPackets": 0,
+      "firstUnixMs": 1794276000020.0,
+      "lastUnixMs": 1794276006400.0,
+      "connSessions": [
+        1
+      ],
+      "temps": [
+        {
+          "unixMs": 1794276000640.0,
+          "fromArrival": false,
+          "celsius": [
+            31.0,
+            31.125,
+            31.25,
+            31.375,
+            31.5,
+            31.625,
+            null,
+            31.875
+          ],
+          "quality": [
+            "normal",
+            "normal",
+            "normal",
+            "normal",
+            "normal",
+            "normal",
+            "normal",
+            "normal"
+          ]
+        },
+        {
+          "unixMs": 1794276005440.0,
+          "fromArrival": false,
+          "celsius": [
+            31.0,
+            31.125,
+            31.25,
+            31.375,
+            31.5,
+            31.625,
+            null,
+            31.875
+          ],
+          "quality": [
+            "normal",
+            "normal",
+            "normal",
+            "normal",
+            "normal",
+            "normal",
+            "normal",
+            "normal"
+          ]
+        }
+      ]
+    },
+    "R": {
+      "calibration": {
+        "deviceId": "R-001",
+        "rPulldownOhm": 10000.0,
+        "sensorAreaM2": 0.000113,
+        "channels": [
+          {
+            "index": 0,
+            "a": 123000.0,
+            "b": -1.05,
+            "offsetAdc": 12.0
+          },
+          {
+            "index": 1,
+            "a": 123000.0,
+            "b": -1.05,
+            "offsetAdc": 12.0
+          },
+          {
+            "index": 2,
+            "a": 123000.0,
+            "b": -1.05,
+            "offsetAdc": 12.0
+          },
+          {
+            "index": 3,
+            "a": 123000.0,
+            "b": -1.05,
+            "offsetAdc": 12.0
+          },
+          {
+            "index": 4,
+            "a": 123000.0,
+            "b": -1.05,
+            "offsetAdc": 12.0
+          },
+          {
+            "index": 5,
+            "a": 123000.0,
+            "b": -1.05,
+            "offsetAdc": 12.0
+          },
+          {
+            "index": 6,
+            "a": 123000.0,
+            "b": -1.05,
+            "offsetAdc": 12.0
+          },
+          {
+            "index": 7,
+            "a": 123000.0,
+            "b": -1.05,
+            "offsetAdc": 12.0
+          }
+        ]
+      },
+      "firmware": "1.2",
+      "batteryStartPct": 85,
+      "batteryEndPct": 85,
+      "packets": 39,
+      "samples": 312,
+      "missingPackets": 1,
+      "firstUnixMs": 1794276000027.0,
+      "lastUnixMs": 1794276006407.0,
+      "connSessions": [
+        1
+      ],
+      "temps": [
+        {
+          "unixMs": 1794276000640.0,
+          "fromArrival": false,
+          "celsius": [
+            31.53,
+            31.78,
+            32.03,
+            32.28,
+            32.53,
+            32.78,
+            33.03,
+            33.28
+          ],
+          "quality": [
+            "normal",
+            "normal",
+            "poorContact",
+            "normal",
+            "normal",
+            "normal",
+            "normal",
+            "normal"
+          ]
+        },
+        {
+          "unixMs": 1794276005440.0,
+          "fromArrival": false,
+          "celsius": [
+            31.83,
+            32.08,
+            32.33,
+            32.58,
+            32.83,
+            33.08,
+            33.33,
+            33.58
+          ],
+          "quality": [
+            "normal",
+            "normal",
+            "poorContact",
+            "normal",
+            "normal",
+            "normal",
+            "normal",
+            "normal"
+          ]
+        }
+      ]
+    }
+  },
+  "roomTempC": 25.5,
+  "appVersion": "1.0.0+1",
+  "timings": {
+    "calibrationS": 10.0,
+    "trialS": 30.0,
+    "practiceS": 5.0,
+    "endWarningS": 10,
+    "holdToActS": 2,
+    "minBatteryPct": 80
+  }
+}

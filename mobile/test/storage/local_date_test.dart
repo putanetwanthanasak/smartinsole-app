@@ -52,9 +52,8 @@ void main() {
       await rig.temperatures.add(
         side: FootSide.left,
         atMs: at,
-        forefootC: 30,
-        heelC: 31,
-        quality: TempQuality.normal,
+        celsius: List.filled(8, 30),
+        quality: List.filled(8, TempQuality.normal),
         timeFromArrival: false,
       );
       await rig.footChecks.save(draftOf(at));

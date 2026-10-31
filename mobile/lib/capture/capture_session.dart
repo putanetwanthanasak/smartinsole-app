@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 
+import '../ble/ble_protocol.dart';
 import '../ble/insole_data_source.dart';
 import '../ble/packets.dart';
 import '../device/device_manager.dart';
@@ -709,30 +710,33 @@ class CaptureSession extends ChangeNotifier {
   }
 
   void _summariseCalibration(TrialRecorder r) {
+    // Per site, the first reading in the trial where that site is normal.
     final temps = {
       for (final side in FootSide.values)
-        side: r.feet[side]!.temps
-            .where((t) => t.packet.quality == TempQuality.normal)
-            .firstOrNull
-            ?.packet,
+        side: [
+          for (var i = 0; i < TempLayout.siteCount; i++)
+            r.feet[side]!.temps
+                .map((t) => t.packet.usableC(i))
+                .firstWhere((c) => c != null, orElse: () => null),
+        ],
     };
-    final l = temps[FootSide.left]?.forefootC;
-    final rt = temps[FootSide.right]?.forefootC;
+    final l = temps[FootSide.left]!;
+    final rt = temps[FootSide.right]!;
     calibrationSummary = {
       'attempt': _attempt!.baseName,
       'restingKpaMean': {
         for (final side in FootSide.values)
           sideCode(side): r.feet[side]!.kpaMeans,
       },
+      // °C per site (index = zone), normal quality only.
       'startTempC': {
-        for (final side in FootSide.values)
-          sideCode(side): {
-            'forefoot': temps[side]?.forefootC,
-            'heel': temps[side]?.heelC,
-          },
+        for (final side in FootSide.values) sideCode(side): temps[side],
       },
-      // Rule 4: both feet, or no number.
-      'startDeltaForefootC': l == null || rt == null ? null : l - rt,
+      // Left minus right per site. Rule 4: both feet, or no number.
+      'startDeltaC': [
+        for (var i = 0; i < TempLayout.siteCount; i++)
+          l[i] == null || rt[i] == null ? null : l[i]! - rt[i]!,
+      ],
     };
   }
 

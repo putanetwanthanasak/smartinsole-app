@@ -95,31 +95,50 @@ ParseResult<SensorPacket> parseSensorPacket(
   );
 }
 
+/// Temperature v2 (DATA-CONTRACT v1.6 §3.2). Strict: exactly 32 bytes,
+/// `count` 8 and every quality byte 0–2, else a named rejection. The old
+/// 12-byte packet is never read as v2 (it would give made-up numbers).
 ParseResult<TempPacket> parseTempPacket(Uint8List bytes) {
-  if (bytes.length < TempLayout.packetBytes) {
+  if (bytes.length != TempLayout.packetBytes) {
+    final legacy = bytes.length == TempLayout.legacyPacketBytes
+        ? ' (the v1 forefoot/heel packet: firmware older than contract v1.6)'
+        : '';
     return Rejected(
-      RejectReason.tooShort,
-      'temperature packet has ${bytes.length} bytes, needs '
-      '${TempLayout.packetBytes}',
+      RejectReason.tempLength,
+      'temperature packet has ${bytes.length} bytes, needs exactly '
+      '${TempLayout.packetBytes}$legacy',
       expectedBytes: TempLayout.packetBytes,
       actualBytes: bytes.length,
     );
   }
   final data = ByteData.sublistView(bytes);
-  final qualityByte = data.getUint8(10);
-  if (qualityByte >= TempQuality.values.length) {
+  final count = data.getUint8(TempLayout.countOffset);
+  if (count != TempLayout.siteCount) {
     return Rejected(
-      RejectReason.invalidQuality,
-      'temperature quality byte $qualityByte',
+      RejectReason.tempCount,
+      'temperature count $count, needs ${TempLayout.siteCount}',
     );
+  }
+  final quality = <TempQuality>[];
+  for (var i = 0; i < TempLayout.siteCount; i++) {
+    final q = data.getUint8(TempLayout.qualityOffset + i);
+    if (q >= TempQuality.values.length) {
+      return Rejected(
+        RejectReason.invalidQuality,
+        'temperature site $i quality byte $q',
+      );
+    }
+    quality.add(TempQuality.values[q]);
   }
   return Parsed(
     TempPacket(
       seq: data.getUint16(0, Endian.little),
       tMs: data.getUint32(2, Endian.little),
-      forefootC: _tempC(data.getInt16(6, Endian.little)),
-      heelC: _tempC(data.getInt16(8, Endian.little)),
-      quality: TempQuality.values[qualityByte],
+      celsius: [
+        for (var i = 0; i < TempLayout.siteCount; i++)
+          _tempC(data.getInt16(TempLayout.tempOffset + 2 * i, Endian.little)),
+      ],
+      quality: quality,
     ),
   );
 }

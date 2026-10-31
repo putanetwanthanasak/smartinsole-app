@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:fake_async/fake_async.dart';
+import 'package:smartinsole/ble/ble_protocol.dart';
 import 'package:smartinsole/ble/calibration.dart';
 import 'package:smartinsole/ble/packets.dart';
 import 'package:smartinsole/capture/capture_protocol.dart';
@@ -23,7 +24,7 @@ Calibration fakeCalibration(String id) => Calibration(
   rPulldownOhm: 10000,
   sensorAreaM2: 0.000113,
   channels: [
-    for (var i = 0; i < 6; i++)
+    for (var i = 0; i < SensorLayout.fsrCount; i++)
       CalibrationChannel(index: i, a: 1.23e5, b: -1.05, offsetAdc: 12),
   ],
 );

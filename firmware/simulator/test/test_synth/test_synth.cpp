@@ -64,14 +64,14 @@ void test_normal_walk_stays_below_watch_kpa() {
       char msg[64];
       snprintf(msg, sizeof msg, "N=%u side=%u peak %.1f kPa", n, side, peak);
       TEST_ASSERT_TRUE_MESSAGE(peak < limit, msg);
-      if (n == 6) TEST_ASSERT_TRUE_MESSAGE(peak > 50, msg);  // heel still clearly loaded
+      if (n >= 6) TEST_ASSERT_TRUE_MESSAGE(peak > 50, msg);  // heel still clearly loaded
     }
   }
 }
 
 void test_deterministic() {
   for (uint32_t t = 0; t < 5000; t += 20) {
-    Sample a = synth::gaitSample(t, 1, 6), b = synth::gaitSample(t, 1, 6);
+    Sample a = synth::gaitSample(t, 1, 8), b = synth::gaitSample(t, 1, 8);
     TEST_ASSERT_EQUAL_MEMORY(&a, &b, sizeof a);
   }
 }
@@ -82,7 +82,7 @@ void test_feet_alternate() {
     uint32_t best = 0;
     uint16_t v = 0;
     for (uint32_t t = 0; t < synth::kGaitCycleMs; t += 10) {
-      uint16_t h = synth::gaitSample(t, side, 6).fsr[5];
+      uint16_t h = synth::gaitSample(t, side, 8).fsr[5];
       if (h > v) v = h, best = t;
     }
     return best;
@@ -105,7 +105,7 @@ void test_accel_moves_enough_to_be_walking() {
     double dev[3000];
     int n = 0;
     for (uint32_t t = 0; t < 60000; t += 20, ++n) {
-      Sample s = synth::gaitSample(t, side, 6);
+      Sample s = synth::gaitSample(t, side, 8);
       double g = std::sqrt(double(s.accel[0]) * s.accel[0] + double(s.accel[1]) * s.accel[1] +
                            double(s.accel[2]) * s.accel[2]) / 4096.0;
       dev[n] = std::fabs(g - 1);
@@ -125,10 +125,43 @@ void test_accel_moves_enough_to_be_walking() {
 void test_temperature_plausible_and_below_delta_threshold() {
   for (uint32_t t = 0; t < 3600000; t += 30000) {
     TemperatureReading l = synth::temperature(t, 0), r = synth::temperature(t, 1);
-    TEST_ASSERT_INT_WITHIN(200, 3150, l.forefoot);
-    TEST_ASSERT_INT_WITHIN(200, 3150, r.heel);
-    TEST_ASSERT_EQUAL(0, l.quality);
-    TEST_ASSERT_TRUE(std::abs(r.forefoot - l.forefoot) < 220);  // < 2.2 degC
+    for (uint8_t i = 0; i < kTempSiteCount; ++i) {
+      TEST_ASSERT_INT_WITHIN(200, 3170, l.temp[i]);
+      TEST_ASSERT_INT_WITHIN(200, 3170, r.temp[i]);
+      TEST_ASSERT_EQUAL(0, l.quality[i]);
+      TEST_ASSERT_EQUAL(0, r.quality[i]);
+      TEST_ASSERT_TRUE(std::abs(r.temp[i] - l.temp[i]) < 220);  // < 2.2 degC
+    }
+  }
+}
+
+void test_eight_channel_anatomy() {
+  // Lateral heel (7) loads at heel strike with the heel centre (5), before
+  // the medial arch (6), which carries a light mid-stance load (< 25 kPa).
+  auto peakTime = [](uint8_t c) {
+    uint32_t best = 0;
+    uint16_t v = 0;
+    for (uint32_t t = 0; t < synth::kGaitCycleMs; t += 10) {
+      uint16_t a = synth::gaitSample(t, 0, 8).fsr[c];
+      if (a > v) v = a, best = t;
+    }
+    return best;
+  };
+  TEST_ASSERT_TRUE(peakTime(7) < peakTime(6));
+  TEST_ASSERT_UINT32_WITHIN(60, peakTime(5), peakTime(7));
+  TEST_ASSERT_TRUE(peakTime(6) < peakTime(1));
+  double arch = 0, lateralHeel = 0;
+  for (uint32_t t = 0; t < 60000; t += kSamplePeriodMs) {
+    Sample s = synth::gaitSample(t, 0, 8);
+    arch = std::fmax(arch, kpa(s.fsr[6]));
+    lateralHeel = std::fmax(lateralHeel, kpa(s.fsr[7]));
+  }
+  TEST_ASSERT_TRUE(arch > 10 && arch < 25);
+  TEST_ASSERT_TRUE(lateralHeel > 40 && lateralHeel < 60);
+  // Indexes 0-5 of the 8-channel walk are the 6-channel walk unchanged.
+  for (uint32_t t = 0; t < 5000; t += 20) {
+    Sample a = synth::gaitSample(t, 0, 6), b = synth::gaitSample(t, 0, 8);
+    for (int c = 0; c < 6; ++c) TEST_ASSERT_EQUAL(a.fsr[c], b.fsr[c]);
   }
 }
 
@@ -168,7 +201,7 @@ void test_calibration_json() {
       TEST_ASSERT_DOUBLE_WITHIN(1e-6, -1.05, ch[i]["b"].as<double>());
       TEST_ASSERT_EQUAL(12, ch[i]["offset_adc"].as<int>());
     }
-    if (n == 6) TEST_ASSERT_TRUE(len > kTargetMtu - kAttHeaderBytes);  // a long read
+    if (n >= 6) TEST_ASSERT_TRUE(len > kTargetMtu - kAttHeaderBytes);  // a long read
   }
   char small[64];
   TEST_ASSERT_EQUAL(0, buildCalibrationJson(small, sizeof small, "SIM-L-001", 6, defaults));
@@ -203,6 +236,7 @@ int main() {
   RUN_TEST(test_feet_alternate);
   RUN_TEST(test_accel_moves_enough_to_be_walking);
   RUN_TEST(test_temperature_plausible_and_below_delta_threshold);
+  RUN_TEST(test_eight_channel_anatomy);
   RUN_TEST(test_battery_never_below_50);
   RUN_TEST(test_calibration_json);
   RUN_TEST(test_calibration_json_tared_offsets);

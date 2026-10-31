@@ -216,8 +216,27 @@ void main() {
     const low = PressureLevel.low;
     const medium = PressureLevel.medium;
     const high = PressureLevel.high;
-    expect(view.leftMap.levels, [medium, high, medium, low, low, medium]);
-    expect(view.rightMap.levels, [low, medium, low, low, low, medium]);
+    // Zones 0–5 as on the board; the arch and lateral heel (v1.6) low.
+    expect(view.leftMap.levels, [
+      medium,
+      high,
+      medium,
+      low,
+      low,
+      medium,
+      low,
+      low,
+    ]);
+    expect(view.rightMap.levels, [
+      low,
+      medium,
+      low,
+      low,
+      low,
+      medium,
+      low,
+      low,
+    ]);
     await unmount(tester);
   });
 

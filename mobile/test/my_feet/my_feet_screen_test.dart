@@ -2,6 +2,7 @@ import 'dart:ui' show SemanticsRole, Tristate;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:smartinsole/config/foot_layout.dart';
 import 'package:smartinsole/device/mock_data_source.dart';
 import 'package:smartinsole/rules/alert_code.dart';
 import 'package:smartinsole/storage/storage_providers.dart';
@@ -114,8 +115,10 @@ void main() {
       );
       final banner = tester.widget<SummaryBanner>(find.byType(SummaryBanner));
       expect(banner.level.name, 'rest');
-      expect(banner.title, 'หน้าเท้าขวาอุ่นกว่าซ้าย 2.6 องศา');
-      final card = byKey('site-card-forefoot');
+      // The rest preset: heel centre +2.6, lateral heel +2.3 on the right.
+      expect(banner.title, 'กลางส้นเท้าขวาอุ่นกว่าซ้าย 2.6 องศา');
+      expect(byKey('site-card-lateralHeel'), findsOneWidget);
+      final card = byKey('site-card-heel');
       expect(
         find.descendant(of: card, matching: find.text('ขวาอุ่นกว่า')),
         findsOneWidget,
@@ -146,7 +149,8 @@ void main() {
         seedDay: true,
       );
       expect(_inBanner(find.text('เทียบความอุ่นไม่ได้')), findsOneWidget);
-      for (final site in ['forefoot', 'heel']) {
+      // No ΔT anywhere: the interim default sites, MTH1 and heel centre.
+      for (final site in ['meta1', 'heel']) {
         expect(
           find.descendant(
             of: byKey('site-card-$site'),
@@ -182,8 +186,11 @@ void main() {
         ),
       );
       await tester.pump(const Duration(milliseconds: 100));
+      final names = footLayout.zones.map((z) => z.nameTh).join('|');
       expect(
-        find.bySemanticsLabel(RegExp('^กราฟความต่างของความอุ่นวันนี้ ส้นเท้า')),
+        find.bySemanticsLabel(
+          RegExp('^กราฟความต่างของความอุ่นวันนี้ ($names)'),
+        ),
         findsOneWidget,
       );
       handle.dispose();

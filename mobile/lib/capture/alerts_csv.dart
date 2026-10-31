@@ -15,8 +15,10 @@ const alertsCsvColumns = [
   'level', // internal level 1–5
   'patient_status', // what Home showed then: noData / safe / careful / rest
   'side', // L / R
-  'zone', // pressure zone id (hallux, meta1, …)
-  'site', // temperature site (forefoot / heel)
+  'zone', // zone id (hallux, meta1, …): pressure zone, or TEMP_DELTA's
+  //          site with the largest |ΔT| (site i = zone i, contract v1.6)
+  'site', // TEMP_DELTA stored before schema v2 only: forefoot / heel
+  'temp_sites', // TEMP_DELTA: every qualifying site, zone:deltaC:unix_ms;…
   'measured_value', // in the code's unit
   'threshold', // the thresholds.json value it crossed
   'gait_class',
@@ -39,7 +41,8 @@ String alertsCsv(List<StoredAlert> alerts) {
         a.patientLevel.name,
         a.side == null ? '' : sideCode(a.side!),
         a.zone ?? '',
-        a.site?.name ?? '',
+        a.legacySite?.name ?? '',
+        tempSitesCell(TempSiteEntry.listOf(a.details)),
         a.measuredValue?.toString() ?? '',
         a.threshold?.toString() ?? '',
         a.gaitClass ?? '',
@@ -50,3 +53,9 @@ String alertsCsv(List<StoredAlert> alerts) {
   ];
   return '${lines.join('\n')}\n';
 }
+
+/// `temp_sites`: `zone:deltaC:unix_ms` per qualifying site, `;`-separated,
+/// in the alert's order (largest |ΔT| first, sites added later at the end).
+String tempSitesCell(List<TempSiteEntry> sites) => [
+  for (final e in sites) '${e.zone}:${e.deltaC.toStringAsFixed(2)}:${e.atMs}',
+].join(';');

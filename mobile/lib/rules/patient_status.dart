@@ -1,18 +1,16 @@
 import '../ble/packets.dart';
-import '../config/foot_layout.dart';
 import 'alert_code.dart';
 
 /// The four things a patient can see (FLUTTER-PLAN §7, DESIGN-SPEC §6).
 enum PatientLevel { noData, safe, careful, rest }
 
 /// The rule behind a Be-careful or Rest status: alert code + foot side +
-/// zone or site, so Home can say in plain Thai what happened.
+/// zone, so Home can say in plain Thai what happened.
 class StatusCause {
   const StatusCause({
     required this.code,
     required this.side,
     this.channel,
-    this.site,
     this.deltaC,
   });
 
@@ -21,17 +19,16 @@ class StatusCause {
   /// The foot the rule is about (for `TEMP_DELTA`, the warmer foot).
   final FootSide side;
 
-  /// FSR channel (index into `footLayout.zones`) for pressure codes.
+  /// Index into `footLayout.zones`: the FSR channel for pressure codes, the
+  /// temperature site with the largest |ΔT| for `TEMP_DELTA` (site i =
+  /// zone i, DATA-CONTRACT v1.6).
   final int? channel;
 
-  /// Temperature site for `TEMP_DELTA`.
-  final TempSite? site;
-
-  /// |ΔT| in °C for `TEMP_DELTA`.
+  /// |ΔT| in °C at [channel] for `TEMP_DELTA`.
   final double? deltaC;
 
   /// Short id for logs and tests.
-  String get key => alertKey(code, side, channel: channel, site: site);
+  String get key => alertKey(code, side, channel: channel);
 
   @override
   bool operator ==(Object other) =>
@@ -39,21 +36,19 @@ class StatusCause {
       other.code == code &&
       other.side == side &&
       other.channel == channel &&
-      other.site == site &&
       other.deltaC == deltaC;
 
   @override
-  int get hashCode => Object.hash(code, side, channel, site, deltaC);
+  int get hashCode => Object.hash(code, side, channel, deltaC);
 }
 
-/// Code + side + zone or site: what the 30-minute repeat suppression
-/// (contract §8.5) counts as "the same alert".
-String alertKey(
-  AlertCode code,
-  FootSide? side, {
-  int? channel,
-  TempSite? site,
-}) => '${code.name}|${side?.name ?? ''}|${channel ?? ''}|${site?.name ?? ''}';
+/// Code + side + zone: what the 30-minute repeat suppression (contract
+/// §8.5) counts as "the same alert". `TEMP_DELTA` is one alert per warmer
+/// foot, whichever site it names (user decision 2026-10-29), so its key
+/// has no zone.
+String alertKey(AlertCode code, FootSide? side, {int? channel}) =>
+    '${code.name}|${side?.name ?? ''}|'
+    '${code == AlertCode.tempDelta ? '' : channel ?? ''}';
 
 /// What Home's status card shows, from the alert engine
 /// (`alert_engine.dart`).

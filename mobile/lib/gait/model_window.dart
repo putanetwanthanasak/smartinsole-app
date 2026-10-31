@@ -8,7 +8,7 @@ import 'model_spec.dart';
 /// Model A's input window (DATA-CONTRACT §7.1) from the 50 Hz path (rule
 /// 10): each foot's newest samples, paired in time by the same rule as the
 /// capture files and the training scripts ([pairFeet]), turned into
-/// 24-channel rows ([modelRow]) in `shared/model_input.json` order.
+/// 28-channel rows ([modelRow]) in `shared/model_input.json` order.
 ///
 /// A window is exactly [ModelInputSpec.windowSamples] consecutive rows: a
 /// gap between two rows (lost packets, a foot that dropped out, a pairing

@@ -35,7 +35,8 @@ void main() {
     'sensor.json': _checkSensor,
     'sensor_n4.json': _checkSensor,
     'sensor_n8.json': _checkSensor,
-    'temperature.json': _checkTemp,
+    'temperature.json': _checkTempV1,
+    'temperature_v2.json': _checkTemp,
     'status.json': _checkStatus,
     'calibration.json': _checkCalibration,
   };
@@ -172,28 +173,41 @@ void _checkSensor(_Json file, _Json c) {
   }
 }
 
+/// The v1 (12-byte) vectors stay as the record of the old format; since
+/// DATA-CONTRACT v1.6 every one of them must be refused, never misread as
+/// 8 sites.
+void _checkTempV1(_Json file, _Json c) {
+  final bytes = _hex(c['hex'] as String);
+  final result = parseTempPacket(bytes);
+  _expectRejected(result, {
+    'expected_bytes': 32,
+    'actual_bytes': bytes.length,
+  }, 'tempLength');
+}
+
 void _checkTemp(_Json file, _Json c) {
   final result = parseTempPacket(_hex(c['hex'] as String));
   final e = c['expected'] as _Json;
   final rejected = e['rejected'] as String?;
   if (rejected != null) {
-    _expectRejected(result, const {}, rejected);
+    _expectRejected(result, e, rejected);
     return;
   }
   expect(result, isA<Parsed<TempPacket>>(), reason: '$result');
   final p = (result as Parsed<TempPacket>).value;
   expect(p.seq, e['seq']);
   expect(p.tMs, e['t_ms']);
-  expect(p.quality.index, e['quality']);
-  for (final (actual, expected, label) in [
-    (p.forefootC, e['forefoot_c'], 'forefoot'),
-    (p.heelC, e['heel_c'], 'heel'),
-  ]) {
-    if (expected == null) {
-      expect(actual, isNull, reason: label);
+  expect(p.siteCount, e['count']);
+  expect(p.quality.map((q) => q.index).toList(), e['quality']);
+  final celsius = e['celsius'] as List;
+  expect(p.celsius, hasLength(celsius.length));
+  for (var i = 0; i < celsius.length; i++) {
+    final label = '${c['name']} site $i';
+    if (celsius[i] == null) {
+      expect(p.celsius[i], isNull, reason: label);
     } else {
-      expect(actual, isNotNull, reason: label);
-      _close('temp_c', actual!, expected as num, '${c['name']} $label');
+      expect(p.celsius[i], isNotNull, reason: label);
+      _close('temp_c', p.celsius[i]!, celsius[i] as num, label);
     }
   }
 }

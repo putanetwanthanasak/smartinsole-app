@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../ble/ble_data_source.dart';
+import '../../ble/ble_protocol.dart';
 import '../../ble/ble_hub.dart';
 import '../../ble/ble_providers.dart';
 import '../../ble/foot_finder.dart';
@@ -231,6 +232,7 @@ String _summary(BleDataSource s, DateTime now) {
     '${s.side.name.toUpperCase()}: ${_stateLine(s.state, now)}',
     '  device ${s.deviceId ?? '—'} · name "${st.advertisedName ?? ''}" · '
         'cal ${st.calibrationDeviceId ?? '—'}',
+    '  ${formatLine(st)}',
     '  packets ${st.packets} · ${st.packetRate(now).toStringAsFixed(2)}/s · '
         'last ${_ago(st.lastPacketAt, now)} · seq ${st.lastSeq ?? '—'}',
     '  seq gaps ${st.seqGaps} (${st.seqMissing} missing) · rejects '
@@ -247,6 +249,40 @@ String _summary(BleDataSource s, DateTime now) {
 String _rejects(LinkStats st) => st.rejects.isEmpty
     ? '0'
     : st.rejects.entries.map((e) => '${e.key.name} ${e.value}').join(', ');
+
+/// The SR first-connection check on one line (DATA-CONTRACT v1.6
+/// Appendix C): the calibration's N, the temperature format once a valid
+/// packet arrived, and the rejects. On real boards it must read
+/// "N 8 · temperature v2, 8 sites · rejects 0".
+@visibleForTesting
+String formatLine(LinkStats st) {
+  final n = st.calibrationFsrCount;
+  final t = st.lastTemp;
+  return [
+    n == null
+        ? 'N —'
+        : n == SensorLayout.fsrCount
+        ? 'N $n'
+        : 'N $n (needs ${SensorLayout.fsrCount})',
+    t == null
+        ? 'no temperature packet yet'
+        : 'temperature v2, ${t.siteCount} sites',
+    'rejects ${st.totalRejects}',
+  ].join(' · ');
+}
+
+/// One temperature packet: °C per site (n/a = could not read), and the
+/// sites whose quality is not normal.
+String _tempLine(TempPacket t) {
+  final c = [
+    for (final v in t.celsius) v == null ? 'n/a' : v.toStringAsFixed(2),
+  ].join(' ');
+  final bad = [
+    for (var i = 0; i < t.siteCount; i++)
+      if (t.quality[i] != TempQuality.normal) '$i ${t.quality[i].name}',
+  ];
+  return '$c °C · ${bad.isEmpty ? 'all normal' : bad.join(', ')}';
+}
 
 // --- Cards ------------------------------------------------------------------
 
@@ -467,6 +503,7 @@ class _FootCard extends StatelessWidget {
             _kv('device', source.deviceId ?? '—'),
             _kv('name', '"${st.advertisedName ?? ''}" (display only)'),
             _kv('calibration', st.calibrationDeviceId ?? '—'),
+            _kv('format', formatLine(st)),
             _kv(
               'status',
               status == null
@@ -510,14 +547,7 @@ class _FootCard extends StatelessWidget {
                   ? '—'
                   : st.lastKpa!.map((v) => v.toStringAsFixed(1)).join(' · '),
             ),
-            _kv(
-              'temp',
-              temp == null
-                  ? '—'
-                  : 'forefoot ${temp.forefootC?.toStringAsFixed(2) ?? 'n/a'} °C'
-                        ' · heel ${temp.heelC?.toStringAsFixed(2) ?? 'n/a'} °C'
-                        ' · ${temp.quality.name}',
-            ),
+            _kv('temp', temp == null ? '—' : _tempLine(temp)),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,

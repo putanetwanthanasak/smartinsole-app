@@ -15,10 +15,11 @@ void main() {
   final rules = RuleBasedClassifier(testThresholds);
   final n = t.gaitRuleSteps;
 
-  // Zone order: hallux, meta1, meta3, meta5, midfoot, heel.
+  // Zone order: hallux, meta1, meta3, meta5, midfoot, heel, medialArch,
+  // lateralHeel. Heel = {5, 7}, forefoot = {0–3} (shared/sensor_layout.json).
   List<Step> steps(
     FootSide side, {
-    List<double> pti = const [10, 10, 10, 10, 10, 10],
+    List<double> pti = const [10, 10, 10, 10, 10, 10, 10, 10],
     double durationMs = 600,
     int count = 4,
   }) => [
@@ -50,11 +51,21 @@ void main() {
   });
 
   test('toe walking: heel share below gait.toeHeelPtiPct', () {
-    // Heel share = h / (50 + h); just below and at the boundary.
-    double heelFor(double pct) => 50 * pct / (100 - pct);
+    // Heel share = h / (60 + h), h split over both heel sites; just below
+    // and at the boundary.
+    double heelFor(double pct) => 60 * pct / (100 - pct);
     final below = heelFor(t.toeHeelPtiPct - 0.5);
     final at = heelFor(t.toeHeelPtiPct);
-    List<double> pti(double heel) => [10, 10, 10, 10, 10, heel];
+    List<double> pti(double heel) => [
+      10,
+      10,
+      10,
+      10,
+      10,
+      heel / 2,
+      10,
+      heel / 2,
+    ];
     expect(
       classify(
         steps(FootSide.left, pti: pti(below)),
@@ -71,10 +82,27 @@ void main() {
     );
   });
 
+  test('the heel is both heel sites: a loaded lateral heel alone is not '
+      'toe walking (user decision 2026-10-29)', () {
+    final lateral = 60 * (t.toeHeelPtiPct + 5) / (100 - t.toeHeelPtiPct - 5);
+    List<Step> on(FootSide side, List<double> pti) => steps(side, pti: pti);
+    final only7 = <double>[10, 10, 10, 10, 10, 0, 10, lateral];
+    expect(
+      classify(on(FootSide.left, only7), on(FootSide.right, only7))!.gaitClass,
+      GaitClass.normal,
+    );
+    const none = <double>[10, 10, 10, 10, 10, 0, 10, 0];
+    expect(
+      classify(on(FootSide.left, none), on(FootSide.right, none))!.gaitClass,
+      GaitClass.toeWalking,
+    );
+  });
+
   test('heel walking: forefoot share below gait.heelForefootPtiPct', () {
-    // Forefoot (4 zones of f) share = 4f / (4f + 60).
+    // Forefoot (4 zones of f) share = 4f / (4f + 60); the medial arch is
+    // in the whole only.
     double foreFor(double pct) => 60 * pct / (100 - pct) / 4;
-    List<double> pti(double f) => [f, f, f, f, 10, 50];
+    List<double> pti(double f) => [f, f, f, f, 10, 25, 0, 25];
     final below = foreFor(t.heelForefootPtiPct - 0.5);
     final at = foreFor(t.heelForefootPtiPct);
     expect(
@@ -117,7 +145,7 @@ void main() {
 
   test('only the newest gait.ruleSteps steps count', () {
     final left = [
-      ...steps(FootSide.left, pti: [10, 10, 10, 10, 10, 0]),
+      ...steps(FootSide.left, pti: [10, 10, 10, 10, 10, 0, 10, 0]),
       ...steps(FootSide.left),
     ];
     expect(classify(left, steps(FootSide.right))!.gaitClass, GaitClass.normal);
@@ -125,8 +153,8 @@ void main() {
 
   test('never rotated_foot: only the model can say that', () {
     for (final pti in const [
-      <double>[30, 5, 5, 30, 20, 10],
-      <double>[5, 30, 30, 5, 20, 10],
+      <double>[30, 5, 5, 30, 20, 10, 5, 10],
+      <double>[5, 30, 30, 5, 20, 10, 15, 5],
     ]) {
       expect(
         classify(

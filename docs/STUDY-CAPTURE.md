@@ -4,7 +4,8 @@ How to run one volunteer session with the phone app and get the data onto
 the laptop. The procedure follows the IRB-approved proposal **doc 03**.
 Where `docs/SmartInsole_TestProtocol_v1.md` differs, doc 03 wins (see
 BACKLOG 32). If the phone capture fails in the middle of a session, switch
-to the laptop: `docs/STUDY-FALLBACK.md`.
+to the laptop: `docs/STUDY-FALLBACK.md` (**not usable with the 8-sensor
+boards**: see its warning and BACKLOG 63).
 
 Built in S4C (`docs/reports/027-flutter-capture.md`). Code:
 `mobile/lib/capture/`. Tools: `tools/capture/`.
@@ -138,7 +139,7 @@ by its time stamp, never by the subject code. It goes into the export as
 
 Testing the app on the study phone leaves rows in its database: alerts,
 temperature readings, daily summaries and foot checks. Clear them once,
-before 2026-11-10 (SR checklist):
+before 2026-11-12, the study start (SR checklist):
 
 1. Disconnect both insoles first (Settings → **เชื่อมต่อแผ่นรองเท้า** →
    **ยกเลิกการเชื่อมต่อ** on each foot; this also forgets them, so they
@@ -219,13 +220,21 @@ line per check; `PASS` at the end means no FAIL.
 
 | File | Contents |
 |---|---|
-| `session.json` | Code, coded subject data, room temperature, trial order and seed, pain side, timings, calibration summary (resting kPa per channel, starting temperatures, starting ΔT), every attempt, exports |
-| `<code>_<nn>_<label>_a<k>.csv` | One row per sample per foot: unix time, device time, side, connection session, seq, sample index, missing packets, flags, `valid`, raw ADC ×6, kPa ×6, accel g ×3, gyro °/s ×3, temperature on the first row after each reading |
+| `session.json` | Code, coded subject data, room temperature, trial order and seed, pain side, timings, calibration summary (resting kPa per channel; starting temperature per site = each foot's first normal-quality reading of that site in the calibration trial, so the two feet's values may come from readings up to 30 s apart; starting ΔT per site = left − right of those, null unless both feet have one), every attempt, exports |
+| `<code>_<nn>_<label>_a<k>.csv` | One row per sample per foot: unix time, device time, side, connection session, seq, sample index, missing packets, flags, `valid`, raw ADC ×8, kPa ×8, accel g ×3, gyro °/s ×3, and on the first row after each temperature reading its time, °C ×8 and quality ×8 (`temp0_c..temp7_c`, `temp0_q..temp7_q`; site i = FSR i) |
 | `<code>_<nn>_<label>_a<k>.json` | Sidecar: gait and model index, pain side / rotation, planned and actual duration, end reason, valid / invalid reason, marked segments, gaps, per foot calibration table, firmware, battery, counts, temperature readings, app version |
-| `alerts.csv` | Export only: the alerts raised while the session screen was open, oldest first (header only if none). `at_ms` (unix ms), `code`, `level` (1–5), `patient_status` (what Home showed), `side`, `zone`, `site`, `measured_value`, `threshold`, `gait_class`, `gait_confidence`, `read_at_ms`, `details` (JSON) |
+| `alerts.csv` | Export only: the alerts raised while the session screen was open, oldest first (header only if none). `at_ms` (unix ms), `code`, `level` (1–5), `patient_status` (what Home showed), `side`, `zone` (since S8D also a `TEMP_DELTA`'s site), `site` (only alerts stored before S8D: forefoot / heel), `temp_sites` (a `TEMP_DELTA`'s qualifying sites, `zone:deltaC:unixMs;…`), `measured_value`, `threshold`, `gait_class`, `gait_confidence`, `read_at_ms`, `details` (JSON) |
 | `manifest.json` | Size and SHA-256 of every file (from the export) |
 
 `nn` is 00 for calibration, then 01–05 in the subject's order. For
-training, `load_capture.model_matrix(trial)` gives the 24 model channels
+training, `load_capture.model_matrix(trial)` gives the 28 model channels
 in `shared/model_input.json` order. It pairs the feet by the same rule
 the app uses (`pairing` in that file) and drops rows marked invalid.
+
+**Capture schema 2 (S8D, 8 FSR + 8 temperature sites).** Every sidecar
+names its schema. Files recorded before S8D are schema 1 (6 FSR, forefoot
+/ heel temperature) and still load; their model rows are the 24-channel v1
+layout, never padded to 28. A session started on the old app and finished
+on the new one mixes the two; the loader reads each trial by its own
+schema. Clear test data before the study starts (12 Nov), so study
+sessions are schema 2 only.

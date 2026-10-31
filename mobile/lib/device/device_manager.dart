@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import '../ble/insole_data_source.dart';
+import '../ble/ble_protocol.dart';
 import '../ble/link_state.dart';
 import '../ble/packets.dart';
 import 'device_clock.dart';
@@ -113,8 +114,10 @@ class DeviceManager {
       at: at,
       left: left,
       right: right,
-      deltaForefootC: _delta(left, right, (t) => t.forefootC),
-      deltaHeelC: _delta(left, right, (t) => t.heelC),
+      deltaC: [
+        for (var site = 0; site < TempLayout.siteCount; site++)
+          _delta(left, right, site),
+      ],
     );
   }
 
@@ -289,20 +292,11 @@ class DeviceManager {
     );
   }
 
-  static double? _delta(
-    FootView l,
-    FootView r,
-    double? Function(TempPacket) pick,
-  ) {
+  /// ΔT at one site; quality is judged per site (DATA-CONTRACT v1.6 §3.2).
+  static double? _delta(FootView l, FootView r, int site) {
     if (!l.usable || !r.usable) return null;
-    final lt = l.temp;
-    final rt = r.temp;
-    if (lt == null || rt == null) return null;
-    if (lt.quality != TempQuality.normal || rt.quality != TempQuality.normal) {
-      return null;
-    }
-    final lv = pick(lt);
-    final rv = pick(rt);
+    final lv = l.temp?.usableC(site);
+    final rv = r.temp?.usableC(site);
     if (lv == null || rv == null) return null;
     return lv - rv;
   }

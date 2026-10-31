@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 
+import '../device/display_snapshot.dart' show maxAbsSite;
 import 'database.dart';
 import 'local_date.dart';
 import 'models.dart';
@@ -14,9 +15,10 @@ abstract interface class DailySummaryRepository {
   /// Days in `[fromDate, toDate]` that have a row, oldest first.
   Future<List<DailySummary>> range(String fromDate, String toDate);
 
-  /// Raises the day's max |ΔT| at [atMs]. Pass only two-foot values: a ΔT
-  /// from one foot is never a reading (rule 4).
-  Future<void> recordDelta(int atMs, {double? forefootC, double? heelC});
+  /// Raises the day's max |ΔT| at [atMs] from [deltaC], ΔT per site (index
+  /// = zone), and keeps the site it was at. Pass only two-foot values: a
+  /// ΔT from one foot is never a reading (rule 4).
+  Future<void> recordDelta(int atMs, List<double?> deltaC);
 
   /// Sets the activity figures given (S8A); null leaves a field as it is.
   Future<void> setActivity(
@@ -60,26 +62,27 @@ class DriftDailySummaryRepository implements DailySummaryRepository {
   }
 
   @override
-  Future<void> recordDelta(int atMs, {double? forefootC, double? heelC}) {
-    if (forefootC == null && heelC == null) return Future.value();
-    // SQLite's two-argument MAX() is NULL if either side is, hence the
-    // COALESCE: a day's first value replaces NULL.
+  Future<void> recordDelta(int atMs, List<double?> deltaC) {
+    final site = maxAbsSite(deltaC);
+    if (site == null) return Future.value();
+    // SET reads the old row, so the site is replaced only together with a
+    // larger value; a day's first value replaces NULL.
     return _db.customInsert(
       'INSERT INTO daily_summary '
-      '(local_date, max_delta_forefoot_c, max_delta_heel_c, updated_at_ms) '
+      '(local_date, max_delta_c, max_delta_site, updated_at_ms) '
       'VALUES (?1, ?2, ?3, ?4) '
       'ON CONFLICT (local_date) DO UPDATE SET '
-      'max_delta_forefoot_c = MAX(COALESCE(max_delta_forefoot_c, '
-      'excluded.max_delta_forefoot_c), COALESCE(excluded.max_delta_forefoot_c, '
-      'max_delta_forefoot_c)), '
-      'max_delta_heel_c = MAX(COALESCE(max_delta_heel_c, '
-      'excluded.max_delta_heel_c), COALESCE(excluded.max_delta_heel_c, '
-      'max_delta_heel_c)), '
+      'max_delta_site = CASE WHEN max_delta_c IS NULL '
+      'OR excluded.max_delta_c > max_delta_c '
+      'THEN excluded.max_delta_site ELSE max_delta_site END, '
+      'max_delta_c = CASE WHEN max_delta_c IS NULL '
+      'OR excluded.max_delta_c > max_delta_c '
+      'THEN excluded.max_delta_c ELSE max_delta_c END, '
       'updated_at_ms = excluded.updated_at_ms',
       variables: [
         Variable.withString(_dates.of(atMs)),
-        Variable<double>(forefootC?.abs()),
-        Variable<double>(heelC?.abs()),
+        Variable.withReal(deltaC[site]!.abs()),
+        Variable.withInt(site),
         Variable.withInt(atMs),
       ],
       updates: {_db.dailySummaries},
@@ -143,8 +146,10 @@ DailySummary _toModel(DailySummaryRow r) => DailySummary(
   steps: r.steps,
   walkingMin: r.walkingMin,
   wornMin: r.wornMin,
-  maxDeltaForefootC: r.maxDeltaForefootC,
-  maxDeltaHeelC: r.maxDeltaHeelC,
+  maxDeltaC: r.maxDeltaC,
+  maxDeltaSite: r.maxDeltaSite,
+  legacyMaxDeltaForefootC: r.maxDeltaForefootC,
+  legacyMaxDeltaHeelC: r.maxDeltaHeelC,
   alertsByLevel: [r.alertsL1, r.alertsL2, r.alertsL3, r.alertsL4, r.alertsL5],
   footCheckDone: r.footCheckDone,
 );

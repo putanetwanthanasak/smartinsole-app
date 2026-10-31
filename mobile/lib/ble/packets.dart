@@ -59,23 +59,39 @@ class SensorPacket {
   final int byteLength;
 }
 
+/// One temperature reading of all 8 sites of a foot (DATA-CONTRACT v1.6
+/// §3.2). Site i is the NTC next to FSR i, so it shares the zone's index in
+/// `footLayout.zones`.
 class TempPacket {
   const TempPacket({
     required this.seq,
     required this.tMs,
-    required this.forefootC,
-    required this.heelC,
+    required this.celsius,
     required this.quality,
   });
 
   final int seq;
   final int tMs;
 
-  /// null when the wire value is `-32768` ("could not read"); never show
-  /// that as a number.
-  final double? forefootC;
-  final double? heelC;
-  final TempQuality quality;
+  /// Per site; null when the wire value is `-32768` ("could not read"):
+  /// never show that as a number.
+  final List<double?> celsius;
+
+  /// Per site.
+  final List<TempQuality> quality;
+
+  int get siteCount => celsius.length;
+
+  /// The site's temperature when it can be compared with the other foot: a
+  /// value with `normal` quality, else null.
+  double? usableC(int site) =>
+      site < siteCount && quality[site] == TempQuality.normal
+      ? celsius[site]
+      : null;
+
+  /// Every site has a value with `normal` quality.
+  bool get allNormal =>
+      [for (var i = 0; i < siteCount; i++) usableC(i)].every((c) => c != null);
 }
 
 class StatusPacket {

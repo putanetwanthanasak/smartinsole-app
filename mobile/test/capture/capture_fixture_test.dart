@@ -14,16 +14,18 @@ import 'package:smartinsole/storage/models.dart';
 
 import 'capture_rig.dart';
 
-/// `shared/capture_fixture/`: one rehearsal session recorded by the real
-/// capture code, exported with its manifest, plus `expected.json` — the
-/// 24-channel rows the app's own [pairFeet] + [modelRow] make from the same
-/// samples. `tools/capture/load_capture.py --selftest` must reproduce them
-/// from the files, which checks the column order and the pairing rule
-/// across the two languages.
+/// `shared/capture_fixture/schema2/`: one rehearsal session recorded by the
+/// real capture code (capture schema 2: 8 FSR, 8 temperature sites),
+/// exported with its manifest, plus `expected.json` — the 28-channel rows
+/// the app's own [pairFeet] + [modelRow] make from the same samples.
+/// `tools/capture/load_capture.py --selftest` must reproduce them from the
+/// files, which checks the column order and the pairing rule across the two
+/// languages. `schema1/` is the frozen schema-1 (6-FSR) fixture: the loader
+/// must keep reading it; nothing writes it any more.
 ///
-/// Regenerate after an intended format change:
+/// Regenerate after an intended format change (rewrites `schema2/` only):
 ///   UPDATE_CAPTURE_FIXTURE=1 flutter test test/capture/capture_fixture_test.dart
-const fixtureDir = '../shared/capture_fixture';
+const fixtureDir = '../shared/capture_fixture/schema2';
 
 /// Values exactly representable at the CSV's decimals (kPa 3, g 6, dps 4),
 /// different per channel and per sample, so a swapped column shows.
@@ -31,8 +33,8 @@ SensorSample Function(int i, int deviceMs) samples(double base) => (i, ms) {
   final k = (ms ~/ 20) % 50;
   return SensorSample(
     deviceMs: ms,
-    fsrAdc: [for (var c = 0; c < 6; c++) 100 * c + k],
-    fsrKpa: [for (var c = 0; c < 6; c++) base + 10 * c + k + 0.125],
+    fsrAdc: [for (var c = 0; c < modelFsrCount; c++) 100 * c + k],
+    fsrKpa: [for (var c = 0; c < modelFsrCount; c++) base + 10 * c + k + 0.125],
     accelG: [for (var a = 0; a < 3; a++) (base + a) / 100 + k / 1000],
     gyroDps: [for (var a = 0; a < 3; a++) -(base + a) - k / 10],
   );
@@ -49,6 +51,19 @@ void main() {
       final start = s.recorder!.startUnixMs;
       for (var k = 0; k < 40; k++) {
         async.elapse(const Duration(milliseconds: 153));
+        if (k == 3 || k == 33) {
+          // Temperature v2 readings: every site different, one site the
+          // left sensor could not read, one right site in poor contact.
+          rig.left.temp(
+            null,
+            sites: {for (var i = 0; i < 8; i++) i: i == 6 ? null : 31 + i / 8},
+          );
+          rig.right.temp(
+            null,
+            sites: {for (var i = 0; i < 8; i++) i: 31.5 + i / 4 + k / 100},
+            qualityAt: {2: TempQuality.poorContact},
+          );
+        }
         rig.left.packet(sample: samples(100));
         async.elapse(const Duration(milliseconds: 7));
         if (k == 20) {
@@ -94,6 +109,34 @@ void main() {
               measuredValue: 236.5,
               threshold: 200,
               details: const {'walking': true},
+              captureStamp: captureStampOf(s.sessionId),
+            ),
+            StoredAlert(
+              id: 2,
+              kind: AlertKind.tempDelta,
+              level: AlertKind.tempDelta.level,
+              patientLevel: PatientLevel.rest,
+              atMs: (start + 3000).round(),
+              localDate: '2026-11-10',
+              side: FootSide.right,
+              zone: 'heel',
+              measuredValue: 2.6,
+              threshold: 2.2,
+              details: {
+                'consecutive': 2,
+                TempSiteEntry.listKey: [
+                  TempSiteEntry(
+                    zone: 'heel',
+                    deltaC: 2.6,
+                    atMs: (start + 3000).round(),
+                  ).toJson(),
+                  TempSiteEntry(
+                    zone: 'lateralHeel',
+                    deltaC: 2.31,
+                    atMs: (start + 4000).round(),
+                  ).toJson(),
+                ],
+              },
               captureStamp: captureStampOf(s.sessionId),
             ),
           ]),

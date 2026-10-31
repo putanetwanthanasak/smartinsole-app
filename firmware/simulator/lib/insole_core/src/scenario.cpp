@@ -37,7 +37,7 @@ Sample highMeta1Sample(uint32_t tMs, uint8_t footSide, uint8_t fsrCount) {
 
 TemperatureReading warmTemperature(uint32_t tMs, uint8_t footSide) {
   TemperatureReading t = synth::temperature(tMs, footSide);
-  t.forefoot = static_cast<int16_t>(t.forefoot + kWarmForefootCentiC);
+  t.temp[kWarmSite] = static_cast<int16_t>(t.temp[kWarmSite] + kWarmCentiC);
   return t;
 }
 
@@ -45,7 +45,7 @@ const DataSource& source(Id id) {
   static const DataSource warm{synth::gaitSample, warmTemperature, synth::battery};
   static const DataSource high{highMeta1Sample, synth::temperature, synth::battery};
   switch (id) {
-    case Id::warmForefoot: return warm;
+    case Id::warmSite: return warm;
     case Id::highMeta1: return high;
     case Id::normal: break;
   }
@@ -54,7 +54,7 @@ const DataSource& source(Id id) {
 
 const char* name(Id id) {
   switch (id) {
-    case Id::warmForefoot: return "t (forefoot +3.0 degC)";
+    case Id::warmSite: return "t (temperature site 1, MTH1, +3.0 degC)";
     case Id::highMeta1: return "p (meta1 ~250 kPa plateau)";
     case Id::normal: break;
   }
@@ -64,7 +64,7 @@ const char* name(Id id) {
 bool fromCommand(char c, Id* out) {
   switch (c) {
     case 'n': *out = Id::normal; return true;
-    case 't': *out = Id::warmForefoot; return true;
+    case 't': *out = Id::warmSite; return true;
     case 'p': *out = Id::highMeta1; return true;
     default: return false;
   }

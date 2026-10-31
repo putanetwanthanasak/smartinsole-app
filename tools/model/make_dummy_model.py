@@ -5,11 +5,11 @@
 """Make the dummy Model A for the app's model slot (S8A).
 
 The weights are untrained (fixed seed): the file only proves the slot, i.e.
-that the app loads a model of the contract's shapes, feeds it the 24
+that the app loads a model of the contract's shapes, feeds it the 28
 channels in the order of shared/model_input.json, normalises them with
 normalization.json, and runs it fast enough. It is never a gait result.
 
-DATA-CONTRACT §7.1/§7.2: input [1, 100, 24] float32; outputs gait_probs
+DATA-CONTRACT v1.6 §7.1/§7.2: input [1, 100, 28] float32; outputs gait_probs
 [1, 5] (softmax) and gait_embedding [1, 32] (the layer before softmax). The
 model is converted with TFLite builtin ops only; the real model must be too
 (the app bundles no Flex delegate).
@@ -36,7 +36,7 @@ import tensorflow as tf  # noqa: E402
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 MODEL_INPUT = ROOT / "shared" / "model_input.json"
-FIXTURE = ROOT / "shared" / "capture_fixture" / "expected.json"
+FIXTURE = ROOT / "shared" / "capture_fixture" / "schema2" / "expected.json"
 OUT = ROOT / "mobile" / "assets" / "models_dummy"
 SEED = 20261025
 CLASSES = 5
@@ -109,8 +109,10 @@ def main() -> None:
     (OUT / "normalization.json").write_text(
         json.dumps(
             {
-                "version": 1,
-                "about": "DUMMY (S8A): mean/std over shared/capture_fixture rows, "
+                # Must equal model_input.json's (the app refuses another).
+                "version": spec["version"],
+                "about": "DUMMY (S8A, 28 channels since S8D): mean/std over "
+                "shared/capture_fixture/schema2 rows, "
                 "not a training set. Made by tools/model/make_dummy_model.py.",
                 "channels": names,
                 "mean": [float(v) for v in mean],

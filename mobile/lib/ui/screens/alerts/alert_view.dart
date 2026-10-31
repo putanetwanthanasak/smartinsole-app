@@ -89,7 +89,7 @@ AlertCopy copyOf(StoredAlert a) {
     code,
     side: a.side ?? FootSide.left,
     channel: channelOf(a.zone),
-    site: a.site,
+    legacySite: a.legacySite,
     value: a.measuredValue,
     threshold: a.threshold,
   );
@@ -179,6 +179,8 @@ AlertAction? actionOf(AlertKind kind) => switch (kind) {
 // --- Detail: the "ตำแหน่งที่พบ" map ----------------------------------------
 
 /// Temperature sites (`TEMP_DELTA`): the warmer foot's site is ringed.
+/// Only for alerts stored since the 8 sites (schema v2): an older alert's
+/// forefoot / heel site is not one of them, so it shows no map.
 class TempMapView {
   const TempMapView({
     required this.warmSide,
@@ -188,18 +190,20 @@ class TempMapView {
   });
 
   final FootSide warmSide;
-  final TempSite site;
+
+  /// Zone index of the site the alert names.
+  final int site;
   final String caption;
   final Map<FootSide, String> labels;
 }
 
 TempMapView? tempMapOf(StoredAlert a) {
   final side = a.side;
-  final site = a.site;
+  final site = channelOf(a.zone);
   if (a.kind != AlertKind.tempDelta || side == null || site == null) {
     return null;
   }
-  final name = footLayout.tempSites.firstWhere((t) => t.site == site).nameTh;
+  final name = footLayout.zones[site].nameTh;
   final s = sideTh(side);
   final o = sideTh(otherSide(side));
   return TempMapView(
@@ -208,7 +212,9 @@ TempMapView? tempMapOf(StoredAlert a) {
     caption: '$name$sอุ่นกว่า$name$o',
     labels: {
       side: 'เท้า$s $nameอุ่นกว่าเท้า$o',
-      otherSide(side): 'เท้า$o จุดวัดความอุ่นที่หน้าเท้าและส้นเท้า',
+      // S8D-1 draft (was "ที่หน้าเท้าและส้นเท้า", the 2 sites).
+      otherSide(side):
+          'เท้า$o จุดวัดความอุ่นทั้ง ${footLayout.zones.length} จุด',
     },
   );
 }
@@ -261,8 +267,13 @@ PressureMapView? pressureMapOf(StoredAlert a, Thresholds t) {
       final foot = map[f.name];
       final names = foot is Map ? foot['levels'] : null;
       final kpa = foot is Map ? foot['kpa'] : null;
+      // A map stored before the 8 zones (schema v1) has 6 entries: zones
+      // 6–7 were not recorded then.
       final list = names is List
-          ? [for (final n in names) _levelNamed(n)]
+          ? [
+              for (var c = 0; c < footLayout.zones.length; c++)
+                c < names.length ? _levelNamed(names[c]) : null,
+            ]
           : null;
       levels[f] = list;
       labels[f] = f == side
@@ -318,10 +329,12 @@ FootMapView _footMapView(
   List<PressureLevel?>? levels,
   List<Object?>? kpa,
 ) {
-  if (levels == null || levels.contains(null)) {
+  if (levels == null || levels.every((l) => l == null)) {
     return FootMapView(side: side);
   }
-  final l = levels.cast<PressureLevel>();
+  // A null zone in a stored map is one a 6-zone map did not record
+  // (zones 6–7, before S8D); it never makes the foot "no data".
+  final l = [for (final x in levels) x ?? PressureLevel.low];
   double k(int c) =>
       kpa != null && c < kpa.length ? (kpa[c] as num).toDouble() : 0;
   int? top;
@@ -393,17 +406,30 @@ List<DetailRow> detailRowsOf(StoredAlert a, Thresholds t) {
 
   switch (code) {
     case AlertCode.tempDelta:
-      final site = a.site;
-      final name = site == null
+      // The site the alert names: a zone since the 8 sites, forefoot /
+      // heel for an alert stored before (whose details also had the other
+      // site's ΔT).
+      final legacy = a.legacySite;
+      final name = channel != null
+          ? footLayout.zones[channel].nameTh
+          : legacy == null
           ? ''
-          : footLayout.tempSites.firstWhere((x) => x.site == site).nameTh;
-      final otherName = site == null
-          ? ''
-          : footLayout.tempSites.firstWhere((x) => x.site != site).nameTh;
+          : legacyTempSiteTh(legacy);
+      final otherName = legacy == null
+          ? null
+          : legacyTempSiteTh(
+              LegacyTempSite.values.firstWhere((x) => x != legacy),
+            );
       final leftC = _d(d, 'leftC');
       final rightC = _d(d, 'rightC');
       final consecutive = _d(d, 'consecutive');
       final other = _d(d, 'otherSiteDeltaC');
+      // Every site that qualified (largest |ΔT| first, later ones after).
+      final sites = TempSiteEntry.listOf(d);
+      String siteName(String id) {
+        final i = channelOf(id);
+        return i == null ? id : footLayout.zones[i].nameTh;
+      }
       rows.addAll([
         if (leftC != null && rightC != null)
           DetailRow(name, 'ซ้าย ${_c(leftC)} °C · ขวา ${_c(rightC)} °C'),
@@ -419,10 +445,17 @@ List<DetailRow> detailRowsOf(StoredAlert a, Thresholds t) {
             '${consecutive.round()} ครั้ง (เกณฑ์ ${t.consecutiveReadings} ครั้ง '
                 'วัดทุก ${TempLayout.notifyPeriod.inSeconds} วินาที)',
           ),
-        DetailRow(
-          'ผลต่างที่$otherName',
-          other == null ? '—' : '${_c(other)} °C',
-        ),
+        if (otherName != null)
+          DetailRow(
+            'ผลต่างที่$otherName',
+            other == null ? '—' : '${_c(other)} °C',
+          ),
+        // S8D-1 draft.
+        if (sites.length > 1)
+          DetailRow(
+            'จุดที่เกินเกณฑ์',
+            '${[for (final e in sites) '${siteName(e.zone)} ${_c(e.deltaC)}'].join(' · ')} °C',
+          ),
         level,
         at,
         ?sourceRow,

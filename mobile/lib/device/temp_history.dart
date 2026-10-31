@@ -2,26 +2,27 @@ import 'dart:collection';
 
 import '../ble/packets.dart';
 
-/// One temperature trend point: the latest normal-quality reading inside a
-/// bucket.
+/// One temperature trend point: the latest reading inside a bucket, with
+/// each site's value only when its quality is normal.
 class TempPoint {
   const TempPoint({
     required this.bucketStartMs,
     required this.unixMs,
-    required this.forefootC,
-    required this.heelC,
+    required this.celsius,
   });
 
   final int bucketStartMs;
   final double unixMs;
-  final double? forefootC;
-  final double? heelC;
+
+  /// Per site (index = zone); null for a site that could not be read or
+  /// whose quality is not normal.
+  final List<double?> celsius;
 }
 
 /// One foot's temperature trend for the chart: one point per 10-minute
 /// bucket over the last 24 h, latest reading wins (as the web app). Only
-/// `normal` readings go in; a poor-contact or faulty reading is not a
-/// temperature (web report 011). Memory only; S6A stores it.
+/// `normal` sites go in; a poor-contact or faulty site is not a temperature
+/// (web report 011). Memory only; S6A stores it.
 class TempHistory {
   TempHistory({this.bucketMs = 10 * 60 * 1000, this.spanMs = 24 * 3600000});
 
@@ -30,14 +31,13 @@ class TempHistory {
   final _points = SplayTreeMap<int, TempPoint>();
 
   void add(double unixMs, TempPacket p) {
-    if (p.quality != TempQuality.normal) return;
-    if (p.forefootC == null && p.heelC == null) return;
+    final celsius = [for (var i = 0; i < p.siteCount; i++) p.usableC(i)];
+    if (celsius.every((c) => c == null)) return;
     final bucket = (unixMs ~/ bucketMs) * bucketMs;
     _points[bucket] = TempPoint(
       bucketStartMs: bucket,
       unixMs: unixMs,
-      forefootC: p.forefootC,
-      heelC: p.heelC,
+      celsius: celsius,
     );
     _prune(unixMs);
   }

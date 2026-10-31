@@ -49,7 +49,6 @@ StatusCopy statusCopy(PatientStatus status) {
         c.code,
         side: c.side,
         channel: c.channel,
-        site: c.site,
         value: c.deltaC,
       );
       final detail = copy.homeDetail;

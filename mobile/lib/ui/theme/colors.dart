@@ -180,9 +180,12 @@ abstract final class FootDotColors {
 /// Temperature sites on the alert detail map (DESIGN-SPEC §7.3), view-box
 /// units. The warmer site uses the Rest-your-feet colours.
 abstract final class TempSiteColors {
-  static const radius = 15.0;
+  // INTERIM (S8D-1): smaller than the 2-site map's 15 / 23 so the 8 sites
+  // (MTH1 and MTH2–3 about 25 units apart) do not overlap; S8D-2 sets the
+  // final sizes from screenshots.
+  static const radius = 9.0;
   static const strokeWidth = 2.0;
-  static const ringRadius = 23.0;
+  static const ringRadius = 14.0;
   static const ringWidth = 3.0;
   static final warmFill = StatusColors.rest.background;
   static final warmStroke = StatusColors.rest.icon;

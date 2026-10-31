@@ -21,7 +21,7 @@ class GaitInput {
   final List<Step> leftSteps;
   final List<Step> rightSteps;
 
-  /// The model window, raw 24-channel rows ([ModelWindowBuilder]); null
+  /// The model window, raw 28-channel rows ([ModelWindowBuilder]); null
   /// when there is no complete window.
   final List<List<double>>? rows;
 }
@@ -50,7 +50,7 @@ class ModelOutput {
 /// in its own isolate (`tflite_classifier.dart`); tests and the debug
 /// `GAIT_MODEL=demo-toe` run use a fake.
 abstract interface class ModelRunner {
-  /// Runs one `[1, 100, 24]` float32 window. Callers never start a run
+  /// Runs one `[1, 100, 28]` float32 window. Callers never start a run
   /// before the previous one has completed.
   Future<ModelOutput> run(Float32List window);
 

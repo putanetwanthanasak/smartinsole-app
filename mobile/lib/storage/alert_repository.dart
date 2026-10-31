@@ -42,6 +42,14 @@ abstract interface class AlertRepository {
   /// the AlertEngine's repeat-suppression memory after a restart.
   Future<List<StoredAlert>> since(int fromMs);
 
+  /// Adds [site] (a [TempSiteEntry]) to `details.tempSites` of the
+  /// `TEMP_DELTA` alert [id]: a site that started to qualify on the same
+  /// foot while that alert suppressed a new one (user decision
+  /// 2026-10-29). A site already listed is not added again. Returns
+  /// whether the row changed; false when it is missing, not a
+  /// `TEMP_DELTA`, or has no `tempSites` list (stored before schema v2).
+  Future<bool> appendTempSite(int id, TempSiteEntry site);
+
   /// Row counts for the BLE debug screen.
   Stream<AlertStats> watchStats();
 }
@@ -129,6 +137,28 @@ class DriftAlertRepository implements AlertRepository {
   )..where((t) => t.captureStamp.equals(captureStamp))).go();
 
   @override
+  Future<bool> appendTempSite(int id, TempSiteEntry site) => _db.transaction(
+    () async {
+      final row = await (_db.select(
+        _db.alerts,
+      )..where((t) => t.id.equals(id))).getSingleOrNull();
+      if (row == null || row.code != AlertKind.tempDelta) return false;
+      final details = {...?row.details};
+      final listed = details[TempSiteEntry.listKey];
+      if (listed is! List) return false;
+      final sites = [for (final e in listed) TempSiteEntry.fromJson(e as Map)];
+      if (sites.any((e) => e.zone == site.zone)) return false;
+      details[TempSiteEntry.listKey] = [
+        for (final e in [...sites, site]) e.toJson(),
+      ];
+      await (_db.update(_db.alerts)..where((t) => t.id.equals(id))).write(
+        AlertsCompanion(details: Value(details)),
+      );
+      return true;
+    },
+  );
+
+  @override
   Future<List<StoredAlert>> since(int fromMs) async {
     final rows =
         await (_db.select(_db.alerts)
@@ -190,7 +220,6 @@ Future<int> insertAlert(
           patientStatus: a.patientLevel,
           side: Value(a.side),
           zone: Value(a.zone),
-          site: Value(a.site),
           measuredValue: Value(a.measuredValue),
           threshold: Value(a.threshold),
           gaitClass: Value(a.gaitClass),
@@ -215,7 +244,7 @@ StoredAlert _toModel(AlertRow r) => StoredAlert(
   localDate: r.localDate,
   side: r.side,
   zone: r.zone,
-  site: r.site,
+  legacySite: r.site,
   measuredValue: r.measuredValue,
   threshold: r.threshold,
   gaitClass: r.gaitClass,

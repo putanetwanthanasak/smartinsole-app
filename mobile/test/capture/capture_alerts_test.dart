@@ -8,7 +8,6 @@ import 'package:smartinsole/ble/packets.dart';
 import 'package:smartinsole/capture/alerts_csv.dart';
 import 'package:smartinsole/capture/capture_providers.dart';
 import 'package:smartinsole/capture/export.dart';
-import 'package:smartinsole/config/foot_layout.dart';
 import 'package:smartinsole/config/thresholds.dart';
 import 'package:smartinsole/device/device_providers.dart';
 import 'package:smartinsole/gait/model_spec.dart';
@@ -48,10 +47,22 @@ void main() {
         patientLevel: PatientLevel.rest,
         atMs: at,
         side: FootSide.right,
-        site: TempSite.forefoot,
+        zone: 'meta1',
         measuredValue: 2.6,
         threshold: 2.2,
-        details: {'leftC': 31.0, 'rightC': 33.6, 'consecutive': 2},
+        details: {
+          'leftC': 31.0,
+          'rightC': 33.6,
+          'consecutive': 2,
+          TempSiteEntry.listKey: [
+            TempSiteEntry(zone: 'meta1', deltaC: 2.6, atMs: at).toJson(),
+            TempSiteEntry(
+              zone: 'meta3',
+              deltaC: 2.3,
+              atMs: at + 30000,
+            ).toJson(),
+          ],
+        },
         captureStamp: stampOf(),
       ),
     );
@@ -83,6 +94,15 @@ void main() {
       'PRESSURE_WATCH',
     ]);
     expect(lines[1], contains('"{""leftC"":31.0,""rightC"":33.6'));
+    // The TEMP_DELTA row: its zone and every qualifying site.
+    final cells = lines[1].split(',');
+    final col = alertsCsvColumns.indexOf;
+    expect(cells[col('zone')], 'meta1');
+    expect(cells[col('site')], '');
+    final at = DateTime(2026, 11, 10, 9, 5).millisecondsSinceEpoch;
+    expect(cells[col('temp_sites')], 'meta1:2.60:$at;meta3:2.30:${at + 30000}');
+    // A pressure alert has none.
+    expect(lines[2].split(',')[col('temp_sites')], '');
     final manifest = jsonDecode(
       File('${dir.path}/manifest.json').readAsStringSync(),
     ) as Map<String, Object?>;

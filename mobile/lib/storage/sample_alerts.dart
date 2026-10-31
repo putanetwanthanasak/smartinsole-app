@@ -34,8 +34,8 @@ Future<void> seedSampleAlerts({
     'left': foot(left),
     'right': foot(right),
   };
-  const lowLeft = <double>[40, 55, 35, 30, 20, 60];
-  const lowRight = <double>[38, 50, 34, 28, 22, 58];
+  const lowLeft = <double>[40, 55, 35, 30, 20, 60, 15, 45];
+  const lowRight = <double>[38, 50, 34, 28, 22, 58, 14, 42];
   String zone(int channel) => footLayout.zones[channel].id;
 
   await alerts.add(
@@ -71,7 +71,7 @@ Future<void> seedSampleAlerts({
       details: {
         'steps': 24,
         'windowMin': t.ptiWindowMin,
-        'map': map(const [60, 140, 50, 30, 20, 70], lowRight),
+        'map': map(const [60, 140, 50, 30, 20, 70, 18, 50], lowRight),
       },
     ),
   );
@@ -88,7 +88,7 @@ Future<void> seedSampleAlerts({
       gaitConfidence: 0.78,
       details: {
         'walking': true,
-        'map': map(const [90, 236, 60, 30, 20, 40], lowRight),
+        'map': map(const [90, 236, 60, 30, 20, 40, 15, 35], lowRight),
       },
     ),
   );
@@ -103,7 +103,7 @@ Future<void> seedSampleAlerts({
       threshold: t.concentrationPct,
       details: {
         'steps': t.concentrationSteps,
-        'map': map(lowLeft, const [30, 40, 30, 25, 30, 150]),
+        'map': map(lowLeft, const [30, 40, 30, 25, 30, 150, 10, 60]),
       },
     ),
   );
@@ -113,14 +113,22 @@ Future<void> seedSampleAlerts({
       patientLevel: PatientLevel.rest,
       atMs: ago(const Duration(minutes: 30)),
       side: FootSide.right,
-      site: TempSite.heel,
+      zone: zone(5),
       measuredValue: 2.6,
       threshold: t.deltaC,
       details: {
         'leftC': 31.4,
         'rightC': 34.0,
         'consecutive': 3,
-        'otherSiteDeltaC': 0.4,
+        'siteDeltaC': [0.3, 0.4, 0.2, 0.3, 0.5, 2.6, 0.4, 2.3],
+        TempSiteEntry.listKey: [
+          for (final (i, d, min) in const [(5, 2.6, 31), (7, 2.3, 30)])
+            TempSiteEntry(
+              zone: zone(i),
+              deltaC: d,
+              atMs: ago(Duration(minutes: min)),
+            ).toJson(),
+        ],
       },
     ),
   );

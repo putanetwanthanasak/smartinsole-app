@@ -4,19 +4,24 @@ import 'package:smartinsole/config/foot_layout.dart';
 import 'package:smartinsole/rules/alert_code.dart';
 import 'package:smartinsole/rules/alert_copy.dart';
 import 'package:smartinsole/rules/patient_status.dart';
+import 'package:smartinsole/storage/models.dart' show LegacyTempSite;
 import 'package:smartinsole/ui/screens/home/home_copy.dart';
 
 void main() {
   final thai = RegExp(r'[฀-๿]');
   const banned = ['kPa', 'kpa', 'ΔT', 'PAI'];
 
-  /// Every combination an alert can be raised with.
-  Iterable<(AlertCode, FootSide, int?, TempSite?)> cases() sync* {
+  /// Every combination an alert can be raised with, and the stored
+  /// TEMP_DELTA sites from before the 8 sites.
+  Iterable<(AlertCode, FootSide, int?, LegacyTempSite?)> cases() sync* {
     for (final code in AlertCode.values) {
       for (final side in FootSide.values) {
         switch (code) {
           case AlertCode.tempDelta:
-            for (final site in TempSite.values) {
+            for (var c = 0; c < footLayout.zones.length; c++) {
+              yield (code, side, c, null);
+            }
+            for (final site in LegacyTempSite.values) {
               yield (code, side, null, site);
             }
           case AlertCode.pressureWatch ||
@@ -42,7 +47,7 @@ void main() {
         code,
         side: side,
         channel: channel,
-        site: site,
+        legacySite: site,
         value: 2.6,
         threshold: 5,
       );
@@ -63,10 +68,11 @@ void main() {
   });
 
   test('board copy where the spec has it (DESIGN-SPEC §6, §7)', () {
+    // The board's example, for an alert stored before the 8 sites (heel).
     final t = alertCopyFor(
       AlertCode.tempDelta,
       side: FootSide.right,
-      site: TempSite.heel,
+      legacySite: LegacyTempSite.heel,
       value: 2.6,
     );
     expect(t.title, 'เท้าขวาอุ่นกว่าเท้าซ้าย');
@@ -77,6 +83,17 @@ void main() {
     expect(
       t.homeDetail,
       'เท้าขวาอุ่นกว่าเท้าซ้าย 2.6\u00a0องศา ติดต่อกันมาสักพัก',
+    );
+    // Since the 8 sites the alert names its zone (S8D-2 updates the
+    // board example in Appendix A).
+    expect(
+      alertCopyFor(
+        AlertCode.tempDelta,
+        side: FootSide.right,
+        channel: 5,
+        value: 2.6,
+      ).detail,
+      'กลางส้นเท้าขวาอุ่นกว่ากลางส้นเท้าซ้าย 2.6\u00a0องศา ติดต่อกันมาสักพัก',
     );
     final p = alertCopyFor(
       AlertCode.pressurePeak,

@@ -69,19 +69,41 @@ class DisplaySnapshot {
     required this.at,
     required this.left,
     required this.right,
-    required this.deltaForefootC,
-    required this.deltaHeelC,
+    required this.deltaC,
   });
 
   final DateTime at;
   final FootView left;
   final FootView right;
 
-  /// ΔT, left minus right (contract §7.3), °C. Null unless both feet are
-  /// usable and both readings are present with normal quality: a ΔT from
-  /// one foot would be a fabricated clinical reading (rule 4).
-  final double? deltaForefootC;
-  final double? deltaHeelC;
+  /// ΔT per temperature site (index = zone index, NTC i next to FSR i),
+  /// left minus right (contract §7.3), °C. A site's value is null unless
+  /// both feet are usable and both feet's readings of that site are present
+  /// with normal quality: a ΔT from one foot would be a fabricated clinical
+  /// reading (rule 4).
+  final List<double?> deltaC;
+
+  /// The site with the largest |ΔT| (the lower index on a tie), or null
+  /// when no site has a ΔT.
+  int? get maxDeltaSite => maxAbsSite(deltaC);
+
+  /// |ΔT| at [maxDeltaSite], or null.
+  double? get maxAbsDeltaC {
+    final s = maxDeltaSite;
+    return s == null ? null : deltaC[s]!.abs();
+  }
 
   FootView of(FootSide side) => side == FootSide.left ? left : right;
+}
+
+/// Index of the largest |v| in [values] (the lower index on a tie), or null
+/// when every value is null.
+int? maxAbsSite(List<double?> values) {
+  int? best;
+  for (var i = 0; i < values.length; i++) {
+    final v = values[i];
+    if (v == null) continue;
+    if (best == null || v.abs() > values[best]!.abs()) best = i;
+  }
+  return best;
 }

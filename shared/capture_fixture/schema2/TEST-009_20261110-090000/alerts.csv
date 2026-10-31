@@ -1,0 +1,3 @@
+at_ms,code,level,patient_status,side,zone,site,temp_sites,measured_value,threshold,gait_class,gait_confidence,read_at_ms,details
+1794276001007,PRESSURE_PEAK,3,careful,L,meta1,,,236.5,200.0,,,,"{""walking"":true}"
+1794276003007,TEMP_DELTA,4,rest,R,heel,,heel:2.60:1794276003007;lateralHeel:2.31:1794276004007,2.6,2.2,,,,"{""consecutive"":2,""tempSites"":[{""zone"":""heel"",""deltaC"":2.6,""atMs"":1794276003007},{""zone"":""lateralHeel"",""deltaC"":2.31,""atMs"":1794276004007}]}"

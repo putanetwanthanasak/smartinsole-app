@@ -20,7 +20,7 @@ Files shared between the Flutter app (`mobile/`) and the new simulator
   app's TS parser; the Flutter parser is tested against them. See
   `test_vectors/README.md` (regenerate with
   `node shared/test_vectors/generate.mjs`).
-- **`model_input.json`** — Model A's 24 input channels (DATA-CONTRACT §7.1)
+- **`model_input.json`** — Model A's 28 input channels (DATA-CONTRACT v1.6 §7.1; version 2 since S8D, version 1 had 24 for the 6-FSR insole)
   in order, with their units (FSR kPa, accel g, gyro °/s), the 50 Hz rate
   and the 100-sample window / 50-sample stride. The app's
   `mobile/lib/device/model_channels.dart` must match it (a Dart test checks
@@ -32,16 +32,29 @@ Files shared between the Flutter app (`mobile/`) and the new simulator
   The app bundles a byte-identical copy (`mobile/assets/config/`, a test
   checks it and its pubspec entry) and reads the window and stride for
   Model A from it (S8A).
-- **`capture_fixture/`** — one rehearsal capture session written by the
-  app's own capture code, with its export `manifest.json`, plus
-  `expected.json` (the 24-channel rows the app's `pairFeet` + `modelRow`
-  make), and since S7 the export's `alerts.csv` with one alert.
-  `mobile/test/capture/capture_fixture_test.dart` checks the code
-  still writes exactly these files; `load_capture.py --selftest` must
-  reproduce `expected.json` from them. Regenerate only after an intended
-  format change: `UPDATE_CAPTURE_FIXTURE=1 flutter test
-  test/capture/capture_fixture_test.dart` (in `mobile/`).
-- `sensor_layout.json` — not yet created (planned with the heatmap, S5).
+- **`capture_fixture/`** — rehearsal capture sessions written by the
+  app's own capture code, each with its export `manifest.json`,
+  `alerts.csv` and `expected.json` (the model rows the app's `pairFeet` +
+  `modelRow` make):
+  - `schema2/` (S8D, capture schema 2, 8 FSR + 8 temperature sites):
+    28-channel rows, two temperature readings per foot (one site that
+    could not be read, one with poor contact) and a `TEMP_DELTA` with its
+    `temp_sites`. `mobile/test/capture/capture_fixture_test.dart` checks
+    the code still writes exactly these files. Regenerate only after an
+    intended format change: `UPDATE_CAPTURE_FIXTURE=1 flutter test
+    test/capture/capture_fixture_test.dart` (in `mobile/`; writes
+    `schema2/` only).
+  - `schema1/` (frozen, never regenerated): the 6-FSR schema-1 session
+    from before S8D, 24-channel rows. It keeps old files loadable.
+  `load_capture.py --selftest` must reproduce both `expected.json` files.
+- **`sensor_layout.json`** (S8D, DATA-CONTRACT v1.6 §3.1) — the 8 sites per
+  foot in wire order (index = FSR channel = temperature site; NTC i sits
+  next to FSR i): stable id, English and Thai name, region and the
+  position in mm (left foot; the right foot mirrors), plus the display
+  transform that places a site on the app's 120×268 foot map. Ids 0–5 are
+  the ids stored alerts and capture files already use. The app mirrors it
+  in `mobile/lib/config/foot_layout.dart` (`test/config/foot_layout_test.dart`
+  keeps them identical); `tools/capture/load_capture.py` reads its ids.
 
 ## The web app still uses `public/thresholds.json`
 

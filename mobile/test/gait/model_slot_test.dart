@@ -39,7 +39,9 @@ void main() {
       );
     });
 
-    test('window 2 s, stride 1 s, the app\'s 24 channels', () {
+    test('window 2 s, stride 1 s, the app\'s 28 channels (version 2)', () {
+      expect(spec.version, 2);
+      expect(spec.channels, hasLength(28));
       expect(spec.windowMs, 2000);
       expect(spec.strideMs, 1000);
       expect(spec.samplePeriodMs, 20);
@@ -54,15 +56,15 @@ void main() {
     test('the dummy parses', () {
       final n = Normalization.parse(normJson, spec);
       expect(n.channels, spec.channels);
-      expect(n.mean, hasLength(24));
+      expect(n.mean, hasLength(modelChannelCount));
     });
 
     test('a different channel order is refused, never run', () {
       final m = dummy();
       final ch = [...m['channels'] as List];
       final first = ch[0];
-      ch[0] = ch[12];
-      ch[12] = first;
+      ch[0] = ch[modelChannelsPerFoot];
+      ch[modelChannelsPerFoot] = first;
       m['channels'] = ch;
       expect(
         () => Normalization.parse(jsonEncode(m), spec),
@@ -92,6 +94,32 @@ void main() {
           reason: 'version $v',
         );
       }
+    });
+
+    test('a version-1 file from the 6-FSR insole (24 channels) is '
+        'refused, never padded (S8D)', () {
+      final v1 = {
+        'version': 1,
+        'channels': [
+          for (final side in const ['L', 'R']) ...[
+            for (var i = 0; i < 6; i++) '${side}_fsr${i}_kpa',
+            for (final a in const ['x', 'y', 'z']) '${side}_accel_${a}_g',
+            for (final a in const ['x', 'y', 'z']) '${side}_gyro_${a}_dps',
+          ],
+        ],
+        'mean': List.filled(24, 0.0),
+        'std': List.filled(24, 1.0),
+      };
+      expect(
+        () => Normalization.parse(jsonEncode(v1), spec),
+        throwsA(
+          isA<FormatException>().having(
+            (e) => e.message,
+            'message',
+            'normalization.json version is 1, model_input.json 2',
+          ),
+        ),
+      );
     });
 
     test('a std of 0 is refused', () {

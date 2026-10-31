@@ -66,7 +66,9 @@ lib/
   main.dart            runSmartInsole(): ProviderScope → SmartInsoleApp
   ble/                 wire format: parser (N FSR channels), ParseResult /
                        RejectReason, calibration, ADC → kPa (S2A);
-                       per-foot BleDataSource, BleHub, BleCentral (S3A)
+                       per-foot BleDataSource, BleHub, BleCentral (S3A);
+                       contract v1.6 (S8D): temperature v2 (8 sites), an
+                       insole with N ≠ 8 refused
   device/              DeviceManager (S4): DeviceClock (unix time per
                        sample), 50 Hz FootBatch stream, 10 Hz
                        DisplaySnapshot, read-time staleness, ΔT,
@@ -77,13 +79,15 @@ lib/
                        cues, export staging with alerts.csv (see its
                        README.md and docs/STUDY-CAPTURE.md)
   config/              thresholds.json loader (thresholdsProvider) and the
-                       placeholder foot layout (S5)
+                       foot layout (foot_layout.dart mirrors
+                       shared/sensor_layout.json: 8 sites per foot, ids,
+                       names, mm positions; a test keeps them identical)
   rules/               AlertEngine (S7): the 8 contract alert rules on
                        the 50 Hz path, walking gate, step detector,
                        status (FLUTTER-PLAN §7), 30-min suppression from
                        the alerts table, plain-Thai copy, gait note (see
                        its README.md); no numeric literals (a test checks)
-  storage/             drift database (S6A), schema v1: alerts,
+  storage/             drift database (S6A), schema v2 (S8D): alerts,
                        temperature readings, daily summary, foot checks;
                        one repository interface each (see its README.md);
                        30-day retention; TemperatureRecorder
@@ -227,7 +231,15 @@ pull + SHA-256 + checks). Any change to the capture file format must keep
   (`lengthMismatch`, catches a wrong FSR count).
 - Any change to parsing or unit conversion must keep
   `test/ble/test_vectors_test.dart` passing. The vectors come from the TS
-  code and are never hand-edited.
+  code and are never hand-edited (`temperature_v2.json` and the N = 8 /
+  N = 4 sensor files are constructed by `generate.mjs`, since the frozen
+  TS parser has no v1.6).
+- Contract v1.6 (S8D): the temperature packet is exactly 32 bytes with
+  count 8 (`tempLength`, `tempCount`; the old 12-byte packet is
+  rejected), and an insole whose calibration has N ≠ 8 is refused
+  (`calibrationFsrCount`, "calibration rejected"). Diagnostics shows each
+  foot's `format` line (`N 8 · temperature v2, 8 sites · rejects 0` on a
+  correct board): the SR first-connection check reads it.
 
 ## BLE connection rules
 

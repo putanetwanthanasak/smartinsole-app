@@ -23,6 +23,13 @@ enum RejectReason {
   /// Temperature `quality` is not 0, 1 or 2.
   invalidQuality,
 
+  /// A temperature packet that is not exactly 32 bytes (v2). The old
+  /// 12-byte v1 packet lands here: firmware older than DATA-CONTRACT v1.6.
+  tempLength,
+
+  /// A 32-byte temperature packet whose `count` byte is not 8.
+  tempCount,
+
   calibrationNotJson,
   calibrationNotObject,
 
@@ -35,6 +42,11 @@ enum RejectReason {
 
   /// Channel indexes are not exactly 0..N−1, each once.
   calibrationBadChannelIndex,
+
+  /// A valid blob whose N is not `SensorLayout.fsrCount` (8 since contract
+  /// v1.6). The parser accepts any N; the connect sequence refuses the
+  /// insole, so readings never land on made-up zones.
+  calibrationFsrCount,
 }
 
 sealed class ParseResult<T> {
