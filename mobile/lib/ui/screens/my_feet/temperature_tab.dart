@@ -309,43 +309,52 @@ class _ChartCard extends ConsumerWidget {
 }
 
 /// "อุณหภูมิตอนนี้ (°C)": sites down, "ซ้าย" / "ขวา" / "ต่าง" across,
-/// numbers right-aligned in 52 px columns with tabular figures (§8.2,
-/// modelled on Pressure's kPa table; three columns, so narrower than its
-/// 64, leaving the site names room at 100 % text).
+/// numbers right-aligned with tabular figures (§8.2, modelled on
+/// Pressure's kPa table). The number columns are at least 52 px and grow
+/// with the text so "31.0" never breaks at large text; the site column
+/// takes the rest and wraps.
 class _TempTable extends StatelessWidget {
   const _TempTable({required this.rows});
 
   final List<TempTableRow> rows;
 
-  static const _column = 52.0;
+  static const _minColumn = 52.0;
 
   @override
   Widget build(BuildContext context) {
     const numbers = TextStyle(fontFeatures: [FontFeature.tabularFigures()]);
     final value = AppText.labelStrong.merge(numbers);
-    Widget row(TempTableRow r, {bool header = false}) {
+    const cellPadding = EdgeInsets.symmetric(vertical: Dimens.textGap * 2);
+    TableRow row(TempTableRow r, {bool header = false}) {
       final style = header ? AppText.secondary : value;
-      return Container(
-        padding: const EdgeInsets.symmetric(vertical: Dimens.textGap * 2),
+      return TableRow(
         decoration: header ? null : topDivider,
-        child: Row(
-          children: [
-            Expanded(
+        children: [
+          Padding(
+            padding: cellPadding,
+            child: Text(
+              r.site,
+              style: header ? AppText.secondary : AppText.labelStrong,
+            ),
+          ),
+          for (final v in [r.left, r.right, r.delta])
+            Padding(
+              padding: cellPadding.copyWith(left: Dimens.tightGap),
               child: Text(
-                r.site,
-                style: header ? AppText.secondary : AppText.labelStrong,
+                v,
+                style: style,
+                textAlign: TextAlign.end,
+                softWrap: false,
               ),
             ),
-            for (final v in [r.left, r.right, r.delta])
-              SizedBox(
-                width: _column,
-                child: Text(v, style: style, textAlign: TextAlign.end),
-              ),
-          ],
-        ),
+        ],
       );
     }
 
+    const number = MaxColumnWidth(
+      FixedColumnWidth(_minColumn),
+      IntrinsicColumnWidth(),
+    );
     return Container(
       key: const ValueKey('temp-table'),
       padding: const EdgeInsets.only(bottom: Dimens.tightGap),
@@ -355,8 +364,22 @@ class _TempTable extends StatelessWidget {
         children: [
           const SizedBox(height: Dimens.detailRowPaddingV),
           Text('อุณหภูมิตอนนี้ (°C)', style: AppText.secondary),
-          row(const TempTableRow('จุด', 'ซ้าย', 'ขวา', 'ต่าง'), header: true),
-          for (final r in rows) row(r),
+          Table(
+            columnWidths: const {
+              0: FlexColumnWidth(),
+              1: number,
+              2: number,
+              3: number,
+            },
+            defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+            children: [
+              row(
+                const TempTableRow('จุด', 'ซ้าย', 'ขวา', 'ต่าง'),
+                header: true,
+              ),
+              for (final r in rows) row(r),
+            ],
+          ),
         ],
       ),
     );

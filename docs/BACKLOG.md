@@ -1525,6 +1525,11 @@ line, as the gap label already can. Readable, but the threshold is the
 line the note refers to; consider a placement left of the dot or a
 lighter backdrop if the user minds.
 
+On a day with a gap (the sample day on the emulator, 130 % text, report
+038 screenshot 17) neither spot by the dot is free, so the label goes
+under the gap label: it still names the site but sits well below the dot,
+and its backdrop covers a short stretch of the line there.
+
 ## 71. Two pushed foot-check screens read the day at build **(found in S8D-2)** — OPEN, minor
 
 `compare_screen.dart:56` ("วันนี้ · {d MMM}" caption) and
