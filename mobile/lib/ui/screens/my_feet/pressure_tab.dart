@@ -149,7 +149,7 @@ class _LabelledFoot extends StatelessWidget {
   }
 }
 
-/// One row of "จุดที่รับน้ำหนักมากที่สุดตอนนี้": dot (level radius × 0.8),
+/// One row of "จุดที่รับน้ำหนักมากที่สุดตอนนี้": dot (level radius × 1.12),
 /// zone over side, level word ("มาก" in the Be-careful text colour with
 /// `triangle-alert` 18).
 class _ZoneRowTile extends StatelessWidget {

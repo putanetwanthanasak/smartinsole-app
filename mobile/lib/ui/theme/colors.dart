@@ -130,25 +130,29 @@ class FootDotStyle {
   int get hashCode => Object.hash(fill, radius, dashed);
 }
 
+/// Radii are view-box units (120-wide foot). At 8 zones (S8D-2, user
+/// decision 2026-10-31) they are 6 / 8 / 10, down from the boards'
+/// 8 / 11 / 14: MTH1 and MTH5 sit 25 and 24 units from MTH2–3, so two high
+/// neighbours keep a gap of about 2 units.
 abstract final class FootDotColors {
   static const low = FootDotStyle(
     fill: Color(0xFFBFE2EB),
-    radius: 8,
+    radius: 6,
     legendRadius: 5,
   );
   static const medium = FootDotStyle(
     fill: Color(0xFFF0B340),
-    radius: 11,
+    radius: 8,
     legendRadius: 7,
   );
   static const high = FootDotStyle(
     fill: Color(0xFFC2410C),
-    radius: 14,
+    radius: 10,
     legendRadius: 9,
   );
   static const noData = FootDotStyle(
     fill: Color(0xFFFFFFFF),
-    radius: 10,
+    radius: 7,
     legendRadius: 7,
     dashed: true,
   );
@@ -166,40 +170,37 @@ abstract final class FootDotColors {
   /// dashes. Not the no-data style, which means "disconnected".
   static const notRecorded = FootDotStyle(
     fill: Color(0x00FFFFFF),
-    radius: 10,
+    radius: 7,
     legendRadius: 7,
   );
 
   /// Alert detail: the ring around the zone that triggered (DESIGN-SPEC
-  /// §7.3: 3 px at radius + 7, view-box units).
+  /// §7.3: 3 px at radius + 5, view-box units; + 7 at 6 zones).
   static const triggerRing = Color(0xFFC2410C);
   static const triggerRingWidth = 3.0;
-  static const triggerRingExtra = 7.0;
+  static const triggerRingExtra = 5.0;
 }
 
-/// Temperature sites on the alert detail map (DESIGN-SPEC §7.3), view-box
-/// units. The warmer site uses the Rest-your-feet colours.
+/// Temperature sites (DESIGN-SPEC §7.3 alert detail, §8.2 Temperature
+/// map), view-box units. Warmer sites use the Rest-your-feet colours. At
+/// 8 sites (S8D-2) radius 8 and ring 12, so MTH1 and MTH2–3 (about 25
+/// units apart) keep a gap even when both are ringed.
 abstract final class TempSiteColors {
-  // INTERIM (S8D-1): smaller than the 2-site map's 15 / 23 so the 8 sites
-  // (MTH1 and MTH2–3 about 25 units apart) do not overlap; S8D-2 sets the
-  // final sizes from screenshots.
-  static const radius = 9.0;
+  static const radius = 8.0;
   static const strokeWidth = 2.0;
-  static const ringRadius = 14.0;
+  static const ringRadius = 12.0;
   static const ringWidth = 3.0;
   static final warmFill = StatusColors.rest.background;
   static final warmStroke = StatusColors.rest.icon;
   static const otherFill = AppColors.surface;
   static const otherStroke = AppColors.inkMuted;
-}
 
-/// The temperature-site icon on the My feet site cards (DESIGN-SPEC §8.2):
-/// the site dot, view-box units, and its colours.
-abstract final class SiteIconColors {
-  static const dotRadius = 26.0;
-  static const normal = AppColors.primary;
-  static final alerting = StatusColors.rest.icon;
-  static const missing = AppColors.inkSubtle;
+  /// "ยังวัดไม่ได้" (no two-foot reading): the No-data dot's dashed
+  /// `inkSubtle` stroke.
+  static const unreadableStroke = AppColors.inkSubtle;
+
+  /// Legend dot dashes, logical pixels.
+  static const legendDash = [3.0, 2.0];
 }
 
 /// "ความต่างของความอุ่นวันนี้" chart (DESIGN-SPEC §1, §8.2). Widths and
@@ -214,14 +215,12 @@ abstract final class TempChartColors {
   static const baseline = AppColors.divider;
   static const axisLabel = AppColors.inkMuted;
 
-  static const heel = AppColors.primary;
-  static const heelWidth = 3.5;
-  static const forefoot = AppColors.inkMuted;
-  static const forefootWidth = 2.5;
-  static const forefootDash = [6.0, 5.0];
+  /// The one line: the largest |ΔT| of the 8 sites (S8D-2).
+  static const line = AppColors.primary;
+  static const lineWidth = 3.5;
 
-  /// Last-reading dot: radius 5.5 with a 2 px white ring; red while that
-  /// site's ΔT is above the threshold.
+  /// Last-reading dot: radius 5.5 with a 2 px white ring; red while its
+  /// ΔT is above the threshold.
   static const lastDot = AppColors.primary;
   static final lastDotAlert = StatusColors.rest.icon;
   static const lastDotRadius = 5.5;
@@ -233,7 +232,11 @@ abstract final class TempChartColors {
   static const gapDash = [3.0, 4.0];
   static final gapLabel = StatusColors.noData.text;
 
-  /// Behind the gap label, over any line it crosses (85 % white).
+  /// The end label (the last point's site name).
+  static const endLabel = AppColors.inkMuted;
+
+  /// Behind the gap and end labels, over any line they cross (85 %
+  /// white).
   static const gapLabelBackdrop = Color(0xD9FFFFFF);
   static const gapLabelBackdropRadius = 4.0;
 }

@@ -1,7 +1,9 @@
 import 'dart:ui' show SemanticsRole, Tristate;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_lucide/flutter_lucide.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:smartinsole/ble/packets.dart';
 import 'package:smartinsole/config/foot_layout.dart';
 import 'package:smartinsole/device/mock_data_source.dart';
 import 'package:smartinsole/rules/alert_code.dart';
@@ -11,6 +13,7 @@ import 'package:smartinsole/ui/screens/connection_screen.dart';
 import 'package:smartinsole/ui/shell/app_shell.dart';
 import 'package:smartinsole/ui/theme/colors.dart';
 import 'package:smartinsole/ui/widgets/summary_banner.dart';
+import 'package:smartinsole/ui/widgets/temp_site_map.dart';
 
 import '../alerts/alerts_rig.dart' show containerOf;
 import '../helpers/pump_app.dart';
@@ -117,11 +120,29 @@ void main() {
       expect(banner.level.name, 'rest');
       // The rest preset: heel centre +2.6, lateral heel +2.3 on the right.
       expect(banner.title, 'กลางส้นเท้าขวาอุ่นกว่าซ้าย 2.6 องศา');
-      expect(byKey('site-card-lateralHeel'), findsOneWidget);
-      final card = byKey('site-card-heel');
+      // Top rows: both alerting sites first, with the warmer foot and the
+      // Rest icon.
+      for (final site in ['heel', 'lateralHeel']) {
+        final row = byKey('temp-row-$site');
+        expect(row, findsOneWidget);
+        expect(
+          find.descendant(of: row, matching: find.text('เท้าขวาอุ่นกว่า')),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: row,
+            matching: find.byIcon(LucideIcons.octagon_alert),
+          ),
+          findsOneWidget,
+        );
+      }
+      final map = tester.widget<TempSiteMap>(byKey('temp-map-right'));
+      expect(map.marks[5], TempSiteMark.warmRinged);
+      expect(map.marks[7], TempSiteMark.warmRinged);
       expect(
-        find.descendant(of: card, matching: find.text('ขวาอุ่นกว่า')),
-        findsOneWidget,
+        tester.widget<TempSiteMap>(byKey('temp-map-left')).marks,
+        everyElement(TempSiteMark.plain),
       );
       final newest = containerOf(tester)
           .read(visibleAlertsProvider)
@@ -149,15 +170,15 @@ void main() {
         seedDay: true,
       );
       expect(_inBanner(find.text('เทียบความอุ่นไม่ได้')), findsOneWidget);
-      // No ΔT anywhere: the interim default sites, MTH1 and heel centre.
-      for (final site in ['meta1', 'heel']) {
-        expect(
-          find.descendant(
-            of: byKey('site-card-$site'),
-            matching: find.text('—'),
-          ),
-          findsOneWidget,
-        );
+      // No ΔT anywhere: no top rows, every site "ยังวัดไม่ได้" on both
+      // maps (never "close"), the missing foot dashed.
+      expect(byKey('temp-top-empty'), findsOneWidget);
+      expect(find.text('ต้องเชื่อมต่อทั้งสองข้าง'), findsOneWidget);
+      expect(find.byKey(const ValueKey('temp-row-meta1')), findsNothing);
+      for (final side in FootSide.values) {
+        final map = tester.widget<TempSiteMap>(byKey('temp-map-${side.name}'));
+        expect(map.marks, everyElement(TempSiteMark.unreadable));
+        expect(map.dashedOutline, side == FootSide.right);
       }
       // The banner is the No-data colour, never green (rule 5).
       final banner = tester.widget<SummaryBanner>(find.byType(SummaryBanner));
@@ -189,7 +210,10 @@ void main() {
       final names = footLayout.zones.map((z) => z.nameTh).join('|');
       expect(
         find.bySemanticsLabel(
-          RegExp('^กราฟความต่างของความอุ่นวันนี้ ($names)'),
+          RegExp(
+            '^กราฟความต่างของความอุ่นวันนี้ จุดที่ต่างกันมากที่สุด.*'
+            'ที่($names)',
+          ),
         ),
         findsOneWidget,
       );

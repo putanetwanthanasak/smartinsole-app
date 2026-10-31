@@ -44,12 +44,14 @@ Future<void> pumpMyFeet(
   MockPreset preset, {
   MyFeetTab tab = MyFeetTab.pressure,
   bool seedDay = false,
+  AppDatabase? database,
   double textScale = 1.0,
   bool reduceMotion = false,
   Size size = referenceSize,
   List<Override> overrides = const [],
 }) async {
-  final db = seedDay ? await sampleDayDatabase(tester, preset) : null;
+  final db =
+      database ?? (seedDay ? await sampleDayDatabase(tester, preset) : null);
   await pumpHome(
     tester,
     preset,

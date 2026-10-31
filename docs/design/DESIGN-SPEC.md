@@ -1,10 +1,21 @@
 # DESIGN-SPEC — SmartInsole App (Flutter) — v2 (style D, all screens)
 
 > v2 · 2026-10-22 · Source: the style D boards on the "SmartInsole App Design" canvas (claude.ai); Appendix B maps every board to a section. v1 (2026-10-17) used a teal IBM Plex style; replaced.
-> Status: all screens are designed in style D and approved by the user (2026-10-22) ✅ · Home (S5) · Alerts and the Temperature tab of My feet (S6B) · Gait tab of My feet (S8A) · Connection and Settings (S8B) · Daily foot check (S8C).
+> Status: all screens are designed in style D and approved by the user (2026-10-22) ✅ · Home (S5) · Alerts and the Temperature tab of My feet (S6B) · Gait tab of My feet (S8A) · Connection and Settings (S8B) · Daily foot check (S8C) · 8 sites per foot (S8D-2).
 > Primary user: people with diabetes, possibly poor eyesight, not tech-savvy → large, clear, simple, friendly.
 > Thai text in quotes is the exact UI copy to use. `{…}` inside quoted copy is filled in at run time; names, times and numbers taken from the boards are sample data. Everything else in this file is English.
 > ⚠️ Health advice and explanation copy is a draft until the medical expert reviews it (FLUTTER-PLAN §11: before 2026-11-05). Appendix A lists all of it for that review.
+
+### What changed in S8D-2 (2026-10-31): 8 sites per foot
+
+DATA-CONTRACT v1.6 puts 8 FSR zones and 8 temperature sites on each insole, with site i next to zone i (`shared/sensor_layout.json`, user decision 2026-10-29). The UI follows:
+
+- Foot-map geometry comes from `shared/sensor_layout.json` (§5); the placeholder table is gone and decision 3 is closed.
+- Pressure dots are smaller so neighbouring zones stay apart: radius 6 / 8 / 10, no data 7, trigger ring + 5 (§1, §7.3; user decision 2026-10-31).
+- Temperature sites have their own sizes and four looks (§1). The alert detail marks every site the `TEMP_DELTA` lists (§7.3).
+- The Temperature tab is layout A (§8.2, user decision 2026-10-29): both feet with their 8 sites and the 3 sites that differ most, one chart line (the largest difference of the 8 sites) whose end names its site, and a จุด / ซ้าย / ขวา / ต่าง table. The two site cards and the heel / forefoot lines are gone.
+- Zone names 0–7 (§5) replace the 6-zone and 2-site names in every example; new draft strings are in Appendix A.
+- Home's date line and the Alerts day titles roll over at midnight and on resume (BACKLOG 68).
 
 ### What changed in this update (2026-10-22)
 
@@ -30,7 +41,7 @@ The whole app uses style D ("แบบ D" on the design canvas). Theme files in 
 | `ink` | `#164E63` | Primary text, headings, big numbers, back link |
 | `inkMuted` | `#475569` | Secondary text, inactive tab icons and labels, dot outlines |
 | `inkSubtle` | `#64748B` | Disconnected and no-data outlines, missed days |
-| `primary` | `#155E75` | Primary buttons, selected tab, selected segment, links ("ดูเพิ่ม"), heel line, left part of the balance bar |
+| `primary` | `#155E75` | Primary buttons, selected tab, selected segment, links ("ดูเพิ่ม"), the temperature chart line, left part of the balance bar |
 | `primarySoft` | `#CFFAFE` | Selected-tab pill, icon circles, step-number circles, selected "ไม่มี" answer |
 | `outline` | `#0891B2` | 1.5 px borders on foot chips, settings button, secondary buttons, emphasised cards; small card icons; scanning ripple |
 | `divider` | `#A5F3FC` | Card borders, nav top border, row dividers, chart baseline, sheet handle |
@@ -54,19 +65,33 @@ The status colours also drive summary banners, alert tags, message and warning b
 
 | Level | Fill | Radius (SVG units, 120-wide foot) | Word |
 |---|---|---|---|
-| Low | `#BFE2EB` | 8 | "น้อย" |
-| Medium | `#F0B340` | 11 | "ปานกลาง" |
-| High | `#C2410C` | 14 | "มาก" |
-| No data | `#FFFFFF` | 10 | — |
+| Low | `#BFE2EB` | 6 | "น้อย" |
+| Medium | `#F0B340` | 8 | "ปานกลาง" |
+| High | `#C2410C` | 10 | "มาก" |
+| No data | `#FFFFFF` | 7 | — |
 
-Every dot has a 2 px `inkMuted` outline; a no-data dot has a 2 px dashed (4 3) `inkSubtle` outline instead. Legend dots: radius 5 / 7 / 9 with a 1.5 px `inkMuted` outline. Level boundaries come from `thresholds.json` (on the boards: low below `watchKpa`, medium from `watchKpa`, high from `alertKpa`); never hardcode them.
+The boards drew 6 zones at 8 / 11 / 14 (no data 10). At 8 zones MTH1 and MTH5 sit 25 and 24 units from MTH2–3, so the radii are 6 / 8 / 10 and two high neighbours keep a gap of about 2 units (S8D-2, user decision 2026-10-31). Every dot has a 2 px `inkMuted` outline; a no-data dot has a 2 px dashed (4 3) `inkSubtle` outline instead. A zone not recorded in an old alert (§7.3) is a plain outline circle at radius 7. Legend dots: radius 5 / 7 / 9 with a 1.5 px `inkMuted` outline. Level boundaries come from `thresholds.json` (on the boards: low below `watchKpa`, medium from `watchKpa`, high from `alertKpa`); never hardcode them.
 
 ### Temperature chart
 
 - Alert band from the ΔT threshold upwards: `#FBE3DF` with the label "ระดับที่ควรระวัง" (16/600, `#7F1D12`)
 - Threshold line `#B42318`, 1.5 px, dashed 5 4 · grid lines `track` · baseline `divider` · axis labels 16 `inkMuted`
-- Heel line `primary`, 3.5 px solid · forefoot line `inkMuted`, 2.5 px dashed 6 5 (the two lines differ in colour, width and dash)
-- Last-reading dot radius 5.5 with a 2 px white ring: `primary`, or `#B42318` while the heel or forefoot ΔT is above the threshold
+- One line, `primary` 3.5 px solid: the largest |ΔT| of the 8 sites at each reading (S8D-2, layout A; the boards' heel and forefoot lines are gone)
+- Last-reading dot radius 5.5 with a 2 px white ring: `primary`, or `#B42318` while its ΔT is above the threshold
+- End label: the last point's site name (16 `inkMuted`) on the gap label's 85 % white backdrop (§8.2)
+
+### Temperature sites (S8D-2)
+
+Radius 8, stroke 2, view-box units (the alert detail at 84×188 and the Temperature tab at 108×241 use the same values). Four looks:
+
+| Look | Fill | Stroke | Meaning |
+|---|---|---|---|
+| Warmer | `#FBE3DF` | 2 px `#B42318` | Warmer than the same site on the other foot |
+| Warmer, ringed | `#FBE3DF` | 2 px `#B42318` + a 3 px `#B42318` ring at radius 12 | The site an alert names (§7.3), or a site where `TEMP_DELTA` holds now (§8.2) |
+| Plain | white | 2 px `inkMuted` | "จุดวัดอื่น" (§7.3) / "ใกล้เคียงกัน" (§8.2) |
+| Unreadable | white | 2 px dashed (4 3) `inkSubtle` | "ยังวัดไม่ได้": no two-foot reading to compare (rules 4 and 5); never "close" |
+
+Legend dots: radius 7, 1.5 px outline, dashed 3 2 for "ยังวัดไม่ได้".
 
 ### Camera screen (foot check)
 
@@ -185,7 +210,7 @@ Line height 1.3–1.35 for headings, 1.5–1.6 for body. Nothing is smaller than
 - **Partial data:** when one foot is missing, everything about that foot uses the No-data style, and two-foot values (ΔT, balance) show "—" in `inkMuted` with "ต้องเชื่อมต่อทั้งสองข้าง" (FLUTTER-PLAN rule 4).
 - **Low battery** (decision 10; no board shows it): when an insole reports a low battery (`BATTERY_LOW`, below 15 % in DATA-CONTRACT §8.3; not in `thresholds.json` yet, BACKLOG 30), its battery text turns `#5E3E00` and gets a 16 px `battery-low` icon in `#A86A00`. This is the plan's "orange" (FLUTTER-PLAN §7); plain `#A86A00` text would fail contrast (4.4:1 on white). Used on the Home foot chips and the Connection cards.
 
-### Foot map geometry (placeholder until `shared/sensor_layout.json` exists)
+### Foot map geometry (`shared/sensor_layout.json`)
 
 Top view, big toe on the inner side, one foot per 120×268 view box. Outline: fill `bg`, stroke `divider` 2.5 (on My feet with no data: `inkSubtle`, dashed 6 5).
 
@@ -194,23 +219,27 @@ Left:  M60 8C32 8 14 32 14 66C12 98 26 120 24 150C22 176 30 200 30 226C30 246 40
 Right: M60 8C88 8 106 32 106 66C108 98 94 120 96 150C98 176 90 200 90 226C90 246 80 258 64 260C48 262 34 252 30 238C22 214 30 182 34 150C38 120 16 98 18 66C20 30 34 8 60 8Z
 ```
 
-| Board order | Zone | Name in the UI | Left (x, y) | Right (x, y) |
-|---|---|---|---|---|
-| fsr0 | Hallux | "นิ้วหัวแม่เท้า" | 80, 36 | 40, 36 |
-| fsr1 | 1st metatarsal head | "โคนนิ้วหัวแม่เท้า" | 80, 88 | 40, 88 |
-| fsr2 | Central forefoot | "กลางหน้าเท้า" | 54, 80 | 66, 80 |
-| fsr3 | 5th metatarsal head | "โคนนิ้วก้อย" | 30, 96 | 90, 96 |
-| fsr4 | Lateral midfoot | "ขอบเท้าด้านนอก" | 36, 152 | 84, 152 |
-| fsr5 | Heel | "ส้นเท้า" | 58, 224 | 62, 224 |
+8 sites per foot (DATA-CONTRACT v1.6 §3.1, user decision 2026-10-29). Index = FSR channel = temperature site: NTC i sits next to FSR i, so one list serves both. `sensor_layout.json` holds each site's id, names, region and position in mm on the left insole (x from the lateral edge, y from the back of the heel); the app mirrors it in `lib/config/foot_layout.dart` (a test keeps them identical). View position: `x = 15.3 + 0.891 · x_mm`, `y = 264.7 − 0.891 · y_mm` (the file's `display` block); the right foot uses `120 − x`. Ids 0–5 are the ids stored alerts and capture files already use, kept even where the name changed.
 
-Temperature sites: forefoot "หน้าเท้า" (left 62, 92 · right 58, 92) and heel "ส้นเท้า" (left 58, 222 · right 62, 222). Rendered sizes: Home and alert detail 84×188 (feet 48 apart); My feet 108×241 (40 apart); CoP 60×134; temperature-site icon 22×48. The channel-to-zone mapping and positions must come from `sensor_layout.json` once it exists (user decision: placeholders are fine until then).
+| Index | Id | Name in the UI | Region ("ส่วนเท้า") | mm (x, y) | Left (x, y) | Right (x, y) |
+|---|---|---|---|---|---|---|
+| 0 | `hallux` | "นิ้วหัวแม่เท้า" | forefoot "ปลายเท้า" | 70, 247 | 77.7, 44.6 | 42.3, 44.6 |
+| 1 | `meta1` | "โคนนิ้วหัวแม่เท้า" | forefoot | 75, 197 | 82.1, 89.2 | 37.9, 89.2 |
+| 2 | `meta3` | "กลางหน้าเท้า" | forefoot | 48, 205 | 58.1, 82.0 | 61.9, 82.0 |
+| 3 | `meta5` | "โคนนิ้วก้อย" | forefoot | 22, 197 | 34.9, 89.2 | 85.1, 89.2 |
+| 4 | `midfoot` | "ขอบเท้าด้านนอก" | lateral "ขอบเท้าด้านนอก" | 18, 140 | 31.3, 140.0 | 88.7, 140.0 |
+| 5 | `heel` | "กลางส้นเท้า" | heel "ส้นเท้า" | 43, 38 | 53.6, 230.8 | 66.4, 230.8 |
+| 6 | `medialArch` | "อุ้งเท้า" | arch "อุ้งเท้า" | 59, 126 | 67.9, 152.4 | 52.1, 152.4 |
+| 7 | `lateralHeel` | "ส้นเท้าด้านนอก" | heel | 22, 82 | 34.9, 191.6 | 85.1, 191.6 |
+
+A site name ("จุด") names one sensor; a region name ("ส่วนเท้า") is the coarse part used in plain-Thai sentences ("ปลายเท้าซ้ายรับน้ำหนักมาก"). The names are draft (Appendix A). Rendered sizes: Home and alert detail 84×188 (feet 48 apart); My feet 108×241 (40 apart); CoP 60×134.
 
 ---
 
 ## 6. Home (style D, 4 states)
 
 Top to bottom (gap 24):
-1. **Header:** date (16, `inkMuted`) over "สวัสดี คุณ{name}" (28/700, `ink`; just "สวัสดี" when no name is set) + settings button.
+1. **Header:** today's date (16, `inkMuted`; it rolls over at local midnight and on resume even when nothing else changes, BACKLOG 68) over "สวัสดี คุณ{name}" (28/700, `ink`; just "สวัสดี" when no name is set) + settings button.
 2. **Foot chips** (2 columns, gap 16, min height 72, white, `outline` 1.5 px, radius 16, padding 12 16; each chip is a link to Connection): 12 px dot (filled `connected` when connected, hollow `#64748B` ring when not) + "เท้าซ้าย"/"เท้าขวา" (18/600) over "แบต {n}%" or "ไม่ได้เชื่อมต่อ" (16, `inkMuted`, indented 20). Low battery: the low-battery style (§5).
 3. **Status card** (status background, radius 20, padding 24, gap 8; a polite live region): icon in a 56 white circle (radius 28, 32 px icon) → title (32/700, status text colour) → detail (18) → advice box for Be careful and Rest your feet only (white, radius 12, padding 16: "สิ่งที่ควรทำตอนนี้" 16/700 + advice 18) → button "เชื่อมต่อแผ่นรองเท้า" for No data only (primary, with `bluetooth`; opens Connection).
 4. **Foot-check card** (only while today's check is not done; the whole card is one link to Foot check › Start; min height 88, white, `outline` 1.5 px, radius 16, padding 16 20): camera icon in a 48 `primarySoft` circle + "วันนี้ยังไม่ได้ดูเท้า" (18/600) + "ถ่ายรูปและตอบคำถาม ใช้เวลา 1 นาที" (16, `inkMuted`) + chevron.
@@ -261,7 +290,7 @@ The board examples above are the design's; the app's copy is `alertCopyFor` and 
 
 - Title "แจ้งเตือน" with "ยังไม่ได้อ่าน {n} รายการ" under it (16 `inkMuted`, polite live region).
 - An alert becomes read once the user opens it: its detail, Connection for `BATTERY_LOW`, or the result screen for a foot-check finding (decision 7). A read card loses the "ใหม่" chip and its `outline` border; the badge counts unread alerts.
-- Grouped by day, newest first. Group titles 20/600, 16 above the first card: "วันนี้", "เมื่อวาน · อังคาร 20 ต.ค." (format: "เมื่อวาน · " + weekday + day + short month); older days use weekday + day + short month.
+- Grouped by day, newest first. Group titles 20/600, 16 above the first card: "วันนี้", "เมื่อวาน · อังคาร 20 ต.ค." (format: "เมื่อวาน · " + weekday + day + short month); older days use weekday + day + short month. "วันนี้" / "เมื่อวาน" follow today's date, which rolls over at local midnight and on resume (BACKLOG 68).
 - **Alert card** (the whole card is one link): white, radius 16, padding 16, gap 12, 16 between cards. Unread: `outline` 1.5 px border and the "ใหม่" chip; read: `divider` 1 px. Content column (gap 8):
   1. Status tag + time "HH:mm" (16 `inkMuted`) + "ใหม่" chip when unread (wraps if needed)
   2. Title 18/600
@@ -280,8 +309,8 @@ Top to bottom (gap 24):
    - Level words: "ควรพักเท้า" (Rest your feet), "ควรระวัง" (Be careful), "เรื่องอุปกรณ์" (device). Time: "วันนี้ {HH:mm}" or "เมื่อวาน {HH:mm}".
 3. **"สิ่งที่ควรทำ"** (emphasised card): numbered steps.
 4. **"ตำแหน่งที่พบ"** (temperature and pressure codes only): both feet (84×188, gap 48, labels "ซ้าย"/"ขวา"), caption (16/600, status text colour), legend.
-   - Temperature: 2 sites per foot, radius 15. The warmer site: fill `#FBE3DF`, 2 px `#B42318`, plus a 3 px `#B42318` ring at radius 23. Other sites: white, 2 px `inkMuted`. Legend "จุดที่อุ่นกว่า" / "จุดวัดอื่น".
-   - Pressure: level dots; the zone that triggered gets a 3 px `#C2410C` ring at radius + 7. Legend "น้อย" / "ปานกลาง" / "มาก".
+   - Temperature (S8D-2): 8 sites per foot (§1 temperature sites; the boards drew 2 at radius 15, ring 23). On the warmer foot every site the alert lists (`details.tempSites`) is "Warmer", and the site the alert names is "Warmer, ringed"; every other site, and every site of the other foot, is "Plain". Under the caption, when 2 or more sites qualified, a line in 16 `inkMuted` lists them, the named one first: "จุดที่อุ่นกว่าบนเท้า{ข้าง}: {จุด} · {จุด}" (draft). Legend "จุดที่อุ่นกว่า" / "จุดวัดอื่น". A `TEMP_DELTA` stored before the 8 sites (schema v1) has no map.
+   - Pressure: level dots; the zone that triggered gets a 3 px `#C2410C` ring at radius + 5 (+ 7 on the 6-zone boards). Legend "น้อย" / "ปานกลาง" / "มาก".
 5. **"ทำไมแอปถึงเตือน"**: text 18. For `PRESSURE_PEAK`, `PRESSURE_PTI` and `LOAD_CONCENTRATION`, a gait note may follow (box `bg`, radius 12, padding 16, `footprints` 24 `primary`, text 16): the text from DATA-CONTRACT §8.3.1, only when Model A's class matches the zone with confidence ≥ `minConfidence`. It never changes the level.
 6. **Details expander** (§5) with the numbers.
 7. Disclaimer line.
@@ -293,12 +322,12 @@ Board copy (⚠️ draft, Appendix A):
 |---|---|---|---|
 | Level / time | "ควรพักเท้า" / "วันนี้ 14:32" | "ควรระวัง" / "วันนี้ 11:05" | "เรื่องอุปกรณ์" / "เมื่อวาน 16:20" |
 | Title | "เท้าขวาอุ่นกว่าเท้าซ้าย" | "ปลายเท้าซ้ายรับน้ำหนักมากตอนเดิน" | "แผ่นรองเท้าซ้ายหลุดการเชื่อมต่อ" |
-| Detail | "ส้นเท้าขวาอุ่นกว่าส้นเท้าซ้าย 2.6 องศา ติดต่อกันมาสักพัก" | "โคนนิ้วหัวแม่เท้าซ้ายรับแรงกดสูงมากหลายก้าวติดกัน" | "ขาดการเชื่อมต่อนานกว่า 5 นาที ระหว่างนี้แอปยังบอกไม่ได้ว่าเท้าซ้ายปลอดภัยหรือไม่" |
+| Detail | "กลางส้นเท้าขวาอุ่นกว่ากลางส้นเท้าซ้าย 2.6 องศา ติดต่อกันมาสักพัก" | "โคนนิ้วหัวแม่เท้าซ้ายรับแรงกดสูงมากหลายก้าวติดกัน" | "ขาดการเชื่อมต่อนานกว่า 5 นาที ระหว่างนี้แอปยังบอกไม่ได้ว่าเท้าซ้ายปลอดภัยหรือไม่" |
 | Step 1 | "นั่งพักเท้า" | "ลองเดินช้าลง และก้าวให้สั้นลง" | "ตรวจว่าสวิตช์ที่กล่องอุปกรณ์เปิดอยู่" |
 | Step 2 | "ตรวจดูว่ามีรอยแดงหรือแผลไหม" | "นั่งพักสักครู่ แล้วขยับเท้าเปลี่ยนท่า" | "วางโทรศัพท์ไว้ใกล้ ๆ" |
 | Step 3 | "ถ้าพรุ่งนี้ยังเป็นอยู่ ควรไปพบแพทย์" | "ตรวจว่ารองเท้าไม่คับ และไม่มีอะไรอยู่ในรองเท้า" | "กด \"เชื่อมต่ออีกครั้ง\" ด้านล่าง" |
-| Map caption | "ส้นเท้าขวาอุ่นกว่าส้นเท้าซ้าย" | "จุดที่มีวงล้อม: โคนนิ้วหัวแม่เท้าซ้าย" | (no map) |
-| Map labels | "เท้าซ้าย จุดวัดความอุ่นที่หน้าเท้าและส้นเท้า" / "เท้าขวา ส้นเท้าอุ่นกว่าเท้าซ้าย" | "เท้าซ้าย โคนนิ้วหัวแม่เท้ารับน้ำหนักมาก" / "เท้าขวา แรงกดกระจายดี" | — |
+| Map caption | "กลางส้นเท้าขวาอุ่นกว่ากลางส้นเท้าซ้าย" (+ "จุดที่อุ่นกว่าบนเท้าขวา: กลางส้นเท้า · ส้นเท้าด้านนอก" with 2 sites) | "จุดที่มีวงล้อม: โคนนิ้วหัวแม่เท้าซ้าย" | (no map) |
+| Map labels | "เท้าซ้าย จุดวัดความอุ่นทั้ง 8 จุด" / "เท้าขวา กลางส้นเท้า และส้นเท้าด้านนอกอุ่นกว่าเท้าซ้าย" | "เท้าซ้าย โคนนิ้วหัวแม่เท้ารับน้ำหนักมาก" / "เท้าขวา แรงกดกระจายดี" | — |
 | Why | "เมื่อเท้าข้างหนึ่งอุ่นกว่าอีกข้างที่ตำแหน่งเดียวกันต่อเนื่อง อาจเป็นสัญญาณเริ่มต้นของการอักเสบใต้ผิวหนัง ซึ่งมักเกิดก่อนจะเห็นแผล" | "แรงกดที่สูงมากซ้ำ ๆ ที่จุดเดิมขณะเดิน อาจทำให้ผิวบริเวณนั้นช้ำและเกิดแผลได้ โดยเฉพาะเมื่อเท้ารู้สึกได้น้อยลง" | "แอปต้องได้รับข้อมูลจากแผ่นรองเท้าทั้งสองข้าง จึงจะเทียบน้ำหนักและความอุ่นของเท้าได้" |
 | Gait note | — | "ตรวจพบรูปแบบเดินเขย่งปลายเท้า ซึ่งอาจเพิ่มแรงกดบริเวณปลายเท้า" (§8.3.1, toe walking) | — |
 | Action | "ดูความอุ่นของเท้า" | "ดูแรงกดที่เท้า" | "เชื่อมต่ออีกครั้ง" |
@@ -307,11 +336,11 @@ Details rows (label / board value). Thresholds come from `thresholds.json`; the 
 
 | Code | Rows |
 |---|---|
-| `TEMP_DELTA` | "รหัส" `TEMP_DELTA` · "ส้นเท้า" "ซ้าย 31.4 °C · ขวา 34.0 °C" · "ผลต่างที่ส้นเท้า" "2.6 °C (เกณฑ์ 2.2 °C)" · "วัดเกินเกณฑ์ติดกัน" "3 ครั้ง (เกณฑ์ 2 ครั้ง วัดทุก 30 วินาที)" · "ผลต่างที่หน้าเท้า" "0.4 °C" · "ระดับภายในระบบ" "4 จาก 5" · "เวลาที่พบ" "21 ต.ค. 2569 14:32:10" · "ที่มาของเกณฑ์" "Lavery et al. (2004)" |
+| `TEMP_DELTA` | "รหัส" `TEMP_DELTA` · "กลางส้นเท้า" "ซ้าย 31.4 °C · ขวา 34.0 °C" · "ผลต่างที่กลางส้นเท้า" "2.6 °C (เกณฑ์ 2.2 °C)" · "วัดเกินเกณฑ์ติดกัน" "3 ครั้ง (เกณฑ์ 2 ครั้ง วัดทุก 30 วินาที)" · "จุดที่เกินเกณฑ์" "กลางส้นเท้า 2.6 · ส้นเท้าด้านนอก 2.3 °C" (S8D-1, draft; only with 2 or more sites; the boards' "ผลต่างที่หน้าเท้า" row is kept only for alerts stored before the 8 sites) · "ระดับภายในระบบ" "4 จาก 5" · "เวลาที่พบ" "21 ต.ค. 2569 14:32:10" · "ที่มาของเกณฑ์" "Lavery et al. (2004)" |
 | `PRESSURE_PEAK` | "รหัส" `PRESSURE_PEAK` · "ค่าที่วัดได้" "236 kPa ที่โคนนิ้วหัวแม่เท้าซ้าย" · "เกณฑ์" "200 kPa ขณะเดิน" · "ขณะนั้น" "กำลังเดิน (ตรวจจากความเร่ง)" · "รูปแบบการเดิน" "เดินเขย่งปลายเท้า · ความมั่นใจ 78%" · "ระดับภายในระบบ" "3 จาก 5" · "เวลาที่พบ" "21 ต.ค. 2569 11:05:42" · "ที่มาของเกณฑ์" "Owings et al. (2009)" |
 | `DEVICE_LOST` | "รหัส" `DEVICE_LOST` · "เชื่อมต่อได้ครั้งล่าสุด" "20 ต.ค. 2569 16:14:05" · "หลุดการเชื่อมต่อนาน" "6 นาที (เกณฑ์ 5 นาที)" · "แบตเตอรี่ครั้งล่าสุด" "43%" · "ระดับภายในระบบ" "1 จาก 5" |
 | `PRESSURE_PTI` (S6B, draft) | "รหัส" `PRESSURE_PTI` · "ค่าที่วัดได้" "92 kPa·s เฉลี่ยต่อก้าว ที่โคนนิ้วหัวแม่เท้าซ้าย" · "เกณฑ์" "80 kPa·s เฉลี่ยต่อก้าว ขณะเดิน" · "จำนวนก้าวที่ใช้" "24 ก้าว ใน 60 นาทีล่าสุด" · "ขณะนั้น" "กำลังเดิน (ตรวจจากความเร่ง)" · "รูปแบบการเดิน" (only with a stored class) · "ระดับภายในระบบ" "3 จาก 5" · "เวลาที่พบ" · "ที่มาของเกณฑ์" "Waaijman et al. (2014)" (BACKLOG 43) |
-| `LOAD_CONCENTRATION` (S6B, draft) | "รหัส" `LOAD_CONCENTRATION` · "ค่าที่วัดได้" "46% ของแรงกดทั้งฝ่าเท้า ที่ส้นเท้าขวา" · "เกณฑ์" "40% ติดกัน 20 ก้าว" · "จำนวนก้าวที่ใช้" "20 ก้าวติดกัน" · "ขณะนั้น" · "รูปแบบการเดิน" (only with a stored class) · "ระดับภายในระบบ" "3 จาก 5" · "เวลาที่พบ" · "ที่มาของเกณฑ์" "ตัวชี้วัดของโครงงาน" |
+| `LOAD_CONCENTRATION` (S6B, draft) | "รหัส" `LOAD_CONCENTRATION` · "ค่าที่วัดได้" "46% ของแรงกดทั้งฝ่าเท้า ที่กลางส้นเท้าขวา" · "เกณฑ์" "40% ติดกัน 20 ก้าว" · "จำนวนก้าวที่ใช้" "20 ก้าวติดกัน" · "ขณะนั้น" · "รูปแบบการเดิน" (only with a stored class) · "ระดับภายในระบบ" "3 จาก 5" · "เวลาที่พบ" · "ที่มาของเกณฑ์" "ตัวชี้วัดของโครงงาน" |
 
 How the rows are filled (S6B): values come from the stored alert; the threshold stored with it wins over today's `thresholds.json`. kPa, kPa·s and % are whole numbers; °C one decimal; thresholds without a trailing ".0". "ที่มาของเกณฑ์" is `thresholds.json` `sources` for the code and is hidden when it is "—" (as on the `DEVICE_LOST` board). "ขณะนั้น" and "รูปแบบการเดิน" appear only when the alert stored them. "หลุดการเชื่อมต่อนาน" rounds the stored minutes up. Dates use the Buddhist year. The detail time for days before yesterday is "{weekday d MMM} HH:mm" (e.g. "อังคาร 20 ต.ค. 16:20").
 
@@ -338,9 +367,9 @@ Banner by state:
 | Be careful | "ปลายเท้าซ้ายรับน้ำหนักมาก" / "โคนนิ้วหัวแม่เท้าซ้ายรับแรงกดสูงต่อเนื่อง" | Link "ดูสิ่งที่ควรทำ" → the alert detail |
 | No data | "ยังไม่ได้รับข้อมูล" / "ต้องเชื่อมต่อแผ่นรองเท้าก่อน" | Primary button "เชื่อมต่อแผ่นรองเท้า" |
 
-- **Card "น้ำหนักที่เท้ารับอยู่ตอนนี้"**: both feet at 108×241 (gap 40, labels "ซ้าย"/"ขวา"), legend, then "จุดที่รับน้ำหนักมากที่สุดตอนนี้" (16/700 `inkMuted`) with the top 3 zones. Each row (padding 12 0, `divider` top border): dot (level radius × 0.8) + zone name (18/600) over side (16 `inkMuted`: "เท้าซ้าย", "เท้าขวา" or "ทั้งสองข้าง") + level word on the right (16/700: "น้อย" / "ปานกลาง" / "มาก"; "มาก" in `#5E3E00` with `triangle-alert` 18).
+- **Card "น้ำหนักที่เท้ารับอยู่ตอนนี้"**: both feet at 108×241 (gap 40, labels "ซ้าย"/"ขวา"), legend, then "จุดที่รับน้ำหนักมากที่สุดตอนนี้" (16/700 `inkMuted`) with the top 3 of the 8 zones. Each row (padding 12 0, `divider` top border): dot (level radius × 1.12, the boards' dot size at the 8-zone radii) + zone name (18/600) over side (16 `inkMuted`: "เท้าซ้าย", "เท้าขวา" or "ทั้งสองข้าง") + level word on the right (16/700: "น้อย" / "ปานกลาง" / "มาก"; "มาก" in `#5E3E00` with `triangle-alert` 18).
 - **No data:** dashed outlines and white dots, the text "ยังไม่มีข้อมูล ต้องเชื่อมต่อแผ่นรองเท้าก่อน" (16/600 `inkMuted`, centred), no zone list, no details expander.
-- **Details:** table "แรงกดตอนนี้ (kPa)" with columns "จุด" / "ซ้าย" / "ขวา" (6 zones, numbers right-aligned in 64 px columns, tabular figures), then rows:
+- **Details:** table "แรงกดตอนนี้ (kPa)" with columns "จุด" / "ซ้าย" / "ขวา" (8 zones, numbers right-aligned in 64 px columns, tabular figures), then rows:
   - "แรงกดสูงสุดขณะเดิน (5 นาทีล่าสุด)" — "ซ้าย 132 · ขวา 126 kPa"
   - "แรงกดสะสม (PTI)" — "ซ้าย 41 · ขวา 39 kPa·s"
   - "น้ำหนักลงจุดเดียวมากที่สุด" — "ซ้าย 31% · ขวา 30%"
@@ -348,18 +377,27 @@ Banner by state:
 
 ### 8.2 Temperature ("อุณหภูมิ")
 
+Layout A (S8D-2, user decision 2026-10-29): 8 sites per foot replace the boards' two site cards and two chart lines. Top to bottom: banner, map card, chart card, details expander.
+
 Banner by state:
 
 | State | Banner (title / line) | Extra |
 |---|---|---|
 | Close | "สองข้างอุ่นใกล้เคียงกัน" / "วัดล่าสุด {HH:mm}" | — |
-| Rest your feet | "ส้นเท้าขวาอุ่นกว่าซ้าย 2.6 องศา" / "ติดต่อกันมาสักพัก" | Link "ดูสิ่งที่ควรทำ" → `TEMP_DELTA` detail. Keep a non-breaking space before "องศา" |
+| Rest your feet | "กลางส้นเท้าขวาอุ่นกว่าซ้าย 2.6 องศา" / "ติดต่อกันมาสักพัก" | Link "ดูสิ่งที่ควรทำ" → `TEMP_DELTA` detail. Keep a non-breaking space before "องศา" |
 | One foot missing (No-data colours) | "เทียบความอุ่นไม่ได้" / "เท้าขวาหลุดการเชื่อมต่อตั้งแต่ 12:10" | Primary button "เชื่อมต่อแผ่นรองเท้า" |
 
-- **Two site cards** (2 columns, gap 16; card padding 16, gap 8): foot icon 22×48 with the site dot (`primary`; `#B42318` when that site alerts; `inkSubtle` when missing) + site name "หน้าเท้า" / "ส้นเท้า" (18/600) → difference "{x.x}°" (36/700; Rest text colour when alerting; "—" in `inkMuted` when missing) → "ต่างกันซ้าย–ขวา" (16 `inkMuted`) → note (16/600): "ใกล้เคียงกัน", or "ขวาอุ่นกว่า" / "ซ้ายอุ่นกว่า" in the Rest text colour with `octagon-alert` 20, or "ต้องเชื่อมต่อทั้งสองข้าง".
-- **Card "ความต่างของความอุ่นวันนี้"**: chart 294×220 (colours in §1). Y axis 0–3.5 °C with labels "0°" "1°" "2°" "3°"; X axis = today from the first reading to now with three time labels (start, middle, end). Band and dashed line at the ΔT threshold (`deltaC`). A connection gap draws a dashed vertical line (`inkMuted` 1.5, dash 3 4) with "ขาดข้อมูล" / "ตั้งแต่ 12:10" (16, `#33444B`), and no line after it. Legend "ส้นเท้า" / "หน้าเท้า". Note under the chart: "แอปจะเตือนเมื่อเส้นขึ้นไปถึงแถบสีแดงติดกัน 2 ครั้ง" (the count comes from `consecutiveReadings`).
-  - Screen-reader summary of the chart, e.g. "กราฟความต่างของความอุ่นวันนี้ ส้นเท้าขึ้นถึงระดับที่ควรระวังตั้งแต่ราว 13:45 ตอนนี้ 2.6 องศา หน้าเท้าต่ำกว่า 0.5 องศาตลอด".
-- **Details** (Rest example): "หน้าเท้าตอนนี้" "ซ้าย 30.8 · ขวา 31.2 °C" · "ส้นเท้าตอนนี้" "ซ้าย 31.4 · ขวา 34.0 °C" · "ผลต่าง" "หน้าเท้า 0.4 °C · ส้นเท้า 2.6 °C" · "วัดเกินเกณฑ์ติดกัน" "ส้นเท้า 3 ครั้ง (เกณฑ์ 2 ครั้ง)" (only while above the threshold) · "วัดทุก" "30 วินาที · ล่าสุด 14:30:20" · "เกณฑ์" "ผลต่าง 2.2 °C ติดกัน 2 ครั้ง (Lavery et al., 2004)" · "คุณภาพสัญญาณ" "ดีทั้ง 4 จุด". One foot missing: "อุณหภูมิล่าสุด (เท้าซ้าย)" "หน้าเท้า 30.7 · ส้นเท้า 31.3 °C" · "เท้าขวา" "ไม่มีข้อมูลตั้งแต่ 12:10" · "เกณฑ์".
+- **Card "ความอุ่นซ้าย–ขวา ตอนนี้"**: both feet at 108×241 (gap 40, labels "ซ้าย"/"ขวา" 16/600 `inkMuted`, as on Pressure), each with its 8 sites (§1 temperature sites, §5 positions):
+  - "Warmer" on the warmer foot once one reading pair at that site is above `deltaC` (Home's note rule, user decision 2026-10-31; tested on the unrounded ΔT as Home and the engine do, so 2.21 °C is above 2.2 though it shows as "2.2°"); "Warmer, ringed" while `TEMP_DELTA` holds there (2 readings, rule 6), on the foot the alert names. The other foot's dot at that site is "Plain".
+  - "Plain" on both feet when the two feet are close ("ใกล้เคียงกัน").
+  - "Unreadable" on both feet when there is no two-foot `normal` pair at that site (rules 4 and 5).
+  - A foot that is not usable: dashed outline (as My feet pressure) and every site "Unreadable" on both feet.
+  - Legend "จุดที่อุ่นกว่า" / "ใกล้เคียงกัน" / "ยังวัดไม่ได้".
+  - Then "จุดที่ต่างกันมากที่สุดตอนนี้" (16/700 `inkMuted`) with 3 rows: sites where `TEMP_DELTA` holds first, then the largest |ΔT|; equal ones in zone order; only sites with a two-foot reading. Each row (padding 12 0, `divider` top border, one screen-reader item): the site's dot as on the warmer foot (radius 8 × 1.12) + site name (18/600) over the note (16 `inkMuted`: "เท้าซ้ายอุ่นกว่า" / "เท้าขวาอุ่นกว่า" / "ใกล้เคียงกัน") + "{x.x}°" on the right (16/700 like Pressure's level word, tabular; Rest text colour with `octagon-alert` 18 while `TEMP_DELTA` holds there; read as "{x.x} องศา"; user decision 2026-10-31).
+  - No rows: "ต้องเชื่อมต่อทั้งสองข้าง" with a foot missing, "ยังวัดไม่ได้" when no site compares (16/600 `inkMuted`, centred; draft).
+- **Card "ความต่างของความอุ่นวันนี้"**: chart 294×220 (colours in §1). Y axis 0–3.5 °C with labels "0°" "1°" "2°" "3°"; X axis = today from the first reading to now with three time labels (start, middle, end). Band and dashed line at the ΔT threshold (`deltaC`). **One line:** at each paired reading, the largest |ΔT| of the 8 sites; the point keeps its site, so two points in a row can come from different sites. The last point's dot is red while it is above `deltaC`, and its site's name is written next to it (the end label, §1): right-aligned to the dot and above it, else below it, else under the gap label (when "ระดับที่ควรระวัง" sits at the right and the gap label by the dot), moved left to stay inside the plot, and dropped rather than overlap "ระดับที่ควรระวัง", the gap label or leave the plot. A connection gap draws a dashed vertical line (`inkMuted` 1.5, dash 3 4) with "ขาดข้อมูล" / "ตั้งแต่ 12:10" (16, `#33444B`), and no line after it. No legend. Note under the chart: "แอปจะเตือนเมื่อจุดเดียวกันขึ้นถึงแถบสีแดงติดกัน 2 ครั้ง" (draft; the count comes from `consecutiveReadings`; "จุดเดียวกัน" because the line can switch sites while the alert counts each site on its own).
+  - Screen-reader summary of the chart (draft), e.g. "กราฟความต่างของความอุ่นวันนี้ จุดที่ต่างกันมากที่สุดขึ้นถึงระดับที่ควรระวังตั้งแต่ราว 13:45 ตอนนี้ 2.6 องศาที่กลางส้นเท้า" (forms in §8.4).
+- **Details** (Rest example): table "อุณหภูมิตอนนี้ (°C)" with columns "จุด" / "ซ้าย" / "ขวา" / "ต่าง" (8 sites, numbers right-aligned in columns at least 52 px wide that grow with the text so a number never breaks, tabular figures; the site column takes the rest and wraps; "—" where a value is missing, and "ต่าง" is "—" unless both feet stream), e.g. "กลางส้นเท้า" "30.8" "33.4" "2.6". Then rows "วัดเกินเกณฑ์ติดกัน" "กลางส้นเท้า 2 ครั้ง (เกณฑ์ 2 ครั้ง)" (only while `TEMP_DELTA` holds) · "วัดทุก" "30 วินาที · ล่าสุด 14:30:20" · "เกณฑ์" "ผลต่าง 2.2 °C ติดกัน 2 ครั้ง (Lavery et al., 2004)" · "คุณภาพสัญญาณ" "ดีทั้ง 16 จุด". One foot missing: the table keeps the streaming foot's values, then "เท้าขวา" "ไม่มีข้อมูลตั้งแต่ 12:10" · "เกณฑ์". Neither foot: no table.
 
 ### 8.3 Gait ("การเดิน")
 
@@ -392,7 +430,7 @@ User decisions 2026-10-25 and the defaults approved with the plan; report 034.
 - **No data or one foot missing** (rule 4): the estimate card uses the not-walking layout with `bluetooth-off`, "ยังไม่มีข้อมูล" / "ต้องเชื่อมต่อแผ่นรองเท้าทั้งสองข้างก่อน" (draft) and "เชื่อมต่อแผ่นรองเท้า"; the balance card shows "—" with "ต้องเชื่อมต่อทั้งสองข้าง".
 - **Balance card:** the same share, note and deadband as Home's balance card (Home's view model), so the two screens always agree. While `ASYMMETRY_PEAK` holds, the number and note are `#5E3E00` with `triangle-alert` (§14 default, now built). The bar grows from 50 : 50 each time the bottom-bar tab or the sub-tab opens.
 - **Details:** while walking (as above), "ความไม่สมดุลของแรงกด (PAI)" is the engine's latest step-pair PAI (what `ASYMMETRY_PEAK` compares), with "(เฝ้าระวังเมื่อเกิน {asymmetry.peakPct}%)". "ความไม่สมดุลของแรงกดสะสม" is the PTI asymmetry (DATA-CONTRACT §8 addendum, display only) with "(ค่าอ้างอิง {asymmetry.ptiPct}% · ยังไม่ใช้แจ้งเตือน)" (draft; the board's "(เฝ้าระวังเมื่อเกิน 20%)" would promise an alert that does not exist). Otherwise the details show "ความไม่สมดุลของแรงกดขณะยืน" instead (user decision 2026-10-25): the PAI formula on the two feet's mean loads over Home's 10 s balance window. The CoP's "ซ้าย"/"ขวา" labels stay as built (user decision). Window and stride come from `model_input.json`. A two-foot figure with a foot missing reads "— (ต้องเชื่อมต่อทั้งสองข้าง)".
-- **CoP:** per sample Σ kPa × zone position / Σ kPa over the latest step's samples, on the placeholder zone positions (§5), thinned for drawing; outline only until a step exists. Shown while walking.
+- **CoP:** per sample Σ kPa × zone position / Σ kPa over the latest step's samples, on the zone positions of `sensor_layout.json` (§5), thinned for drawing; outline only until a step exists. Shown while walking.
 - **Large text:** "ยืนหรือนั่งอยู่" (24/700) wraps to two lines in its half-width card at 390 dp even at 100 % text (BACKLOG 50); the cards stack above 1.3 like Home's.
 - **Motion:** balance bar `value` from 50 : 50; steps count with `value`; confidence segments change colour with `enter`; probability bars move with `value`. Reduce motion: all instant.
 
@@ -404,13 +442,13 @@ User decisions 2026-10-25 and the defaults applied with them; report 033.
 - **"ดูสิ่งที่ควรทำ"** opens the newest stored alert with the banner's code, foot and zone (pressure) or site (temperature), the key repeats are suppressed by; it is hidden until that row exists.
 - **Pressure, one foot missing:** No-data banner "ยังไม่ได้รับข้อมูลเท้า{ข้าง}" / "ต้องเชื่อมต่อแผ่นรองเท้า{ข้าง}ก่อน" + "เชื่อมต่อแผ่นรองเท้า". A level-3 rule on the connected foot wins over it (as Home, BACKLOG 38). The connected foot keeps its map, top-3 rows and numbers; the missing foot has the dashed No-data map and "—".
 - **Temperature, both feet missing:** the Pressure No-data banner. Both feet stream but no site can be compared (poor contact, sensor fault): No-data banner "เทียบความอุ่นไม่ได้" / "ตอนนี้แผ่นรองเท้ายังวัดความอุ่นไม่ได้", no button. Close with no reading stored yet: "รอผลการวัด". One foot missing that gave no reading today: "เท้า{ข้าง}ยังไม่ได้เชื่อมต่อ"; otherwise "ตั้งแต่ HH:mm" is its last sample in this run, else its last stored reading today.
-- **Header:** "อัปเดตเมื่อสักครู่" while a foot streams. Above 1.3 text scale the line goes under the title (and the two site cards stack, as Home's small cards).
+- **Header:** "อัปเดตเมื่อสักครู่" while a foot streams. Above 1.3 text scale the line goes under the title.
 - **Top 3:** zones ranked by the higher kPa of the two feet; "ทั้งสองข้าง" when both feet's zone is at the same level, "น้อย" included. The kPa table uses the same 2 s peaks as the dots.
 - **Detail figures** come from the alert engine's walking gate and step detector: peak = the highest zone kPa while walking in the last 5 min; PTI = the highest zone's mean per-step PTI over `ptiWindowMin` (the number the rule compares; display only, decision 4); single point = the highest per-step top-zone share among walking steps in the last 5 min. "—" for a foot that is not usable or has no step yet.
-- **Site cards:** the note follows Home's rule ("{ข้าง}อุ่นกว่า" once one reading is above `deltaC`); the Rest colour, icon and red site dot only while `TEMP_DELTA` holds there. So for one reading the Close banner can sit above a card saying "{ข้าง}อุ่นกว่า"; the banner turns to Rest with the second reading (rule 6). Both feet stream but the site has no value: "ยังวัดไม่ได้".
-- **Chart:** a point is |ΔT| whenever one foot's `normal` reading meets the other foot's newest `normal` reading no more than `notifyPeriod` older (the engine's pairing). The line breaks where points are more than 3 × `notifyPeriod` apart. A foot silent that long is a gap (dashed line); it is open, with no line after it, while that foot is not usable or has stored nothing for that long. Gaps of both feet starting together are one gap. Only the newest gap is labelled (294 px is too narrow for more): "ขาดข้อมูล / ตั้งแต่ HH:mm" only while the gap is open; once the foot's data came back, "ขาดข้อมูล / HH:mm–HH:mm" (start–end), so an ended gap never reads as still disconnected (user decision 2026-10-25). The label sits right of its line, or left when there is no room; when neither side fits (large text), the range breaks after the dash and the label stays left of the line, clamped to the plot's left edge. It is on an 85 % white backdrop over any line it crosses. "ระดับที่ควรระวัง" moves to the band's right end when a gap line would cross it. One end dot per line, red while that site's last ΔT is above `deltaC`. With large text the middle time label is dropped, then the start one, rather than overlap. Empty day: "ยังไม่มีข้อมูลวันนี้" over the empty chart.
-- **Chart summary (screen reader)** per site: "{จุด}ขึ้นถึงระดับที่ควรระวังตั้งแต่ราว HH:mm ตอนนี้ x.x องศา", "{จุด}เคยขึ้นถึงระดับที่ควรระวังช่วง HH:mm–HH:mm ตอนนี้ x.x องศา", or "{จุด}ต่ำกว่า x.x องศาตลอด"; "ล่าสุด" instead of "ตอนนี้" during an open gap; "{จุด}ยังไม่มีข้อมูล" for a site with no point; then "ขาดข้อมูลเท้า{ข้าง}ตั้งแต่ HH:mm" for an open gap or "ขาดข้อมูลเท้า{ข้าง}ช่วง HH:mm–HH:mm" for an ended one, the same times as the drawn label. No point at all today: "กราฟความต่างของความอุ่นวันนี้ ยังไม่มีข้อมูล".
-- **"คุณภาพสัญญาณ":** "ดีทั้ง 4 จุด" only when all four sites have a `normal` reading; otherwise each foot that is not ("เท้าซ้าย สัมผัสไม่ดี" / "เท้าซ้าย เซนเซอร์ผิดปกติ"; "เท้าซ้าย ยังวัดไม่ได้" with no reading yet or a site the sensor could not read; rule 5).
+- **Sites (S8D-2, layout A; replaces the site cards):** a site is "warmer" by Home's rule (once one reading is above `deltaC`); the ring on the map and the Rest colour and icon in its row only while `TEMP_DELTA` holds there. So for one reading the Close banner can sit above a map and row saying "เท้า{ข้าง}อุ่นกว่า"; the banner turns to Rest with the second reading (rule 6). Both feet stream but the site has no value: "ยังวัดไม่ได้" (§8.2).
+- **Chart:** a point is |ΔT| whenever one foot's `normal` reading meets the other foot's newest `normal` reading no more than `notifyPeriod` older (the engine's pairing). The line breaks where points are more than 3 × `notifyPeriod` apart. A foot silent that long is a gap (dashed line); it is open, with no line after it, while that foot is not usable or has stored nothing for that long. Gaps of both feet starting together are one gap. Only the newest gap is labelled (294 px is too narrow for more): "ขาดข้อมูล / ตั้งแต่ HH:mm" only while the gap is open; once the foot's data came back, "ขาดข้อมูล / HH:mm–HH:mm" (start–end), so an ended gap never reads as still disconnected (user decision 2026-10-25). The label sits right of its line, or left when there is no room; when neither side fits (large text), the range breaks after the dash and the label stays left of the line, clamped to the plot's left edge. It is on an 85 % white backdrop over any line it crosses. "ระดับที่ควรระวัง" moves to the band's right end when a gap line would cross it. One line, the largest |ΔT| of the 8 sites (S8D-2); its end dot is red while the last point is above `deltaC`, with the end label (§8.2). With large text the middle time label is dropped, then the start one, rather than overlap. Empty day: "ยังไม่มีข้อมูลวันนี้" over the empty chart.
+- **Chart summary (screen reader)** for the one line (S8D-2): "จุดที่ต่างกันมากที่สุดขึ้นถึงระดับที่ควรระวังตั้งแต่ราว HH:mm ตอนนี้ x.x องศาที่{จุด}", "จุดที่ต่างกันมากที่สุดเคยขึ้นถึงระดับที่ควรระวังช่วง HH:mm–HH:mm ตอนนี้ x.x องศาที่{จุด}" ("ราว HH:mm" for a single point), or "จุดที่ต่างกันมากที่สุดต่ำกว่า x.x องศาตลอด"; {จุด} is the last point's site; "ล่าสุด" instead of "ตอนนี้" during an open gap; then "ขาดข้อมูลเท้า{ข้าง}ตั้งแต่ HH:mm" for an open gap or "ขาดข้อมูลเท้า{ข้าง}ช่วง HH:mm–HH:mm" for an ended one, the same times as the drawn label. No point at all today: "กราฟความต่างของความอุ่นวันนี้ ยังไม่มีข้อมูล".
+- **"คุณภาพสัญญาณ":** "ดีทั้ง 16 จุด" only when all 16 sites have a `normal` reading; otherwise each site that does not ("เท้าซ้าย โคนนิ้วหัวแม่เท้า สัมผัสไม่ดี" / "… เซนเซอร์ผิดปกติ" / "… ยังวัดไม่ได้" for a site the sensor could not read), or "เท้าซ้าย ยังวัดไม่ได้" for a foot with no reading yet (rule 5).
 - **Motion:** the indicator slides (`enter`), labels change colour in 200 ms, the old panel fades out (`exit`) and the new one fades in 80 ms later (`enter`). The chart draws in from the left (`value`) each time the bottom-bar tab or the sub-tab opens, never on a new reading. Reduce motion: all instant.
 
 ---
@@ -586,6 +624,7 @@ Everything jumps to its end state. "High" dots show a still ring (radius + 5, op
 - Touch targets ≥ 48 × 48 (rows 72, buttons 56, capture controls 64 and 80).
 - Every icon-only control has a TalkBack label (e.g. "ตั้งค่า", "กลับ", "ถ่ายรูป"); the Alerts tab label carries the unread count (§4).
 - Foot maps, charts, capture slots and history days have TalkBack descriptions, e.g. "เท้าซ้าย ปลายเท้ารับน้ำหนักมาก".
+- Temperature maps (S8D-2, draft) name the warmer sites: "เท้าขวา กลางส้นเท้า และส้นเท้าด้านนอกอุ่นกว่าเท้าซ้าย" (names joined as "A", "A และB", "A B และC"); "เท้าซ้าย ไม่มีจุดที่อุ่นกว่าเท้าขวา" when only the other foot has warmer sites; "เท้าซ้าย ใกล้เคียงกับเท้าขวาทุกจุดที่วัดได้" when no site has a warmer foot; each with " ยังวัดไม่ได้ {n} จุด" added when some sites cannot be compared; "เท้าซ้าย ยังวัดความอุ่นไม่ได้" when none can. On the alert detail the other foot reads "เท้าซ้าย จุดวัดความอุ่นทั้ง 8 จุด". Each Temperature top-3 row is one item, its number read as "{x.x} องศา". The chart's end label is part of the chart's one summary (§8.4), not a separate item.
 - Roles: sub-tabs are tabs; the view picker, answers and text-size options are radio groups; switches expose on/off; the details expander exposes expanded/collapsed; the connecting bar is a progress bar.
 - Live regions: Home status card, Alerts unread line, My feet banner and connection foot cards (polite); capture counter (polite) and countdown (assertive).
 - Status is never shown by colour alone (icon + text + colour); colours that must be told apart differ in both hue and lightness.
@@ -598,7 +637,7 @@ Everything jumps to its end state. "High" dots show a still ring (radius + 5, op
 
 1. Alert codes follow DATA-CONTRACT v1.5 §8.3: 8 codes. (An earlier "9" in the plan was an error; fixed in S6A.)
 2. Status card radius is 20 (the canvas value). The 28 in the Home-only v2 was a misreading of the 56 px icon circle.
-3. Placeholder sensor positions (§5) are fine until `shared/sensor_layout.json` exists.
+3. Placeholder sensor positions (§5) are fine until `shared/sensor_layout.json` exists. Closed in S8D-2: the positions come from that file (§5).
 4. PTI is display-only: its values stay only under "ดูตัวเลขละเอียด" until S7 settles its meaning (BACKLOG 31). The `PRESSURE_PTI` alert is still raised as the contract defines it.
 5. Draft health advice stays marked as draft until the medical expert reviews it (Appendix A).
 6. Volunteer manual (IRB doc 05) screenshots will not match the new UI; the user asks the advisor on Mon 2026-10-26 whether an IRB amendment is needed.
@@ -624,6 +663,19 @@ Earlier design-chat decisions: style D for the whole app; plain Thai first with 
 21. A foot-check finding is read once Something found opens for that check, from any entry: right after "บันทึก", from "ดูสิ่งที่ควรทำ", or from Alerts (§7.2, decision 7).
 22. Phrases Thai word breaking would split inside running text are kept together with word joiners (U+2060): the quoted "มี / ไม่แน่ใจ", "ตั้งเวลา", "แพทย์ดู".
 Also: a real system notification, compare with the newest earlier photo, several checks a day, automatic camera with a switch, no gallery, 1600 px / q85 photos, draft photo history.
+
+### Decisions (user, 2026-10-29, S8D)
+
+23. DATA-CONTRACT v1.6: 8 FSR zones and 8 temperature sites per foot, site i next to zone i, positions and names in `shared/sensor_layout.json` (§5). Zone names 0–7: "นิ้วหัวแม่เท้า", "โคนนิ้วหัวแม่เท้า", "กลางหน้าเท้า", "โคนนิ้วก้อย", "ขอบเท้าด้านนอก", "กลางส้นเท้า", "อุ้งเท้า", "ส้นเท้าด้านนอก" (draft, Appendix A).
+24. `TEMP_DELTA`: one alert per warmer foot, listing every site that qualified (`details.tempSites`); the site with the largest |ΔT| names it (§7.3).
+25. Temperature tab layout A (§8.2): both feet with 8 sites, the top 3, one chart line (the largest |ΔT| of the 8 sites), and a table.
+
+### Decisions (user, 2026-10-31, S8D-2)
+
+26. Pressure dot radius 6 / 8 / 10, no data and not recorded 7, trigger ring + 5 (§1, §7.3).
+27. A Temperature-map site is "warmer" once one reading pair is above `deltaC` (Home's note rule); the ring only while `TEMP_DELTA` holds there (§8.2).
+28. Temperature top-3 rows show "{x.x}°" on the right (§8.2).
+29. Home's date line and the Alerts day titles follow today's date and roll over at midnight and on resume (BACKLOG 68; §6, §7.2).
 
 ### Proposed defaults (not on the boards; confirm or change before the session that builds them)
 
@@ -654,7 +706,6 @@ Also: a real system notification, compare with the newest earlier photo, several
 
 ### Waiting on others
 
-- `shared/sensor_layout.json`: real zone positions and channel mapping (hardware)
 - PTI meaning, per step or per window (S7, BACKLOG 31)
 - Medical expert review of Appendix A before 2026-11-05
 - Advisor (2026-10-26): IRB doc 05 screenshots
@@ -675,7 +726,7 @@ Every string below is a draft (decision 5). Changes from the expert go into the 
 | Home, Be careful | "ปลายเท้าซ้ายรับน้ำหนักมากต่อเนื่องนานเกินไป" · "ลองขยับเท้า เปลี่ยนท่ายืน หรือนั่งพักสักครู่" |
 | Home, Rest your feet | "เท้าขวาอุ่นกว่าเท้าซ้าย 2.6 องศา ติดต่อกันมาสักพัก" · "นั่งพักเท้า แล้วตรวจดูว่ามีรอยแดงหรือแผลไหม ถ้าพรุ่งนี้ยังเป็นอยู่ ควรไปพบแพทย์" |
 | Alerts list, "ควรทำ" | "นั่งพักเท้า แล้วตรวจดูว่ามีรอยแดงหรือแผลไหม" · "ลองเดินช้าลง ก้าวให้สั้นลง หรือนั่งพักสักครู่" · "ลองยืนให้น้ำหนักลงทั้งฝ่าเท้า หรือเปลี่ยนท่ายืน" · "ไปพบแพทย์หรือพยาบาลภายใน 1–2 วัน และนำรูปที่ถ่ายไว้ไปให้ดู" · "ชาร์จแบตเตอรี่ก่อนใช้ครั้งต่อไป" · "ตรวจว่าแผ่นรองเท้าเปิดอยู่ แล้วเชื่อมต่อใหม่" |
-| `TEMP_DELTA` detail | "ส้นเท้าขวาอุ่นกว่าส้นเท้าซ้าย 2.6 องศา ติดต่อกันมาสักพัก" · steps "นั่งพักเท้า" / "ตรวจดูว่ามีรอยแดงหรือแผลไหม" / "ถ้าพรุ่งนี้ยังเป็นอยู่ ควรไปพบแพทย์" · why "เมื่อเท้าข้างหนึ่งอุ่นกว่าอีกข้างที่ตำแหน่งเดียวกันต่อเนื่อง อาจเป็นสัญญาณเริ่มต้นของการอักเสบใต้ผิวหนัง ซึ่งมักเกิดก่อนจะเห็นแผล" |
+| `TEMP_DELTA` detail | "กลางส้นเท้าขวาอุ่นกว่ากลางส้นเท้าซ้าย 2.6 องศา ติดต่อกันมาสักพัก" (the site from the alert, §5 names) · steps "นั่งพักเท้า" / "ตรวจดูว่ามีรอยแดงหรือแผลไหม" / "ถ้าพรุ่งนี้ยังเป็นอยู่ ควรไปพบแพทย์" · why "เมื่อเท้าข้างหนึ่งอุ่นกว่าอีกข้างที่ตำแหน่งเดียวกันต่อเนื่อง อาจเป็นสัญญาณเริ่มต้นของการอักเสบใต้ผิวหนัง ซึ่งมักเกิดก่อนจะเห็นแผล" |
 | `PRESSURE_PEAK` detail | "โคนนิ้วหัวแม่เท้าซ้ายรับแรงกดสูงมากหลายก้าวติดกัน" · steps "ลองเดินช้าลง และก้าวให้สั้นลง" / "นั่งพักสักครู่ แล้วขยับเท้าเปลี่ยนท่า" / "ตรวจว่ารองเท้าไม่คับ และไม่มีอะไรอยู่ในรองเท้า" · why "แรงกดที่สูงมากซ้ำ ๆ ที่จุดเดิมขณะเดิน อาจทำให้ผิวบริเวณนั้นช้ำและเกิดแผลได้ โดยเฉพาะเมื่อเท้ารู้สึกได้น้อยลง" |
 | `PRESSURE_PEAK` detail (S7, draft) | The board's "…หลายก้าวติดกัน" is not what the rule checks (one walking sample above the boundary raises it), so the app says "{จุด}{ข้าง}รับแรงกดสูงมากตอนเดิน", e.g. "โคนนิ้วหัวแม่เท้าซ้ายรับแรงกดสูงมากตอนเดิน". Steps and why as above |
 | `PRESSURE_PTI` (S7, draft) | Title / Home "ปลายเท้าซ้ายรับน้ำหนักมากต่อเนื่องนานเกินไป" (board) · detail "{จุด}{ข้าง}รับแรงกดนานในทุกก้าว ต่อเนื่องมาตลอดช่วงที่ผ่านมา" · steps "นั่งพักเท้าสักครู่" / "ขยับเท้า เปลี่ยนท่ายืนหรือท่าเดิน" / "ตรวจว่ารองเท้าไม่คับ และไม่มีอะไรอยู่ในรองเท้า" · why "เมื่อจุดเดิมของฝ่าเท้ารับแรงกดนาน ๆ ซ้ำทุกก้าว ผิวบริเวณนั้นอาจได้เลือดไปเลี้ยงน้อยลงและเกิดแผลได้ โดยเฉพาะเมื่อเท้ารู้สึกได้น้อยลง" · ควรทำ "ลองขยับเท้า เปลี่ยนท่ายืน หรือนั่งพักสักครู่" |
@@ -686,7 +737,10 @@ Every string below is a draft (decision 5). Changes from the expert go into the 
 | `ASYMMETRY_PEAK` (S7, draft; level 2, never listed; Home's orange balance note) | Title / balance note "ลงน้ำหนักเท้า{ข้าง}มากกว่า" · detail "ตอนเดิน เท้า{ข้าง}รับแรงกดสูงกว่าเท้า{อีกข้าง}ติดต่อกันหลายก้าว" · step / ควรทำ "ลองเดินช้าลง และลงน้ำหนักให้เท่ากันทั้งสองข้าง" · why "เมื่อเท้าข้างหนึ่งรับแรงมากกว่าอีกข้างต่อเนื่อง เท้าข้างนั้นมีโอกาสเกิดแผลมากขึ้น" |
 | Home, No data with one foot connected (S7, draft) | "ยังไม่ได้เชื่อมต่อแผ่นรองเท้า{ขวา} จึงยังบอกไม่ได้ว่าเท้า{ขวา}ปลอดภัยหรือไม่" |
 | Alert detail rows (S6B, draft; not health advice but shown to patients) | PTI: "{v} kPa·s เฉลี่ยต่อก้าว ที่{จุด}{ข้าง}" · "{t} kPa·s เฉลี่ยต่อก้าว ขณะเดิน" · "จำนวนก้าวที่ใช้" "{n} ก้าว ใน {m} นาทีล่าสุด". LOAD_CONCENTRATION: "{v}% ของแรงกดทั้งฝ่าเท้า ที่{จุด}{ข้าง}" · "{t}% ติดกัน {n} ก้าว" · "{n} ก้าวติดกัน". Foot-map label of a pressure alert's foot: "เท้า{ข้าง} {จุด}รับน้ำหนักมาก" |
-| My feet (S6B part 2, draft; §8.4) | Pressure, one foot missing: "ยังไม่ได้รับข้อมูลเท้า{ข้าง}" · "ต้องเชื่อมต่อแผ่นรองเท้า{ข้าง}ก่อน". Temperature: "เทียบความอุ่นไม่ได้" · "ตอนนี้แผ่นรองเท้ายังวัดความอุ่นไม่ได้" · "เท้า{ข้าง}ยังไม่ได้เชื่อมต่อ" · "รอผลการวัด" · site note "ยังวัดไม่ได้" · chart "ยังไม่มีข้อมูลวันนี้" · gap label "ขาดข้อมูล / ตั้งแต่ HH:mm" (open) and "ขาดข้อมูล / HH:mm–HH:mm" (ended) · chart summary (§8.4) · quality "สัมผัสไม่ดี" / "เซนเซอร์ผิดปกติ" / "เท้า{ข้าง} ยังวัดไม่ได้" · details "ยังไม่ได้เชื่อมต่อ" |
+| My feet (S6B part 2, draft; §8.4) | Pressure, one foot missing: "ยังไม่ได้รับข้อมูลเท้า{ข้าง}" · "ต้องเชื่อมต่อแผ่นรองเท้า{ข้าง}ก่อน". Temperature: "เทียบความอุ่นไม่ได้" · "ตอนนี้แผ่นรองเท้ายังวัดความอุ่นไม่ได้" · "เท้า{ข้าง}ยังไม่ได้เชื่อมต่อ" · "รอผลการวัด" · site note "ยังวัดไม่ได้" (now the S8D-2 row note) · chart "ยังไม่มีข้อมูลวันนี้" · gap label "ขาดข้อมูล / ตั้งแต่ HH:mm" (open) and "ขาดข้อมูล / HH:mm–HH:mm" (ended) · chart summary (§8.4) · quality "สัมผัสไม่ดี" / "เซนเซอร์ผิดปกติ" / "เท้า{ข้าง} ยังวัดไม่ได้" · details "ยังไม่ได้เชื่อมต่อ" |
+| Zone and site names (S8D, draft; §5) | "นิ้วหัวแม่เท้า" · "โคนนิ้วหัวแม่เท้า" · "กลางหน้าเท้า" · "โคนนิ้วก้อย" · "ขอบเท้าด้านนอก" · "กลางส้นเท้า" · "อุ้งเท้า" · "ส้นเท้าด้านนอก"; regions "ปลายเท้า" · "ขอบเท้าด้านนอก" · "อุ้งเท้า" · "ส้นเท้า" |
+| `TEMP_DELTA` detail map (S8D-1 / S8D-2, draft; §7.3) | Detail row "จุดที่เกินเกณฑ์" "{จุด} {x.x} · {จุด} {x.x} °C" (2 or more sites) · sites line "จุดที่อุ่นกว่าบนเท้า{ข้าง}: {จุด} · {จุด}" · map labels "เท้า{ข้าง} {จุด} และ{จุด}อุ่นกว่าเท้า{อีกข้าง}" / "เท้า{อีกข้าง} จุดวัดความอุ่นทั้ง 8 จุด" |
+| My feet, Temperature layout A (S8D-2, draft; §8.2) | Card "ความอุ่นซ้าย–ขวา ตอนนี้" · legend "จุดที่อุ่นกว่า" / "ใกล้เคียงกัน" / "ยังวัดไม่ได้" · "จุดที่ต่างกันมากที่สุดตอนนี้" · row notes "เท้าซ้ายอุ่นกว่า" / "เท้าขวาอุ่นกว่า" / "ใกล้เคียงกัน" · no rows "ต้องเชื่อมต่อทั้งสองข้าง" / "ยังวัดไม่ได้" · chart note "แอปจะเตือนเมื่อจุดเดียวกันขึ้นถึงแถบสีแดงติดกัน {n} ครั้ง" · chart summary "จุดที่ต่างกันมากที่สุด…องศาที่{จุด}" (§8.4) · table "อุณหภูมิตอนนี้ (°C)" "จุด" / "ซ้าย" / "ขวา" / "ต่าง" · quality "ดีทั้ง 16 จุด" · map labels (§13) |
 | Gait notes | DATA-CONTRACT §8.3.1 (5 texts, owned by the contract) |
 | Gait tab (S8A, draft; §8.5) | Class descriptions: "เดินกะเผลก" "ลงน้ำหนักข้างหนึ่งสั้นกว่าอีกข้าง" · "เดินลงส้นเท้า" "น้ำหนักลงที่ส้นเท้า ปลายเท้าแตะพื้นน้อย" · "เดินบิดปลายเท้า" "ปลายเท้าหันเข้าด้านในหรือออกด้านนอกขณะเดิน". Model below `minConfidence`: "ประเมินด้วยกฎพื้นฐาน เพราะโมเดล AI ยังไม่มั่นใจพอ" · details "กฎพื้นฐาน (โมเดล AI ยังไม่มั่นใจพอ)". No data: "ยังไม่มีข้อมูล" · "ต้องเชื่อมต่อแผ่นรองเท้าทั้งสองข้างก่อน". PTI asymmetry detail "{n}% (ค่าอ้างอิง {asymmetry.ptiPct}% · ยังไม่ใช้แจ้งเตือน)" |
 | Daily foot check | Reason "แผ่นรองเท้าวัดได้เฉพาะใต้ฝ่าเท้า การดูเท้าทุกวันช่วยให้เห็นแผลที่ปลายนิ้วหรือหลังเท้า ซึ่งอาจเกิดขึ้นโดยไม่รู้สึกตัว" · the 3 questions (§11.3) · note "แอปไม่ได้ตรวจรูปให้ ถ้าเห็นอะไรผิดปกติหรือไม่แน่ใจ ให้ตอบว่า \"มี / ไม่แน่ใจ\"" |

@@ -1480,7 +1480,21 @@ confirm the Appendix B items. On the first real-board connection in SR,
 Diagnostics must show `N 8 · temperature v2, 8 sites · rejects 0` for each
 foot (`docs/SESSIONS.md` SR checklist).
 
-## 68. Home's date line can stay on yesterday after midnight **(found at the S8D-1 Note 10 run)** — OPEN, for S9 or S10
+## 68. Home's date line can stay on yesterday after midnight **(found at the S8D-1 Note 10 run)** — RESOLVED (S8D-2)
+
+**S8D-2 (commit 981fca3):** `HomeScreen` and the Alerts list watch the
+foot check's `todayProvider` (a timer that asks for a re-read at local
+midnight, plus `refresh()` on app resume in `foot_check_host.dart`)
+instead of reading `clockProvider` once at build; the day itself is still
+worked out from the clock at read time (rule 2). Home's date line and the
+Alerts "วันนี้" / "เมื่อวาน" titles now roll over with no data event.
+`test/ui/day_rollover_test.dart` crosses midnight on Home and Alerts and
+resumes after a skipped day; all 3 fail without the fix. The Temperature
+tab already keys its day on the snapshot's minute. Two pushed foot-check
+screens still read the clock at build: item 71.
+
+Original entry:
+
 
 On 2026-10-31 at 00:36 the Note 10's Home still read "วันศุกร์ 30 ตุลาคม":
 the app process had been running since 16:47 the day before with
@@ -1492,3 +1506,35 @@ provider that ticks at local midnight, or on app resume) and add a test
 that crosses midnight. Check the other "today" labels (Alerts groups,
 Temperature tab `watchDay`, Foot check "วันนี้ยังไม่ได้ดูเท้า") for the same
 pattern.
+
+## 69. The alert-detail sites line can break inside a site name **(found in S8D-2)** — OPEN, for S10
+
+The `TEMP_DELTA` detail's line "จุดที่อุ่นกว่าบนเท้าขวา: กลางส้นเท้า ·
+ส้นเท้าด้านนอก" wraps at 100 % text on 390 dp between "ส้นเท้า" and
+"ด้านนอก" (golden `alert_detail_temp_delta_100`), so the name reads as two
+words. Keep each name together (word joiners, as DESIGN-SPEC decision 22)
+or put the list on its own line. Same family as BACKLOG 46 and 60.
+
+## 70. The chart's end label can cover part of the threshold line **(found in S8D-2)** — OPEN, for S10
+
+On the Temperature chart the end label (the last point's site name) sits
+above the end dot, or below it when there is no room or "ระดับที่ควรระวัง"
+is in the way (130 % text, golden `my_feet_temp_two_sites_130`). Below the
+dot its 85 % white backdrop covers a short stretch of the dashed threshold
+line, as the gap label already can. Readable, but the threshold is the
+line the note refers to; consider a placement left of the dot or a
+lighter backdrop if the user minds.
+
+On a day with a gap (the sample day on the emulator, 130 % text, report
+038 screenshot 17) neither spot by the dot is free, so the label goes
+under the gap label: it still names the site but sits well below the dot,
+and its backdrop covers a short stretch of the line there.
+
+## 71. Two pushed foot-check screens read the day at build **(found in S8D-2)** — OPEN, minor
+
+`compare_screen.dart:56` ("วันนี้ · {d MMM}" caption) and
+`photo_history_screen.dart:34` ("วันนี้" / "เมื่อวาน" day titles) read
+`clockProvider` once at build, the BACKLOG 68 pattern. Both are pushed
+screens a user leaves quickly, so the window is small: one open across
+midnight shows yesterday's words until something rebuilds it. Fix the same
+way (watch `todayProvider`) when either screen is next touched.

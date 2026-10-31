@@ -221,6 +221,9 @@ void paintFootOutline(Canvas canvas, FootSide side, {bool dashed = false}) {
 const _outlineWidth = 2.5;
 const _outlineDash = [6.0, 5.0];
 
+/// A no-data dot's dashed outline (DESIGN-SPEC §1: dashed 4 3).
+const noDataDotDash = [4.0, 3.0];
+
 /// [source] cut into dashes of [pattern] (on, off, …).
 Path dashedPath(Path source, List<double> pattern) {
   final out = Path();
@@ -252,8 +255,6 @@ class _FootPainter extends CustomPainter {
   final int? ringChannel;
   final bool dashedOutline;
 
-  static const _dash = [4.0, 3.0];
-
   @override
   void paint(Canvas canvas, Size size) {
     final (scale, offset) = fitFootViewBox(size);
@@ -277,7 +278,7 @@ class _FootPainter extends CustomPainter {
           dashedPath(
             Path()
               ..addOval(Rect.fromCircle(center: center, radius: style.radius)),
-            _dash,
+            noDataDotDash,
           ),
           stroke,
         );
