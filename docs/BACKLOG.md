@@ -1395,6 +1395,8 @@ joiners (U+2060) and checked by `test/footcheck/thai_line_break_test.dart`.
 Other screens' running text (alert details, Home advice, Settings lines)
 was not checked. S10's large-text pass should look for awkward splits at
 1.3 × "ใหญ่มาก" and add joiners, extending that test to cover them.
+BACKLOG 69 (the alert-detail sites line) is done in the same pass (user
+decision 2026-10-31).
 
 ## 61. Resources looked up by name must be kept in release builds **(found at the S8C Note 10 run)** — FIXED for the reminder; standing check for S9
 
@@ -1514,8 +1516,9 @@ The `TEMP_DELTA` detail's line "จุดที่อุ่นกว่าบน
 "ด้านนอก" (golden `alert_detail_temp_delta_100`), so the name reads as two
 words. Keep each name together (word joiners, as DESIGN-SPEC decision 22)
 or put the list on its own line. Same family as BACKLOG 46 and 60.
+**Scheduled with BACKLOG 60 in S10** (user decision 2026-10-31).
 
-## 70. The chart's end label can cover part of the threshold line **(found in S8D-2)** — OPEN, for S10
+## 70. The chart's end label can cover part of the threshold line **(found in S8D-2)** — RESOLVED in S8D-2
 
 On the Temperature chart the end label (the last point's site name) sits
 above the end dot, or below it when there is no room or "ระดับที่ควรระวัง"
@@ -1529,6 +1532,12 @@ On a day with a gap (the sample day on the emulator, 130 % text, report
 038 screenshot 17) neither spot by the dot is free, so the label goes
 under the gap label: it still names the site but sits well below the dot,
 and its backdrop covers a short stretch of the line there.
+
+**Resolved (user decision 2026-10-31):** the third spot (under the gap
+label) is removed. When the label cannot sit next to the dot it is
+dropped; the banner and the top-3 rows already name the site. Above or
+below the dot it is kept as is, including the short stretch of threshold
+line its backdrop covers below the dot.
 
 ## 71. Two pushed foot-check screens read the day at build **(found in S8D-2)** — OPEN, minor
 

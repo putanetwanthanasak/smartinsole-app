@@ -217,6 +217,12 @@ void main() {
         ),
         findsOneWidget,
       );
+      // The note says the line can switch sites (user decision 2026-10-31).
+      expect(
+        tester.widget<Text>(byKey('temp-chart-note')).data,
+        'เส้นนี้คือจุดที่ต่างกันมากที่สุดในแต่ละครั้ง '
+        'แอปจะเตือนเมื่อจุดเดียวกันขึ้นถึงแถบสีแดงติดกัน 2\u00a0ครั้ง',
+      );
       handle.dispose();
       await unmount(tester);
     });

@@ -12,8 +12,8 @@ needed (nothing in BLE, storage, rules or capture changed).
     "จุดที่อุ่นกว่า / ใกล้เคียงกัน / ยังวัดไม่ได้", and the 3 sites with
     the largest difference;
   - one chart line, the largest |ΔT| of the 8 sites, with the end point's
-    site named, and the note "แอปจะเตือนเมื่อจุดเดียวกันขึ้นถึงแถบสีแดง
-    ติดกัน 2 ครั้ง";
+    site named (dropped when it cannot sit next to the dot), and the note
+    "เส้นนี้คือจุดที่ต่างกันมากที่สุดในแต่ละครั้ง แอปจะเตือนเมื่อจุดเดียวกันขึ้นถึงแถบสีแดงติดกัน 2 ครั้ง" (wording decided after review);
   - the details table จุด / ซ้าย / ขวา / ต่าง × 8.
 
   The interim S8D-1 site cards, `shownSites` and the two-line legend are
@@ -39,7 +39,14 @@ needed (nothing in BLE, storage, rules or capture changed).
   sizes, the spec was wrong and is corrected (table below).
 - **Your two additions:** a low dot (radius 6) on Home's 84×188 map is
   clearly visible at 100 % and 1.3, so the radii stay. The
-  different-sites chart case is shown below for you to judge.
+  different-sites chart case is shown below.
+- **After review (your decisions, 2026-10-31):**
+  - the chart note now says the line can switch sites (option c), draft,
+    in Appendix A for the medical review;
+  - the end label is dropped when it cannot sit next to the dot (the third
+    spot is gone, BACKLOG 70 resolved);
+  - the temperature-site marks stay still (§12.2);
+  - BACKLOG 69 goes with BACKLOG 60 in S10.
 
 ## What changed
 
@@ -51,6 +58,7 @@ needed (nothing in BLE, storage, rules or capture changed).
 | 486626a | Docs (DESIGN-SPEC, FLUTTER-PLAN, `mobile/CLAUDE.md`, BACKLOG) |
 | 5f16ba8 | From the emulator run: a third spot for the end label (under the gap label); the table's number columns grow with the text ("31.0" broke in two at 200 %) |
 | e35530e | Spec review fixes (table below) |
+| (this push) | Your decisions after review: the new chart note (`tempChartNote`), the third end-label spot removed, §8.2 / §12.2 / Appendix A, BACKLOG 60 / 69 / 70; 8 Temperature goldens regenerated |
 
 ## Decisions and how they were applied
 
@@ -121,10 +129,12 @@ How it reads:
 - **The end label.** It names only the last site ("ส้นเท้าด้านนอก"),
   which is true for that point. Nothing on the chart says the point
   before it was MTH1.
-- **The note.** "แอปจะเตือนเมื่อจุดเดียวกันขึ้นถึงแถบสีแดงติดกัน 2
-  ครั้ง" is the only clue that this spike will not raise an alert.
-  Reading it needs the word "จุดเดียวกัน" and the knowledge that the line
-  can switch sites.
+- **The note.** At first it read "แอปจะเตือนเมื่อจุดเดียวกันขึ้นถึงแถบ
+  สีแดงติดกัน 2 ครั้ง", the only clue that this spike will not raise an
+  alert. Reading it needed the word "จุดเดียวกัน" and the knowledge that
+  the line can switch sites. **Now (your decision c):**
+  "เส้นนี้คือจุดที่ต่างกันมากที่สุดในแต่ละครั้ง แอปจะเตือนเมื่อจุดเดียวกันขึ้นถึงแถบสีแดงติดกัน 2 ครั้ง" (draft). The first sentence says the line can switch
+  sites. The screenshots above show the new note.
 - **The banner.** It stays "สองข้างอุ่นใกล้เคียงกัน" (Safe), which is
   correct: no `TEMP_DELTA` holds.
 
@@ -146,8 +156,9 @@ Two caveats about the screenshot:
   and its backdrop covers a short stretch of the dashed threshold line
   (BACKLOG 70).
 
-No chart feature was added for this, as you asked. Options if you want
-one later are under "Decisions needed".
+No chart feature was added for this, as you asked. After review you
+chose option (c), rewording the note (above). The screen test "the chart
+has a spoken summary" now also checks the note's text.
 
 ## Verify
 
@@ -197,7 +208,7 @@ one later are under "Decisions needed".
 | 6 | The engine is unchanged (per site). The chart line can switch sites; the note says "จุดเดียวกัน" and the different-sites case is tested and shown above |
 | 12 | Radii and sizes are theme tokens; `deltaC` and `consecutiveReadings` come from `thresholds.json` |
 | 13 | Alert advice unchanged |
-| 16 | The chart's draw-in is unchanged (off under reduce motion). The temperature maps are still (no tween), as `TempSiteMap` was in S8D-1; the spec's "dots tween" is for the pressure map (see the review) |
+| 16 | The chart's draw-in is unchanged (off under reduce motion). The temperature maps are still (no tween), as `TempSiteMap` was in S8D-1; §12.2 now says so (your decision) |
 
 ### Emulator (Pixel 7 AVD, API 37; driver build, `MOCK=rest`, presets switched live)
 
@@ -220,11 +231,17 @@ hot restart. An earlier double tap seeded twice (the second run fills
 | 14 | [No data](038-flutter-8-sensors-ui/14-temp-no-data.png) | Both feet dashed |
 | 15–17 | [1.3 top](038-flutter-8-sensors-ui/15-temp-rest-130-top.png), [rows](038-flutter-8-sensors-ui/16-temp-rest-130-rows.png), [chart](038-flutter-8-sensors-ui/17-temp-rest-130-chart.png) | Layout holds at 1.3; the end label goes under the gap label, away from the dot (BACKLOG 70) |
 | 18–19 | Goldens, your addition 2 | Above |
+| 20 | [Golden, rest at 200 %](038-flutter-8-sensors-ui/20-golden-rest-chart-200.png) | After your decision: no spot next to the dot is free, so the end label is dropped; the banner names the site |
+
+Shots 06, 12–13 and 15–17 were taken before your decisions. They show
+the old note, and in 12–13 and 15–17 the end label under the gap label.
+Those charts now drop the label, as golden 20 shows.
 
 Two things found on the emulator and fixed (5f16ba8):
 - **The end label was dropped on the sample day.** The band label sits at
   the right there, and the gap label sits by the dot. A third spot under
-  the gap label now applies.
+  the gap label now applies. *(Removed after review, at your decision:
+  the label is dropped instead.)*
 - **The table broke numbers at 200 %.** "31." / "0" split in the 52 px
   columns. The number columns are now at least 52 px and grow with the
   text.
@@ -251,16 +268,19 @@ Spec gaps the reviewer listed, and what happened:
 | Gap | Resolution |
 |---|---|
 | §13 did not give the non-warmer foot's label when the other foot has warmer sites | Closed with finding 2 (§13) |
-| §12.2 "Dots tween" does not say whether temperature-site marks tween; they are still | Noted under leftovers; left still (as in S8D-1). Your call if they should tween |
-| §8.2 says "under the gap label" only when the band label is at the right and the gap label by the dot; the code tries it whenever a gap label exists | The code tries the two spots by the dot first, so the third is reached only when both are blocked; in practice that is the band-label case. Left as is; BACKLOG 70 covers the placement |
+| §12.2 "Dots tween" does not say whether temperature-site marks tween; they are still | Your decision: they stay still. §12.2 now says pressure dots tween and the temperature-site marks change at once |
+| §8.2 says "under the gap label" only when the band label is at the right and the gap label by the dot; the code tries it whenever a gap label exists | Your decision: the third spot is removed. The label is dropped when it cannot sit next to the dot; §8.2 updated |
 | §8.2 / decision 27 did not say raw or displayed ΔT | Closed with finding 1 (§8.2) |
 
 ## Leftovers and notes for the next sessions
 
 - BACKLOG 69: the alert-detail sites line can break inside a site name
-  at 100 %.
-- BACKLOG 70: the chart end label below the dot covers part of the
-  threshold line, and the third spot sits away from the dot.
+  at 100 %. Scheduled with BACKLOG 60 in S10.
+- BACKLOG 70: resolved (the third spot is removed). Below the dot, the
+  label's backdrop still covers a short stretch of the threshold line,
+  which you accepted.
+- The new chart note is draft copy in Appendix A, for the medical review
+  before 2026-11-05.
 - BACKLOG 71: `compare_screen.dart` and `photo_history_screen.dart` read
   the day at build (the BACKLOG 68 pattern), minor.
 - The top-3 "{x.x}°" values do not animate. The old site cards'
@@ -276,19 +296,11 @@ Spec gaps the reviewer listed, and what happened:
 
 ## Decisions needed
 
-1. **The different-sites chart case (your addition 2).** Is the note
-   enough? If not, the options (none built):
-   - (a) colour or mark points whose site differs from the one before;
-   - (b) name the site at each above-band stretch, not only at the end;
-   - (c) reword the note to say the line can switch sites, e.g. "เส้นนี้
-     คือจุดที่ต่างกันมากที่สุดในแต่ละครั้ง แอปจะเตือนเมื่อจุดเดียวกัน…";
-   - (d) leave as is.
-
-   I'd lean to (c) as the cheapest honest fix, with the medical reviewer
-   checking the wording.
-2. **BACKLOG 70.** Is the end label's spot acceptable, or should it move
-   (for example left of the dot) or be dropped when it cannot sit by the
-   dot?
+None open. The two from the first version of this report were decided on
+2026-10-31 and applied:
+1. The different-sites chart case: option (c), the reworded note.
+2. BACKLOG 70: the end label is dropped when it cannot sit next to the
+   dot.
 
 ## Next session
 

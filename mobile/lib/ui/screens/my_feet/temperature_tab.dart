@@ -293,11 +293,10 @@ class _ChartCard extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: Dimens.buttonGap),
-          // S8D-2 draft: the line can switch sites; the alert counts each
-          // site on its own (rule 6).
+          // S8D-2 draft (user decision 2026-10-31, Appendix A): the line can
+          // switch sites; the alert counts each site on its own (rule 6).
           Text(
-            'แอปจะเตือนเมื่อจุดเดียวกันขึ้นถึงแถบสีแดงติดกัน '
-            '${t.consecutiveReadings}$nbspครั้ง',
+            tempChartNote(t.consecutiveReadings),
             key: const ValueKey('temp-chart-note'),
             style: AppText.secondary,
           ),

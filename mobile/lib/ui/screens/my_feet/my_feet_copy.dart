@@ -345,6 +345,13 @@ TempSiteView _tempSite(TempTabView v, int site) {
   );
 }
 
+/// The note under the chart (S8D-2 draft, user decision 2026-10-31): the
+/// line is the largest difference at each reading, so it can switch sites,
+/// while the alert needs the same site [consecutive] times (rule 6).
+String tempChartNote(int consecutive) =>
+    'เส้นนี้คือจุดที่ต่างกันมากที่สุดในแต่ละครั้ง '
+    'แอปจะเตือนเมื่อจุดเดียวกันขึ้นถึงแถบสีแดงติดกัน $consecutive$nbspครั้ง';
+
 /// How many sites "จุดที่ต่างกันมากที่สุดตอนนี้" names (layout A).
 const topSiteCount = 3;
 

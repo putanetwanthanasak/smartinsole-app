@@ -388,9 +388,10 @@ class _ChartPainter extends CustomPainter {
                 : TempChartColors.lastDot,
         );
       // The end label: the site's name, right-aligned to the dot, above it,
-      // else below it, else under the gap label, on the gap label's
-      // backdrop. Moved left to stay inside the plot; dropped rather than
-      // overlap the band or gap label or leave the plot.
+      // else below it, on the gap label's backdrop. Moved left to stay
+      // inside the plot; dropped when it cannot sit by the dot without
+      // overlapping the band or gap label or leaving the plot (user decision
+      // 2026-10-31: the banner and top-3 rows already name the site).
       final e = label(chartEndLabel(last), _endStyle);
       const clear = TempChartColors.lastDotRadius + TempChartColors.lastDotRing;
       // A name wider than the plot is dropped before clamping (the bounds
@@ -415,9 +416,6 @@ class _ChartPainter extends CustomPainter {
           : [
               at(c.dy - clear - Dimens.textGap - e.height),
               at(c.dy + clear + Dimens.textGap),
-              // Under the gap label, when it sits by the dot (the band label at
-              // the right and the gap label below it leave no room by the dot).
-              if (gapLabelRect case final g?) at(g.bottom + Dimens.textGap),
             ].where(free).firstOrNull;
       if (rect != null && ex != null) {
         final ey = rect.top;
