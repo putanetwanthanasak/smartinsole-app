@@ -35,7 +35,7 @@
 | Home status | 3 levels shown to patients (Safe / Be careful / Rest your feet) + No data |
 | Risk-level mapping | See section 7 |
 | Storage | On-device only |
-| Sensor count | **8 FSR + 8 NTC per foot, NTC i next to FSR i** (final, user decision 2026-10-29; DATA-CONTRACT v1.6, `shared/sensor_layout.json`). The parser stays N-generic, but the app refuses an insole whose calibration has N ≠ 8, and the 12-byte v1.5 temperature packet. |
+| Sensor count | **8 FSR + 8 NTC per foot, NTC i next to FSR i** (final, user decision 2026-10-29; DATA-CONTRACT v1.6, `shared/sensor_layout.json`). The parser stays N-generic, but the app refuses an insole whose calibration has N ≠ 8, and the 12-byte v1.5 temperature packet. The UI shows all 8 zones and 8 sites (S8D-2: DESIGN-SPEC §5 geometry, §8.2 Temperature layout A). |
 | Risk decision | Contract rules (RuleBasedEngine). Gait result is context only. |
 | Daily foot check | 4 photos + 3 questions, no AI, photos stored on device only |
 | Study day | **The phone app is the only central for each insole and captures all research data (S4C).** The laptop web app is a fallback only, used if the phone capture fails; it is never connected at the same time as the phone during a session. The photo feature is not used with volunteers, so no feature flag is needed. |

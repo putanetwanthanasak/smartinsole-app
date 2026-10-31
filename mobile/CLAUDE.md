@@ -137,8 +137,10 @@ lib/
                        home/ = Home view model and draft copy;
                        my_feet/ = My feet (S6B part 2): view model
                        (MyFeetController: 2 s peaks + engine figures),
-                       copy, chart model (pairing, gaps, summary),
-                       Pressure and Temperature tabs; S8A added the
+                       copy, chart model (pairing, gaps, summary; one
+                       series, the largest |ΔT| of the 8 sites, S8D-2),
+                       Pressure and Temperature tabs (Temperature =
+                       DESIGN-SPEC §8.2 layout A); S8A added the
                        Gait tab (gait_model, gait_copy, gait_tab);
                        capture/ = Researcher › "เริ่มเก็บข้อมูลวิจัย"
                        (English, researcher-only, release builds too)
@@ -150,10 +152,14 @@ lib/
     widgets/           shared widgets; S6B added status_tag, new_chip,
                        details_expander (DetailRow), numbered_steps,
                        disclaimer_line, back_link, detail_status_card,
-                       temp_site_map; FootMap takes null levels ("not
-                       recorded"), `ringChannel` and `pulse`; S6B part 2
-                       added summary_banner, segmented_tabs,
-                       temp_delta_chart (CustomPainter, draw-in); S8A
+                       temp_site_map (TempSiteMap with one TempSiteMark
+                       per site, TempSiteDot, TempSiteLegend(items);
+                       alert detail and Temperature tab, S8D-2);
+                       FootMap takes null levels ("not recorded"),
+                       `ringChannel` and `pulse`; S6B part 2 added
+                       summary_banner, segmented_tabs, temp_delta_chart
+                       (CustomPainter, draw-in; one line with an end
+                       label naming its site, S8D-2); S8A
                        added estimate_chip, confidence_segments,
                        balance_bar, cop_foot; S8B added list_row
                        (SettingsGroup, ListRow, AppSwitch), confirm_sheet
