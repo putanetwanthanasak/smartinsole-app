@@ -31,7 +31,10 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final now = ref.watch(clockProvider)();
+    // Today's day, not the clock at the last rebuild: it rolls over at
+    // midnight and on resume even when nothing else rebuilds Home
+    // (BACKLOG 68).
+    final today = ref.watch(todayProvider);
     return Scaffold(
       body: SafeArea(
         bottom: false,
@@ -46,7 +49,7 @@ class HomeScreen extends ConsumerWidget {
           child: StaggeredEntrance(
             gap: Dimens.sectionGap,
             children: [
-              _Header(date: thaiLongDate(now)),
+              _Header(date: thaiLongDate(today)),
               const _FootChips(),
               const _HomeStatusCard(),
               // Only while today's check is not saved (§6 item 4); hidden

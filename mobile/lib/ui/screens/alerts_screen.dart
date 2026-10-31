@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_lucide/flutter_lucide.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../footcheck/footcheck_providers.dart';
 import '../../storage/models.dart';
 import '../../storage/storage_providers.dart';
 import '../clock.dart';
@@ -61,7 +62,9 @@ class _AlertsScreenState extends ConsumerState<AlertsScreen> {
     });
     final alerts = ref.watch(visibleAlertsProvider).value;
     final unread = ref.watch(unreadAlertCountProvider);
-    final now = ref.watch(clockProvider)();
+    // "วันนี้" / "เมื่อวาน" follow the day, which rolls over at midnight and
+    // on resume, not the clock at the last rebuild (BACKLOG 68).
+    final today = ref.watch(todayProvider);
 
     final seen = _seen;
     final ids = {for (final a in alerts ?? const <StoredAlert>[]) a.id};
@@ -84,7 +87,7 @@ class _AlertsScreenState extends ConsumerState<AlertsScreen> {
               padding: const EdgeInsets.only(top: Dimens.sectionGap),
               child: Semantics(
                 header: true,
-                child: Text(groupTitle(day, now), style: AppText.cardTitle),
+                child: Text(groupTitle(day, today), style: AppText.cardTitle),
               ),
             ),
           );
