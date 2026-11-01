@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_lucide/flutter_lucide.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:smartinsole/ble/packets.dart';
 import 'package:smartinsole/device/device_providers.dart';
 import 'package:smartinsole/device/mock_data_source.dart';
+import 'package:smartinsole/device/model_channels.dart';
 import 'package:smartinsole/gait/demo_model_runner.dart';
 import 'package:smartinsole/gait/gait_providers.dart';
 import 'package:smartinsole/gait/model_classifier.dart';
 import 'package:smartinsole/rules/alert_providers.dart';
+import 'package:smartinsole/storage/baseline_repository.dart';
 import 'package:smartinsole/ui/screens/connection_screen.dart';
 import 'package:smartinsole/ui/screens/my_feet/gait_model.dart';
 import 'package:smartinsole/ui/shell/app_shell.dart' show MyFeetTab;
@@ -38,10 +41,27 @@ final demoToe = gaitModelChoiceProvider.overrideWithValue(
   GaitModelChoice.demoToe,
 );
 
+/// Quiet-standing baselines for both mock insoles (S9), so a model in
+/// the slot is used.
+final mockBaselines = storedBaselinesProvider.overrideWith(
+  (ref) => Stream.value([
+    for (final side in FootSide.values)
+      FootBaseline(
+        side: side,
+        insoleId: 'MOCK-${side == FootSide.left ? 'L' : 'R'}-001',
+        recordedAtMs: 0,
+        sampleCount: 1500,
+        values: List.filled(modelChannelsPerFoot, 0),
+      ),
+  ]),
+);
+
+/// [baselines] false: no insole has a quiet-standing baseline yet.
 Future<void> pumpGait(
   WidgetTester tester,
   MockPreset preset, {
   List<Override> overrides = const [],
+  bool baselines = true,
   bool reduceMotion = false,
   double textScale = 1.0,
   Size size = const Size(390, 2300),
@@ -49,7 +69,7 @@ Future<void> pumpGait(
   tester,
   preset,
   tab: MyFeetTab.gait,
-  overrides: overrides,
+  overrides: [if (baselines) mockBaselines, ...overrides],
   reduceMotion: reduceMotion,
   textScale: textScale,
   size: size,
@@ -298,6 +318,32 @@ void main() {
       expect(byKey('gait-confidence'), findsNothing);
       await openDetails(tester);
       expect(find.text('กฎพื้นฐาน (โมเดล AI ยังไม่มั่นใจพอ)'), findsOneWidget);
+      expect(byKey('gait-probabilities'), findsNothing);
+      await unmount(tester);
+    });
+
+    testWidgets('no quiet-standing baseline: the rules, saying why (S9)', (
+      tester,
+    ) async {
+      await pumpGait(
+        tester,
+        MockPreset.toeWalk,
+        baselines: false,
+        overrides: [
+          modelAnswering([0.05, 0.9, 0.02, 0.02, 0.01]),
+        ],
+      );
+      expect(find.text('เดินเขย่งปลายเท้า'), findsOneWidget);
+      expect(
+        find.text('ประเมินด้วยกฎพื้นฐาน เพราะยังไม่ได้บันทึกค่ายืนนิ่ง'),
+        findsOneWidget,
+      );
+      expect(byKey('gait-confidence'), findsNothing);
+      await openDetails(tester);
+      expect(
+        find.text('กฎพื้นฐาน (ยังไม่ได้บันทึกค่ายืนนิ่ง)'),
+        findsOneWidget,
+      );
       expect(byKey('gait-probabilities'), findsNothing);
       await unmount(tester);
     });

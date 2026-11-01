@@ -31,6 +31,9 @@ abstract final class Routes {
   /// Research capture (S4C): researcher-only, from Researcher.
   static const capture = '/capture';
 
+  /// Quiet-standing baseline for Model A (S9): researcher-only.
+  static const baseline = '/researcher/baseline';
+
   /// Diagnostics, the S3A BLE debug screen: only from Researcher (S8B).
   static const bleDebug = '/debug-ble';
 }

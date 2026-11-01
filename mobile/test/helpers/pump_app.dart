@@ -11,6 +11,7 @@ import 'package:smartinsole/footcheck/footcheck_providers.dart';
 import 'package:smartinsole/footcheck/photo_processor.dart';
 import 'package:smartinsole/gait/gait_providers.dart';
 import 'package:smartinsole/gait/model_spec.dart';
+import 'package:smartinsole/gait/preprocess.dart';
 import 'package:smartinsole/notify/reminder_providers.dart';
 import 'package:smartinsole/settings/settings_providers.dart';
 import 'package:smartinsole/settings/settings_store.dart';
@@ -31,6 +32,12 @@ final fixedNow = DateTime(2026, 10, 18, 9, 30);
 /// checked by test/config/thresholds_test.dart).
 final testThresholds = Thresholds.parse(
   File(Thresholds.assetPath).readAsStringSync(),
+);
+
+/// The app's bundled preprocessing spec (identical to
+/// shared/model_preprocess.json, checked by test/gait/preprocess_test.dart).
+final testPreprocess = PreprocessSpec.parse(
+  File(PreprocessSpec.assetPath).readAsStringSync(),
 );
 
 /// The app's bundled Model A input spec (identical to
@@ -96,6 +103,7 @@ Future<void> pumpApp(
         clockProvider.overrideWithValue(now ?? () => fixedNow),
         thresholdsProvider.overrideWithValue(testThresholds),
         modelInputSpecProvider.overrideWithValue(testModelInput),
+        preprocessSpecProvider.overrideWithValue(testPreprocess),
         // No LiteRT on the test host: a model in the slot would fail here.
         modelRunnerFactoryProvider.overrideWithValue(
           (_, _) => throw UnsupportedError('no TFLite in widget tests'),

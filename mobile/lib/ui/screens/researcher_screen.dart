@@ -6,6 +6,8 @@ import '../../ble/packets.dart';
 import '../../capture/capture_providers.dart';
 import '../../device/device_providers.dart';
 import '../../device/insole_commands.dart';
+import '../../gait/gait_providers.dart';
+import '../../gait/preprocess.dart';
 import '../routes.dart';
 import '../theme/colors.dart';
 import '../theme/dimens.dart';
@@ -17,6 +19,7 @@ import '../widgets/info_box.dart';
 import '../widgets/list_row.dart';
 import '../widgets/page_title.dart';
 import 'connection/connection_providers.dart';
+import 'researcher/baseline_screen.dart';
 import 'researcher/researcher_model.dart';
 import 'researcher/researcher_providers.dart';
 import 'researcher/researcher_sheets.dart';
@@ -37,6 +40,7 @@ class ResearcherScreen extends StatelessWidget {
       ),
       _CaptureCard(),
       _DeviceCard(),
+      _BaselineCard(),
       _DeviceInfoCard(),
       _DiagnosticsCard(),
     ];
@@ -209,6 +213,39 @@ class _CaptureCard extends ConsumerWidget {
           title: 'ส่งออกไฟล์',
           value: exportLine(sessions),
           onTap: openCapture,
+        ),
+      ],
+    );
+  }
+}
+
+/// "ค่ายืนนิ่ง (Model A)" (S9): opens the 30 s quiet-standing recording;
+/// the value says whether the connected insoles have one.
+class _BaselineCard extends ConsumerWidget {
+  const _BaselineCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(displaySnapshotProvider);
+    final stored = ref.watch(storedBaselinesProvider).value ?? const [];
+    final seconds = ref.watch(preprocessSpecProvider).baselineSeconds;
+    final feet = baselineStatus(
+      stored,
+      (side) => ref.read(insoleDataSourceProvider(side)).calibration?.deviceId,
+    );
+    return _TitledCard(
+      key: const ValueKey('researcher-baseline'),
+      title: 'ค่ายืนนิ่ง (Model A)',
+      footer:
+          'ถ้ายังไม่บันทึก ระบบประเมินท่าเดินด้วยกฎพื้นฐาน '
+          'บันทึกใหม่เมื่อเปลี่ยนแผ่นรองเท้าหรือผู้เข้าร่วม',
+      children: [
+        ListRow(
+          key: const ValueKey('researcher-baseline-row'),
+          icon: LucideIcons.timer,
+          title: 'บันทึกค่ายืนนิ่ง $seconds วินาที',
+          value: baselineStatusLine(feet),
+          onTap: () => Navigator.pushNamed(context, Routes.baseline),
         ),
       ],
     );

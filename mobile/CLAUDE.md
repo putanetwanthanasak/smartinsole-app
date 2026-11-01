@@ -52,6 +52,7 @@ From `docs/FLUTTER-PLAN.md` section 6:
 | … add `--dart-define=MOCK=<preset>` | Same, with `MockDataSource` for both feet (debug builds only): `safe`, `safeOrangeDot`, `watch`, `rest`, `noData`, `oneFootMissing`, `lowBattery`, and for the Gait tab `standing` (still IMU, both feet loaded) and `toeWalk` (no heel load); Settings → "Mock preset (debug)" switches live, "Seed sample alerts (debug)" stores the design boards' sample alerts, and "Seed sample day (debug)" stores today's temperature readings from 08:00 shaped by the preset (one period above ΔT, one connection gap; `lib/storage/sample_day.dart`). Both write only to the in-memory database |
 | … add `--dart-define=GAIT_MODEL=dummy` | Debug/profile only: load the untrained dummy Model A from `assets/models_dummy/` (shapes, channel order, timing; Researcher › Diagnostics › "Gait model" shows the check). `GAIT_MODEL=demo-toe` instead fakes a model answering toe walking at 78 % (the FeetDGaitToe board). Release builds ignore the define |
 | `uv run tools/model/make_dummy_model.py` (repo root) | Regenerate the dummy model, its `normalization.json` and `check.json` (TensorFlow via uv's cache, not the repo) |
+| `python3 tools/model/preprocess.py --selftest` / `--make-vectors` (repo root) | Check / regenerate the Model A preprocessing vectors (S9); the app's `test/gait/preprocess_test.dart` must match them bit for bit |
 | `flutter run -d <device-id>` | Plain debug run (e.g. the Note 10) |
 | `flutter build apk --release && tool/check_release_resources.sh` | Release APK for the phone. The check must pass before the APK goes on the Note 10: it fails if the APK lacks a resource the app looks up by name at runtime (see Release resources below) |
 | `dart format lib test test_driver` | Formatting |
@@ -87,15 +88,17 @@ lib/
                        status (FLUTTER-PLAN §7), 30-min suppression from
                        the alerts table, plain-Thai copy, gait note (see
                        its README.md); no numeric literals (a test checks)
-  storage/             drift database (S6A), schema v2 (S8D): alerts,
-                       temperature readings, daily summary, foot checks;
+  storage/             drift database (S6A), schema v3 (S9): alerts,
+                       temperature readings, daily summary, foot checks,
+                       quiet-standing baselines (S9);
                        one repository interface each (see its README.md);
                        30-day retention; TemperatureRecorder
   gait/                Gait (S8A): rule-based classifier, Model A slot
                        (tflite_flutter in its own isolate, only in
                        tflite_classifier.dart), estimator on a 1 s stride
                        of sample time, step counter (daily_summary.steps),
-                       CoP, PTI asymmetry (see its README.md); never sets
+                       CoP, PTI asymmetry, Model A preprocessing and the
+                       baseline recorder (S9) (see its README.md); never sets
                        a level (rule 11); no numeric literals (a test
                        checks)
   settings/            Settings (S8B): AppSettings, SettingsStore over
@@ -132,7 +135,9 @@ lib/
                        connection/ = Connection (S8B): view model
                        (CardKind per §9), providers, foot card, panels;
                        researcher/ + researcher_screen.dart = §10.2
-                       (readiness, TARE/REBOOT sheets, device info);
+                       (readiness, TARE/REBOOT sheets, device info;
+                       S9: baseline_screen.dart, "บันทึกค่ายืนนิ่ง 30
+                       วินาที");
                        settings_screen.dart = §10.1;
                        home/ = Home view model and draft copy;
                        my_feet/ = My feet (S6B part 2): view model
@@ -167,8 +172,9 @@ lib/
 assets/fonts/          Figtree 600/700, Noto Sans Thai 600/700 (headings);
                        Noto Sans + Noto Sans Thai Looped 400–700 (body);
                        static TTFs, OFL, never downloaded at runtime
-assets/config/         thresholds.json and model_input.json, byte-identical
-                       copies of the shared/ files (tests check both)
+assets/config/         thresholds.json, model_input.json and (S9)
+                       model_preprocess.json, byte-identical copies of the
+                       shared/ files (tests check each)
 assets/models/         the Model A slot: README only until the AI team's
                        model_a.tflite + normalization.json arrive
                        (after data collection, late Nov); dropping them

@@ -6,8 +6,10 @@
 
 The weights are untrained (fixed seed): the file only proves the slot, i.e.
 that the app loads a model of the contract's shapes, feeds it the 28
-channels in the order of shared/model_input.json, normalises them with
-normalization.json, and runs it fast enough. It is never a gait result.
+channels in the order of shared/model_input.json, preprocesses them as
+training does ("ทางเอ", tools/model/preprocess.py: baseline subtracted, then
+Min-Max with normalization.json), and runs it fast enough. It is never a
+gait result.
 
 DATA-CONTRACT v1.6 §7.1/§7.2: input [1, 100, 28] float32; outputs gait_probs
 [1, 5] (softmax) and gait_embedding [1, 32] (the layer before softmax). The
@@ -16,10 +18,13 @@ model is converted with TFLite builtin ops only; the real model must be too
 
 Writes, in mobile/assets/models_dummy/:
   model_a.tflite      the dummy model
-  normalization.json  per-channel mean/std over the capture fixture's rows
-  check.json          the fixture's first 100 rows, the normalised window,
-                      and this interpreter's outputs for it (the app's
-                      on-device check compares against these)
+  normalization.json  method "baseline-minmax": per-channel min/max over the
+                      capture fixture's rows after its baseline (the
+                      fixture's calibration trial, per-foot median)
+  check.json          the fixture's first 100 rows, that baseline, the
+                      preprocessed window, and this interpreter's outputs
+                      for it (the app's on-device check compares against
+                      these)
 
 Run from the repo root:  uv run tools/model/make_dummy_model.py
 """
@@ -34,9 +39,13 @@ os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")
 import numpy as np  # noqa: E402
 import tensorflow as tf  # noqa: E402
 
+import preprocess  # noqa: E402  (tools/model/preprocess.py, beside this file)
+
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 MODEL_INPUT = ROOT / "shared" / "model_input.json"
 FIXTURE = ROOT / "shared" / "capture_fixture" / "schema2" / "expected.json"
+FIXTURE_SESSION = (ROOT / "shared" / "capture_fixture" / "schema2"
+                   / "TEST-009_20261110-090000")
 OUT = ROOT / "mobile" / "assets" / "models_dummy"
 SEED = 20261025
 CLASSES = 5
@@ -79,18 +88,25 @@ def main() -> None:
     fixture = json.loads(FIXTURE.read_text())
     if fixture["channels"] != names:
         raise SystemExit("capture fixture channels differ from model_input.json")
-    rows = np.asarray(fixture["rows"], dtype=np.float64)
-    if rows.shape[0] < window:
-        raise SystemExit(f"capture fixture has {rows.shape[0]} rows, need {window}")
+    rows = [[float(v) for v in r] for r in fixture["rows"]]
+    if len(rows) < window:
+        raise SystemExit(f"capture fixture has {len(rows)} rows, need {window}")
 
-    mean = rows.mean(axis=0)
-    std = rows.std(axis=0)
-    std[std == 0] = 1.0
+    # The reference preprocessing, so the dummy's files are what training
+    # would ship. The fixture is one calibration trial: its own baseline.
+    preprocess.load_spec()
+    session = preprocess._load_capture().load_session(FIXTURE_SESSION)
+    baseline = preprocess.session_baseline(session, spec)
+    sub = preprocess.subtract(rows, baseline)
+    mins = [min(r[c] for r in sub) for c in range(channels)]
+    maxs = [max(r[c] for r in sub) for c in range(channels)]
+    # Dummy only: a constant fixture channel gets a range of 1.
+    maxs = [hi if hi > lo else lo + 1.0 for lo, hi in zip(mins, maxs)]
 
     tflite = convert(build_model(window, channels))
 
     raw = rows[:window]
-    norm = ((raw - mean) / std).astype(np.float32)
+    norm = np.asarray(preprocess.apply(raw, baseline, mins, maxs), dtype=np.float32)
 
     interp = tf.lite.Interpreter(model_content=tflite)
     interp.allocate_tensors()
@@ -108,16 +124,13 @@ def main() -> None:
     (OUT / "model_a.tflite").write_bytes(tflite)
     (OUT / "normalization.json").write_text(
         json.dumps(
-            {
-                # Must equal model_input.json's (the app refuses another).
-                "version": spec["version"],
-                "about": "DUMMY (S8A, 28 channels since S8D): mean/std over "
-                "shared/capture_fixture/schema2 rows, "
-                "not a training set. Made by tools/model/make_dummy_model.py.",
-                "channels": names,
-                "mean": [float(v) for v in mean],
-                "std": [float(v) for v in std],
-            },
+            # Must carry model_input.json's version (the app refuses another).
+            preprocess.normalization_json(
+                mins, maxs, spec,
+                "DUMMY (S8A; 28 channels since S8D; baseline + Min-Max since "
+                "S9): min/max over shared/capture_fixture/schema2 rows after "
+                "its calibration baseline, not a training set. Made by "
+                "tools/model/make_dummy_model.py."),
             indent=2,
         )
         + "\n"
@@ -125,12 +138,14 @@ def main() -> None:
     (OUT / "check.json").write_text(
         json.dumps(
             {
-                "version": 1,
-                "about": "The capture fixture's first rows, the window normalised "
-                "with normalization.json, and the dummy's outputs from Python "
-                f"TFLite (tensorflow {tf.__version__}). The app's model check "
-                "must reproduce them.",
-                "rows": raw.tolist(),
+                "version": 2,
+                "about": "The capture fixture's first rows, the baseline, the "
+                "window preprocessed with them and normalization.json "
+                "(tools/model/preprocess.py), and the dummy's outputs from "
+                f"Python TFLite (tensorflow {tf.__version__}). The app's model "
+                "check must reproduce them.",
+                "rows": raw,
+                "baseline": baseline,
                 "window": [[float(v) for v in r] for r in norm],
                 "gait_probs": [float(v) for v in probs],
                 "gait_embedding": [float(v) for v in emb],

@@ -3991,6 +3991,392 @@ class DailySummariesCompanion extends UpdateCompanion<DailySummaryRow> {
   }
 }
 
+class $BaselinesTable extends Baselines
+    with TableInfo<$BaselinesTable, BaselineRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $BaselinesTable(this.attachedDatabase, [this._alias]);
+  @override
+  late final GeneratedColumnWithTypeConverter<FootSide, String> side =
+      GeneratedColumn<String>(
+        'side',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<FootSide>($BaselinesTable.$converterside);
+  static const VerificationMeta _insoleIdMeta = const VerificationMeta(
+    'insoleId',
+  );
+  @override
+  late final GeneratedColumn<String> insoleId = GeneratedColumn<String>(
+    'insole_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _recordedAtMsMeta = const VerificationMeta(
+    'recordedAtMs',
+  );
+  @override
+  late final GeneratedColumn<int> recordedAtMs = GeneratedColumn<int>(
+    'recorded_at_ms',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sampleCountMeta = const VerificationMeta(
+    'sampleCount',
+  );
+  @override
+  late final GeneratedColumn<int> sampleCount = GeneratedColumn<int>(
+    'sample_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _valuesMeta = const VerificationMeta('values');
+  @override
+  late final GeneratedColumn<String> values = GeneratedColumn<String>(
+    'values',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    side,
+    insoleId,
+    recordedAtMs,
+    sampleCount,
+    values,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'baselines';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<BaselineRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('insole_id')) {
+      context.handle(
+        _insoleIdMeta,
+        insoleId.isAcceptableOrUnknown(data['insole_id']!, _insoleIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_insoleIdMeta);
+    }
+    if (data.containsKey('recorded_at_ms')) {
+      context.handle(
+        _recordedAtMsMeta,
+        recordedAtMs.isAcceptableOrUnknown(
+          data['recorded_at_ms']!,
+          _recordedAtMsMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_recordedAtMsMeta);
+    }
+    if (data.containsKey('sample_count')) {
+      context.handle(
+        _sampleCountMeta,
+        sampleCount.isAcceptableOrUnknown(
+          data['sample_count']!,
+          _sampleCountMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_sampleCountMeta);
+    }
+    if (data.containsKey('values')) {
+      context.handle(
+        _valuesMeta,
+        values.isAcceptableOrUnknown(data['values']!, _valuesMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_valuesMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {side, insoleId};
+  @override
+  BaselineRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return BaselineRow(
+      side: $BaselinesTable.$converterside.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}side'],
+        )!,
+      ),
+      insoleId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}insole_id'],
+      )!,
+      recordedAtMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}recorded_at_ms'],
+      )!,
+      sampleCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sample_count'],
+      )!,
+      values: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}values'],
+      )!,
+    );
+  }
+
+  @override
+  $BaselinesTable createAlias(String alias) {
+    return $BaselinesTable(attachedDatabase, alias);
+  }
+
+  static JsonTypeConverter2<FootSide, String, String> $converterside =
+      const EnumNameConverter<FootSide>(FootSide.values);
+}
+
+class BaselineRow extends DataClass implements Insertable<BaselineRow> {
+  final FootSide side;
+
+  /// The insole's calibration `device_id` (contract §5.1), not the BLE
+  /// address, so the baseline follows the insole.
+  final String insoleId;
+  final int recordedAtMs;
+  final int sampleCount;
+
+  /// JSON list of 14 doubles, the foot's model channels in §7.1 order.
+  final String values;
+  const BaselineRow({
+    required this.side,
+    required this.insoleId,
+    required this.recordedAtMs,
+    required this.sampleCount,
+    required this.values,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    {
+      map['side'] = Variable<String>(
+        $BaselinesTable.$converterside.toSql(side),
+      );
+    }
+    map['insole_id'] = Variable<String>(insoleId);
+    map['recorded_at_ms'] = Variable<int>(recordedAtMs);
+    map['sample_count'] = Variable<int>(sampleCount);
+    map['values'] = Variable<String>(values);
+    return map;
+  }
+
+  BaselinesCompanion toCompanion(bool nullToAbsent) {
+    return BaselinesCompanion(
+      side: Value(side),
+      insoleId: Value(insoleId),
+      recordedAtMs: Value(recordedAtMs),
+      sampleCount: Value(sampleCount),
+      values: Value(values),
+    );
+  }
+
+  factory BaselineRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return BaselineRow(
+      side: $BaselinesTable.$converterside.fromJson(
+        serializer.fromJson<String>(json['side']),
+      ),
+      insoleId: serializer.fromJson<String>(json['insoleId']),
+      recordedAtMs: serializer.fromJson<int>(json['recordedAtMs']),
+      sampleCount: serializer.fromJson<int>(json['sampleCount']),
+      values: serializer.fromJson<String>(json['values']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'side': serializer.toJson<String>(
+        $BaselinesTable.$converterside.toJson(side),
+      ),
+      'insoleId': serializer.toJson<String>(insoleId),
+      'recordedAtMs': serializer.toJson<int>(recordedAtMs),
+      'sampleCount': serializer.toJson<int>(sampleCount),
+      'values': serializer.toJson<String>(values),
+    };
+  }
+
+  BaselineRow copyWith({
+    FootSide? side,
+    String? insoleId,
+    int? recordedAtMs,
+    int? sampleCount,
+    String? values,
+  }) => BaselineRow(
+    side: side ?? this.side,
+    insoleId: insoleId ?? this.insoleId,
+    recordedAtMs: recordedAtMs ?? this.recordedAtMs,
+    sampleCount: sampleCount ?? this.sampleCount,
+    values: values ?? this.values,
+  );
+  BaselineRow copyWithCompanion(BaselinesCompanion data) {
+    return BaselineRow(
+      side: data.side.present ? data.side.value : this.side,
+      insoleId: data.insoleId.present ? data.insoleId.value : this.insoleId,
+      recordedAtMs: data.recordedAtMs.present
+          ? data.recordedAtMs.value
+          : this.recordedAtMs,
+      sampleCount: data.sampleCount.present
+          ? data.sampleCount.value
+          : this.sampleCount,
+      values: data.values.present ? data.values.value : this.values,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BaselineRow(')
+          ..write('side: $side, ')
+          ..write('insoleId: $insoleId, ')
+          ..write('recordedAtMs: $recordedAtMs, ')
+          ..write('sampleCount: $sampleCount, ')
+          ..write('values: $values')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(side, insoleId, recordedAtMs, sampleCount, values);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is BaselineRow &&
+          other.side == this.side &&
+          other.insoleId == this.insoleId &&
+          other.recordedAtMs == this.recordedAtMs &&
+          other.sampleCount == this.sampleCount &&
+          other.values == this.values);
+}
+
+class BaselinesCompanion extends UpdateCompanion<BaselineRow> {
+  final Value<FootSide> side;
+  final Value<String> insoleId;
+  final Value<int> recordedAtMs;
+  final Value<int> sampleCount;
+  final Value<String> values;
+  final Value<int> rowid;
+  const BaselinesCompanion({
+    this.side = const Value.absent(),
+    this.insoleId = const Value.absent(),
+    this.recordedAtMs = const Value.absent(),
+    this.sampleCount = const Value.absent(),
+    this.values = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  BaselinesCompanion.insert({
+    required FootSide side,
+    required String insoleId,
+    required int recordedAtMs,
+    required int sampleCount,
+    required String values,
+    this.rowid = const Value.absent(),
+  }) : side = Value(side),
+       insoleId = Value(insoleId),
+       recordedAtMs = Value(recordedAtMs),
+       sampleCount = Value(sampleCount),
+       values = Value(values);
+  static Insertable<BaselineRow> custom({
+    Expression<String>? side,
+    Expression<String>? insoleId,
+    Expression<int>? recordedAtMs,
+    Expression<int>? sampleCount,
+    Expression<String>? values,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (side != null) 'side': side,
+      if (insoleId != null) 'insole_id': insoleId,
+      if (recordedAtMs != null) 'recorded_at_ms': recordedAtMs,
+      if (sampleCount != null) 'sample_count': sampleCount,
+      if (values != null) 'values': values,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  BaselinesCompanion copyWith({
+    Value<FootSide>? side,
+    Value<String>? insoleId,
+    Value<int>? recordedAtMs,
+    Value<int>? sampleCount,
+    Value<String>? values,
+    Value<int>? rowid,
+  }) {
+    return BaselinesCompanion(
+      side: side ?? this.side,
+      insoleId: insoleId ?? this.insoleId,
+      recordedAtMs: recordedAtMs ?? this.recordedAtMs,
+      sampleCount: sampleCount ?? this.sampleCount,
+      values: values ?? this.values,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (side.present) {
+      map['side'] = Variable<String>(
+        $BaselinesTable.$converterside.toSql(side.value),
+      );
+    }
+    if (insoleId.present) {
+      map['insole_id'] = Variable<String>(insoleId.value);
+    }
+    if (recordedAtMs.present) {
+      map['recorded_at_ms'] = Variable<int>(recordedAtMs.value);
+    }
+    if (sampleCount.present) {
+      map['sample_count'] = Variable<int>(sampleCount.value);
+    }
+    if (values.present) {
+      map['values'] = Variable<String>(values.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BaselinesCompanion(')
+          ..write('side: $side, ')
+          ..write('insoleId: $insoleId, ')
+          ..write('recordedAtMs: $recordedAtMs, ')
+          ..write('sampleCount: $sampleCount, ')
+          ..write('values: $values, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -3999,6 +4385,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $TemperatureReadingsTable temperatureReadings =
       $TemperatureReadingsTable(this);
   late final $DailySummariesTable dailySummaries = $DailySummariesTable(this);
+  late final $BaselinesTable baselines = $BaselinesTable(this);
   late final Index alertsAt = Index(
     'alerts_at',
     'CREATE INDEX alerts_at ON alerts (at_ms)',
@@ -4032,6 +4419,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     alerts,
     temperatureReadings,
     dailySummaries,
+    baselines,
     alertsAt,
     alertsReadAt,
     alertsCapture,
@@ -6051,6 +6439,218 @@ typedef $$DailySummariesTableProcessedTableManager =
       DailySummaryRow,
       PrefetchHooks Function()
     >;
+typedef $$BaselinesTableCreateCompanionBuilder = BaselinesCompanion Function({
+  required FootSide side,
+  required String insoleId,
+  required int recordedAtMs,
+  required int sampleCount,
+  required String values,
+  Value<int> rowid,
+});
+typedef $$BaselinesTableUpdateCompanionBuilder = BaselinesCompanion Function({
+  Value<FootSide> side,
+  Value<String> insoleId,
+  Value<int> recordedAtMs,
+  Value<int> sampleCount,
+  Value<String> values,
+  Value<int> rowid,
+});
+
+class $$BaselinesTableFilterComposer
+    extends Composer<_$AppDatabase, $BaselinesTable> {
+  $$BaselinesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnWithTypeConverterFilters<FootSide, FootSide, String> get side =>
+      $composableBuilder(
+        column: $table.side,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnFilters<String> get insoleId => $composableBuilder(
+    column: $table.insoleId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get recordedAtMs => $composableBuilder(
+    column: $table.recordedAtMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sampleCount => $composableBuilder(
+    column: $table.sampleCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get values => $composableBuilder(
+    column: $table.values,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$BaselinesTableOrderingComposer
+    extends Composer<_$AppDatabase, $BaselinesTable> {
+  $$BaselinesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get side => $composableBuilder(
+    column: $table.side,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get insoleId => $composableBuilder(
+    column: $table.insoleId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get recordedAtMs => $composableBuilder(
+    column: $table.recordedAtMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sampleCount => $composableBuilder(
+    column: $table.sampleCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get values => $composableBuilder(
+    column: $table.values,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$BaselinesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $BaselinesTable> {
+  $$BaselinesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumnWithTypeConverter<FootSide, String> get side =>
+      $composableBuilder(column: $table.side, builder: (column) => column);
+
+  GeneratedColumn<String> get insoleId =>
+      $composableBuilder(column: $table.insoleId, builder: (column) => column);
+
+  GeneratedColumn<int> get recordedAtMs => $composableBuilder(
+    column: $table.recordedAtMs,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get sampleCount => $composableBuilder(
+    column: $table.sampleCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get values =>
+      $composableBuilder(column: $table.values, builder: (column) => column);
+}
+
+class $$BaselinesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $BaselinesTable,
+          BaselineRow,
+          $$BaselinesTableFilterComposer,
+          $$BaselinesTableOrderingComposer,
+          $$BaselinesTableAnnotationComposer,
+          $$BaselinesTableCreateCompanionBuilder,
+          $$BaselinesTableUpdateCompanionBuilder,
+          (
+            BaselineRow,
+            BaseReferences<_$AppDatabase, $BaselinesTable, BaselineRow>,
+          ),
+          BaselineRow,
+          PrefetchHooks Function()
+        > {
+  $$BaselinesTableTableManager(_$AppDatabase db, $BaselinesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$BaselinesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$BaselinesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$BaselinesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<FootSide> side = const Value.absent(),
+                Value<String> insoleId = const Value.absent(),
+                Value<int> recordedAtMs = const Value.absent(),
+                Value<int> sampleCount = const Value.absent(),
+                Value<String> values = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => BaselinesCompanion(
+                side: side,
+                insoleId: insoleId,
+                recordedAtMs: recordedAtMs,
+                sampleCount: sampleCount,
+                values: values,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required FootSide side,
+                required String insoleId,
+                required int recordedAtMs,
+                required int sampleCount,
+                required String values,
+                Value<int> rowid = const Value.absent(),
+              }) => BaselinesCompanion.insert(
+                side: side,
+                insoleId: insoleId,
+                recordedAtMs: recordedAtMs,
+                sampleCount: sampleCount,
+                values: values,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$BaselinesTable, BaselineRow>(table),
+                  BaseReferences<_$AppDatabase, $BaselinesTable, BaselineRow>(
+                    db,
+                    table,
+                    e,
+                  ),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$BaselinesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $BaselinesTable,
+      BaselineRow,
+      $$BaselinesTableFilterComposer,
+      $$BaselinesTableOrderingComposer,
+      $$BaselinesTableAnnotationComposer,
+      $$BaselinesTableCreateCompanionBuilder,
+      $$BaselinesTableUpdateCompanionBuilder,
+      (
+        BaselineRow,
+        BaseReferences<_$AppDatabase, $BaselinesTable, BaselineRow>,
+      ),
+      BaselineRow,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -6063,4 +6663,6 @@ class $AppDatabaseManager {
       $$TemperatureReadingsTableTableManager(_db, _db.temperatureReadings);
   $$DailySummariesTableTableManager get dailySummaries =>
       $$DailySummariesTableTableManager(_db, _db.dailySummaries);
+  $$BaselinesTableTableManager get baselines =>
+      $$BaselinesTableTableManager(_db, _db.baselines);
 }

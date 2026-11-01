@@ -4,6 +4,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smartinsole/capture/capture_providers.dart';
+import 'package:smartinsole/device/mock_data_source.dart';
 import 'package:smartinsole/settings/app_settings.dart';
 import 'package:smartinsole/settings/settings_store.dart';
 import 'package:smartinsole/storage/storage_providers.dart';
@@ -114,6 +115,26 @@ void main() {
     await expectScreen('researcher_130xl');
     await unmount(tester);
   });
+
+  // S9: Researcher › "บันทึกค่ายืนนิ่ง 30 วินาที", recording / refused /
+  // saved.
+  for (final (preset, seconds, name) in [
+    (MockPreset.standing, 10, 'baseline_recording_100'),
+    (MockPreset.safe, 5, 'baseline_failed_100'),
+    (MockPreset.standing, 32, 'baseline_saved_100'),
+  ]) {
+    testWidgets(name, (tester) async {
+      await pumpResearcher(tester, preset: preset, size: const Size(390, 1100));
+      final row = find.byKey(const ValueKey('researcher-baseline-row'));
+      await tester.ensureVisible(row);
+      await tester.tap(row);
+      await pumpFor(tester, const Duration(seconds: 1));
+      await tester.tap(find.byKey(const ValueKey('baseline-start')));
+      await pumpFor(tester, Duration(seconds: seconds));
+      await expectScreen(name);
+      await unmount(tester);
+    });
+  }
 
   for (final (phase, name) in [
     (0, 'sheet_tare'),

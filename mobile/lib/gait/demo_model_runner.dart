@@ -24,10 +24,10 @@ class DemoModelRunner implements ModelRunner {
   Future<void> close() async {}
 }
 
-/// The identity z-score (mean 0, std 1) for [DemoModelRunner], which
+/// The identity Min-Max (min 0, max 1) for [DemoModelRunner], which
 /// ignores its input anyway.
 Normalization demoNormalization(ModelInputSpec spec) => Normalization(
   channels: spec.channels,
-  mean: List.filled(spec.channels.length, 0),
-  std: List.filled(spec.channels.length, 1),
+  min: List.filled(spec.channels.length, 0),
+  max: List.filled(spec.channels.length, 1),
 );

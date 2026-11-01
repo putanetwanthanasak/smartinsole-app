@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/misc.dart' show Override;
 
 import 'config/thresholds.dart';
 import 'gait/model_spec.dart';
+import 'gait/preprocess.dart';
 import 'settings/settings_providers.dart';
 import 'settings/settings_store.dart';
 import 'ui/app.dart';
@@ -18,6 +19,7 @@ Future<void> runSmartInsole({List<Override> overrides = const []}) async {
   // so let it throw rather than run with no thresholds (rule 12).
   final thresholds = await Thresholds.load();
   final modelInput = await ModelInputSpec.load();
+  final preprocess = await PreprocessSpec.load();
   // Read before the first frame, so the chosen text size never flashes.
   final settings = await PrefsSettingsStore.open();
   runApp(
@@ -25,6 +27,7 @@ Future<void> runSmartInsole({List<Override> overrides = const []}) async {
       overrides: [
         thresholdsProvider.overrideWithValue(thresholds),
         modelInputSpecProvider.overrideWithValue(modelInput),
+        preprocessSpecProvider.overrideWithValue(preprocess),
         settingsStoreProvider.overrideWithValue(settings),
         ...overrides,
       ],

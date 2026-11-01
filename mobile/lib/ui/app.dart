@@ -19,6 +19,7 @@ import 'screens/foot_check/compare_screen.dart';
 import 'screens/foot_check/photo_history_screen.dart';
 import 'screens/foot_check/photo_viewer_screen.dart';
 import 'screens/foot_check_found_screen.dart';
+import 'screens/researcher/baseline_screen.dart';
 import 'screens/researcher_screen.dart';
 import 'screens/settings_screen.dart';
 import 'shell/app_shell.dart';
@@ -76,6 +77,7 @@ class SmartInsoleApp extends ConsumerWidget {
               Routes.researcher: (_) => const ResearcherScreen(),
               Routes.bleDebug: (_) => const DebugBleScreen(),
               Routes.capture: (_) => const CaptureHomeScreen(),
+              Routes.baseline: (_) => const BaselineScreen(),
             },
           ),
         ),

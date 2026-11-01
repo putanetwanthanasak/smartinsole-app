@@ -57,20 +57,27 @@ final modelInputSpecProvider = Provider<ModelInputSpec>(
   (ref) => throw StateError('modelInputSpecProvider must be overridden'),
 );
 
-/// `normalization.json`, delivered with the model: the training set's
-/// z-score per channel (contract §7.1). Format:
-/// `{"version": 2, "channels": [28 names], "mean": [28], "std": [28]}`.
+/// `normalization.json`, delivered with the model: the training subjects'
+/// min and max per channel, after each subject's baseline was subtracted
+/// (contract §7.1, preprocessing "ทางเอ", `shared/model_preprocess.json`).
+/// Format: `{"version": 2, "method": "baseline-minmax", "channels": [28
+/// names], "min": [28], "max": [28]}`. A z-score file (`mean` / `std`,
+/// before S9) is refused.
 class Normalization {
   const Normalization({
     required this.channels,
-    required this.mean,
-    required this.std,
+    required this.min,
+    required this.max,
   });
 
+  /// The only method the app computes (`model_preprocess.json`
+  /// `normalizationMethod`).
+  static const method = 'baseline-minmax';
+
   /// Parses and checks [json] against [spec]: the same `version` (user
-  /// decision 2026-10-25), the same channels in the same order (so a model
-  /// trained on another order is refused, never run), and every std above
-  /// zero. Throws [FormatException] with the reason.
+  /// decision 2026-10-25), the method, the same channels in the same order
+  /// (so a model trained on another order is refused, never run), and
+  /// every max above its min. Throws [FormatException] with the reason.
   factory Normalization.parse(String json, ModelInputSpec spec) {
     final m = jsonDecode(json) as Map<String, dynamic>;
     final version = m['version'];
@@ -80,9 +87,15 @@ class Normalization {
         'model_input.json ${spec.version}',
       );
     }
+    if (m['method'] != method) {
+      throw FormatException(
+        'normalization.json method is ${m['method']}, the app does $method'
+        '${m.containsKey('mean') ? ' (a z-score file from before S9)' : ''}',
+      );
+    }
     final channels = [for (final c in m['channels'] as List) c as String];
-    final mean = [for (final v in m['mean'] as List) (v as num).toDouble()];
-    final std = [for (final v in m['std'] as List) (v as num).toDouble()];
+    final min = [for (final v in m['min'] as List) (v as num).toDouble()];
+    final max = [for (final v in m['max'] as List) (v as num).toDouble()];
     if (channels.length != spec.channels.length) {
       throw FormatException(
         'normalization.json has ${channels.length} channels, '
@@ -97,23 +110,23 @@ class Normalization {
         );
       }
     }
-    if (mean.length != channels.length || std.length != channels.length) {
+    if (min.length != channels.length || max.length != channels.length) {
       throw const FormatException(
-        'normalization.json mean/std length differs from its channels',
+        'normalization.json min/max length differs from its channels',
       );
     }
-    for (var i = 0; i < std.length; i++) {
-      if (!(std[i] > 0)) {
+    for (var i = 0; i < channels.length; i++) {
+      if (!(max[i] > min[i])) {
         throw FormatException(
-          'normalization.json std of ${channels[i]} is '
-          '${std[i]}; it must be above 0',
+          'normalization.json max of ${channels[i]} is ${max[i]}; '
+          'it must be above its min ${min[i]}',
         );
       }
     }
-    return Normalization(channels: channels, mean: mean, std: std);
+    return Normalization(channels: channels, min: min, max: max);
   }
 
   final List<String> channels;
-  final List<double> mean;
-  final List<double> std;
+  final List<double> min;
+  final List<double> max;
 }

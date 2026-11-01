@@ -162,8 +162,29 @@ class FootChecks extends Table {
   BoolColumn get answerOnly => boolean()();
 }
 
+/// Each insole's latest quiet-standing baseline (S9, Model A
+/// preprocessing "ทางเอ", `shared/model_preprocess.json`): the per-channel
+/// median of one foot's 14 model channels over the researcher's 30 s
+/// recording. One row per foot and insole; a new recording replaces it.
+@DataClassName('BaselineRow')
+class Baselines extends Table {
+  TextColumn get side => textEnum<FootSide>()();
+
+  /// The insole's calibration `device_id` (contract §5.1), not the BLE
+  /// address, so the baseline follows the insole.
+  TextColumn get insoleId => text()();
+  IntColumn get recordedAtMs => integer()();
+  IntColumn get sampleCount => integer()();
+
+  /// JSON list of 14 doubles, the foot's model channels in §7.1 order.
+  TextColumn get values => text()();
+
+  @override
+  Set<Column> get primaryKey => {side, insoleId};
+}
+
 @DriftDatabase(
-  tables: [Alerts, TemperatureReadings, DailySummaries, FootChecks],
+  tables: [Alerts, TemperatureReadings, DailySummaries, FootChecks, Baselines],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e, {this.inMemory = false});
@@ -197,7 +218,7 @@ class AppDatabase extends _$AppDatabase {
   static const fileName = 'smartinsole';
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -218,6 +239,8 @@ class AppDatabase extends _$AppDatabase {
           schema.dailySummary.maxDeltaSite,
         );
       },
+      // S9: additive, the quiet-standing baselines.
+      from2To3: (m, schema) async => m.createTable(schema.baselines),
     ),
     beforeOpen: (_) => customStatement('PRAGMA foreign_keys = ON'),
   );

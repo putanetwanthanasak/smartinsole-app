@@ -9,6 +9,7 @@ import 'package:smartinsole/gait/gait_estimator.dart';
 import 'package:smartinsole/gait/model_classifier.dart';
 import 'package:smartinsole/gait/model_spec.dart';
 import 'package:smartinsole/gait/model_window.dart';
+import 'package:smartinsole/gait/preprocess.dart';
 
 import '../helpers/pump_app.dart';
 import '../rules/rules_rig.dart';
@@ -56,7 +57,8 @@ void main() {
     test('the dummy parses', () {
       final n = Normalization.parse(normJson, spec);
       expect(n.channels, spec.channels);
-      expect(n.mean, hasLength(modelChannelCount));
+      expect(n.min, hasLength(modelChannelCount));
+      expect(n.max, hasLength(modelChannelCount));
     });
 
     test('a different channel order is refused, never run', () {
@@ -107,8 +109,9 @@ void main() {
             for (final a in const ['x', 'y', 'z']) '${side}_gyro_${a}_dps',
           ],
         ],
-        'mean': List.filled(24, 0.0),
-        'std': List.filled(24, 1.0),
+        'method': Normalization.method,
+        'min': List.filled(24, 0.0),
+        'max': List.filled(24, 1.0),
       };
       expect(
         () => Normalization.parse(jsonEncode(v1), spec),
@@ -122,11 +125,43 @@ void main() {
       );
     });
 
-    test('a std of 0 is refused', () {
-      final m = dummy();
-      (m['std'] as List)[5] = 0;
+    test('a max not above its min is refused', () {
+      for (final d in [0.0, -1.0]) {
+        final m = dummy();
+        (m['max'] as List)[5] = ((m['min'] as List)[5] as num) + d;
+        expect(
+          () => Normalization.parse(jsonEncode(m), spec),
+          throwsA(
+            isA<FormatException>().having(
+              (e) => e.message,
+              'message',
+              contains('max of ${spec.channels[5]}'),
+            ),
+          ),
+        );
+      }
+    });
+
+    test('a z-score file (before S9) or another method is refused', () {
+      final zscore = dummy()
+        ..remove('method')
+        ..remove('min')
+        ..remove('max')
+        ..['mean'] = List.filled(modelChannelCount, 0.0)
+        ..['std'] = List.filled(modelChannelCount, 1.0);
       expect(
-        () => Normalization.parse(jsonEncode(m), spec),
+        () => Normalization.parse(jsonEncode(zscore), spec),
+        throwsA(
+          isA<FormatException>().having(
+            (e) => e.message,
+            'message',
+            contains('a z-score file from before S9'),
+          ),
+        ),
+      );
+      final other = dummy()..['method'] = 'minmax';
+      expect(
+        () => Normalization.parse(jsonEncode(other), spec),
         throwsFormatException,
       );
     });
@@ -266,7 +301,13 @@ void main() {
         for (final r in check['rows'] as List)
           [for (final v in r as List) (v as num).toDouble()],
       ];
-      await Future.wait([model.runRows(rows), model.runRows(rows)]);
+      final baseline = [
+        for (final v in check['baseline'] as List) (v as num).toDouble(),
+      ];
+      await Future.wait([
+        model.runRows(rows, baseline),
+        model.runRows(rows, baseline),
+      ]);
       expect(runner.windows, hasLength(2));
       expect(model.stats.count, 2);
       expect(model.busy, isFalse);
@@ -283,17 +324,16 @@ void main() {
         ..add(batch(FootSide.right, right));
       final rows = builder.latestRows();
       expect(rows, hasLength(spec.windowSamples));
-      final window = normalizeWindow(
-        rows!,
-        Normalization.parse(normJson, spec),
-      );
+      final window = normalizeWindow(rows!, [
+        for (final v in check['baseline'] as List) (v as num).toDouble(),
+      ], Normalization.parse(normJson, spec));
       final expected = [
         for (final r in check['window'] as List)
           for (final v in r as List) (v as num).toDouble(),
       ];
       expect(window, hasLength(expected.length));
       for (var i = 0; i < window.length; i++) {
-        expect(window[i], closeTo(expected[i], 1e-6), reason: 'value $i');
+        expect(window[i], expected[i], reason: 'value $i');
       }
     });
 

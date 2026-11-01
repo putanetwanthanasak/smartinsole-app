@@ -143,7 +143,8 @@ by its time stamp, never by the subject code. It goes into the export as
 ## Clearing test data before the study (S6B)
 
 Testing the app on the study phone leaves rows in its database: alerts,
-temperature readings, daily summaries and foot checks. Clear them once,
+temperature readings, daily summaries, foot checks and (since S9)
+quiet-standing baselines. Clear them once,
 before 2026-11-12, the study start (SR checklist):
 
 1. Disconnect both insoles first (Settings → **เชื่อมต่อแผ่นรองเท้า** →

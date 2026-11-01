@@ -9,6 +9,7 @@ class ClearedTestData {
     required this.temperatureReadings,
     required this.dailySummaries,
     required this.footChecks,
+    required this.baselines,
     required this.photos,
   });
 
@@ -16,6 +17,9 @@ class ClearedTestData {
   final int temperatureReadings;
   final int dailySummaries;
   final int footChecks;
+
+  /// Quiet-standing baselines (S9): each participant records their own.
+  final int baselines;
   final int photos;
 }
 
@@ -23,7 +27,8 @@ class ClearedTestData {
 /// action on the research capture screen).
 ///
 /// Removes, in one transaction: every alert **without** a capture stamp,
-/// and every temperature reading, daily summary and foot check. Then
+/// and every temperature reading, daily summary, foot check and
+/// quiet-standing baseline (S9). Then
 /// empties the foot-photo folder at [photoDir] (its rows are gone).
 ///
 /// Never touches alerts with a capture stamp (study data: they go only
@@ -34,15 +39,18 @@ Future<ClearedTestData> clearTestData(
   AppDatabase db, {
   required Future<Directory> Function() photoDir,
 }) async {
-  final (alerts, temps, summaries, checks) = await db.transaction(() async {
-    final alerts = await (db.delete(
-      db.alerts,
-    )..where((t) => t.captureStamp.isNull())).go();
-    final temps = await db.delete(db.temperatureReadings).go();
-    final summaries = await db.delete(db.dailySummaries).go();
-    final checks = await db.delete(db.footChecks).go();
-    return (alerts, temps, summaries, checks);
-  });
+  final (alerts, temps, summaries, checks, baselines) = await db.transaction(
+    () async {
+      final alerts = await (db.delete(
+        db.alerts,
+      )..where((t) => t.captureStamp.isNull())).go();
+      final temps = await db.delete(db.temperatureReadings).go();
+      final summaries = await db.delete(db.dailySummaries).go();
+      final checks = await db.delete(db.footChecks).go();
+      final baselines = await db.delete(db.baselines).go();
+      return (alerts, temps, summaries, checks, baselines);
+    },
+  );
   var photos = 0;
   final dir = await photoDir();
   if (dir.existsSync()) {
@@ -56,6 +64,7 @@ Future<ClearedTestData> clearTestData(
     temperatureReadings: temps,
     dailySummaries: summaries,
     footChecks: checks,
+    baselines: baselines,
     photos: photos,
   );
 }

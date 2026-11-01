@@ -32,6 +32,15 @@ Files shared between the Flutter app (`mobile/`) and the new simulator
   The app bundles a byte-identical copy (`mobile/assets/config/`, a test
   checks it and its pubspec entry) and reads the window and stride for
   Model A from it (S8A).
+- **`model_preprocess.json`** (S9) — Model A preprocessing "ทางเอ"
+  (DATA-CONTRACT v1.6 §7.1): 30 s quiet-standing median baseline on all
+  28 channels, then Min-Max with the training subjects' min/max, no
+  clipping. `tools/model/preprocess.py` (Python reference) and
+  `mobile/lib/gait/preprocess.dart` both refuse any other value; the app
+  bundles a byte-identical copy (a test checks it).
+  `test_vectors/model_preprocess/vectors.json` is made by
+  `python3 tools/model/preprocess.py --make-vectors` (never hand-edited)
+  and the app's test matches it bit for bit.
 - **`capture_fixture/`** — rehearsal capture sessions written by the
   app's own capture code, each with its export `manifest.json`,
   `alerts.csv` and `expected.json` (the model rows the app's `pairFeet` +
