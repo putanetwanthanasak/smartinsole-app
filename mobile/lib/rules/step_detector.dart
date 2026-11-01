@@ -55,26 +55,32 @@ class Step {
 /// (`steps.*` in `thresholds.json`), to be checked against a manual count
 /// with the real boards in SR:
 /// - a stance starts when the summed zone kPa goes above [contactKpa] and
-///   ends at the first sample at or below it;
+///   ends at the first sample at or below it, unless the sum goes above it
+///   again less than [mergeGapMs] later: then the dip is part of the stance
+///   (a short dip in the hand-off from heel to forefoot, BACKLOG 51). So a
+///   step is returned [mergeGapMs] after its end (the first sample that
+///   far past it), with the peak and PTI it had at its end;
 /// - it is a step only when it lasts [minStanceMs] to [maxStanceMs] and
 ///   the walking gate ([WalkingGate]) was on at some sample of it, so
 ///   standing, shifting weight and sitting are not steps.
 ///
 /// [add] returns the step a sample completes. [reset] drops a stance in
-/// progress: after lost packets or on a new connection its integral would
-/// be wrong.
+/// progress, or one waiting out [mergeGapMs]: after lost packets or on a
+/// new connection its integral would be wrong.
 class StepDetector {
   StepDetector({
     required this.side,
     required this.contactKpa,
     required this.minStanceMs,
     required this.maxStanceMs,
+    required this.mergeGapMs,
   });
 
   final FootSide side;
   final double contactKpa;
   final int minStanceMs;
   final int maxStanceMs;
+  final int mergeGapMs;
 
   bool _inStance = false;
   double _startMs = 0;
@@ -84,6 +90,13 @@ class StepDetector {
   List<double> _pti = const [];
   bool _walked = false;
 
+  /// The stance's end while a dip may still turn out to be part of it:
+  /// the first unloaded sample's time, and the figures up to it.
+  double? _endMs;
+  List<double> _endPeaks = const [];
+  List<double> _endPti = const [];
+  bool _endWalked = false;
+
   /// Adds one sample; [walking] is the gate at this sample.
   Step? add(double unixMs, List<double> kpa, {required bool walking}) {
     var sum = 0.0;
@@ -91,8 +104,14 @@ class StepDetector {
       sum += k;
     }
     final loaded = sum > contactKpa;
+    Step? done;
+    final end = _endMs;
+    if (end != null && unixMs - end >= mergeGapMs) {
+      // The dip lasted the whole merge window: the stance ended at [end].
+      done = _finish();
+    }
     if (!_inStance) {
-      if (!loaded) return null;
+      if (!loaded) return done;
       _inStance = true;
       _startMs = unixMs;
       _peaks = List.of(kpa);
@@ -100,7 +119,7 @@ class StepDetector {
       _walked = walking;
       _prevMs = unixMs;
       _prevKpa = kpa;
-      return null;
+      return done;
     }
     final dtMs = unixMs - _prevMs;
     for (var c = 0; c < kpa.length && c < _pti.length; c++) {
@@ -110,20 +129,38 @@ class StepDetector {
     _walked |= walking;
     _prevMs = unixMs;
     _prevKpa = kpa;
-    if (loaded) return null;
+    if (loaded) {
+      // Back above contactKpa within the window: the dip was part of it.
+      _endMs = null;
+      return done;
+    }
+    if (_endMs != null) return done;
+    _endMs = unixMs;
+    _endPeaks = List.of(_peaks);
+    _endPti = List.of(_pti);
+    _endWalked = _walked;
+    return mergeGapMs <= 0 ? _finish() : done;
+  }
+
+  Step? _finish() {
+    final end = _endMs!;
+    _endMs = null;
     _inStance = false;
-    final duration = unixMs - _startMs;
-    if (!_walked || duration < minStanceMs || duration > maxStanceMs) {
+    final duration = end - _startMs;
+    if (!_endWalked || duration < minStanceMs || duration > maxStanceMs) {
       return null;
     }
     return Step(
       side: side,
       startMs: _startMs,
-      endMs: unixMs,
-      peakKpa: _peaks,
-      ptiKpaMs: _pti,
+      endMs: end,
+      peakKpa: _endPeaks,
+      ptiKpaMs: _endPti,
     );
   }
 
-  void reset() => _inStance = false;
+  void reset() {
+    _inStance = false;
+    _endMs = null;
+  }
 }

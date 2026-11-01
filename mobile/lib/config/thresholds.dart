@@ -31,6 +31,7 @@ class Thresholds {
     required this.stepContactKpa,
     required this.minStanceMs,
     required this.maxStanceMs,
+    required this.stepMergeGapMs,
     required this.gaitRuleSteps,
     required this.toeHeelPtiPct,
     required this.heelForefootPtiPct,
@@ -67,6 +68,7 @@ class Thresholds {
       stepContactKpa: d('steps', 'contactKpa'),
       minStanceMs: i('steps', 'minStanceMs'),
       maxStanceMs: i('steps', 'maxStanceMs'),
+      stepMergeGapMs: i('steps', 'mergeGapMs'),
       gaitRuleSteps: i('gait', 'ruleSteps'),
       toeHeelPtiPct: d('gait', 'toeHeelPtiPct'),
       heelForefootPtiPct: d('gait', 'heelForefootPtiPct'),
@@ -152,6 +154,11 @@ class Thresholds {
   final double stepContactKpa;
   final int minStanceMs;
   final int maxStanceMs;
+
+  /// A dip at or below [stepContactKpa] shorter than this does not end a
+  /// stance (BACKLOG 51, S9): the stance goes on through it. A step is
+  /// therefore reported up to this much after its end. PROVISIONAL.
+  final int stepMergeGapMs;
 
   /// The rule-based gait classifier (`lib/gait/rule_based_classifier.dart`,
   /// contract §7.5's `RuleBasedEngine`). PROVISIONAL, display only: the

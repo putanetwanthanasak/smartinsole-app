@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smartinsole/ble/insole_data_source.dart';
 import 'package:smartinsole/ble/packets.dart';
+import 'package:smartinsole/config/thresholds.dart';
 import 'package:smartinsole/device/device_manager.dart';
 import 'package:smartinsole/rules/alert_engine.dart';
 import 'package:smartinsole/rules/gait_note.dart';
@@ -52,8 +53,14 @@ class Gait {
 /// with the board clock in step, so sample times are whole milliseconds
 /// and every boundary can be hit exactly.
 class RulesRig {
-  RulesRig({AppDatabase? db, DateTime? start, this.capture, this.gait})
-    : _now = start ?? DateTime.utc(2026, 10, 24, 7) {
+  RulesRig({
+    AppDatabase? db,
+    DateTime? start,
+    this.capture,
+    this.gait,
+    Thresholds? thresholds,
+  }) : thresholds = thresholds ?? testThresholds,
+       _now = start ?? DateTime.utc(2026, 10, 24, 7) {
     this.db = db ?? (AppDatabase.memory()..closeOnTearDown());
     left = FakeSource(FootSide.left, now: now)..t0 = 0;
     right = FakeSource(FootSide.right, now: now)..t0 = 0;
@@ -76,11 +83,14 @@ class RulesRig {
   String? Function()? capture;
   GaitEstimateSource? gait;
 
+  /// The engine's thresholds (the bundled file unless a test changes one).
+  final Thresholds thresholds;
+
   /// A fresh engine on the same database: an app restart.
   AlertEngine newEngine() {
     final e = AlertEngine(
       manager: manager,
-      thresholds: testThresholds,
+      thresholds: thresholds,
       alerts: alerts,
       captureStamp: () => capture?.call(),
       gait: (side) => gait?.call(side),

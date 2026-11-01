@@ -1279,7 +1279,7 @@ fits on one line. The break falls between words and the card grows to
 fit, so nothing is cut, but the steps card beside it is half empty. Options for S10: a smaller value style
 for this card, or the user's OK on a shorter label.
 
-## 51. The app's step detector splits one stance on a short dip below `contactKpa` **(found at the S8A phone check)** — OPEN, S9's first item, before SR
+## 51. The app's step detector splits one stance on a short dip below `contactKpa` **(found at the S8A phone check)** — RESOLVED in S9-1 (2026-11-01)
 
 **Problem.** `StepDetector` (`mobile/lib/rules/step_detector.dart`) starts
 a stance when the summed kPa rises above `steps.contactKpa` and ends it
@@ -1309,6 +1309,26 @@ PTI per step, `LOAD_CONCENTRATION`, `ASYMMETRY_PEAK` and the gait rules.
   one step per stance.
 - Two real steps separated by a genuine swing still count as two.
 - SR's manual step count stays, and it now also checks the new keys.
+
+**Fixed in S9-1 (report 039): merge across a short dip** (user decision
+2026-11-01). New provisional key `steps.mergeGapMs` = 120 ms (both
+`thresholds.json` copies, `version` 1; DATA-CONTRACT §8 addendum). A dip
+shorter than that does not end a stance; a step is therefore reported at
+most `mergeGapMs` after its end, with the start, end, peak and PTI it had
+at its end. The replay of the pre-fix walk
+(`firmware/simulator/tools/presplit_walk/`, fixture
+`mobile/test/fixtures/steps/presplit_walk.csv`) showed the dip is one
+sample (20 ms) and the swing about 500 ms; 100 was not used because it is
+one of the no-literal test's allowed literals. Tests
+(`test/rules/step_replay_test.dart`, `step_detector_test.dart`,
+`step_merge_walk_end_test.dart`): one step per stride at offsets 12 and
+19 on both feet, every stance within the limits, stance PAI below
+`gait.stanceAsymmetryPct` / 2 for both board pairings, the walk still
+splits with `mergeGapMs` 0, a gap of `mergeGapMs` is two steps, the delay
+is bounded, and "กำลังเดิน" and the step-based rules end at the same tick
+as without the merge. The existing step tests keep every assertion; only
+their helper adds `mergeGapMs` of unloaded samples (user decision
+2026-11-01). SR's hand count also checks `mergeGapMs`.
 
 ## 52. Auto-reconnect searches without a time limit **(found in S8B)** — OPEN, for S9
 

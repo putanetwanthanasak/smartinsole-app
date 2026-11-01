@@ -708,6 +708,7 @@ class _FootRules {
         contactKpa: t.stepContactKpa,
         minStanceMs: t.minStanceMs,
         maxStanceMs: t.maxStanceMs,
+        mergeGapMs: t.stepMergeGapMs,
       );
 
   final FootSide side;
