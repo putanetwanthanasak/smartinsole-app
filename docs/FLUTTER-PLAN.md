@@ -8,7 +8,7 @@
 
 ## 1. Goal and scope
 
-**Goal:** an Android app that shows live data from both insoles **and is the research capture tool for the volunteer study** (starts 2026-11-12, schedule v2.6). The researcher works alone, carries the phone while walking beside the volunteer, and records every trial on the phone. The existing web app on a laptop is kept only as a fallback capture tool.
+**Goal:** an Android app that shows live data from both insoles **and is the research capture tool for the volunteer study** (starts 2026-11-12, schedule v2.6). The researcher works alone, carries the phone while walking beside the volunteer, and records every trial on the phone. The existing web app on a laptop is retired as a fallback (user decision 2026-10-31, BACKLOG 63): it cannot read the 8-sensor boards, and the study uses one phone only.
 
 | In v1 | Not in v1 (but the architecture must allow it later) |
 |---|---|
@@ -38,7 +38,7 @@
 | Sensor count | **8 FSR + 8 NTC per foot, NTC i next to FSR i** (final, user decision 2026-10-29; DATA-CONTRACT v1.6, `shared/sensor_layout.json`). The parser stays N-generic, but the app refuses an insole whose calibration has N ≠ 8, and the 12-byte v1.5 temperature packet. The UI shows all 8 zones and 8 sites (S8D-2: DESIGN-SPEC §5 geometry, §8.2 Temperature layout A). |
 | Risk decision | Contract rules (RuleBasedEngine). Gait result is context only. |
 | Daily foot check | 4 photos + 3 questions, no AI, photos stored on device only |
-| Study day | **The phone app is the only central for each insole and captures all research data (S4C).** The laptop web app is a fallback only, used if the phone capture fails; it is never connected at the same time as the phone during a session. The photo feature is not used with volunteers, so no feature flag is needed. |
+| Study day | **The phone app is the only central for each insole and captures all research data (S4C).** There is no laptop fallback (user decision 2026-10-31, BACKLOG 63): if the phone fails mid-session, that participant is stopped and rescheduled inside the IRB window (`docs/STUDY-CAPTURE.md`). The photo feature is not used with volunteers, so no feature flag is needed. |
 | Research capture | One researcher, hands-free during walking: the app runs a timed 3-minute trial, stops and saves by itself, gives sound + vibration cues, needs a long press to stop early, keeps the screen on, randomises the order of the 4 abnormal gaits per subject (normal gait always first), assigns the simulated-pain side by odd/even subject number, allows "redo trial", checks battery ≥ 80 % and both feet connected before starting, and logs any link loss inside the file. Files: one CSV per trial (unix time, side, seq, raw ADC and kPa per channel, IMU, temperature, flags) + one JSON sidecar per trial (subject code, gait class, pain side, start/end, room temperature, app/firmware versions, calibration). Raw ADC is always kept. |
 | Foot-check entry point | A card on Home ("today's foot check not done yet"), shown only until today's check is done + an in-app evening reminder |
 | Simulator scenario mode (`0x10 SET_SCENARIO`) | Not now; main app first (backlog) |

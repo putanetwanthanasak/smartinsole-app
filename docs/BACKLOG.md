@@ -1430,7 +1430,7 @@ it too late, options are a window alarm (`setWindow`, e.g. 15 minutes) or
 exact alarms, which need `SCHEDULE_EXACT_ALARM` / `USE_EXACT_ALARM` and
 their policy review.
 
-## 63. The laptop web fallback cannot capture from 8-sensor boards **(found in S8D-1)** — OPEN, user decision before S9
+## 63. The laptop web fallback cannot capture from 8-sensor boards **(found in S8D-1)** — CLOSED 2026-11-01 (user decision 2026-10-31: one phone only)
 
 The frozen web app reads only DATA-CONTRACT v1.5. With a v1.6 board:
 `parseCalibrationJSON` (`src/ts/data/blePacketParser.ts`) throws unless the
@@ -1445,6 +1445,15 @@ no laptop fallback for the real boards (report 037;
 (c) a user-requested fix to the web app (allowed by `CLAUDE.md` as a bug
 that affects data capture): parse N from the calibration, v2 temperature.
 Decide before S9 (1 Nov) so S9/S10 can plan for it.
+
+**Decision (2026-10-31): (a), one phone only (the Note 10).** No laptop
+fallback; the web app is retired as one and its code is left untouched.
+Export after every participant and run `load_capture.py check` before the
+next one; if the phone fails mid-session, stop and reschedule that
+participant inside the IRB window (1–30 Nov); bring a charged phone, a
+power bank and a spare USB cable on study days. Written into
+`docs/STUDY-CAPTURE.md` and `docs/STUDY-FALLBACK.md` (now a "retired"
+page) in S9-1 (report 039).
 
 ## 64. `concentrationPct` 40 % was set for 6 sensors **(found in S8D-1)** — OPEN, check in SR
 

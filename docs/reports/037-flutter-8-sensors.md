@@ -436,11 +436,15 @@ Also seen during the run:
   old app's Home read "วันศุกร์ 30 ตุลาคม": its process had been running
   since 16:47 with nothing rebuilding Home. The current code reads the
   clock the same way, so this is BACKLOG 68, not an S8D change.
-- **App notifications are switched off on the Note 10.**
-  `dumpsys notification` shows `allowNoti=false` for
-  `th.ac.kmutt.smartinsole`, so the TEMP_DELTA alert at 01:49 raised no
-  system notification. It is unknown whether this predates the run. No
-  setting was changed. Decision for the user below.
+- ~~**App notifications are switched off on the Note 10.**~~
+  **Corrected 2026-11-01 (S9 STEP 0, report 039):** this was a misread.
+  On this One UI build `dumpsys notification` prints `allowNoti=false`
+  for every app (LINE, Gmail and Shopee too); it is not the app's
+  notification switch. The app's notifications were on: the evening
+  reminder of 31 Oct was posted at 16:32:59 and is still in the tray.
+  The TEMP_DELTA alert at 01:49 raised no system notification for a
+  different reason: foot alerts have no system notifications until S9,
+  so it would not have shown even with notifications on.
 - **One harness slip, no effect on the run.** A plain `open()` of the
   left board's port (to test access) left the board in its bootloader
   (DTR/RTS). An RTS pulse with DTR low booted it normally
@@ -476,9 +480,10 @@ Also seen during the run:
 2. **BACKLOG 67:** send Appendix C to the hardware team (user action).
 3. **Note 10 checkpoint sign-off:** all 9 items met their pass criteria
    (run 2026-10-31, results above).
-4. **App notifications are off on the Note 10** (`allowNoti=false`).
-   Switch them back on in Android settings if the study phone should show
-   alerts, or say if it was deliberate.
+4. ~~**App notifications are off on the Note 10** (`allowNoti=false`).~~
+   **Corrected 2026-11-01 (report 039):** not off; `allowNoti=false` is
+   printed for every app on this One UI build. Foot alerts get system
+   notifications only from S9; nothing to change on the phone.
 
 ## Next session
 

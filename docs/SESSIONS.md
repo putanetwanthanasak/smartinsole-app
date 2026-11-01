@@ -35,7 +35,7 @@
 
 - **Data collection starts 2026-11-12** (moved from 10 Nov on 2026-10-29, inside the IRB window 1–30 Nov). One researcher (the user) runs every session alone and walks beside the volunteer during the abnormal gaits.
 - **The phone app is the research capture tool** (new session S4C). Each insole has exactly one central during a study session: the phone. The researcher carries the phone, so Bluetooth range and operating two devices are not a problem.
-- **The laptop web app is a fallback only.** S3B now only checks that it can still capture from the new simulator on its own. It is never connected at the same time as the phone during a study session. The dual-central test is dropped.
+- **One phone only (user decision 2026-10-31, BACKLOG 63).** The Note 10 is the only capture device. The laptop web app is retired as a fallback (it cannot read the 8-sensor boards; its code stays untouched). If the phone fails mid-session, that participant is stopped and rescheduled inside the IRB window. (Until 2026-10-31 the web app was the fallback; S3B checked it against the 6-FSR simulator.)
 - **The user is also the AI team**, so the CSV format is designed for training (S4C), not copied from the web app.
 
 What the study protocol (proposal doc 03) needs from the app:
@@ -54,7 +54,7 @@ Schedule (v2.6, user decision 2026-10-29: the real insole is final at 8 FSR + 8 
 | Thu 29 Oct | S8C Note 10 run · S8D plan | S8C merged (PR #32) |
 | Fri 30 Oct | **S8D-1** (data path) + its Note 10 checkpoint | both simulator boards reflashed to 8 + 8 |
 | Sat 31 Oct | **S8D-2** (UI for 8 sites) | requires S8D-1 merged |
-| Sun 1 – Tue 3 Nov | S9 (integration + APK) | first item: BACKLOG 51; the user answers the web-fallback decision (BACKLOG 63) before S9 |
+| Sun 1 – Tue 3 Nov | S9 (integration + APK) | S9-1 code, S9-2 Note 10 checkpoint; first item: BACKLOG 51; BACKLOG 63 decided 2026-10-31 (one phone only) |
 | Wed 4 – Thu 5 Nov | S10 (wrap-up) | **medical text review by Thu 5 Nov** (Appendix A) |
 | Fri 6 – Sat 7 Nov | buffer | |
 | Sun 8 – Wed 11 Nov | SR with the real boards | boards ready about 8 Nov; the simulator if not |
@@ -343,6 +343,16 @@ Additional info: [optional]
 - **Done when:** both feet stream 8 + 8 on the phone with every rule and capture working, and S8D-2's screens show 8 sites per DESIGN-SPEC.
 
 ### S9 — Integration + APK
+- **Split (plan approved 2026-11-01):** **S9-1** code (`work/flutter-integration`, report 039): the decisions below, BACKLOG 51, preprocessing, alert notifications. **S9-2** Note 10 checkpoint + release APK (`work/flutter-integration-2`, after S9-1 is merged, report 040). If the preprocessing UI slips, it moves to the start of S9-2.
+- **STEP 0 (2026-11-01): the evening reminder is not an app bug.** On the Note 10 the 31 Oct reminder (set for 16:22) was delivered by Android at 16:32:29, inside the inexact 1 h window (BACKLOG 62), and posted at 16:32:59; it stayed in the tray unseen. The phone was on vibrate with the screen off. `allowNoti=false` in `dumpsys notification` is printed for every app on this One UI build and is not the app's switch (report 037 corrected). Details in report 039.
+- **User additions (2026-11-01):**
+  1. **One phone only (BACKLOG 63, decided 2026-10-31).** The Note 10 is the only capture device; there is no laptop fallback and the web app is retired as one (its code stays untouched). Export after every participant and run `load_capture.py check` before the next one; if the phone fails mid-session, stop and reschedule that participant inside the IRB window (1–30 Nov); bring a charged phone, a power bank and a spare USB cable on study days (`docs/STUDY-CAPTURE.md`, `docs/STUDY-FALLBACK.md`).
+  2. **Model A preprocessing "ทางเอ"** (decided 2026-10-25, proposal doc 03 §3.5), the same in the app and in training: (i) subtract each subject's personal baseline from the 30 s quiet-standing calibration recorded before the trials; (ii) Min-Max to 0–1 with min/max from the training subjects only (per LOSO fold), shipped in `normalization.json`. Build a Python reference in `tools/model/` and the Dart path, checked against shared test vectors so both give identical numbers; a researcher action "บันทึกค่ายืนนิ่ง 30 วินาที" that stores the baseline per insole; without a baseline Model A is not used (rules only, with the reason on the Gait screen). **Decisions (2026-11-01):** baseline on all 28 channels; the statistic is the median; no clipping after Min-Max (the same in training). No model has been trained yet, so the `normalization.json` format change (z-score → baseline + Min-Max) breaks nothing.
+  3. **Alert notifications** (system notifications) for patient-visible foot alerts. **Decisions (2026-11-01):** only `TEMP_DELTA`, `PRESSURE_PEAK`, `PRESSURE_PTI` and `LOAD_CONCENTRATION` notify; no system notification while a research capture is open (alerts are still stored, tagged and shown on the session screen); a tap opens that alert's detail, Back goes to the Alerts list; two new channels ("แจ้งเตือนเรื่องเท้า", with and without sound) picked by the "เสียงแจ้งเตือน" setting; posted even while the app is on screen. The release-resource check (BACKLOG 61) covers the new icon. **v1 scope stays: no foreground service.** S9-2 measures what arrives with the screen off, recorded in BACKLOG and FLUTTER-PLAN as a stated limitation for the thesis.
+  4. Reminder lateness (BACKLOG 62) stays for S10; no exact-alarm permission now.
+  5. BACKLOG 51's fix merges stances across a short dip (`steps.mergeGapMs` ≤ 150 ms, value from the replay).
+  6. The My feet check uses the S8D-2 UI (8-site Temperature tab), not the old site cards. The 30-minute run uses the fixed step detector.
+  7. **Hardware for the S9-2 checkpoint:** both simulator boards on 8 + 8 (left on the laptop for `t` / `p` commands, right on a USB charger; the by-id CP2102 port only), the Note 10 on USB, installed with `adb install -r` only.
 - **First, before anything else in S9: one step per stance (BACKLOG 51, user decision 2026-10-25, must be done before SR).**
   - **Problem:** the app's `StepDetector` (`mobile/lib/rules/step_detector.dart`) must not split one stance when the summed kPa dips briefly below `steps.contactKpa`.
   - **Fix:** add hysteresis, or merge stances separated by a short dip.
