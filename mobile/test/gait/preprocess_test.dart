@@ -47,6 +47,8 @@ void main() {
         ('clip', true),
         ('normalizationMethod', 'minmax'),
         ('version', 2),
+        ('baselineSeconds', 0),
+        ('baselineSeconds', 2.5),
       ]) {
         final m = {...good, key: value};
         expect(

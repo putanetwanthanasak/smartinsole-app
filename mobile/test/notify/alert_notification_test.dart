@@ -13,9 +13,11 @@ import 'package:smartinsole/rules/patient_status.dart';
 import 'package:smartinsole/settings/settings_providers.dart';
 import 'package:smartinsole/settings/settings_store.dart';
 import 'package:smartinsole/storage/models.dart';
+import 'package:smartinsole/ui/shell/app_shell.dart';
 
 import '../alerts/alerts_rig.dart';
 import '../helpers/fake_alert_notifier.dart';
+import '../helpers/fake_reminder_notifier.dart';
 import '../helpers/pump_app.dart';
 
 RaisedAlert raised(
@@ -161,6 +163,31 @@ void main() {
       fake.onTap!(4);
       expect(opened, [9, 4]);
     });
+  });
+
+  testWidgets('a tap during a research capture navigates nowhere (it would '
+      'end a running trial); alert and reminder alike', (tester) async {
+    final (db, ids) = await seededDatabase(tester);
+    final fake = FakeAlertNotifier();
+    final reminders = FakeReminderNotifier();
+    await pumpApp(
+      tester,
+      database: db,
+      alertNotifier: fake,
+      reminders: reminders,
+    );
+    final c = ProviderScope.containerOf(tester.element(find.byType(AppShell)));
+    // Stands in for the open session screen.
+    await tester.tap(byKey('settings-button'));
+    await tester.pumpAndSettle();
+    c.read(activeCaptureProvider.notifier).open('S01_20261110_0930');
+    fake.onTap!(ids[AlertKind.pressurePeak]!);
+    reminders.onTap!();
+    await tester.pumpAndSettle();
+    expect(byKey('detail-status-card'), findsNothing);
+    expect(byKey('back-link'), findsOneWidget, reason: 'still on Settings');
+    expect(c.read(selectedTabProvider), AppTab.today);
+    c.read(activeCaptureProvider.notifier).close('S01_20261110_0930');
   });
 
   group('a tap opens that alert over the Alerts tab', () {

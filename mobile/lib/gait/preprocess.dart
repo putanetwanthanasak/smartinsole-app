@@ -24,9 +24,10 @@ import 'model_spec.dart';
 class PreprocessSpec {
   const PreprocessSpec({required this.version, required this.baselineSeconds});
 
-  /// Parses `model_preprocess.json`; refuses any value other than the
-  /// decided ones (median, all channels, Min-Max, no clipping) rather than
-  /// compute something else than training did.
+  /// Parses `model_preprocess.json`; refuses any method value other than
+  /// the decided ones (median, all channels, Min-Max, no clipping) rather
+  /// than compute something else than training did. `baselineSeconds` is
+  /// read, like a threshold (rule 12), and must be positive.
   factory PreprocessSpec.parse(String json) {
     final m = jsonDecode(json) as Map<String, dynamic>;
     const decided = {
@@ -44,9 +45,16 @@ class PreprocessSpec {
         );
       }
     }
+    final seconds = m['baselineSeconds'];
+    if (seconds is! int || seconds <= 0) {
+      throw FormatException(
+        'model_preprocess.json baselineSeconds is $seconds, not a positive '
+        'whole number',
+      );
+    }
     return PreprocessSpec(
       version: (m['version'] as num).toInt(),
-      baselineSeconds: (m['baselineSeconds'] as num).toInt(),
+      baselineSeconds: seconds,
     );
   }
 

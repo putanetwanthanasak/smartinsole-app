@@ -226,12 +226,12 @@ class _BaselineCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    ref.watch(displaySnapshotProvider);
+    final snap = ref.watch(displaySnapshotProvider).value;
     final stored = ref.watch(storedBaselinesProvider).value ?? const [];
     final seconds = ref.watch(preprocessSpecProvider).baselineSeconds;
     final feet = baselineStatus(
       stored,
-      (side) => ref.read(insoleDataSourceProvider(side)).calibration?.deviceId,
+      (side) => streamingInsoleId(ref, snap, side),
     );
     return _TitledCard(
       key: const ValueKey('researcher-baseline'),

@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../ble/packets.dart';
 import '../../../config/thresholds.dart';
 import '../../../device/device_providers.dart';
+import '../../../device/display_snapshot.dart';
 import '../../../gait/baseline_recorder.dart';
 import '../../../gait/gait_providers.dart';
 import '../../../gait/preprocess.dart';
@@ -50,6 +51,18 @@ List<BaselineFootStatus> baselineStatus(
       return null;
     }()),
 ];
+
+/// The calibration `device_id` of [side]'s insole when it is streaming
+/// now (the 10 Hz snapshot, read at read time), else null. The data
+/// source keeps the last calibration after a disconnect, so it alone does
+/// not mean "connected".
+String? streamingInsoleId(
+  WidgetRef ref,
+  DisplaySnapshot? snap,
+  FootSide side,
+) => snap != null && snap.of(side).usable
+    ? ref.read(insoleDataSourceProvider(side)).calibration?.deviceId
+    : null;
 
 /// The Researcher row's value: "บันทึกแล้วทั้งสองข้าง · 1 พ.ย. 10:32",
 /// "ยังไม่ได้บันทึก: ขวา", or "เชื่อมต่อแผ่นรองเท้าทั้งสองข้างก่อน".
@@ -109,7 +122,7 @@ class _BaselineScreenState extends ConsumerState<BaselineScreen> {
   StreamSubscription<Object?>? _sub;
 
   String? _insoleId(FootSide side) =>
-      ref.read(insoleDataSourceProvider(side)).calibration?.deviceId;
+      streamingInsoleId(ref, ref.read(displaySnapshotProvider).value, side);
 
   void _start() {
     final ids = {for (final s in FootSide.values) s: _insoleId(s)};

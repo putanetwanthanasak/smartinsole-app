@@ -586,7 +586,7 @@ Not on the boards (user decisions 4–8, 2026-11-01). A system notification for 
 
 - **Channels:** "แจ้งเตือนเรื่องเท้า" (high importance, sound) and "แจ้งเตือนเรื่องเท้า (ไม่มีเสียง)"; "เสียงแจ้งเตือน" picks one, as for the reminder (§11.8). Both are created at app start.
 - **When:** at once, also while the app is on screen. **Never during a research capture** (an alert raised then is still stored, tagged and shown on the session screen). A site added to an open `TEMP_DELTA` is not a new alert and posts nothing.
-- **Tap:** opens that alert's detail (§7.3) over the "แจ้งเตือน" tab, so Back goes to the Alerts list; also when the tap starts the app. Opening it marks it read (§7.2).
+- **Tap:** opens that alert's detail (§7.3) over the "แจ้งเตือน" tab, so Back goes to the Alerts list; also when the tap starts the app. Opening it marks it read (§7.2). **While a research capture session is open, a tap (on an alert or on the evening reminder) only brings the app forward and navigates nowhere:** leaving the session screen would end a running trial as interrupted (STUDY-CAPTURE.md: only the 2 s hold buttons may stop one). The alert is in the Alerts list afterwards.
 - **Limit (v1):** there is no foreground service, so an alert can only be raised while Android lets the app run. With the screen off the phone may freeze the app (Samsung does), and then nothing is raised or posted until the app runs again. Measured on the Note 10 in S9-2 (FLUTTER-PLAN §1).
 
 ## 12. Motion
@@ -667,11 +667,6 @@ Earlier design-chat decisions: style D for the whole app; plain Thai first with 
 15. The found-today tab is the approved proposal (§11.6).
 16. Reminders use the phone's time zone, never UTC.
 17. Saved photos carry no EXIF or other metadata.
-
-### Decisions (user, 2026-11-01, S9)
-
-18. Foot alerts notify for `TEMP_DELTA`, `PRESSURE_PEAK`, `PRESSURE_PTI` and `LOAD_CONCENTRATION` only; none during a research capture; a tap opens that alert's detail over Alerts; two channels picked by "เสียงแจ้งเตือน"; posted also while the app is on screen (§11.9).
-19. Without a quiet-standing baseline for both connected insoles, Model A is not used and the Gait tab says why (§8.5, §10.2).
 18. "ยกเลิก" on Capture asks first once a photo is taken (§11.2).
 19. Answer-only is titled "ตอบคำถาม" (§11.3).
 20. The Capture hint chip shows on the two sole views only (§11.2).
@@ -691,6 +686,11 @@ Also: a real system notification, compare with the newest earlier photo, several
 27. A Temperature-map site is "warmer" once one reading pair is above `deltaC` (Home's note rule); the ring only while `TEMP_DELTA` holds there (§8.2).
 28. Temperature top-3 rows show "{x.x}°" on the right (§8.2).
 29. Home's date line and the Alerts day titles follow today's date and roll over at midnight and on resume (BACKLOG 68; §6, §7.2).
+
+### Decisions (user, 2026-11-01, S9)
+
+30. Foot alerts notify for `TEMP_DELTA`, `PRESSURE_PEAK`, `PRESSURE_PTI` and `LOAD_CONCENTRATION` only; none during a research capture; a tap opens that alert's detail over Alerts; two channels picked by "เสียงแจ้งเตือน"; posted also while the app is on screen (§11.9).
+31. Without a quiet-standing baseline for both connected insoles, Model A is not used and the Gait tab says why (§8.5, §10.2).
 
 ### Proposed defaults (not on the boards; confirm or change before the session that builds them)
 

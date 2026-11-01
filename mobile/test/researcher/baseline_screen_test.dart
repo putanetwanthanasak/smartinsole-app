@@ -67,7 +67,11 @@ void main() {
 
   testWidgets('no insole connected: start disabled', (tester) async {
     await pumpResearcher(tester, preset: MockPreset.noData);
+    // The mock keeps its calibration while not streaming (as a BLE source
+    // does after a disconnect): the card must still say "connect first".
+    expect(find.text('เชื่อมต่อแผ่นรองเท้าทั้งสองข้างก่อน'), findsOneWidget);
     await open(tester);
+    expect(find.text('เท้าซ้าย · ไม่ได้เชื่อมต่อ'), findsOneWidget);
     final start = tester.widget<FilledButton>(
       find.descendant(
         of: find.byKey(const ValueKey('baseline-start')),
