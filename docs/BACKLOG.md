@@ -1440,6 +1440,10 @@ shown to fail with keep.xml removed.
 that passed the check. Any other by-name lookup (`getIdentifier`) follows
 the same rule.
 
+**S9-1 (report 039):** the foot alert icon `ic_stat_foot_alert` is in
+`AndroidResources` and keep.xml; the S9-2 release APK must pass the check
+with it listed.
+
 ## 62. Evening reminders may come up to 1 hour late **(found at the S8C Note 10 run)** — OPEN, for S10 if needed
 
 The reminders are inexact alarms (`inexactAllowWhileIdle`, no exact-alarm
