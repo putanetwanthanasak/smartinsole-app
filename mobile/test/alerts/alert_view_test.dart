@@ -6,6 +6,7 @@ import 'package:smartinsole/rules/pressure_level.dart';
 import 'package:smartinsole/storage/models.dart';
 import 'package:smartinsole/ui/screens/alerts/alert_view.dart';
 import 'package:smartinsole/ui/shell/app_shell.dart';
+import 'package:smartinsole/ui/widgets/temp_site_map.dart' show TempSiteMark;
 
 import '../helpers/pump_app.dart';
 
@@ -216,6 +217,58 @@ void main() {
       expect(v.caption, 'กลางส้นเท้าขวาอุ่นกว่ากลางส้นเท้าซ้าย');
       expect(v.labels[FootSide.right], 'เท้าขวา กลางส้นเท้าอุ่นกว่าเท้าซ้าย');
       expect(v.labels[FootSide.left], 'เท้าซ้าย จุดวัดความอุ่นทั้ง 8 จุด');
+    });
+
+    test('TEMP_DELTA one site: only it is marked, ringed; no sites line', () {
+      final v = tempMapOf(
+        alert(AlertKind.tempDelta, side: FootSide.right, zone: 'heel'),
+      )!;
+      expect(v.sites, {5});
+      expect(v.sitesLine, isNull);
+      final marks = v.marksOf(FootSide.right);
+      expect(marks[5], TempSiteMark.warmRinged);
+      expect(marks.where((m) => m != TempSiteMark.plain), hasLength(1));
+      expect(v.marksOf(FootSide.left), everyElement(TempSiteMark.plain));
+    });
+
+    test('TEMP_DELTA several sites: each marked, the named one ringed', () {
+      final v = tempMapOf(
+        alert(
+          AlertKind.tempDelta,
+          side: FootSide.right,
+          zone: 'lateralHeel',
+          details: {
+            TempSiteEntry.listKey: [
+              for (final (z, d) in const [
+                ('heel', 2.7),
+                ('lateralHeel', 2.6),
+                ('meta1', 2.3),
+              ])
+                TempSiteEntry(zone: z, deltaC: d, atMs: 0).toJson(),
+            ],
+          },
+        ),
+      )!;
+      expect(v.site, 7);
+      expect(v.sites, {7, 5, 1});
+      final marks = v.marksOf(FootSide.right);
+      expect(marks[7], TempSiteMark.warmRinged);
+      expect(marks[5], TempSiteMark.warm);
+      expect(marks[1], TempSiteMark.warm);
+      expect(marks[0], TempSiteMark.plain);
+      expect(v.marksOf(FootSide.left), everyElement(TempSiteMark.plain));
+      // The caption names the alert's site; the line lists all, it first.
+      expect(v.caption, 'ส้นเท้าด้านนอกขวาอุ่นกว่าส้นเท้าด้านนอกซ้าย');
+      expect(
+        v.sitesLine,
+        'จุดที่อุ่นกว่าบนเท้าขวา: ส้นเท้าด้านนอก · กลางส้นเท้า · '
+        'โคนนิ้วหัวแม่เท้า',
+      );
+      expect(
+        v.labels[FootSide.right],
+        'เท้าขวา ส้นเท้าด้านนอก กลางส้นเท้า และโคนนิ้วหัวแม่เท้า'
+        'อุ่นกว่าเท้าซ้าย',
+      );
     });
 
     test('TEMP_DELTA stored before the 8 sites has no map', () {

@@ -29,20 +29,34 @@ final cameraCacheDirProvider = Provider<Future<Directory> Function()>(
 final todayProvider = NotifierProvider<Today, DateTime>(Today.new);
 
 class Today extends Notifier<DateTime> {
+  Timer? _timer;
+
   @override
   DateTime build() {
     final now = ref.watch(clockProvider)();
-    final day = DateTime(now.year, now.month, now.day);
+    ref.onDispose(() => _timer?.cancel());
+    _arm(now);
+    return DateTime(now.year, now.month, now.day);
+  }
+
+  /// A timer at the next local midnight after [now].
+  void _arm(DateTime now) {
+    _timer?.cancel();
     final next = DateTime(now.year, now.month, now.day + 1);
-    final timer = Timer(next.difference(now), refresh);
-    ref.onDispose(timer.cancel);
-    return day;
+    _timer = Timer(next.difference(now), refresh);
   }
 
   void refresh() {
     final now = ref.read(clockProvider)();
     final day = DateTime(now.year, now.month, now.day);
-    if (day != state) ref.invalidateSelf();
+    if (day != state) {
+      ref.invalidateSelf();
+    } else {
+      // Still the same day (the timer fired early, or the wall clock
+      // moved back): ask again at the next midnight, so the day never
+      // stays latched until the next resume.
+      _arm(now);
+    }
   }
 }
 

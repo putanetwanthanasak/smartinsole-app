@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../ble/ble_protocol.dart';
 import '../../../ble/packets.dart';
 import '../../../config/foot_layout.dart';
 import '../../../config/thresholds.dart';
@@ -181,11 +180,6 @@ class TempAlertView {
   int get hashCode => Object.hash(site, warmerSide, deltaC, consecutive);
 }
 
-/// INTERIM (S8D-1, until S8D-2's 8-site layout A): the site cards and
-/// chart lines show two sites. With nothing to rank them by, these:
-/// MTH1 and the heel centre.
-const interimDefaultSites = [1, 5];
-
 @immutable
 class TempTabView {
   const TempTabView({
@@ -193,6 +187,7 @@ class TempTabView {
     required this.right,
     required this.minute,
     this.deltaC = const [],
+    this.warmerAbove = const [],
     this.alerts = const {},
   });
 
@@ -214,6 +209,12 @@ class TempTabView {
   /// read it with normal quality (rule 4).
   final List<double?> deltaC;
 
+  /// Per site, the warmer foot when the **unrounded** ΔT is above
+  /// `deltaC` (the engine's and Home's test, [warmerOf]), else null; empty
+  /// unless both feet are usable. [deltaC] is rounded for display, so it
+  /// cannot decide this (2.21 °C shows as 2.2).
+  final List<FootSide?> warmerAbove;
+
   /// The sites (zone index) where `TEMP_DELTA` holds now.
   final Map<int, TempAlertView> alerts;
 
@@ -222,29 +223,11 @@ class TempTabView {
 
   double? delta(int site) => site < deltaC.length ? deltaC[site] : null;
 
+  FootSide? warmerAt(int site) =>
+      site < warmerAbove.length ? warmerAbove[site] : null;
+
   /// No site has a two-foot ΔT.
   bool get noDelta => deltaC.every((d) => d == null);
-
-  /// INTERIM (S8D-1): the two sites the cards and chart lines show, in
-  /// zone order: sites where `TEMP_DELTA` holds first, then the largest
-  /// |ΔT|, then [interimDefaultSites].
-  List<int> get shownSites {
-    int rank(int site) {
-      final i = interimDefaultSites.indexOf(site);
-      return i < 0 ? interimDefaultSites.length + site : i;
-    }
-
-    final sites = [for (var i = 0; i < TempLayout.siteCount; i++) i]
-      ..sort((a, b) {
-        final alert = (alerts[b]?.deltaC ?? -1).compareTo(
-          alerts[a]?.deltaC ?? -1,
-        );
-        if (alert != 0) return alert;
-        final d = (delta(b)?.abs() ?? -1).compareTo(delta(a)?.abs() ?? -1);
-        return d != 0 ? d : rank(a).compareTo(rank(b));
-      });
-    return sites.take(interimDefaultSites.length).toList()..sort();
-  }
 
   /// The site that names the Rest banner: the larger ΔT.
   TempAlertView? get topAlert {
@@ -262,6 +245,7 @@ class TempTabView {
       other.right == right &&
       other.minute == minute &&
       listEquals(other.deltaC, deltaC) &&
+      listEquals(other.warmerAbove, warmerAbove) &&
       mapEquals(other.alerts, alerts);
 
   @override
@@ -270,6 +254,7 @@ class TempTabView {
     right,
     minute,
     Object.hashAll(deltaC),
+    Object.hashAll(warmerAbove),
     Object.hashAll(alerts.values),
   );
 }
@@ -343,6 +328,18 @@ final myFeetViewProvider = NotifierProvider<MyFeetController, MyFeetView>(
 );
 
 double? _round1(double? v) => v == null ? null : (v * 10).round() / 10;
+
+/// Per site of [deltaC] (left minus right, unrounded), the warmer foot when
+/// |ΔT| is above [threshold] on this one reading (`deltaAbove`, the
+/// engine's and Home's note's test), else null.
+List<FootSide?> warmerOf(List<double?> deltaC, double threshold) => [
+  for (final d in deltaC)
+    d == null || !deltaAbove(d, threshold)
+        ? null
+        : d > 0
+        ? FootSide.left
+        : FootSide.right,
+];
 
 /// Pure: what My feet shows for [s]. A foot that is not usable gets no
 /// values at all, only its No-data style (rules 4 and 5).
@@ -419,6 +416,7 @@ MyFeetView myFeetViewOf(
         ),
       ),
       deltaC: both ? [for (final d in s.deltaC) _round1(d)] : const [],
+      warmerAbove: both ? warmerOf(s.deltaC, thresholds.deltaC) : const [],
       alerts: both ? alerts : const {},
     ),
   );

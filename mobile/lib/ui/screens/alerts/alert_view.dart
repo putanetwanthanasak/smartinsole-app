@@ -14,6 +14,7 @@ import '../../clock.dart';
 import '../../shell/app_shell.dart';
 import '../../theme/colors.dart';
 import '../../widgets/details_expander.dart';
+import '../../widgets/temp_site_map.dart' show TempSiteMark;
 import '../home/home_copy.dart';
 import '../home/home_model.dart' show FootMapView;
 
@@ -185,16 +186,36 @@ class TempMapView {
   const TempMapView({
     required this.warmSide,
     required this.site,
+    required this.sites,
     required this.caption,
+    required this.sitesLine,
     required this.labels,
   });
 
   final FootSide warmSide;
 
-  /// Zone index of the site the alert names.
+  /// Zone index of the site the alert names (ringed).
   final int site;
+
+  /// Every qualifying site on [warmSide] (`details.tempSites`, zone
+  /// indexes, [site] included): marked "จุดที่อุ่นกว่า".
+  final Set<int> sites;
   final String caption;
+
+  /// Below the caption when 2 or more sites qualified (S8D-2 draft):
+  /// "จุดที่อุ่นกว่าบนเท้าขวา: กลางส้นเท้า · ส้นเท้าด้านนอก". Null for one.
+  final String? sitesLine;
   final Map<FootSide, String> labels;
+
+  /// The marks for [side]'s map.
+  List<TempSiteMark> marksOf(FootSide side) => [
+    for (var i = 0; i < footLayout.zones.length; i++)
+      side != warmSide || !sites.contains(i)
+          ? TempSiteMark.plain
+          : i == site
+          ? TempSiteMark.warmRinged
+          : TempSiteMark.warm,
+  ];
 }
 
 TempMapView? tempMapOf(StoredAlert a) {
@@ -203,15 +224,27 @@ TempMapView? tempMapOf(StoredAlert a) {
   if (a.kind != AlertKind.tempDelta || side == null || site == null) {
     return null;
   }
-  final name = footLayout.zones[site].nameTh;
+  // The named site first, then the others in stored order (largest |ΔT|
+  // first).
+  final sites = <int>{
+    site,
+    for (final e in TempSiteEntry.listOf(a.details)) ?channelOf(e.zone),
+  };
+  final names = [for (final i in sites) footLayout.zones[i].nameTh];
+  final name = names.first;
   final s = sideTh(side);
   final o = sideTh(otherSide(side));
   return TempMapView(
     warmSide: side,
     site: site,
+    sites: sites,
     caption: '$name$sอุ่นกว่า$name$o',
+    // S8D-2 draft.
+    sitesLine: sites.length < 2
+        ? null
+        : 'จุดที่อุ่นกว่าบนเท้า$s: ${names.join(' · ')}',
     labels: {
-      side: 'เท้า$s $nameอุ่นกว่าเท้า$o',
+      side: 'เท้า$s ${joinTh(names)}อุ่นกว่าเท้า$o',
       // S8D-1 draft (was "ที่หน้าเท้าและส้นเท้า", the 2 sites).
       otherSide(side):
           'เท้า$o จุดวัดความอุ่นทั้ง ${footLayout.zones.length} จุด',

@@ -361,8 +361,15 @@ void main() {
       await tester.tap(byKey('back-link'));
       await tester.pumpAndSettle();
       await openAlert(tester, ids, AlertKind.tempDelta);
+      // The sample TEMP_DELTA lists two sites: both are named.
       expect(
-        find.bySemanticsLabel('เท้าขวา กลางส้นเท้าอุ่นกว่าเท้าซ้าย'),
+        find.bySemanticsLabel(
+          'เท้าขวา กลางส้นเท้า และส้นเท้าด้านนอกอุ่นกว่าเท้าซ้าย',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.text('จุดที่อุ่นกว่าบนเท้าขวา: กลางส้นเท้า · ส้นเท้าด้านนอก'),
         findsOneWidget,
       );
       expect(

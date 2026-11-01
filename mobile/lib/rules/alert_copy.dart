@@ -13,6 +13,11 @@ import 'alert_code.dart';
 
 String sideTh(FootSide s) => s == FootSide.left ? 'ซ้าย' : 'ขวา';
 
+/// "A", "A และ B", "A B และ C" (draft, for screen-reader labels).
+String joinTh(List<String> names) => names.length <= 1
+    ? names.join()
+    : '${names.sublist(0, names.length - 1).join(' ')} และ${names.last}';
+
 FootSide otherSide(FootSide s) =>
     s == FootSide.left ? FootSide.right : FootSide.left;
 

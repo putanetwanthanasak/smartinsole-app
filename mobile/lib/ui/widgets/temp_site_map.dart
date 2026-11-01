@@ -6,28 +6,49 @@ import '../theme/colors.dart';
 import '../theme/dimens.dart';
 import 'foot_map.dart';
 
-/// One foot with its 8 temperature sites (DESIGN-SPEC §7.3, "ตำแหน่งที่
-/// พบ" for `TEMP_DELTA`; site i = zone i, `shared/sensor_layout.json`).
-/// [warmSite] (zone index) is the site that is warmer than the same site
-/// on the other foot: Rest-your-feet fill and stroke plus a 3 px ring;
-/// every other site is white with a 2 px `inkMuted` stroke. Still (no
-/// motion on the alert detail, §12.2). One screen-reader image with
-/// [semanticLabel]. S8D-2 marks every qualifying site.
+/// How one temperature site is drawn (DESIGN-SPEC §7.3, §8.2).
+enum TempSiteMark {
+  /// White with a 2 px `inkMuted` stroke: "จุดวัดอื่น" on the alert detail,
+  /// "ใกล้เคียงกัน" on the Temperature tab.
+  plain,
+
+  /// Warmer than the same site on the other foot: Rest-your-feet fill and
+  /// stroke.
+  warm,
+
+  /// [warm] plus a 3 px Rest ring: the site the alert names (alert
+  /// detail), or a site where `TEMP_DELTA` holds now (Temperature tab).
+  warmRinged,
+
+  /// No two-foot reading to compare (rules 4 and 5): white with a dashed
+  /// `inkSubtle` stroke, the No-data dot style; never "close".
+  unreadable,
+}
+
+/// One foot with its 8 temperature sites (site i = zone i,
+/// `shared/sensor_layout.json`), one [TempSiteMark] per site. Used by the
+/// `TEMP_DELTA` alert detail ("ตำแหน่งที่พบ", §7.3) and the Temperature
+/// tab's map card (§8.2). [dashedOutline]: a foot with no data on My feet.
+/// Still (no motion). One screen-reader image with [semanticLabel].
 class TempSiteMap extends StatelessWidget {
   const TempSiteMap({
     super.key,
     required this.side,
+    required this.marks,
     required this.semanticLabel,
     required this.width,
     required this.height,
-    this.warmSite,
+    this.dashedOutline = false,
   });
 
   final FootSide side;
-  final int? warmSite;
+
+  /// Indexed by zone; a missing entry is [TempSiteMark.plain].
+  final List<TempSiteMark> marks;
   final String semanticLabel;
   final double width;
   final double height;
+  final bool dashedOutline;
 
   @override
   Widget build(BuildContext context) {
@@ -39,7 +60,11 @@ class TempSiteMap extends StatelessWidget {
         width: width,
         height: height,
         child: CustomPaint(
-          painter: _TempSitePainter(side: side, warmSite: warmSite),
+          painter: _TempSitePainter(
+            side: side,
+            marks: marks,
+            dashedOutline: dashedOutline,
+          ),
         ),
       ),
     );
@@ -47,10 +72,15 @@ class TempSiteMap extends StatelessWidget {
 }
 
 class _TempSitePainter extends CustomPainter {
-  _TempSitePainter({required this.side, required this.warmSite});
+  _TempSitePainter({
+    required this.side,
+    required this.marks,
+    required this.dashedOutline,
+  });
 
   final FootSide side;
-  final int? warmSite;
+  final List<TempSiteMark> marks;
+  final bool dashedOutline;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -59,28 +89,39 @@ class _TempSitePainter extends CustomPainter {
       ..save()
       ..translate(offset.dx, offset.dy)
       ..scale(scale);
-    paintFootOutline(canvas, side);
+    paintFootOutline(canvas, side, dashed: dashedOutline);
     for (var i = 0; i < footLayout.zones.length; i++) {
       final c = footLayout.zones[i].position(side);
-      final warm = i == warmSite;
-      canvas
-        ..drawCircle(
-          c,
-          TempSiteColors.radius,
-          Paint()
-            ..color = warm ? TempSiteColors.warmFill : TempSiteColors.otherFill,
-        )
-        ..drawCircle(
-          c,
-          TempSiteColors.radius,
-          Paint()
-            ..color = warm
-                ? TempSiteColors.warmStroke
-                : TempSiteColors.otherStroke
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = TempSiteColors.strokeWidth,
+      final mark = i < marks.length ? marks[i] : TempSiteMark.plain;
+      final warm = mark == TempSiteMark.warm || mark == TempSiteMark.warmRinged;
+      final stroke = Paint()
+        ..color = switch (mark) {
+          TempSiteMark.plain => TempSiteColors.otherStroke,
+          TempSiteMark.unreadable => TempSiteColors.unreadableStroke,
+          _ => TempSiteColors.warmStroke,
+        }
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = TempSiteColors.strokeWidth;
+      canvas.drawCircle(
+        c,
+        TempSiteColors.radius,
+        Paint()
+          ..color = warm ? TempSiteColors.warmFill : TempSiteColors.otherFill,
+      );
+      if (mark == TempSiteMark.unreadable) {
+        canvas.drawPath(
+          dashedPath(
+            Path()..addOval(
+              Rect.fromCircle(center: c, radius: TempSiteColors.radius),
+            ),
+            noDataDotDash,
+          ),
+          stroke,
         );
-      if (warm) {
+      } else {
+        canvas.drawCircle(c, TempSiteColors.radius, stroke);
+      }
+      if (mark == TempSiteMark.warmRinged) {
         canvas.drawCircle(
           c,
           TempSiteColors.ringRadius,
@@ -96,37 +137,104 @@ class _TempSitePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_TempSitePainter old) =>
-      old.side != side || old.warmSite != warmSite;
+      old.side != side ||
+      old.dashedOutline != dashedOutline ||
+      !_sameMarks(old.marks, marks);
 }
 
-/// Legend "จุดที่อุ่นกว่า" / "จุดวัดอื่น". Hidden from screen readers: the
-/// maps carry their own labels.
-class TempSiteLegend extends StatelessWidget {
-  const TempSiteLegend({super.key, required this.textStyle});
+bool _sameMarks(List<TempSiteMark> a, List<TempSiteMark> b) {
+  if (a.length != b.length) return false;
+  for (var i = 0; i < a.length; i++) {
+    if (a[i] != b[i]) return false;
+  }
+  return true;
+}
 
-  final TextStyle textStyle;
+/// A legend dot for [mark] (legend size, `FootDotColors.medium`'s legend
+/// radius). Also the dot of a Temperature top-3 row.
+class TempSiteDot extends StatelessWidget {
+  const TempSiteDot({super.key, required this.mark, this.radius});
+
+  final TempSiteMark mark;
+
+  /// Logical pixels; the legend radius by default.
+  final double? radius;
 
   @override
   Widget build(BuildContext context) {
-    Widget item(Color fill, Color stroke, String label) => Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: FootDotColors.medium.legendRadius * 2,
-          height: FootDotColors.medium.legendRadius * 2,
-          decoration: BoxDecoration(
-            color: fill,
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: stroke,
-              width: FootDotColors.legendOutlineWidth,
-            ),
-          ),
-        ),
-        const SizedBox(width: Dimens.tightGap),
-        Text(label, style: textStyle),
-      ],
+    final r = radius ?? FootDotColors.medium.legendRadius;
+    final warm = mark == TempSiteMark.warm || mark == TempSiteMark.warmRinged;
+    return SizedBox(
+      width: r * 2,
+      height: r * 2,
+      child: CustomPaint(
+        painter: _DotPainter(mark: mark, warm: warm),
+      ),
     );
+  }
+}
+
+class _DotPainter extends CustomPainter {
+  _DotPainter({required this.mark, required this.warm});
+
+  final TempSiteMark mark;
+  final bool warm;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const w = FootDotColors.legendOutlineWidth;
+    final r = size.shortestSide / 2 - w / 2;
+    final c = size.center(Offset.zero);
+    canvas.drawCircle(
+      c,
+      r,
+      Paint()
+        ..color = warm ? TempSiteColors.warmFill : TempSiteColors.otherFill,
+    );
+    final stroke = Paint()
+      ..color = switch (mark) {
+        TempSiteMark.plain => TempSiteColors.otherStroke,
+        TempSiteMark.unreadable => TempSiteColors.unreadableStroke,
+        _ => TempSiteColors.warmStroke,
+      }
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = w;
+    if (mark == TempSiteMark.unreadable) {
+      canvas.drawPath(
+        dashedPath(
+          Path()..addOval(Rect.fromCircle(center: c, radius: r)),
+          TempSiteColors.legendDash,
+        ),
+        stroke,
+      );
+    } else {
+      canvas.drawCircle(c, r, stroke);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DotPainter old) => old.mark != mark;
+}
+
+/// A temperature-site legend: [items] are each mark with its words.
+/// Alert detail: "จุดที่อุ่นกว่า" / "จุดวัดอื่น"; Temperature tab:
+/// "จุดที่อุ่นกว่า" / "ใกล้เคียงกัน" / "ยังวัดไม่ได้". Hidden from screen
+/// readers: the maps carry their own labels.
+class TempSiteLegend extends StatelessWidget {
+  const TempSiteLegend({
+    super.key,
+    required this.textStyle,
+    this.items = const [
+      (TempSiteMark.warm, 'จุดที่อุ่นกว่า'),
+      (TempSiteMark.plain, 'จุดวัดอื่น'),
+    ],
+  });
+
+  final TextStyle textStyle;
+  final List<(TempSiteMark, String)> items;
+
+  @override
+  Widget build(BuildContext context) {
     return ExcludeSemantics(
       child: Wrap(
         alignment: WrapAlignment.center,
@@ -134,78 +242,17 @@ class TempSiteLegend extends StatelessWidget {
         spacing: Dimens.cardGap,
         runSpacing: Dimens.tightGap,
         children: [
-          item(
-            TempSiteColors.warmFill,
-            TempSiteColors.warmStroke,
-            'จุดที่อุ่นกว่า',
-          ),
-          item(
-            TempSiteColors.otherFill,
-            TempSiteColors.otherStroke,
-            'จุดวัดอื่น',
-          ),
+          for (final (mark, label) in items)
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TempSiteDot(mark: mark),
+                const SizedBox(width: Dimens.tightGap),
+                Text(label, style: textStyle),
+              ],
+            ),
         ],
       ),
     );
   }
-}
-
-/// How a site card's icon dot looks (DESIGN-SPEC §8.2).
-enum SiteIconState { normal, alerting, missing }
-
-/// The 22×48 foot icon on a My feet site card, with [site]'s dot:
-/// `primary`, Rest red while that site alerts, `inkSubtle` when missing.
-/// Decorative: the card's text says the same.
-class TempSiteIcon extends StatelessWidget {
-  const TempSiteIcon({super.key, required this.site, required this.state});
-
-  /// Zone index.
-  final int site;
-  final SiteIconState state;
-
-  @override
-  Widget build(BuildContext context) {
-    return ExcludeSemantics(
-      child: SizedBox(
-        width: Dimens.siteIconWidth,
-        height: Dimens.siteIconHeight,
-        child: CustomPaint(
-          painter: _SiteIconPainter(site: site, state: state),
-        ),
-      ),
-    );
-  }
-}
-
-class _SiteIconPainter extends CustomPainter {
-  _SiteIconPainter({required this.site, required this.state});
-
-  final int site;
-  final SiteIconState state;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final (scale, offset) = fitFootViewBox(size);
-    canvas
-      ..save()
-      ..translate(offset.dx, offset.dy)
-      ..scale(scale);
-    paintFootOutline(canvas, FootSide.left);
-    canvas
-      ..drawCircle(
-        footLayout.zones[site].left,
-        SiteIconColors.dotRadius,
-        Paint()
-          ..color = switch (state) {
-            SiteIconState.normal => SiteIconColors.normal,
-            SiteIconState.alerting => SiteIconColors.alerting,
-            SiteIconState.missing => SiteIconColors.missing,
-          },
-      )
-      ..restore();
-  }
-
-  @override
-  bool shouldRepaint(_SiteIconPainter old) =>
-      old.site != site || old.state != state;
 }

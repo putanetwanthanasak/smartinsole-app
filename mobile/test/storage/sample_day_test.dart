@@ -57,38 +57,26 @@ void main() {
         rows,
         now: _now,
         usable: {FootSide.left: true, FootSide.right: !openGap},
-        sites: [for (var i = 0; i < TempLayout.siteCount; i++) i],
       );
-      for (final site in sites) {
-        final points = [for (final r in chart.runsOf(site)) ...r];
-        final above = points.where((p) => p.deltaC > testThresholds.deltaC);
-        expect(above, isNotEmpty, reason: 'site $site');
-        // One period: the points above are consecutive.
-        final first = points.indexOf(above.first);
-        final last = points.indexOf(above.last);
-        expect(last - first + 1, above.length, reason: 'site $site');
-      }
-      // The other sites stay below.
-      for (var other = 0; other < TempLayout.siteCount; other++) {
-        if (sites.contains(other)) continue;
-        expect(
-          chart
-              .runsOf(other)
-              .expand((r) => r)
-              .every((p) => p.deltaC < testThresholds.deltaC),
-          isTrue,
-          reason: 'site $other',
-        );
-      }
+      // The one line (largest |ΔT| of the 8 sites): its points above the
+      // threshold come from these sites, in one period.
+      final points = [for (final r in chart.runs) ...r];
+      final above = points.where((p) => p.deltaC > testThresholds.deltaC);
+      expect(above, isNotEmpty);
+      expect(
+        above.map((p) => p.site).toSet().difference(sites.toSet()),
+        isEmpty,
+      );
+      final first = points.indexOf(above.first);
+      final last = points.indexOf(above.last);
+      expect(last - first + 1, above.length);
 
       final gaps = chart.gaps.where((g) => g.side == FootSide.right);
       expect(gaps, hasLength(1));
       expect(gaps.single.ongoing, openGap);
       if (preset == MockPreset.rest) {
         // Above up to the end, joining the live mock's 2.6 °C.
-        for (final site in sites) {
-          expect(chart.last(site)!.deltaC, greaterThan(testThresholds.deltaC));
-        }
+        expect(chart.last!.deltaC, greaterThan(testThresholds.deltaC));
       }
     });
   }

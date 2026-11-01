@@ -24,22 +24,33 @@ const chartPairWithin = TempLayout.notifyPeriod;
 /// higher values are drawn at the top.
 const chartMaxC = 3.5;
 
-/// One |ΔT| point at one site.
+/// One point of the chart's line: the largest |ΔT| of the 8 sites at one
+/// paired reading, and the site it came from.
 @immutable
 class ChartPoint {
-  const ChartPoint(this.atMs, this.deltaC);
+  const ChartPoint(this.atMs, this.deltaC, this.site);
 
   final int atMs;
 
-  /// |left − right| in °C.
+  /// |left − right| in °C at [site].
   final double deltaC;
+
+  /// Zone index of the site with the largest |ΔT| then (the lower index
+  /// on a tie).
+  final int site;
 
   @override
   bool operator ==(Object other) =>
-      other is ChartPoint && other.atMs == atMs && other.deltaC == deltaC;
+      other is ChartPoint &&
+      other.atMs == atMs &&
+      other.deltaC == deltaC &&
+      other.site == site;
 
   @override
-  int get hashCode => Object.hash(atMs, deltaC);
+  int get hashCode => Object.hash(atMs, deltaC, site);
+
+  @override
+  String toString() => 'ChartPoint($atMs, $deltaC, $site)';
 }
 
 /// A stretch with no data from [side], from its last reading.
@@ -72,64 +83,42 @@ class TempChartData {
   const TempChartData({
     required this.startMs,
     required this.endMs,
-    required this.sites,
     required this.runs,
     required this.gaps,
   });
 
-  static const empty = TempChartData(
-    startMs: 0,
-    endMs: 0,
-    sites: [],
-    runs: {},
-    gaps: [],
-  );
+  static const empty = TempChartData(startMs: 0, endMs: 0, runs: [], gaps: []);
 
   /// X axis: the first reading of the day to now.
   final int startMs;
   final int endMs;
 
-  /// INTERIM (S8D-1): the two sites drawn (zone indexes, in zone order):
-  /// the first dashed, the second solid. S8D-2 draws one line, the largest
-  /// |ΔT| of the 8 sites.
-  final List<int> sites;
-
-  /// Per site of [sites], the line as runs of points; the line breaks
-  /// between runs.
-  final Map<int, List<List<ChartPoint>>> runs;
+  /// The one line (S8D-2, layout A: the largest |ΔT| of the 8 sites at
+  /// each reading) as runs of points; the line breaks between runs.
+  final List<List<ChartPoint>> runs;
 
   /// Oldest first.
   final List<ChartGap> gaps;
 
-  bool get isEmpty => runs.values.every((r) => r.isEmpty);
+  bool get isEmpty => runs.isEmpty;
 
-  List<List<ChartPoint>> runsOf(int site) => runs[site] ?? const [];
-
-  /// The newest point at [site], or null.
-  ChartPoint? last(int site) {
-    final r = runsOf(site);
-    return r.isEmpty ? null : r.last.last;
-  }
+  /// The newest point, or null.
+  ChartPoint? get last => runs.isEmpty ? null : runs.last.last;
 
   @override
   bool operator ==(Object other) =>
       other is TempChartData &&
       other.startMs == startMs &&
       other.endMs == endMs &&
-      listEquals(other.sites, sites) &&
       listEquals(other.gaps, gaps) &&
-      sites.every((s) => _runsEqual(other.runsOf(s), runsOf(s)));
+      _runsEqual(other.runs, runs);
 
   @override
   int get hashCode => Object.hash(
     startMs,
     endMs,
-    Object.hashAll(sites),
     Object.hashAll(gaps),
-    Object.hashAll([
-      for (final s in sites)
-        for (final r in runsOf(s)) Object.hashAll(r),
-    ]),
+    Object.hashAll([for (final r in runs) Object.hashAll(r)]),
   );
 }
 
@@ -141,15 +130,19 @@ bool _runsEqual(List<List<ChartPoint>> a, List<List<ChartPoint>> b) {
   return true;
 }
 
-/// The chart of [sites] for [readings] (one day, both feet, oldest first)
-/// at [now]. [usable] says which feet stream now: a foot that does not has
-/// an open gap from its last reading, however recent.
+/// The chart for [readings] (one day, both feet, oldest first) at [now].
+/// [usable] says which feet stream now: a foot that does not has an open
+/// gap from its last reading, however recent.
 ///
-/// - A point is |ΔT| at a site whenever a reading of one foot meets the
-///   other foot's newest reading no more than [chartPairWithin] older, the
-///   same pairing as the alert engine (each foot's newest reading), and
-///   both read that site with normal quality. Rows stored before the 8
-///   sites (schema v1) give no points: their sites are not these.
+/// - A point is the largest |ΔT| over the 8 sites whenever a reading of
+///   one foot meets the other foot's newest reading no more than
+///   [chartPairWithin] older, the same pairing as the alert engine (each
+///   foot's newest reading); a site counts only when both feet read it
+///   with normal quality, and a pair with no such site gives no point.
+///   The point keeps its site, so two points in a row can come from
+///   different sites (the alert counts each site on its own, rule 6).
+///   Rows stored before the 8 sites (schema v1) give no points: their
+///   sites are not these.
 /// - The line breaks where two points are more than [chartGapAfter] apart.
 /// - A foot with no row for longer than [chartGapAfter] is a gap, open
 ///   when it has not come back by [now].
@@ -157,14 +150,13 @@ TempChartData tempChartOf(
   List<TemperatureReading> readings, {
   required DateTime now,
   required Map<FootSide, bool> usable,
-  required List<int> sites,
 }) {
   if (readings.isEmpty) return TempChartData.empty;
   final nowMs = now.millisecondsSinceEpoch;
   final gapMs = chartGapAfter.inMilliseconds;
   final pairMs = chartPairWithin.inMilliseconds;
 
-  final points = {for (final s in sites) s: <ChartPoint>[]};
+  final points = <ChartPoint>[];
   final newest = <FootSide, TemperatureReading>{};
   for (final r in readings) {
     if (r.isLegacy) continue;
@@ -173,27 +165,26 @@ TempChartData tempChartOf(
     final right = newest[FootSide.right];
     if (left == null || right == null) continue;
     if ((left.atMs - right.atMs).abs() > pairMs) continue;
-    for (final site in sites) {
+    ChartPoint? best;
+    for (var site = 0; site < TempLayout.siteCount; site++) {
       final l = left.usableC(site);
       final rr = right.usableC(site);
       if (l == null || rr == null) continue;
-      final p = ChartPoint(r.atMs, (l - rr).abs());
-      final list = points[site]!;
-      if (list.isNotEmpty && list.last.atMs == p.atMs) list.removeLast();
-      list.add(p);
+      final d = (l - rr).abs();
+      if (best == null || d > best.deltaC) best = ChartPoint(r.atMs, d, site);
     }
+    if (best == null) continue;
+    if (points.isNotEmpty && points.last.atMs == best.atMs) points.removeLast();
+    points.add(best);
   }
 
-  List<List<ChartPoint>> split(List<ChartPoint> ps) {
-    final out = <List<ChartPoint>>[];
-    for (final p in ps) {
-      if (out.isEmpty || p.atMs - out.last.last.atMs > gapMs) {
-        out.add([p]);
-      } else {
-        out.last.add(p);
-      }
+  final runs = <List<ChartPoint>>[];
+  for (final p in points) {
+    if (runs.isEmpty || p.atMs - runs.last.last.atMs > gapMs) {
+      runs.add([p]);
+    } else {
+      runs.last.add(p);
     }
-    return out;
   }
 
   final gaps = <ChartGap>[];
@@ -218,8 +209,7 @@ TempChartData tempChartOf(
   return TempChartData(
     startMs: start,
     endMs: nowMs > readings.last.atMs ? nowMs : readings.last.atMs,
-    sites: sites,
-    runs: {for (final s in sites) s: split(points[s]!)},
+    runs: runs,
     gaps: _merged(gaps, gapMs),
   );
 }
@@ -259,17 +249,19 @@ String gapLabelTime(ChartGap g, {bool wrapped = false}) => g.ongoing
 
 String _degrees(double c) => '${formatDelta(c)}$nbspองศา';
 
+/// The end label next to the line's last point: its site's name (S8D-2
+/// draft, DESIGN-SPEC Appendix A).
+String chartEndLabel(ChartPoint p) => _siteTh(p.site);
+
 /// TalkBack summary of the chart (§8.2), e.g. "กราฟความต่างของความอุ่นวันนี้
-/// ส้นเท้าขึ้นถึงระดับที่ควรระวังตั้งแต่ราว 13:45 ตอนนี้ 2.6 องศา หน้าเท้า
-/// ต่ำกว่า 0.5 องศาตลอด". **Draft copy** (DESIGN-SPEC Appendix A, S6B).
+/// จุดที่ต่างกันมากที่สุดขึ้นถึงระดับที่ควรระวังตั้งแต่ราว 13:45 ตอนนี้
+/// 2.6 องศาที่กลางส้นเท้า". **Draft copy** (DESIGN-SPEC Appendix A, S6B;
+/// one line of the 8 sites since S8D-2).
 String chartSummary(TempChartData d, {required double deltaC}) {
   const title = 'กราฟความต่างของความอุ่นวันนี้';
   if (d.isEmpty) return '$title ยังไม่มีข้อมูล';
   final open = d.gaps.isNotEmpty && d.gaps.last.ongoing;
-  final parts = <String>[title];
-  for (final site in d.sites.reversed) {
-    parts.add(_siteSummary(site, d.runsOf(site), deltaC, open: open));
-  }
+  final parts = <String>[title, _lineSummary(d.runs, deltaC, open: open)];
   if (d.gaps.isNotEmpty) {
     final g = d.gaps.last;
     final foot = 'เท้า${sideTh(g.side)}';
@@ -282,17 +274,17 @@ String chartSummary(TempChartData d, {required double deltaC}) {
   return parts.join(' ');
 }
 
-String _siteSummary(
-  int site,
+String _lineSummary(
   List<List<ChartPoint>> runs,
   double deltaC, {
   required bool open,
 }) {
-  final name = _siteTh(site);
-  if (runs.isEmpty) return '$nameยังไม่มีข้อมูล';
+  const name = 'จุดที่ต่างกันมากที่สุด';
   bool above(ChartPoint p) => deltaAbove(p.deltaC, deltaC);
   final last = runs.last.last;
-  final now = '${open ? 'ล่าสุด' : 'ตอนนี้'} ${_degrees(last.deltaC)}';
+  final now =
+      '${open ? 'ล่าสุด' : 'ตอนนี้'} ${_degrees(last.deltaC)}'
+      'ที่${_siteTh(last.site)}';
 
   if (above(last)) {
     // The start of the current stretch above the threshold.
