@@ -205,6 +205,7 @@ class AlertEngine {
   final _subs = <StreamSubscription<Object?>>[];
   Timer? _timer;
   final _steps = StreamController<Step>.broadcast(sync: true);
+  final _raised = StreamController<RaisedAlert>.broadcast();
 
   // TEMP_DELTA: consecutive reading pairs above deltaC, per site (rule 6),
   // and when each site's current run reached `consecutiveReadings`.
@@ -250,6 +251,11 @@ class AlertEngine {
   /// Gait tab's step count, gait classifier and CoP; S8A). Delivered
   /// synchronously, after the rules have seen the step.
   Stream<Step> get steps => _steps.stream;
+
+  /// Each new alert once stored, with its row id (S9: the system
+  /// notification). Sites appended to an open `TEMP_DELTA` are not new
+  /// alerts and are not sent.
+  Stream<RaisedAlert> get raised => _raised.stream;
 
   /// [side] made a walking step no longer ago than a stance can last: the
   /// Gait tab's "กำลังเดิน". Derived from sample times at read time (rule 2).
@@ -672,7 +678,7 @@ class AlertEngine {
     );
     final added = alerts.add(alert);
     final write = added.then<void>(
-      (_) {},
+      (id) => _raised.add(RaisedAlert(id, alert)),
       onError: (Object e) => debugPrint('alerts: not stored: $e'),
     );
     _writes.add(write);
@@ -684,6 +690,14 @@ class AlertEngine {
       );
     }
   }
+}
+
+/// A new alert as stored: its row [id] and what was stored.
+class RaisedAlert {
+  const RaisedAlert(this.id, this.alert);
+
+  final int id;
+  final NewAlert alert;
 }
 
 /// A foot's newest `TEMP_DELTA`: its row id once stored (null if the

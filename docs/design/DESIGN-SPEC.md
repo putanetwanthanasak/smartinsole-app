@@ -580,6 +580,15 @@ A system notification while "เตือนให้ดูเท้าทุก
 
 ---
 
+### 11.9 Foot alert notifications (S9)
+
+Not on the boards (user decisions 4–8, 2026-11-01). A system notification for each new alert of these four codes: `TEMP_DELTA`, `PRESSURE_PEAK`, `PRESSURE_PTI`, `LOAD_CONCENTRATION`. Every other code stays in the app only. The text is the alert's own (§7, Appendix A, draft): title = the Alerts list title (e.g. "เท้าขวาอุ่นกว่าเท้าซ้าย"), text = its "ควรทำ" line (e.g. "นั่งพักเท้า แล้วตรวจดูว่ามีรอยแดงหรือแผลไหม"), so the notification carries plain-Thai advice (rule 13). Small icon Lucide `bell` (the Alerts tab icon). The lock screen hides the text (private).
+
+- **Channels:** "แจ้งเตือนเรื่องเท้า" (high importance, sound) and "แจ้งเตือนเรื่องเท้า (ไม่มีเสียง)"; "เสียงแจ้งเตือน" picks one, as for the reminder (§11.8). Both are created at app start.
+- **When:** at once, also while the app is on screen. **Never during a research capture** (an alert raised then is still stored, tagged and shown on the session screen). A site added to an open `TEMP_DELTA` is not a new alert and posts nothing.
+- **Tap:** opens that alert's detail (§7.3) over the "แจ้งเตือน" tab, so Back goes to the Alerts list; also when the tap starts the app. Opening it marks it read (§7.2).
+- **Limit (v1):** there is no foreground service, so an alert can only be raised while Android lets the app run. With the screen off the phone may freeze the app (Samsung does), and then nothing is raised or posted until the app runs again. Measured on the Note 10 in S9-2 (FLUTTER-PLAN §1).
+
 ## 12. Motion
 
 Reference boards: HomeDMotion, AlertsDMotion, FeetDMotion, ConnectDMotion, CheckDMotion (each has a "reduce motion" switch). The boards loop for the demo; the app plays each animation once per real event. All values live in `lib/ui/motion.dart` (FLUTTER-PLAN §8).
@@ -653,11 +662,16 @@ Earlier design-chat decisions: style D for the whole app; plain Thai first with 
 ### Decisions (user, 2026-10-26, S8C)
 
 12. The saved photo is the true view; the front preview stays mirrored and the guide matches the preview (§11.2).
-13. "เสียงแจ้งเตือน" off makes the evening reminder silent, still shown (§11.8).
+13. "เสียงแจ้งเตือน" off makes the evening reminder silent, still shown (§11.8); since S9 also the foot alert notifications (§11.9).
 14. Notification permission: asked at the first open of "ตรวจเท้า" and when the reminder switch is turned on; refused → Settings line, Saved hides the reminder line (§11.8).
 15. The found-today tab is the approved proposal (§11.6).
 16. Reminders use the phone's time zone, never UTC.
 17. Saved photos carry no EXIF or other metadata.
+
+### Decisions (user, 2026-11-01, S9)
+
+18. Foot alerts notify for `TEMP_DELTA`, `PRESSURE_PEAK`, `PRESSURE_PTI` and `LOAD_CONCENTRATION` only; none during a research capture; a tap opens that alert's detail over Alerts; two channels picked by "เสียงแจ้งเตือน"; posted also while the app is on screen (§11.9).
+19. Without a quiet-standing baseline for both connected insoles, Model A is not used and the Gait tab says why (§8.5, §10.2).
 18. "ยกเลิก" on Capture asks first once a photo is taken (§11.2).
 19. Answer-only is titled "ตอบคำถาม" (§11.3).
 20. The Capture hint chip shows on the two sole views only (§11.2).

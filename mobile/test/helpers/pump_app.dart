@@ -12,6 +12,7 @@ import 'package:smartinsole/footcheck/photo_processor.dart';
 import 'package:smartinsole/gait/gait_providers.dart';
 import 'package:smartinsole/gait/model_spec.dart';
 import 'package:smartinsole/gait/preprocess.dart';
+import 'package:smartinsole/notify/alert_notification_service.dart';
 import 'package:smartinsole/notify/reminder_providers.dart';
 import 'package:smartinsole/settings/settings_providers.dart';
 import 'package:smartinsole/settings/settings_store.dart';
@@ -23,6 +24,7 @@ import 'package:smartinsole/ui/routes.dart';
 
 import '../ble/fake_ble_central.dart';
 import 'fake_foot_camera.dart';
+import 'fake_alert_notifier.dart';
 import 'fake_reminder_notifier.dart';
 
 /// Fixed time so the Home date line never changes between golden runs.
@@ -66,6 +68,7 @@ const referenceSize = Size(390, 844);
 /// call: with the app's watchers running, several writes in one
 /// `tester.runAsync` deadlock). Settings start at their defaults in memory;
 /// pass [settings] to start from a stored state (e.g. a text size).
+/// Alert notifications go to [alertNotifier] (a fresh fake by default).
 /// The foot check runs on [camera] and [reminders] fakes, with photos in
 /// [photoDir] (a fresh temp folder by default) and the photo processor
 /// called directly (no isolate under fake time).
@@ -83,6 +86,7 @@ Future<void> pumpApp(
   SettingsStore? settings,
   FakeFootCamera? camera,
   FakeReminderNotifier? reminders,
+  FakeAlertNotifier? alertNotifier,
   Directory? photoDir,
   List<Override> overrides = const [],
 }) async {
@@ -121,6 +125,9 @@ Future<void> pumpApp(
           settings ?? MemorySettingsStore(),
         ),
         footCameraProvider.overrideWithValue(() => camera ?? FakeFootCamera()),
+        alertNotifierProvider.overrideWithValue(
+          alertNotifier ?? FakeAlertNotifier(),
+        ),
         reminderNotifierProvider.overrideWithValue(
           reminders ?? FakeReminderNotifier(),
         ),

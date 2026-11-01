@@ -1576,3 +1576,37 @@ line its backdrop covers below the dot.
 screens a user leaves quickly, so the window is small: one open across
 midnight shows yesterday's words until something rebuilds it. Fix the same
 way (watch `todayProvider`) when either screen is next touched.
+
+## 72. Foot alert notifications with the screen off **(S9-1, user decision 9)** — OPEN, measure in S9-2
+
+S9 posts a system notification for `TEMP_DELTA`, `PRESSURE_PEAK`,
+`PRESSURE_PTI` and `LOAD_CONCENTRATION` (DESIGN-SPEC §11.9), but only while
+Android lets the app run: there is no foreground service (v1 scope, user
+decision 2026-11-01). STEP 0 saw Samsung's Freecess freeze the app's
+process after it left the screen, and a frozen app reads no BLE and raises
+nothing. S9-2 measures, on the Note 10 with both simulator boards, whether
+a `p` / `t` command still produces a notification with the screen on, the
+app in the background, and the screen off (after 1, 5 and 15 minutes).
+The result goes here and into FLUTTER-PLAN §1 as a stated limitation for
+the thesis. A foreground service (with its own persistent notification) is
+the fix if the study needs it; not in v1.
+
+## 73. The notification permission is only asked for the reminder **(S9-1)** — OPEN, minor
+
+Android 13+ asks for the notification permission at the first open of
+"ตรวจเท้า" and when the reminder switch is turned on (S8C). A user who
+turns the reminder off before that is never asked, and on Android 13+ then
+gets no foot alert notifications either (the permission is per app). The
+Note 10 (Android 12) is not affected: notifications are allowed by
+default there. Fix when an Android 13+ phone is used: also ask on the first
+alert, or at the first connection.
+
+## 74. The app's quiet-standing baseline is a separate recording from capture trial 00 **(S9-1)** — OPEN, decide before Model A is used
+
+Training takes each subject's baseline from capture trial 00 (the 30 s
+standing calibration); the app takes it from Researcher › "บันทึกค่ายืนนิ่ง
+30 วินาที" (DATA-CONTRACT §7.1). Same statistic, duration and channels,
+but two recordings. Options when Model A arrives (late Nov): record the
+app baseline right after trial 00 on the study day, or have a valid
+trial 00 also save the app baseline (reads the capture's 50 Hz rows only;
+capture recording and timing unchanged).

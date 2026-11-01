@@ -111,14 +111,19 @@ lib/
                        photo session, flow controller, compare source,
                        history, orphan sweep (see its README.md)
   notify/              Evening reminder (S8C): reminder plan in the
-                       phone's time zone, ReminderService, the only
-                       flutter_local_notifications importer (see its
+                       phone's time zone, ReminderService; foot alert
+                       notifications (S9): AlertNotificationService on
+                       AlertEngine.raised; one shared plugin instance
+                       (local_notifications.dart); the only
+                       flutter_local_notifications importers (see its
                        README.md); android_resources.dart names every
                        resource looked up by name at runtime
   ui/
     app.dart           MaterialApp, named routes
     foot_check_host.dart  start-up sweeps, reminder service, resume
                        refresh, the one-time notification prompt
+    alert_notification_host.dart  starts the alert notifications; a
+                       tap opens that alert over the Alerts tab (S9)
     routes.dart        route names; `/alert` takes the alert id,
                        `/foot-check-found` the foot check id,
                        `/foot-check/photo` a PhotoViewerArgs;
@@ -189,7 +194,8 @@ test/                  flutter_test_config.dart loads the real fonts
   notify/              reminder plan tests (Asia/Bangkok);
                        android_resources_test.dart (runtime resource
                        names are kept, no literal names in lib/)
-  helpers/             pumpApp, FakeFootCamera, FakeReminderNotifier
+  helpers/             pumpApp, FakeFootCamera, FakeReminderNotifier,
+                       FakeAlertNotifier
   ble/                 parser tests; test_vectors_test.dart reads
                        ../shared/test_vectors/*.json; fake_ble_central.dart
                        + ble_data_source_test.dart (fake_async)
@@ -225,7 +231,8 @@ reminder icon was gone and reminder setup failed on the Note 10 with
   (`tools:keep`).
 - `test/notify/android_resources_test.dart` checks both;
   `tool/check_release_resources.sh` checks the built release APK. S9's
-  alert notifications add their icons and sounds the same way.
+  alert notifications added `ic_stat_foot_alert` the same way (their
+  sound is the phone's default).
 
 Research capture tools live at the repo root: `tools/capture/load_capture.py`
 (loader, checks, `--selftest`) and `tools/capture/export_capture.py` (adb
@@ -326,8 +333,9 @@ pull + SHA-256 + checks). Any change to the capture file format must keep
   turn on reduce motion, and always replaces BLE with `FakeBleCentral` /
   `FakePermissions`, the database with `AppDatabase.memory()`, and the
   foot check's camera and reminders with `FakeFootCamera` /
-  `FakeReminderNotifier` and temp photo folders (pass your own via
-  `central:` / `permissions:` / `camera:` / `reminders:` / `photoDir:`, and
+  `FakeReminderNotifier` and temp photo folders, and alert notifications
+  with `FakeAlertNotifier` (pass your own via `central:` / `permissions:` /
+  `camera:` / `reminders:` / `alertNotifier:` / `photoDir:`, and
   any provider override, e.g. `mockPresetProvider`, via `overrides:`).
   Real file and database I/O only finishes inside `tester.runAsync`; the
   foot-check tests alternate it with frames (`settleIo`).

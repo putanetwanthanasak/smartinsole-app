@@ -8,12 +8,14 @@
 /// Checked by `test/notify/android_resources_test.dart` (names in lib/
 /// come from here and are all in keep.xml) and
 /// `tool/check_release_resources.sh` (each kept name is in the release
-/// APK). S9 alert notifications add their icons and sounds here.
+/// APK). S9 added the alert notifications' icon (their sound is the
+/// phone's default, not a resource).
 abstract final class AndroidResources {
   static const reminderIcon = 'ic_stat_foot_check';
+  static const alertIcon = 'ic_stat_foot_alert';
 
   /// `res/drawable` names, for keep.xml's `@drawable/…`.
-  static const drawables = [reminderIcon];
+  static const drawables = [reminderIcon, alertIcon];
 
   /// `res/raw` names (notification sounds), for keep.xml's `@raw/…`.
   static const raws = <String>[];

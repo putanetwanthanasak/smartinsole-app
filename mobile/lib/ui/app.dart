@@ -7,6 +7,7 @@ import '../settings/settings_providers.dart';
 
 import '../storage/storage_host.dart';
 
+import 'alert_notification_host.dart';
 import 'auto_connect_host.dart';
 import 'foot_check_host.dart';
 import 'routes.dart';
@@ -37,48 +38,51 @@ class SmartInsoleApp extends ConsumerWidget {
     return StorageHost(
       child: AutoConnectHost(
         child: FootCheckHost(
-          child: MaterialApp(
-            navigatorKey: appNavigatorKey,
-            title: 'SmartInsole',
-            debugShowCheckedModeBanner: false,
-            theme: AppTheme.light(),
-            locale: const Locale('th', 'TH'),
-            supportedLocales: const [Locale('th', 'TH')],
-            localizationsDelegates: GlobalMaterialLocalizations.delegates,
-            // Settings › "ขนาดตัวอักษร" multiplies the phone's own scale.
-            builder: (context, child) {
-              final mq = MediaQuery.of(context);
-              return MediaQuery(
-                data: mq.copyWith(
-                  textScaler: AppTextScaler.combine(mq.textScaler, factor),
+          child: AlertNotificationHost(
+            child: MaterialApp(
+              navigatorKey: appNavigatorKey,
+              title: 'SmartInsole',
+              debugShowCheckedModeBanner: false,
+              theme: AppTheme.light(),
+              locale: const Locale('th', 'TH'),
+              supportedLocales: const [Locale('th', 'TH')],
+              localizationsDelegates: GlobalMaterialLocalizations.delegates,
+              // Settings › "ขนาดตัวอักษร" multiplies the phone's own scale.
+              builder: (context, child) {
+                final mq = MediaQuery.of(context);
+                return MediaQuery(
+                  data: mq.copyWith(
+                    textScaler: AppTextScaler.combine(mq.textScaler, factor),
+                  ),
+                  child: child!,
+                );
+              },
+              initialRoute: initialRoute,
+              routes: {
+                Routes.shell: (_) => const AppShell(),
+                Routes.connection: (_) => const ConnectionScreen(),
+                Routes.settings: (_) => const SettingsScreen(),
+                Routes.alertDetail: (context) => AlertDetailScreen(
+                  alertId: ModalRoute.of(context)!.settings.arguments! as int,
                 ),
-                child: child!,
-              );
-            },
-            initialRoute: initialRoute,
-            routes: {
-              Routes.shell: (_) => const AppShell(),
-              Routes.connection: (_) => const ConnectionScreen(),
-              Routes.settings: (_) => const SettingsScreen(),
-              Routes.alertDetail: (context) => AlertDetailScreen(
-                alertId: ModalRoute.of(context)!.settings.arguments! as int,
-              ),
-              Routes.footCheckFound: (context) => FootCheckFoundScreen(
-                footCheckId: ModalRoute.of(context)!.settings.arguments as int?,
-              ),
-              Routes.footCheckCapture: (_) => const CaptureScreen(),
-              Routes.footCheckCompare: (_) => const CompareScreen(),
-              Routes.footCheckPhotos: (_) => const PhotoHistoryScreen(),
-              Routes.footCheckPhoto: (context) => PhotoViewerScreen(
-                args:
-                    ModalRoute.of(context)!.settings.arguments!
-                        as PhotoViewerArgs,
-              ),
-              Routes.researcher: (_) => const ResearcherScreen(),
-              Routes.bleDebug: (_) => const DebugBleScreen(),
-              Routes.capture: (_) => const CaptureHomeScreen(),
-              Routes.baseline: (_) => const BaselineScreen(),
-            },
+                Routes.footCheckFound: (context) => FootCheckFoundScreen(
+                  footCheckId:
+                      ModalRoute.of(context)!.settings.arguments as int?,
+                ),
+                Routes.footCheckCapture: (_) => const CaptureScreen(),
+                Routes.footCheckCompare: (_) => const CompareScreen(),
+                Routes.footCheckPhotos: (_) => const PhotoHistoryScreen(),
+                Routes.footCheckPhoto: (context) => PhotoViewerScreen(
+                  args:
+                      ModalRoute.of(context)!.settings.arguments!
+                          as PhotoViewerArgs,
+                ),
+                Routes.researcher: (_) => const ResearcherScreen(),
+                Routes.bleDebug: (_) => const DebugBleScreen(),
+                Routes.capture: (_) => const CaptureHomeScreen(),
+                Routes.baseline: (_) => const BaselineScreen(),
+              },
+            ),
           ),
         ),
       ),
