@@ -73,9 +73,11 @@ Built in S4C (`docs/reports/027-flutter-capture.md`). Code:
    **Baseline (30 s standing): OK**, or **Baseline failed** with the foot
    and the reason (packets lost, the insole reconnected, a TARE, the
    volunteer moved, not standing on the insole, part marked invalid,
-   shorter than 30 s). On a failure, **Redo this trial now, while the
-   volunteer is here**: training uses the newest valid trial-00 attempt
-   that passes, and a volunteer with none has no baseline. Nothing is
+   shorter than 30 s), and "Redo trial 00 now, while the volunteer is
+   here". Do that: training uses the newest valid trial-00 attempt that
+   passes, and a volunteer with none has no baseline. A trial that ends up
+   to 0.1 s short (`baselineToleranceSamples`, a board clock a little slow
+   against the phone) still passes. Nothing is
    blocked; the line is only information. A `TEST-` rehearsal's 10 s
    calibration says "Baseline not checked" instead.
 3. **For each of the 5 gaits**, in the order shown:
