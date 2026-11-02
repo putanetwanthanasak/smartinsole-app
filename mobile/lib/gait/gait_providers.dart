@@ -2,15 +2,18 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../ble/packets.dart';
 import '../config/thresholds.dart';
 import '../device/device_providers.dart';
 import '../rules/alert_providers.dart';
+import '../storage/baseline_repository.dart';
 import '../storage/storage_providers.dart';
 import '../ui/clock.dart';
 import 'demo_model_runner.dart';
 import 'gait_estimator.dart';
 import 'model_classifier.dart';
 import 'model_spec.dart';
+import 'preprocess.dart';
 import 'step_counter.dart';
 import 'tflite_classifier.dart';
 
@@ -80,6 +83,11 @@ final modelCheckProvider = FutureProvider<ModelCheck?>((ref) async {
   );
 });
 
+/// Every stored quiet-standing baseline (S9), kept current.
+final storedBaselinesProvider = StreamProvider<List<FootBaseline>>(
+  (ref) => ref.watch(baselineRepositoryProvider).watchAll(),
+);
+
 /// The one gait estimator, alive for the whole app (kept by
 /// `StorageHost`).
 final gaitEstimatorProvider = Provider<GaitEstimator>((ref) {
@@ -93,6 +101,22 @@ final gaitEstimatorProvider = Provider<GaitEstimator>((ref) {
     modelSlotProvider,
     (_, next) => estimator.slot = next.value,
     fireImmediately: true,
+  );
+  // Preprocessing (S9): the connected insoles' baselines, looked up at
+  // each stride, so a newly recorded baseline or a swapped insole counts
+  // at once.
+  var stored = const <FootBaseline>[];
+  ref.listen(
+    storedBaselinesProvider,
+    (_, next) => stored = next.value ?? stored,
+    fireImmediately: true,
+  );
+  String? insoleId(FootSide side) =>
+      ref.read(insoleDataSourceProvider(side)).calibration?.deviceId;
+  estimator.baselineNow = () => modelBaselineOf(
+    stored,
+    leftId: insoleId(FootSide.left),
+    rightId: insoleId(FootSide.right),
   );
   // The alert engine's gait-note hook (contract §8.3.1).
   final hook = ref.watch(gaitEstimateHookProvider);

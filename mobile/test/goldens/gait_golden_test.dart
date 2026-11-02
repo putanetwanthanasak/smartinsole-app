@@ -31,6 +31,16 @@ void main() {
       false,
       false,
     ),
+    // S9: a model in the slot, no quiet-standing baseline recorded.
+    (
+      'no_baseline',
+      MockPreset.toeWalk,
+      [
+        modelAnswering([0.05, 0.9, 0.02, 0.02, 0.01]),
+      ],
+      true,
+      false,
+    ),
     ('balance_warning', MockPreset.watch, [], false, false),
     ('one_foot', MockPreset.oneFootMissing, [], false, false),
     ('no_data', MockPreset.noData, [], false, false),
@@ -43,6 +53,7 @@ void main() {
           tester,
           preset,
           overrides: overrides,
+          baselines: state != 'no_baseline',
           textScale: scale,
           size: Size(390, height),
         );

@@ -5,6 +5,7 @@ import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/timezone.dart' as tz;
 
 import 'android_resources.dart';
+import 'local_notifications.dart';
 import 'notification_access.dart';
 import 'reminder_notifier.dart';
 import 'reminder_plan.dart';
@@ -15,7 +16,8 @@ import 'time_zone.dart';
 /// few minutes late is fine), restored after a reboot by the plugin's boot
 /// receiver (manifest). Text has no health details (user decision 2).
 class LocalReminderNotifier implements ReminderNotifier {
-  final _plugin = FlutterLocalNotificationsPlugin();
+  final _shared = LocalNotifications.instance;
+  FlutterLocalNotificationsPlugin get _plugin => _shared.plugin;
   late final _access = NotificationAccess(_PhoneNotifications(this));
 
   static const payload = 'foot-check-reminder';
@@ -55,10 +57,7 @@ class LocalReminderNotifier implements ReminderNotifier {
         icon: AndroidResources.reminderIcon,
       );
 
-  AndroidFlutterLocalNotificationsPlugin? get _android => _plugin
-      .resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin
-      >();
+  AndroidFlutterLocalNotificationsPlugin? get _android => _shared.android;
 
   @override
   Future<void> init({required void Function() onTap}) async {
@@ -68,23 +67,18 @@ class LocalReminderNotifier implements ReminderNotifier {
       offset: DateTime.now().timeZoneOffset,
     );
     debugPrint('reminder: local time zone ${zone.name}');
-    await _plugin.initialize(
-      settings: const InitializationSettings(
-        android: AndroidInitializationSettings(AndroidResources.reminderIcon),
-      ),
-      onDidReceiveNotificationResponse: (r) {
-        if (r.payload == payload) onTap();
-      },
-    );
+    await _shared.init('reminder', (p) {
+      if (p != payload) return false;
+      onTap();
+      return true;
+    });
     await _android?.createNotificationChannel(_soundChannel);
     await _android?.createNotificationChannel(_silentChannel);
   }
 
   @override
   Future<bool> launchedFromReminder() async {
-    final d = await _plugin.getNotificationAppLaunchDetails();
-    return (d?.didNotificationLaunchApp ?? false) &&
-        d?.notificationResponse?.payload == payload;
+    return await _shared.launchPayload() == payload;
   }
 
   @override

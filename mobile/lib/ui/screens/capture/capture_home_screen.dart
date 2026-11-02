@@ -129,8 +129,8 @@ class _CaptureHomeScreenState extends ConsumerState<CaptureHomeScreen> {
       title: 'Clear app database?',
       text:
           'Deletes every alert not tagged with a capture session, and all '
-          'temperature readings, daily summaries, foot checks and foot '
-          'photos on this phone.$kept',
+          'temperature readings, daily summaries, foot checks, quiet-standing '
+          'baselines and foot photos on this phone.$kept',
       action: 'Continue',
     );
     if (!first || !mounted) return;
@@ -151,7 +151,8 @@ class _CaptureHomeScreenState extends ConsumerState<CaptureHomeScreen> {
         content: Text(
           'Removed ${done.alerts} alerts, ${done.temperatureReadings} '
           'temperature readings, ${done.dailySummaries} daily summaries, '
-          '${done.footChecks} foot checks and ${done.photos} photo files.'
+          '${done.footChecks} foot checks, ${done.baselines} baselines and '
+          '${done.photos} photo files.'
           '\n\nRestart the app now (close it from Recents and open it '
           'again), so the alert engine starts clean.',
         ),

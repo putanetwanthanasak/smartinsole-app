@@ -7,11 +7,12 @@ import 'gait_class.dart';
 import 'gait_classifier.dart';
 import 'gait_timing.dart';
 import 'model_spec.dart';
-import 'model_window.dart';
+import 'preprocess.dart';
 
-/// Model A (DATA-CONTRACT §7) as a [GaitClassifier]: z-scores the window
-/// with the model's own `normalization.json`, runs it ([ModelRunner]) and
-/// reads `gait_probs` (argmax = class, max = confidence, §7.2).
+/// Model A (DATA-CONTRACT §7) as a [GaitClassifier]: preprocesses the
+/// window ("ทางเอ": the insoles' baseline subtracted, then Min-Max with the
+/// model's own `normalization.json`), runs it ([ModelRunner]) and reads
+/// `gait_probs` (argmax = class, max = confidence, §7.2).
 ///
 /// It returns the result whatever its confidence; `GaitEstimator` decides
 /// whether it is shown (≥ `model.minConfidence`) or the rules take over.
@@ -34,15 +35,17 @@ class ModelClassifier implements GaitClassifier {
   @override
   Future<GaitResult?> classify(GaitInput input) async {
     final rows = input.rows;
-    if (rows == null || _busy) return null;
-    final out = await runRows(rows);
+    final baseline = input.baseline;
+    if (rows == null || baseline == null || _busy) return null;
+    final out = await runRows(rows, baseline);
     return resultOf(out.probs, input.atMs);
   }
 
-  /// Normalises and runs [rows] (raw 28-channel rows). Runs are queued,
-  /// never overlapped: the runner answers one window at a time.
-  Future<ModelOutput> runRows(List<List<double>> rows) {
-    final window = normalizeWindow(rows, normalization);
+  /// Preprocesses and runs [rows] (raw 28-channel rows) with [baseline]
+  /// (28 model channels). Runs are queued, never overlapped: the runner
+  /// answers one window at a time.
+  Future<ModelOutput> runRows(List<List<double>> rows, List<double> baseline) {
+    final window = normalizeWindow(rows, baseline, normalization);
     final run = _last.then((_) async {
       _busy = true;
       try {
@@ -197,7 +200,8 @@ Future<ModelSlot> loadModelSlot({
 
 /// The result of running `check.json` (written by
 /// `tools/model/make_dummy_model.py`) through the app's own code path:
-/// normalisation, then the model on the device.
+/// preprocessing (its `baseline`, then Min-Max), then the model on the
+/// device.
 class ModelCheck {
   const ModelCheck({
     required this.windowMaxDiff,
@@ -236,11 +240,12 @@ Future<ModelCheck?> runModelCheck({
     for (final v in list! as List) (v as num).toDouble(),
   ];
   final rows = [for (final r in check['rows'] as List) floats(r)];
+  final baseline = floats(check['baseline']);
   final expectedWindow = [
     for (final r in check['window'] as List) ...floats(r),
   ];
-  final window = normalizeWindow(rows, classifier.normalization);
-  final out = await classifier.runRows(rows);
+  final window = normalizeWindow(rows, baseline, classifier.normalization);
+  final out = await classifier.runRows(rows, baseline);
   return ModelCheck(
     windowMaxDiff: _maxDiff(window, expectedWindow),
     probsMaxDiff: _maxDiff(out.probs, floats(check['gait_probs'])),

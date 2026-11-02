@@ -1,8 +1,8 @@
 // Migration tests. The schema dumps are drift_schemas/app_database/
-// drift_schema_v1.json and drift_schema_v2.json; generated/ comes from
+// drift_schema_v1.json, _v2.json and _v3.json (S9); generated/ comes from
 //   dart run drift_dev make-migrations
 // (also lib/storage/database.steps.dart). After the next schemaVersion bump,
-// run it again and add a vN → vN+1 data test next to the v1 → v2 one.
+// run it again and add a vN → vN+1 data test next to the others.
 import 'dart:convert';
 
 import 'package:drift/drift.dart' hide isNull;
@@ -19,6 +19,7 @@ import 'package:smartinsole/storage/temperature_repository.dart';
 import '../../storage/storage_rig.dart' show bangkok, bkk;
 import 'generated/schema.dart';
 import 'generated/schema_v1.dart' as v1;
+import 'generated/schema_v2.dart' as v2;
 
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
@@ -26,11 +27,11 @@ void main() {
 
   setUpAll(() => verifier = SchemaVerifier(GeneratedHelper()));
 
-  test('a database the app creates matches the committed v2 dump', () async {
+  test('a database the app creates matches the committed v3 dump', () async {
     // Catches a table change without a schema version bump and a new dump.
     final db = AppDatabase(NativeDatabase.memory());
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 2);
+    await verifier.migrateAndValidate(db, 3);
   });
 
   test('v1 → v2 matches the v2 dump', () async {
@@ -38,6 +39,50 @@ void main() {
     addTearDown(db.close);
     await verifier.migrateAndValidate(db, 2);
   });
+
+  test('v1 → v3 and v2 → v3 match the v3 dump', () async {
+    for (final from in [1, 2]) {
+      final db = AppDatabase(await verifier.startAt(from));
+      await verifier.migrateAndValidate(db, 3);
+      await db.close();
+    }
+  });
+
+  test(
+    'v2 → v3 keeps every v2 row (S9: the baselines table is additive)',
+    () async {
+      final at = bkk(2026, 10, 31, 1, 49);
+      final schema = await verifier.schemaAt(2);
+      final old = v2.DatabaseAtV2(schema.newConnection());
+      await old
+          .into(old.alerts)
+          .insert(
+            v2.AlertsCompanion.insert(
+              code: 'TEMP_DELTA',
+              level: 4,
+              patientStatus: 'rest',
+              side: const Value('left'),
+              zone: const Value('meta1'),
+              measuredValue: const Value(2.5),
+              threshold: const Value(2.2),
+              atMs: at,
+              localDate: '2026-10-31',
+              captureStamp: const Value('20261031-014500'),
+            ),
+          );
+      await old.close();
+
+      final db = AppDatabase(schema.newConnection());
+      addTearDown(db.close);
+      await verifier.migrateAndValidate(db, 3);
+      final alerts = await DriftAlertRepository(db, bangkok).since(0);
+      expect(alerts, hasLength(1));
+      expect(alerts.single.kind, AlertKind.tempDelta);
+      expect(alerts.single.atMs, at);
+      expect(alerts.single.captureStamp, '20261031-014500');
+      expect(await db.select(db.baselines).get(), isEmpty);
+    },
+  );
 
   test('v1 → v2 keeps every v1 row and value (S8D: nothing on the phone '
       'is deleted)', () async {

@@ -11,6 +11,8 @@ import 'package:smartinsole/footcheck/footcheck_providers.dart';
 import 'package:smartinsole/footcheck/photo_processor.dart';
 import 'package:smartinsole/gait/gait_providers.dart';
 import 'package:smartinsole/gait/model_spec.dart';
+import 'package:smartinsole/gait/preprocess.dart';
+import 'package:smartinsole/notify/alert_notification_service.dart';
 import 'package:smartinsole/notify/reminder_providers.dart';
 import 'package:smartinsole/settings/settings_providers.dart';
 import 'package:smartinsole/settings/settings_store.dart';
@@ -22,6 +24,7 @@ import 'package:smartinsole/ui/routes.dart';
 
 import '../ble/fake_ble_central.dart';
 import 'fake_foot_camera.dart';
+import 'fake_alert_notifier.dart';
 import 'fake_reminder_notifier.dart';
 
 /// Fixed time so the Home date line never changes between golden runs.
@@ -31,6 +34,12 @@ final fixedNow = DateTime(2026, 10, 18, 9, 30);
 /// checked by test/config/thresholds_test.dart).
 final testThresholds = Thresholds.parse(
   File(Thresholds.assetPath).readAsStringSync(),
+);
+
+/// The app's bundled preprocessing spec (identical to
+/// shared/model_preprocess.json, checked by test/gait/preprocess_test.dart).
+final testPreprocess = PreprocessSpec.parse(
+  File(PreprocessSpec.assetPath).readAsStringSync(),
 );
 
 /// The app's bundled Model A input spec (identical to
@@ -59,6 +68,7 @@ const referenceSize = Size(390, 844);
 /// call: with the app's watchers running, several writes in one
 /// `tester.runAsync` deadlock). Settings start at their defaults in memory;
 /// pass [settings] to start from a stored state (e.g. a text size).
+/// Alert notifications go to [alertNotifier] (a fresh fake by default).
 /// The foot check runs on [camera] and [reminders] fakes, with photos in
 /// [photoDir] (a fresh temp folder by default) and the photo processor
 /// called directly (no isolate under fake time).
@@ -76,6 +86,7 @@ Future<void> pumpApp(
   SettingsStore? settings,
   FakeFootCamera? camera,
   FakeReminderNotifier? reminders,
+  FakeAlertNotifier? alertNotifier,
   Directory? photoDir,
   List<Override> overrides = const [],
 }) async {
@@ -96,6 +107,7 @@ Future<void> pumpApp(
         clockProvider.overrideWithValue(now ?? () => fixedNow),
         thresholdsProvider.overrideWithValue(testThresholds),
         modelInputSpecProvider.overrideWithValue(testModelInput),
+        preprocessSpecProvider.overrideWithValue(testPreprocess),
         // No LiteRT on the test host: a model in the slot would fail here.
         modelRunnerFactoryProvider.overrideWithValue(
           (_, _) => throw UnsupportedError('no TFLite in widget tests'),
@@ -113,6 +125,9 @@ Future<void> pumpApp(
           settings ?? MemorySettingsStore(),
         ),
         footCameraProvider.overrideWithValue(() => camera ?? FakeFootCamera()),
+        alertNotifierProvider.overrideWithValue(
+          alertNotifier ?? FakeAlertNotifier(),
+        ),
         reminderNotifierProvider.overrideWithValue(
           reminders ?? FakeReminderNotifier(),
         ),

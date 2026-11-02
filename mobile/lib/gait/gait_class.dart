@@ -28,6 +28,11 @@ enum RulesBecause {
   /// The model ran, but its confidence was below `model.minConfidence`
   /// (contract §7.5).
   lowConfidence,
+
+  /// A model is loaded, but a connected insole has no quiet-standing
+  /// baseline (preprocessing "ทางเอ", S9): Model A is not used without it
+  /// (DESIGN-SPEC §8.5: "ยังไม่ได้บันทึกค่ายืนนิ่ง").
+  noBaseline,
 }
 
 /// One gait estimate. Display only, and the gait note's input: it never

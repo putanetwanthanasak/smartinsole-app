@@ -51,6 +51,11 @@ class GaitEstimator {
 
   /// The model slot, once loaded (null while loading).
   ModelSlot? slot;
+
+  /// The connected insoles' quiet-standing baselines as 28 model channels,
+  /// or null when either has none (S9; `baselineNowProvider`). Without
+  /// one Model A is not used.
+  List<double>? Function() baselineNow = () => null;
   final _walk = {for (final side in FootSide.values) side: <Step>[]};
   final _subs = <StreamSubscription<Object?>>[];
   final _newest = <FootSide, double>{};
@@ -169,14 +174,22 @@ class GaitEstimator {
       return;
     }
     final model = _model;
+    final baseline = model == null ? null : baselineNow();
     final input = GaitInput(
       atMs: now,
       leftSteps: List.unmodifiable(_walk[FootSide.left]!),
       rightSteps: List.unmodifiable(_walk[FootSide.right]!),
-      rows: model == null ? null : _window.latestRows(),
+      rows: baseline == null ? null : _window.latestRows(),
+      baseline: baseline,
     );
     if (model == null) {
       _show(rules.classifyNow(input, because: RulesBecause.noModel));
+      return;
+    }
+    // Preprocessing needs both insoles' baselines (S9): without one the
+    // model is not used, and the Gait tab says why.
+    if (baseline == null) {
+      _show(rules.classifyNow(input, because: RulesBecause.noBaseline));
       return;
     }
     // The previous run is still going: its result is this stride's.

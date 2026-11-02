@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "about": "Model A preprocessing \"ทางเอ\" (DATA-CONTRACT v1.6 section 7.1; decided 2026-10-25, proposal doc 03 section 3.5; details decided 2026-11-01). The same two steps in the app (mobile/lib/gait/preprocess.dart) and in training (tools/model/preprocess.py), checked against shared/test_vectors/model_preprocess/: (1) personal baseline: per foot and channel, the median of that foot's samples over the 30 s quiet-standing calibration recorded before the trials, subtracted from every model channel (all 28, FSR and IMU); (2) Min-Max: (x - baseline - min) / (max - min) with min/max per channel from the training subjects only (per LOSO fold), shipped in normalization.json (method \"baseline-minmax\"). No clipping: a value outside the training range stays outside 0-1. Computed in float64, then rounded to float32. The app refuses any other method value in this file rather than compute something else; baselineSeconds is read (the app's recording length).",
+  "baselineSeconds": 30,
+  "baselineStatistic": "median",
+  "baselineChannels": "all",
+  "scale": "minmax",
+  "clip": false,
+  "normalizationMethod": "baseline-minmax"
+}

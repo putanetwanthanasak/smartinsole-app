@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- The release build's resource shrinker removes drawables no code
-     references by R.id. flutter_local_notifications looks the reminder
-     icon up by name at runtime, so keep it (without this the release APK
-     fails reminder setup with "invalid_icon"; found on the Note 10, S8C). -->
+     references by R.id. flutter_local_notifications looks the notification
+     icons up by name at runtime, so keep them (without this the release APK
+     fails reminder setup with "invalid_icon"; found on the Note 10, S8C).
+     ic_stat_foot_alert: the foot alert notifications (S9). -->
 <resources xmlns:tools="http://schemas.android.com/tools"
-    tools:keep="@drawable/ic_stat_foot_check" />
+    tools:keep="@drawable/ic_stat_foot_check,@drawable/ic_stat_foot_alert" />

@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import '../device/device_providers.dart';
 import '../ui/clock.dart';
 import 'alert_repository.dart';
+import 'baseline_repository.dart';
 import 'daily_summary_repository.dart';
 import 'database.dart';
 import 'foot_check_repository.dart';
@@ -73,6 +74,11 @@ final dailySummaryRepositoryProvider = Provider<DailySummaryRepository>(
     ref.watch(databaseProvider),
     ref.watch(localDatesProvider),
   ),
+);
+
+/// Each insole's quiet-standing baseline (S9, Model A preprocessing).
+final baselineRepositoryProvider = Provider<BaselineRepository>(
+  (ref) => DriftBaselineRepository(ref.watch(databaseProvider)),
 );
 
 final footCheckRepositoryProvider = Provider<FootCheckRepository>(

@@ -11,6 +11,7 @@ class GaitInput {
     required this.leftSteps,
     required this.rightSteps,
     this.rows,
+    this.baseline,
   });
 
   /// Unix ms of the newest sample both feet have.
@@ -24,6 +25,11 @@ class GaitInput {
   /// The model window, raw 28-channel rows ([ModelWindowBuilder]); null
   /// when there is no complete window.
   final List<List<double>>? rows;
+
+  /// The two connected insoles' baselines as 28 model channels
+  /// (`preprocess.dart`); null when either has none, and then Model A is
+  /// not used (S9).
+  final List<double>? baseline;
 }
 
 /// Classifies gait (contract §7.2's 5 classes). The Gait tab never knows

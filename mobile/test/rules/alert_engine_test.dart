@@ -394,6 +394,10 @@ void main() {
       test('a second site is appended to the open alert, not raised '
           'again', () async {
         final rig = RulesRig()..stream();
+        // S9: the notification stream sees the new alert only.
+        final raised = <RaisedAlert>[];
+        final sub = rig.engine.raised.listen(raised.add);
+        addTearDown(sub.cancel);
         pair(rig, right: {5: 31 + over});
         pair(rig, right: {5: 31 + over});
         expect(zonesOf(await only(rig)), ['heel']);
@@ -401,6 +405,9 @@ void main() {
         pair(rig, right: {5: 31 + over, 7: 31 + over - 0.2});
         final a = await only(rig);
         expect(zonesOf(a), ['heel', 'lateralHeel']);
+        await pumpEventQueue();
+        expect(raised.map((r) => r.id), [a.id]);
+        expect(raised.single.alert.zone, 'heel');
         expect(a.zone, 'heel', reason: 'the named site stays');
         final added = TempSiteEntry.listOf(a.details).last;
         expect(added.deltaC, closeTo(over - 0.2, 1e-9));

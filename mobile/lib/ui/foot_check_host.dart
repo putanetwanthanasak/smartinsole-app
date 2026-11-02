@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../capture/capture_providers.dart';
 import '../footcheck/footcheck_providers.dart';
 import '../footcheck/orphan_sweep.dart';
 import '../notify/reminder_providers.dart';
@@ -16,7 +17,8 @@ import 'shell/app_shell.dart';
 /// - At start: deletes foot photos no saved check refers to and camera
 ///   temp files (a check left unsaved when the app closed), before any
 ///   check can be in progress.
-/// - Starts the evening reminder; a tapped reminder opens "ตรวจเท้า".
+/// - Starts the evening reminder; a tapped reminder opens "ตรวจเท้า"
+///   (not while a research capture session is open).
 /// - On resume: re-reads today's date and whether notifications are
 ///   allowed, and reschedules.
 /// - The first time "ตรวจเท้า" opens, asks for the Android 13+
@@ -73,6 +75,12 @@ class _FootCheckHostState extends ConsumerState<FootCheckHost> {
   }
 
   void _openFootCheckTab() {
+    // Not while a research capture session is open: popping its screen
+    // would end a running trial as interrupted (S9 spec review).
+    if (ref.read(activeCaptureProvider) != null) {
+      debugPrint('reminder: tap ignored during a capture');
+      return;
+    }
     ref.read(selectedTabProvider.notifier).select(AppTab.footCheck);
     appNavigatorKey.currentState?.popUntil((r) => r.isFirst);
   }

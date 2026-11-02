@@ -1,6 +1,6 @@
 # lib/storage/
 
-Local storage (S6A): SQLite through drift, schema v2 (S8D), behind one repository
+Local storage (S6A): SQLite through drift, schema v3 (S9), behind one repository
 interface per area. Screens and services use the providers in
 `storage_providers.dart` and the plain models in `models.dart`; nothing
 outside this folder imports drift or `database.dart`'s row types.
@@ -14,6 +14,7 @@ outside this folder imports drift or `database.dart`'s row types.
 | `temperature_repository.dart` | `TemperatureRepository`: every 30 s reading per foot |
 | `daily_summary_repository.dart` | `DailySummaryRepository`: max ΔT, alert counts, foot-check flag, activity (S8A) |
 | `foot_check_repository.dart` | `FootCheckRepository`: save (result decided here, rule 14) |
+| `baseline_repository.dart` | `BaselineRepository` (S9): each insole's latest quiet-standing baseline for Model A preprocessing |
 | `retention.dart` | 30-day retention + its daily schedule |
 | `temperature_recorder.dart` | `DeviceManager.temps` → database |
 | `storage_host.dart` | Keeps the recorder and retention running; resume hook |
@@ -32,6 +33,9 @@ Rules:
   `max_delta_site` (the old forefoot / heel maxima stay); a new
   `TEMP_DELTA` stores its site in `zone`, an old one keeps `site`
   (`LegacyTempSite`) and gets nothing appended.
+- **Schema v3 (S9) is additive:** a new `baselines` table (side,
+  insole `device_id`, time, sample count, 14 medians as JSON; one row per
+  foot and insole). "Clear app database (test data)" empties it too.
 - Schema change: bump `schemaVersion`, then from `mobile/` run
   `dart run build_runner build` and `dart run drift_dev make-migrations`
   (dumps `drift_schemas/`, writes migration steps and tests in `test/drift/`).

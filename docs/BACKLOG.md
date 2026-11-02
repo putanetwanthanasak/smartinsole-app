@@ -1279,7 +1279,7 @@ fits on one line. The break falls between words and the card grows to
 fit, so nothing is cut, but the steps card beside it is half empty. Options for S10: a smaller value style
 for this card, or the user's OK on a shorter label.
 
-## 51. The app's step detector splits one stance on a short dip below `contactKpa` **(found at the S8A phone check)** — OPEN, S9's first item, before SR
+## 51. The app's step detector splits one stance on a short dip below `contactKpa` **(found at the S8A phone check)** — RESOLVED in S9-1 (2026-11-01)
 
 **Problem.** `StepDetector` (`mobile/lib/rules/step_detector.dart`) starts
 a stance when the summed kPa rises above `steps.contactKpa` and ends it
@@ -1309,6 +1309,26 @@ PTI per step, `LOAD_CONCENTRATION`, `ASYMMETRY_PEAK` and the gait rules.
   one step per stance.
 - Two real steps separated by a genuine swing still count as two.
 - SR's manual step count stays, and it now also checks the new keys.
+
+**Fixed in S9-1 (report 039): merge across a short dip** (user decision
+2026-11-01). New provisional key `steps.mergeGapMs` = 120 ms (both
+`thresholds.json` copies, `version` 1; DATA-CONTRACT §8 addendum). A dip
+shorter than that does not end a stance; a step is therefore reported at
+most `mergeGapMs` after its end, with the start, end, peak and PTI it had
+at its end. The replay of the pre-fix walk
+(`firmware/simulator/tools/presplit_walk/`, fixture
+`mobile/test/fixtures/steps/presplit_walk.csv`) showed the dip is one
+sample (20 ms) and the swing about 500 ms; 100 was not used because it is
+one of the no-literal test's allowed literals. Tests
+(`test/rules/step_replay_test.dart`, `step_detector_test.dart`,
+`step_merge_walk_end_test.dart`): one step per stride at offsets 12 and
+19 on both feet, every stance within the limits, stance PAI below
+`gait.stanceAsymmetryPct` / 2 for both board pairings, the walk still
+splits with `mergeGapMs` 0, a gap of `mergeGapMs` is two steps, the delay
+is bounded, and "กำลังเดิน" and the step-based rules end at the same tick
+as without the merge. The existing step tests keep every assertion; only
+their helper adds `mergeGapMs` of unloaded samples (user decision
+2026-11-01). SR's hand count also checks `mergeGapMs`.
 
 ## 52. Auto-reconnect searches without a time limit **(found in S8B)** — OPEN, for S9
 
@@ -1420,6 +1440,10 @@ shown to fail with keep.xml removed.
 that passed the check. Any other by-name lookup (`getIdentifier`) follows
 the same rule.
 
+**S9-1 (report 039):** the foot alert icon `ic_stat_foot_alert` is in
+`AndroidResources` and keep.xml; the S9-2 release APK must pass the check
+with it listed.
+
 ## 62. Evening reminders may come up to 1 hour late **(found at the S8C Note 10 run)** — OPEN, for S10 if needed
 
 The reminders are inexact alarms (`inexactAllowWhileIdle`, no exact-alarm
@@ -1430,7 +1454,7 @@ it too late, options are a window alarm (`setWindow`, e.g. 15 minutes) or
 exact alarms, which need `SCHEDULE_EXACT_ALARM` / `USE_EXACT_ALARM` and
 their policy review.
 
-## 63. The laptop web fallback cannot capture from 8-sensor boards **(found in S8D-1)** — OPEN, user decision before S9
+## 63. The laptop web fallback cannot capture from 8-sensor boards **(found in S8D-1)** — CLOSED 2026-11-01 (user decision 2026-10-31: one phone only)
 
 The frozen web app reads only DATA-CONTRACT v1.5. With a v1.6 board:
 `parseCalibrationJSON` (`src/ts/data/blePacketParser.ts`) throws unless the
@@ -1445,6 +1469,15 @@ no laptop fallback for the real boards (report 037;
 (c) a user-requested fix to the web app (allowed by `CLAUDE.md` as a bug
 that affects data capture): parse N from the calibration, v2 temperature.
 Decide before S9 (1 Nov) so S9/S10 can plan for it.
+
+**Decision (2026-10-31): (a), one phone only (the Note 10).** No laptop
+fallback; the web app is retired as one and its code is left untouched.
+Export after every participant and run `load_capture.py check` before the
+next one; if the phone fails mid-session, stop and reschedule that
+participant inside the IRB window (1–30 Nov); bring a charged phone, a
+power bank and a spare USB cable on study days. Written into
+`docs/STUDY-CAPTURE.md` and `docs/STUDY-FALLBACK.md` (now a "retired"
+page) in S9-1 (report 039).
 
 ## 64. `concentrationPct` 40 % was set for 6 sensors **(found in S8D-1)** — OPEN, check in SR
 
@@ -1547,3 +1580,53 @@ line its backdrop covers below the dot.
 screens a user leaves quickly, so the window is small: one open across
 midnight shows yesterday's words until something rebuilds it. Fix the same
 way (watch `todayProvider`) when either screen is next touched.
+
+## 72. Foot alert notifications with the screen off **(S9-1, user decision 9)** — OPEN, measure in S9-2
+
+S9 posts a system notification for `TEMP_DELTA`, `PRESSURE_PEAK`,
+`PRESSURE_PTI` and `LOAD_CONCENTRATION` (DESIGN-SPEC §11.9), but only while
+Android lets the app run: there is no foreground service (v1 scope, user
+decision 2026-11-01). STEP 0 saw Samsung's Freecess freeze the app's
+process after it left the screen, and a frozen app reads no BLE and raises
+nothing. S9-2 measures, on the Note 10 with both simulator boards, whether
+a `p` / `t` command still produces a notification with the screen on, the
+app in the background, and the screen off (after 1, 5 and 15 minutes).
+The result goes here and into FLUTTER-PLAN §1 as a stated limitation for
+the thesis. A foreground service (with its own persistent notification) is
+the fix if the study needs it; not in v1.
+
+## 73. The notification permission is only asked for the reminder **(S9-1)** — RESOLVED in S9-1 (user decision 2026-11-02)
+
+Android 13+ asks for the notification permission at the first open of
+"ตรวจเท้า" and when the reminder switch is turned on (S8C). A user who
+turns the reminder off before that is never asked, and on Android 13+ then
+gets no foot alert notifications either (the permission is per app). The
+Note 10 (Android 12) is not affected: notifications are allowed by
+default there. Fix when an Android 13+ phone is used: also ask on the first
+alert, or at the first connection.
+
+**Resolved (report 039):** the app also asks once the first time both
+insoles stream (`AlertNotificationHost`, flag `notify.connectPromptShown`),
+never during a research capture (then once the session is closed); the
+"ตรวจเท้า" and reminder asks stay. Tests: `test/notify/connect_prompt_test.dart`.
+
+## 74. The app's quiet-standing baseline is a separate recording from capture trial 00 **(S9-1)** — DECIDED 2026-11-02, build at the start of S9-2
+
+Training takes each subject's baseline from capture trial 00 (the 30 s
+standing calibration); the app takes it from Researcher › "บันทึกค่ายืนนิ่ง
+30 วินาที" (DATA-CONTRACT §7.1). Same statistic, duration and channels,
+but two recordings. Options when Model A arrives (late Nov): record the
+app baseline right after trial 00 on the study day, or have a valid
+trial 00 also save the app baseline (reads the capture's 50 Hz rows only;
+capture recording and timing unchanged).
+
+**Decision (user, 2026-11-02): both, with one code path.** Training and
+evaluation use capture trial 00; live use in the app uses the Researcher
+recording. Both go through the same baseline function (median, same
+window, same rejection rules: lost packets, reconnect, TARE, walking gate,
+foot not loaded above `steps.contactKpa`) in Dart and in
+`tools/model/preprocess.py`. A test feeds a trial-00 fixture through both
+paths and gets identical baselines. DATA-CONTRACT §7 and STUDY-CAPTURE
+say so. Built at the start of S9-2 (SESSIONS §S9 item 9). Today the
+Python side takes the median of all valid trial-00 rows, with no window
+and no rejection rules.

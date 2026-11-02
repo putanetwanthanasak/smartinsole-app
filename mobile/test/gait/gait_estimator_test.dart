@@ -19,7 +19,7 @@ import 'gait_rig.dart';
 void main() {
   final normJson = utf8.decode(dummyFile(normalizationFileName));
 
-  (RulesRig, GaitEstimator) makeRig({FakeRunner? model}) {
+  (RulesRig, GaitEstimator) makeRig({FakeRunner? model, bool baseline = true}) {
     final rig = RulesRig()..stream();
     final estimator = GaitEstimator(
       manager: rig.manager,
@@ -28,6 +28,11 @@ void main() {
       spec: testModelInput,
     )..start();
     addTearDown(estimator.stop);
+    // Both insoles' quiet-standing baselines (S9); 0 leaves the rows as
+    // they are.
+    if (baseline) {
+      estimator.baselineNow = () => List.filled(modelChannelCount, 0.0);
+    }
     if (model != null) {
       estimator.slot = ModelReady(
         'test',
@@ -140,6 +145,38 @@ void main() {
     r = est.current!;
     expect(r.source, GaitSource.rules);
     expect(r.because, RulesBecause.noModel);
+  });
+
+  test('model ready but an insole without a baseline: the rules, never '
+      'the model (S9, preprocessing)', () async {
+    final runner = FakeRunner([0.05, 0.05, 0.8, 0.05, 0.05]);
+    List<double>? baseline;
+    final (rig, est) = makeRig(model: runner, baseline: false);
+    est.baselineNow = () => baseline;
+    rig.walkBoth(const Duration(seconds: 8), toe);
+    await pumpEventQueue();
+    expect(runner.windows, isEmpty, reason: 'the model was never asked');
+    var r = est.current!;
+    expect(r.source, GaitSource.rules);
+    expect(r.because, RulesBecause.noBaseline);
+    expect(r.gaitClass, GaitClass.toeWalking);
+
+    // A baseline recorded: the next stride uses the model, with it
+    // subtracted.
+    baseline = List.filled(modelChannelCount, 0.0);
+    rig.walkBoth(const Duration(seconds: 2), toe);
+    await pumpEventQueue();
+    expect(runner.windows, isNotEmpty);
+    r = est.current!;
+    expect(r.source, GaitSource.model);
+  });
+
+  test('no model: "no model" wins over "no baseline" (the release build '
+      'is unchanged)', () async {
+    final (rig, est) = makeRig(baseline: false);
+    rig.walkBoth(const Duration(seconds: 8), toe);
+    await pumpEventQueue();
+    expect(est.current!.because, RulesBecause.noModel);
   });
 
   test('one estimate per stride of sample time', () async {

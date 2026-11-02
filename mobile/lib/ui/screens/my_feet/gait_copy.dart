@@ -30,10 +30,13 @@ String gaitClassDescription(GaitClass c) => switch (c) {
   GaitClass.rotatedFoot => 'ปลายเท้าหันเข้าด้านในหรือออกด้านนอกขณะเดิน',
 };
 
-/// Under a rule-based result. The low-confidence line is an S8A draft.
+/// Under a rule-based result. The low-confidence line is an S8A draft,
+/// the no-baseline line an S9 draft (DESIGN-SPEC Appendix A).
 String rulesLine(RulesBecause? because) => switch (because) {
   RulesBecause.lowConfidence =>
     'ประเมินด้วยกฎพื้นฐาน เพราะโมเดล AI ยังไม่มั่นใจพอ',
+  RulesBecause.noBaseline =>
+    'ประเมินด้วยกฎพื้นฐาน เพราะยังไม่ได้บันทึกค่ายืนนิ่ง',
   _ => 'ประเมินด้วยกฎพื้นฐาน เพราะโมเดล AI ยังไม่พร้อม',
 };
 
@@ -63,9 +66,11 @@ String balanceTitle({required bool walking}) =>
 /// "ประเมินโดย".
 String sourceTh(GaitEstimateView e) => e.fromModel
     ? 'โมเดล AI (Model A)'
-    : e.because == RulesBecause.lowConfidence
-    ? 'กฎพื้นฐาน (โมเดล AI ยังไม่มั่นใจพอ)'
-    : 'กฎพื้นฐาน (โมเดล AI ยังไม่พร้อม)';
+    : switch (e.because) {
+        RulesBecause.lowConfidence => 'กฎพื้นฐาน (โมเดล AI ยังไม่มั่นใจพอ)',
+        RulesBecause.noBaseline => 'กฎพื้นฐาน (ยังไม่ได้บันทึกค่ายืนนิ่ง)',
+        _ => 'กฎพื้นฐาน (โมเดล AI ยังไม่พร้อม)',
+      };
 
 /// Whole number, or one decimal when it has one ("15", "2.5").
 String _n(double v) =>

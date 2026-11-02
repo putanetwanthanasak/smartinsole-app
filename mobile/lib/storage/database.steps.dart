@@ -813,8 +813,225 @@ i1.GeneratedColumn<int> _column_60(String aliasedName) =>
       type: i1.DriftSqlType.int,
       $customConstraints: 'NOT NULL',
     );
+
+final class Schema3 extends i0.VersionedSchema {
+  Schema3({required super.database}) : super(version: 3);
+  @override
+  late final List<i1.DatabaseSchemaEntity> entities = [
+    footChecks,
+    alerts,
+    temperatureReadings,
+    dailySummary,
+    baselines,
+    alertsAt,
+    alertsReadAt,
+    alertsCapture,
+    temperatureSideAt,
+    temperatureDate,
+    footChecksDate,
+  ];
+  late final Shape0 footChecks = Shape0(
+    source: i0.VersionedTable(
+      entityName: 'foot_checks',
+      withoutRowId: false,
+      isStrict: false,
+      tableConstraints: [],
+      columns: [
+        _column_0,
+        _column_1,
+        _column_2,
+        _column_3,
+        _column_4,
+        _column_5,
+        _column_6,
+        _column_7,
+        _column_8,
+        _column_9,
+        _column_10,
+        _column_11,
+      ],
+      attachedDatabase: database,
+    ),
+    alias: null,
+  );
+  late final Shape1 alerts = Shape1(
+    source: i0.VersionedTable(
+      entityName: 'alerts',
+      withoutRowId: false,
+      isStrict: false,
+      tableConstraints: [],
+      columns: [
+        _column_0,
+        _column_12,
+        _column_13,
+        _column_14,
+        _column_15,
+        _column_16,
+        _column_17,
+        _column_18,
+        _column_19,
+        _column_20,
+        _column_21,
+        _column_22,
+        _column_1,
+        _column_2,
+        _column_23,
+        _column_24,
+        _column_25,
+      ],
+      attachedDatabase: database,
+    ),
+    alias: null,
+  );
+  late final Shape2 temperatureReadings = Shape2(
+    source: i0.VersionedTable(
+      entityName: 'temperature_readings',
+      withoutRowId: false,
+      isStrict: false,
+      tableConstraints: [],
+      columns: [
+        _column_0,
+        _column_1,
+        _column_2,
+        _column_26,
+        _column_27,
+        _column_28,
+        _column_29,
+        _column_30,
+        _column_31,
+        _column_32,
+        _column_33,
+        _column_34,
+        _column_35,
+        _column_36,
+        _column_37,
+        _column_38,
+        _column_39,
+        _column_40,
+        _column_41,
+        _column_42,
+        _column_43,
+        _column_44,
+        _column_45,
+        _column_46,
+      ],
+      attachedDatabase: database,
+    ),
+    alias: null,
+  );
+  late final Shape3 dailySummary = Shape3(
+    source: i0.VersionedTable(
+      entityName: 'daily_summary',
+      withoutRowId: false,
+      isStrict: false,
+      tableConstraints: ['PRIMARY KEY(local_date)'],
+      columns: [
+        _column_2,
+        _column_47,
+        _column_48,
+        _column_49,
+        _column_50,
+        _column_51,
+        _column_52,
+        _column_53,
+        _column_54,
+        _column_55,
+        _column_56,
+        _column_57,
+        _column_58,
+        _column_59,
+        _column_60,
+      ],
+      attachedDatabase: database,
+    ),
+    alias: null,
+  );
+  late final Shape4 baselines = Shape4(
+    source: i0.VersionedTable(
+      entityName: 'baselines',
+      withoutRowId: false,
+      isStrict: false,
+      tableConstraints: ['PRIMARY KEY(side, insole_id)'],
+      columns: [_column_26, _column_61, _column_62, _column_63, _column_64],
+      attachedDatabase: database,
+    ),
+    alias: null,
+  );
+  final i1.Index alertsAt = i1.Index(
+    'alerts_at',
+    'CREATE INDEX alerts_at ON alerts (at_ms)',
+  );
+  final i1.Index alertsReadAt = i1.Index(
+    'alerts_read_at',
+    'CREATE INDEX alerts_read_at ON alerts (read_at_ms)',
+  );
+  final i1.Index alertsCapture = i1.Index(
+    'alerts_capture',
+    'CREATE INDEX alerts_capture ON alerts (capture_stamp)',
+  );
+  final i1.Index temperatureSideAt = i1.Index(
+    'temperature_side_at',
+    'CREATE INDEX temperature_side_at ON temperature_readings (side, at_ms)',
+  );
+  final i1.Index temperatureDate = i1.Index(
+    'temperature_date',
+    'CREATE INDEX temperature_date ON temperature_readings (local_date)',
+  );
+  final i1.Index footChecksDate = i1.Index(
+    'foot_checks_date',
+    'CREATE INDEX foot_checks_date ON foot_checks (local_date)',
+  );
+}
+
+class Shape4 extends i0.VersionedTable {
+  Shape4({required super.source, required super.alias}) : super.aliased();
+  i1.GeneratedColumn<String> get side =>
+      columnsByName['side']! as i1.GeneratedColumn<String>;
+  i1.GeneratedColumn<String> get insoleId =>
+      columnsByName['insole_id']! as i1.GeneratedColumn<String>;
+  i1.GeneratedColumn<int> get recordedAtMs =>
+      columnsByName['recorded_at_ms']! as i1.GeneratedColumn<int>;
+  i1.GeneratedColumn<int> get sampleCount =>
+      columnsByName['sample_count']! as i1.GeneratedColumn<int>;
+  i1.GeneratedColumn<String> get values =>
+      columnsByName['values']! as i1.GeneratedColumn<String>;
+}
+
+i1.GeneratedColumn<String> _column_61(String aliasedName) =>
+    i1.GeneratedColumn<String>(
+      'insole_id',
+      aliasedName,
+      false,
+      type: i1.DriftSqlType.string,
+      $customConstraints: 'NOT NULL',
+    );
+i1.GeneratedColumn<int> _column_62(String aliasedName) =>
+    i1.GeneratedColumn<int>(
+      'recorded_at_ms',
+      aliasedName,
+      false,
+      type: i1.DriftSqlType.int,
+      $customConstraints: 'NOT NULL',
+    );
+i1.GeneratedColumn<int> _column_63(String aliasedName) =>
+    i1.GeneratedColumn<int>(
+      'sample_count',
+      aliasedName,
+      false,
+      type: i1.DriftSqlType.int,
+      $customConstraints: 'NOT NULL',
+    );
+i1.GeneratedColumn<String> _column_64(String aliasedName) =>
+    i1.GeneratedColumn<String>(
+      'values',
+      aliasedName,
+      false,
+      type: i1.DriftSqlType.string,
+      $customConstraints: 'NOT NULL',
+    );
 i0.MigrationStepWithVersion migrationSteps({
   required Future<void> Function(i1.Migrator m, Schema2 schema) from1To2,
+  required Future<void> Function(i1.Migrator m, Schema3 schema) from2To3,
 }) {
   return (currentVersion, database) async {
     switch (currentVersion) {
@@ -823,6 +1040,11 @@ i0.MigrationStepWithVersion migrationSteps({
         final migrator = i1.Migrator(database, schema);
         await from1To2(migrator, schema);
         return 2;
+      case 2:
+        final schema = Schema3(database: database);
+        final migrator = i1.Migrator(database, schema);
+        await from2To3(migrator, schema);
+        return 3;
       default:
         throw ArgumentError.value('Unknown migration from $currentVersion');
     }
@@ -831,6 +1053,7 @@ i0.MigrationStepWithVersion migrationSteps({
 
 i1.OnUpgrade stepByStep({
   required Future<void> Function(i1.Migrator m, Schema2 schema) from1To2,
+  required Future<void> Function(i1.Migrator m, Schema3 schema) from2To3,
 }) => i0.VersionedSchema.stepByStepHelper(
-  step: migrationSteps(from1To2: from1To2),
+  step: migrationSteps(from1To2: from1To2, from2To3: from2To3),
 );

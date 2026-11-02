@@ -3,9 +3,10 @@
 How to run one volunteer session with the phone app and get the data onto
 the laptop. The procedure follows the IRB-approved proposal **doc 03**.
 Where `docs/SmartInsole_TestProtocol_v1.md` differs, doc 03 wins (see
-BACKLOG 32). If the phone capture fails in the middle of a session, switch
-to the laptop: `docs/STUDY-FALLBACK.md` (**not usable with the 8-sensor
-boards**: see its warning and BACKLOG 63).
+BACKLOG 32). **One phone only** (user decision 2026-10-31, BACKLOG 63):
+there is no laptop fallback. If the phone fails in the middle of a
+session, stop and reschedule that participant inside the IRB window
+(1–30 Nov): `docs/STUDY-FALLBACK.md`.
 
 Built in S4C (`docs/reports/027-flutter-capture.md`). Code:
 `mobile/lib/capture/`. Tools: `tools/capture/`.
@@ -31,6 +32,10 @@ Built in S4C (`docs/reports/027-flutter-capture.md`). Code:
 
 ## Before the volunteer arrives
 
+0. **Study-day kit:** the phone charged, a charged power bank, and a spare
+   USB cable. The previous participant's session is exported and its
+   laptop copy passed `load_capture.py check` (see "Export"); do not start
+   a new participant before that.
 1. Phone charged. Sound on, media volume up: the cues play on the media
    stream, so they still sound in silent mode. Do Not Disturb off.
 2. Both insoles charged to **at least 80 %**. The pre-check blocks
@@ -138,7 +143,8 @@ by its time stamp, never by the subject code. It goes into the export as
 ## Clearing test data before the study (S6B)
 
 Testing the app on the study phone leaves rows in its database: alerts,
-temperature readings, daily summaries and foot checks. Clear them once,
+temperature readings, daily summaries, foot checks and (since S9)
+quiet-standing baselines. Clear them once,
 before 2026-11-12, the study start (SR checklist):
 
 1. Disconnect both insoles first (Settings → **เชื่อมต่อแผ่นรองเท้า** →
@@ -189,9 +195,14 @@ database. (On a debug build the equivalent is
    - asks before removing the staged copy from the phone.
 
    Add `--serial <id>` if more than one device is attached.
-3. **Back up** `~/smartinsole-data/<sessionId>/` to a second place (the
+3. **Check it before the next participant** (one phone only, BACKLOG 63):
+   `python3 tools/capture/load_capture.py check ~/smartinsole-data/<sessionId>/`
+   must end in `PASS`. The export script already runs these checks; run
+   it again on the saved copy and read the result before the next
+   volunteer starts. If it fails, keep the data and tell the study lead.
+4. **Back up** `~/smartinsole-data/<sessionId>/` to a second place (the
    protocol asks for two copies).
-4. Only then: in the app, Summary → **Delete from phone**. It asks twice,
+5. Only then: in the app, Summary → **Delete from phone**. It asks twice,
    and only works after an export.
 
 ## What the checks say

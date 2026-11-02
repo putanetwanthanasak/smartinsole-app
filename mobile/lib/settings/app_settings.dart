@@ -34,9 +34,9 @@ class AppSettings {
   /// Defaults to "ปกติ" (decision 11).
   final TextSizeOption textSize;
 
-  /// "เสียงแจ้งเตือน". Off makes the evening foot-check reminder silent
-  /// (S8C, user decision 2); the in-app alert sound arrives in S9.
-  /// Research capture cues ignore it.
+  /// "เสียงแจ้งเตือน". Off makes the evening foot-check reminder (S8C,
+  /// user decision 2) and the foot alert notifications (S9) silent: they
+  /// still show. Research capture cues ignore it.
   final bool sound;
 
   /// "เตือนให้ดูเท้าทุกวัน" and its time: the evening notification

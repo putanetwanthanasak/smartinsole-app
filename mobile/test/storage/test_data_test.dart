@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:smartinsole/ble/packets.dart';
 import 'package:smartinsole/rules/patient_status.dart';
 import 'package:smartinsole/storage/alert_repository.dart';
+import 'package:smartinsole/storage/baseline_repository.dart';
 import 'package:smartinsole/storage/database.dart';
 import 'package:smartinsole/storage/foot_check_repository.dart';
 import 'package:smartinsole/storage/models.dart';
@@ -32,7 +33,7 @@ void main() {
   });
 
   test(
-    'clears untagged alerts and the other 3 tables; tagged alerts stay',
+    'clears untagged alerts and the other 4 tables; tagged alerts stay',
     () async {
       final alerts = DriftAlertRepository(db);
       await alerts.add(alertAt(t0));
@@ -55,6 +56,15 @@ void main() {
           answerOnly: false,
         ),
       );
+      await DriftBaselineRepository(db).save(
+        FootBaseline(
+          side: FootSide.left,
+          insoleId: 'INSOLE-L-001',
+          recordedAtMs: t0,
+          sampleCount: 1500,
+          values: List.filled(14, 1.5),
+        ),
+      );
       File('${photos.path}/a.jpg').writeAsStringSync('x');
       File('${photos.path}/b.jpg').writeAsStringSync('y');
 
@@ -64,6 +74,7 @@ void main() {
       expect(done.temperatureReadings, 1);
       expect(done.dailySummaries, 1);
       expect(done.footChecks, 1);
+      expect(done.baselines, 1);
       expect(done.photos, 2);
       final left = await alerts.since(0);
       expect(left.map((a) => a.captureStamp), [
@@ -73,6 +84,7 @@ void main() {
       expect(await db.select(db.temperatureReadings).get(), isEmpty);
       expect(await db.select(db.dailySummaries).get(), isEmpty);
       expect(await db.select(db.footChecks).get(), isEmpty);
+      expect(await db.select(db.baselines).get(), isEmpty);
       expect(photos.existsSync(), isTrue);
       expect(photos.listSync(), isEmpty);
     },

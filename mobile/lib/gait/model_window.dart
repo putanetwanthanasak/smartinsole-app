@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import '../ble/packets.dart';
 import '../device/foot_sample.dart';
 import '../device/model_channels.dart';
@@ -72,21 +70,4 @@ class ModelWindowBuilder {
     }
     _session.clear();
   }
-}
-
-/// [rows] z-scored with [norm] into the model's float32 input, row-major
-/// `[1, rows, channels]`.
-Float32List normalizeWindow(List<List<double>> rows, Normalization norm) {
-  final channels = norm.mean.length;
-  final out = Float32List(rows.length * channels);
-  for (var t = 0; t < rows.length; t++) {
-    final row = rows[t];
-    if (row.length != channels) {
-      throw ArgumentError('row $t has ${row.length} channels, not $channels');
-    }
-    for (var c = 0; c < channels; c++) {
-      out[t * channels + c] = (row[c] - norm.mean[c]) / norm.std[c];
-    }
-  }
-  return out;
 }
