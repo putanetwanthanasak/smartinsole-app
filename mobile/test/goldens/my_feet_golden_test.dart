@@ -39,7 +39,7 @@ void main() {
       false,
     ),
   ];
-  for (final (scale, height) in [(1.0, 2300.0), (2.0, 5200.0)]) {
+  for (final (scale, height) in [(1.0, 2300.0), (1.3, 3200.0), (2.0, 5200.0)]) {
     for (final (state, preset, tab, seed, open) in states) {
       final name = 'my_feet_${state}_${(scale * 100).round()}';
       testWidgets(name, (tester) async {

@@ -2,7 +2,7 @@ import 'dart:ui' show SemanticsRole, Tristate;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_lucide/flutter_lucide.dart';
-import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_test/flutter_test.dart' hide expect;
 import 'package:smartinsole/ble/packets.dart';
 import 'package:smartinsole/config/foot_layout.dart';
 import 'package:smartinsole/device/mock_data_source.dart';
@@ -18,6 +18,8 @@ import 'package:smartinsole/ui/widgets/temp_site_map.dart';
 import '../alerts/alerts_rig.dart' show containerOf;
 import '../helpers/pump_app.dart';
 import 'my_feet_rig.dart';
+
+import '../helpers/plain_text.dart';
 
 Finder _inBanner(Finder f) =>
     find.descendant(of: byKey('my-feet-banner'), matching: f);
@@ -38,8 +40,8 @@ void main() {
 
     testWidgets('the header says when no foot streams', (tester) async {
       await pumpMyFeet(tester, MockPreset.noData);
-      expect(find.text('ยังไม่มีข้อมูล'), findsWidgets);
-      expect(find.text('อัปเดตเมื่อสักครู่'), findsNothing);
+      expect(findPlainText('ยังไม่มีข้อมูล'), findsWidgets);
+      expect(findPlainText('อัปเดตเมื่อสักครู่'), findsNothing);
       // No numbers to open without data.
       expect(byKey('pressure-details'), findsNothing);
       await unmount(tester);
@@ -50,7 +52,7 @@ void main() {
     ) async {
       final handle = tester.ensureSemantics();
       await pumpMyFeet(tester, MockPreset.safe);
-      final bar = tester.getSemantics(find.bySemanticsLabel('เรื่องที่ดู'));
+      final bar = tester.getSemantics(findPlainSemantics('เรื่องที่ดู'));
       expect(bar.role, SemanticsRole.tabBar);
       final pressure = tester.getSemantics(
         find
@@ -71,10 +73,13 @@ void main() {
       tester,
     ) async {
       await pumpMyFeet(tester, MockPreset.safe);
-      expect(_inBanner(find.text('แรงกดกระจายดีทั้งสองข้าง')), findsOneWidget);
+      expect(
+        _inBanner(findPlainText('แรงกดกระจายดีทั้งสองข้าง')),
+        findsOneWidget,
+      );
       expect(byKey('feet-map-left'), findsOneWidget);
       expect(byKey('feet-map-right'), findsOneWidget);
-      expect(find.text('ทั้งสองข้าง'), findsNWidgets(3));
+      expect(findPlainText('ทั้งสองข้าง'), findsNWidgets(3));
       await openDetails(tester);
       expect(byKey('kpa-table'), findsOneWidget);
       expect(find.textContaining('kPa·s'), findsWidgets);
@@ -87,7 +92,7 @@ void main() {
       await pumpMyFeet(tester, MockPreset.watch);
       final banner = tester.widget<SummaryBanner>(find.byType(SummaryBanner));
       expect(banner.level.name, 'careful');
-      expect(_inBanner(find.text('ดูสิ่งที่ควรทำ')), findsOneWidget);
+      expect(_inBanner(findPlainText('ดูสิ่งที่ควรทำ')), findsOneWidget);
       expect(byKey('banner-connect'), findsNothing);
       await unmount(tester);
     });
@@ -95,9 +100,12 @@ void main() {
     testWidgets('one foot missing: the banner names it; connect opens '
         'Connection', (tester) async {
       await pumpMyFeet(tester, MockPreset.oneFootMissing);
-      expect(_inBanner(find.text('ยังไม่ได้รับข้อมูลเท้าขวา')), findsOneWidget);
+      expect(
+        _inBanner(findPlainText('ยังไม่ได้รับข้อมูลเท้าขวา')),
+        findsOneWidget,
+      );
       // The connected foot still shows its zones.
-      expect(find.text('เท้าซ้าย'), findsWidgets);
+      expect(findPlainText('เท้าซ้าย'), findsWidgets);
       await tester.tap(byKey('banner-connect'));
       await tester.pump(const Duration(seconds: 1));
       await tester.pump(const Duration(seconds: 1));
@@ -126,7 +134,7 @@ void main() {
         final row = byKey('temp-row-$site');
         expect(row, findsOneWidget);
         expect(
-          find.descendant(of: row, matching: find.text('เท้าขวาอุ่นกว่า')),
+          find.descendant(of: row, matching: findPlainText('เท้าขวาอุ่นกว่า')),
           findsOneWidget,
         );
         expect(
@@ -169,11 +177,11 @@ void main() {
         tab: MyFeetTab.temperature,
         seedDay: true,
       );
-      expect(_inBanner(find.text('เทียบความอุ่นไม่ได้')), findsOneWidget);
+      expect(_inBanner(findPlainText('เทียบความอุ่นไม่ได้')), findsOneWidget);
       // No ΔT anywhere: no top rows, every site "ยังวัดไม่ได้" on both
       // maps (never "close"), the missing foot dashed.
       expect(byKey('temp-top-empty'), findsOneWidget);
-      expect(find.text('ต้องเชื่อมต่อทั้งสองข้าง'), findsOneWidget);
+      expect(findPlainText('ต้องเชื่อมต่อทั้งสองข้าง'), findsOneWidget);
       expect(find.byKey(const ValueKey('temp-row-meta1')), findsNothing);
       for (final side in FootSide.values) {
         final map = tester.widget<TempSiteMap>(byKey('temp-map-${side.name}'));
@@ -229,7 +237,7 @@ void main() {
 
     testWidgets('no data today: the chart says so', (tester) async {
       await pumpMyFeet(tester, MockPreset.noData, tab: MyFeetTab.temperature);
-      expect(find.text('ยังไม่มีข้อมูลวันนี้'), findsOneWidget);
+      expect(findPlainText('ยังไม่มีข้อมูลวันนี้'), findsOneWidget);
       await unmount(tester);
     });
   });

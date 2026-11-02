@@ -1,4 +1,4 @@
-import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_test/flutter_test.dart' hide expect;
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:smartinsole/ble/packets.dart';
 import 'package:smartinsole/rules/patient_status.dart';
@@ -9,6 +9,7 @@ import 'package:smartinsole/ui/shell/app_shell.dart';
 import 'package:smartinsole/ui/widgets/temp_site_map.dart' show TempSiteMark;
 
 import '../helpers/pump_app.dart';
+import '../helpers/plain_text.dart';
 
 final at = DateTime(2026, 10, 21, 14, 32, 10);
 
@@ -261,7 +262,8 @@ void main() {
       expect(v.caption, 'ส้นเท้าด้านนอกขวาอุ่นกว่าส้นเท้าด้านนอกซ้าย');
       expect(
         v.sitesLine,
-        'จุดที่อุ่นกว่าบนเท้าขวา: ส้นเท้าด้านนอก · กลางส้นเท้า · '
+        // No-break space before each "·" (S10, BACKLOG 69).
+        'จุดที่อุ่นกว่าบนเท้าขวา: ส้นเท้าด้านนอก\u00A0· กลางส้นเท้า\u00A0· '
         'โคนนิ้วหัวแม่เท้า',
       );
       expect(

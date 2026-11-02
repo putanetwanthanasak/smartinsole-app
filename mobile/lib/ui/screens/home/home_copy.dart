@@ -71,7 +71,7 @@ StatusCopy statusCopy(PatientStatus status) {
   }
   if (high != null) {
     final zone = footLayout.zones[high.topChannel!];
-    return ('${zone.region.th}${sideTh(high.side)}รับน้ำหนักมาก', true);
+    return ('${zone.region.displayTh}${sideTh(high.side)}รับน้ำหนักมาก', true);
   }
   final withData = [left, right].where((m) => m.hasData).toList();
   if (withData.isEmpty) {

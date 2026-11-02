@@ -7,6 +7,7 @@ import '../../../config/foot_layout.dart';
 import '../../../config/thresholds.dart';
 import '../../../rules/alert_code.dart';
 import '../../../rules/alert_copy.dart';
+import '../../../text/thai_break.dart';
 import '../../../rules/gait_note.dart';
 import '../../../rules/pressure_level.dart';
 import '../../../storage/models.dart';
@@ -230,7 +231,7 @@ TempMapView? tempMapOf(StoredAlert a) {
     site,
     for (final e in TempSiteEntry.listOf(a.details)) ?channelOf(e.zone),
   };
-  final names = [for (final i in sites) footLayout.zones[i].nameTh];
+  final names = [for (final i in sites) footLayout.zones[i].displayTh];
   final name = names.first;
   final s = sideTh(side);
   final o = sideTh(otherSide(side));
@@ -242,7 +243,10 @@ TempMapView? tempMapOf(StoredAlert a) {
     // S8D-2 draft.
     sitesLine: sites.length < 2
         ? null
-        : 'จุดที่อุ่นกว่าบนเท้า$s: ${names.join(' · ')}',
+        // Each name stays whole, and "·" never starts a line (S10,
+        // BACKLOG 69).
+        : 'จุดที่อุ่นกว่าบน${keepTogether('เท้า$s')}: '
+              '${names.join('$nbsp· ')}',
     labels: {
       side: 'เท้า$s ${joinTh(names)}อุ่นกว่าเท้า$o',
       // S8D-1 draft (was "ที่หน้าเท้าและส้นเท้า", the 2 sites).
@@ -289,7 +293,7 @@ PressureMapView? pressureMapOf(StoredAlert a, Thresholds t) {
       channel == null) {
     return null;
   }
-  final zone = footLayout.zones[channel].nameTh;
+  final zone = footLayout.zones[channel].displayTh;
   final triggerLabel = 'เท้า${sideTh(side)} $zoneรับน้ำหนักมาก';
   final caption = 'จุดที่มีวงล้อม: $zone${sideTh(side)}';
   final map = a.details?['map'];
@@ -421,7 +425,7 @@ List<DetailRow> detailRowsOf(StoredAlert a, Thresholds t) {
   final side = a.side;
   final s = side == null ? '' : sideTh(side);
   final channel = channelOf(a.zone);
-  final zone = channel == null ? '' : footLayout.zones[channel].nameTh;
+  final zone = channel == null ? '' : footLayout.zones[channel].displayTh;
   final level = DetailRow('ระดับภายในระบบ', '${a.level} จาก $maxLevel');
   final at = DetailRow('เวลาที่พบ', thaiDateTimeBE(localTimeOf(a)));
   final source = t.sourceOf(a.kind.wireName);
@@ -443,6 +447,8 @@ List<DetailRow> detailRowsOf(StoredAlert a, Thresholds t) {
       // heel for an alert stored before (whose details also had the other
       // site's ΔT).
       final legacy = a.legacySite;
+      // Plain: it is a detail-row label on its own (S10: joiners only help
+      // a name inside running text).
       final name = channel != null
           ? footLayout.zones[channel].nameTh
           : legacy == null
@@ -461,7 +467,7 @@ List<DetailRow> detailRowsOf(StoredAlert a, Thresholds t) {
       final sites = TempSiteEntry.listOf(d);
       String siteName(String id) {
         final i = channelOf(id);
-        return i == null ? id : footLayout.zones[i].nameTh;
+        return i == null ? id : footLayout.zones[i].displayTh;
       }
       rows.addAll([
         if (leftC != null && rightC != null)

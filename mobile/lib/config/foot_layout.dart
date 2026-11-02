@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import '../ble/packets.dart';
+import '../text/thai_break.dart';
 
 /// Where each FSR channel and temperature site sits on the foot map.
 ///
@@ -58,6 +59,10 @@ enum FootRegion {
 
   const FootRegion(this.th);
   final String th;
+
+  /// [th] for the screen: never split across lines (S10, display only;
+  /// `lib/text/thai_break.dart`).
+  String get displayTh => keepTogether(th);
 }
 
 class FootZone {
@@ -74,6 +79,11 @@ class FootZone {
   final String nameEn;
   final String nameTh;
   final FootRegion region;
+
+  /// [nameTh] for the screen and notifications: never split across lines
+  /// (S10, BACKLOG 69; display only, never stored or exported:
+  /// `lib/text/thai_break.dart`).
+  String get displayTh => keepTogether(nameTh);
 
   /// Left-foot position in mm (`sensor_layout.json` frame).
   final Offset mm;

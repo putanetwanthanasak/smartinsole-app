@@ -1,6 +1,7 @@
 import '../ble/packets.dart';
 import '../config/foot_layout.dart';
 import '../storage/models.dart' show LegacyTempSite;
+import '../text/thai_break.dart';
 import 'alert_code.dart';
 
 // Plain-Thai copy for every alert code (rule 13), built from code + side +
@@ -75,14 +76,29 @@ AlertCopy alertCopyFor(
   final s = sideTh(side);
   final other = sideTh(otherSide(side));
   final zone = channel == null ? null : footLayout.zones[channel];
-  final region = zone?.region.th ?? 'เท้า';
-  final zoneName = zone?.nameTh ?? 'เท้า';
+  // Site and region names never split across lines, e.g. not
+  // "ส้นเท้า / ด้านนอก" (S10, BACKLOG 60/69; display only,
+  // lib/text/thai_break.dart). The words are unchanged (Appendix A). The
+  // side stays a separate word: a joined unit wider than the line (a long
+  // name at the largest text on a narrow phone) would make Flutter break
+  // the rest of the paragraph by character.
+  final regionS = '${zone?.region.displayTh ?? 'เท้า'}$s';
+  // Titles (28–32 px) keep plain names: there a joined region name is
+  // wider than the line at the largest text (measured in S10).
+  final regionTitle = '${zone?.region.th ?? 'เท้า'}$s';
+  final zoneS = '${zone?.displayTh ?? 'เท้า'}$s';
+  final footS = keepTogether('เท้า$s');
+  final footOther = keepTogether('เท้า$other');
+  // A short last word kept with the one before it (BACKLOG 46).
+  final walking = keepTogether('ตอนเดิน');
+  final orNot = keepTogether('หรือไม่');
   switch (code) {
     case AlertCode.tempDelta:
-      final siteName = zone?.nameTh ?? legacyTempSiteTh(legacySite);
+      final siteName =
+          zone?.displayTh ?? keepTogether(legacyTempSiteTh(legacySite));
       final x = value == null ? '' : ' ${formatDelta(value)}$nbspองศา';
       return AlertCopy(
-        title: 'เท้า$sอุ่นกว่าเท้า$other',
+        title: '$footSอุ่นกว่า$footOther',
         detail: '$siteName$sอุ่นกว่า$siteName$other$x ติดต่อกันมาสักพัก',
         steps: const [
           'นั่งพักเท้า',
@@ -93,17 +109,17 @@ AlertCopy alertCopyFor(
             'เมื่อเท้าข้างหนึ่งอุ่นกว่าอีกข้างที่ตำแหน่งเดียวกันต่อเนื่อง '
             'อาจเป็นสัญญาณเริ่มต้นของการอักเสบใต้ผิวหนัง ซึ่งมักเกิดก่อนจะเห็นแผล',
         todo: 'นั่งพักเท้า แล้วตรวจดูว่ามีรอยแดงหรือแผลไหม',
-        homeDetail: 'เท้า$sอุ่นกว่าเท้า$other$x ติดต่อกันมาสักพัก',
+        homeDetail: '$footSอุ่นกว่า$footOther$x ติดต่อกันมาสักพัก',
         homeAdvice:
             'นั่งพักเท้า แล้วตรวจดูว่ามีรอยแดงหรือแผลไหม '
             'ถ้าพรุ่งนี้ยังเป็นอยู่ ควรไปพบแพทย์',
       );
     case AlertCode.pressurePeak:
       return AlertCopy(
-        title: '$region$sรับน้ำหนักมากตอนเดิน',
+        title: '$regionTitleรับน้ำหนักมาก$walking',
         // S7 draft: the board's "หลายก้าวติดกัน" is not what the rule
         // checks (one walking sample above the boundary raises it).
-        detail: '$zoneName$sรับแรงกดสูงมากตอนเดิน',
+        detail: '$zoneSรับแรงกดสูงมาก$walking',
         steps: const [
           'ลองเดินช้าลง และก้าวให้สั้นลง',
           'นั่งพักสักครู่ แล้วขยับเท้าเปลี่ยนท่า',
@@ -113,14 +129,14 @@ AlertCopy alertCopyFor(
             'แรงกดที่สูงมากซ้ำ ๆ ที่จุดเดิมขณะเดิน อาจทำให้ผิวบริเวณนั้นช้ำ'
             'และเกิดแผลได้ โดยเฉพาะเมื่อเท้ารู้สึกได้น้อยลง',
         todo: 'ลองเดินช้าลง ก้าวให้สั้นลง หรือนั่งพักสักครู่',
-        homeDetail: '$region$sรับน้ำหนักมากตอนเดิน',
+        homeDetail: '$regionSรับน้ำหนักมาก$walking',
         homeAdvice: 'ลองเดินช้าลง ก้าวให้สั้นลง หรือนั่งพักสักครู่',
       );
     case AlertCode.pressurePti:
       return AlertCopy(
-        title: '$region$sรับน้ำหนักมากต่อเนื่องนานเกินไป',
+        title: '$regionTitleรับน้ำหนักมากต่อเนื่องนานเกินไป',
         // S7 draft (detail, steps, why).
-        detail: '$zoneName$sรับแรงกดนานในทุกก้าว ต่อเนื่องมาตลอดช่วงที่ผ่านมา',
+        detail: '$zoneSรับแรงกดนานในทุกก้าว ต่อเนื่องมาตลอดช่วงที่ผ่านมา',
         steps: const [
           'นั่งพักเท้าสักครู่',
           'ขยับเท้า เปลี่ยนท่ายืนหรือท่าเดิน',
@@ -130,17 +146,17 @@ AlertCopy alertCopyFor(
             'เมื่อจุดเดิมของฝ่าเท้ารับแรงกดนาน ๆ ซ้ำทุกก้าว ผิวบริเวณนั้น'
             'อาจได้เลือดไปเลี้ยงน้อยลงและเกิดแผลได้ โดยเฉพาะเมื่อเท้ารู้สึกได้น้อยลง',
         todo: 'ลองขยับเท้า เปลี่ยนท่ายืน หรือนั่งพักสักครู่',
-        homeDetail: '$region$sรับน้ำหนักมากต่อเนื่องนานเกินไป',
+        homeDetail: '$regionSรับน้ำหนักมากต่อเนื่องนานเกินไป',
         homeAdvice: 'ลองขยับเท้า เปลี่ยนท่ายืน หรือนั่งพักสักครู่',
       );
     case AlertCode.loadConcentration:
       return AlertCopy(
-        title: 'น้ำหนักลงที่$region$sจุดเดียวมากเกินไป',
+        title: 'น้ำหนักลงที่$regionTitleจุดเดียวมากเกินไป',
         // S7 draft (detail, steps, why, and the advice: the rule now
         // counts walking steps, so the board's standing advice became a
         // walking one).
         detail:
-            'ทุกก้าวที่ผ่านมา น้ำหนักลงที่$zoneName$sมากกว่าจุดอื่นของฝ่าเท้ามาก',
+            'ทุกก้าวที่ผ่านมา น้ำหนักลงที่$zoneSมากกว่าจุดอื่นของฝ่าเท้ามาก',
         steps: const [
           'ลองเดินช้าลง ให้น้ำหนักลงทั้งฝ่าเท้า',
           'นั่งพักสักครู่ แล้วขยับเท้าเปลี่ยนท่า',
@@ -151,14 +167,14 @@ AlertCopy alertCopyFor(
             'ผิวบริเวณนั้นต้องรับแรงมากกว่าปกติ และอาจเกิดแผลได้ '
             'โดยเฉพาะเมื่อเท้ารู้สึกได้น้อยลง',
         todo: 'ลองเดินช้าลงให้น้ำหนักลงทั้งฝ่าเท้า หรือนั่งพักสักครู่',
-        homeDetail: 'น้ำหนักลงที่$region$sจุดเดียวมากเกินไป',
+        homeDetail: 'น้ำหนักลงที่$regionSจุดเดียวมากเกินไป',
         homeAdvice: 'ลองเดินช้าลงให้น้ำหนักลงทั้งฝ่าเท้า หรือนั่งพักสักครู่',
       );
     case AlertCode.pressureWatch:
       // Level 2: stored, never listed (DESIGN-SPEC §7.1). S7 draft.
       return AlertCopy(
-        title: '$region$sรับน้ำหนักค่อนข้างมาก',
-        detail: '$zoneName$sรับแรงกดสูงกว่าปกติ',
+        title: '$regionTitleรับน้ำหนักค่อนข้างมาก',
+        detail: '$zoneSรับแรงกดสูงกว่าปกติ',
         steps: const ['ลองขยับเท้า หรือเปลี่ยนท่า'],
         why: 'แอปเฝ้าดูจุดที่รับแรงกดสูง เพื่อเตือนก่อนที่แรงกดจะสูงจนเสี่ยงเกิดแผล',
         todo: 'ลองขยับเท้า หรือเปลี่ยนท่า',
@@ -167,8 +183,8 @@ AlertCopy alertCopyFor(
       // Level 2: stored, never listed; Home shows it as the orange
       // balance note. S7 draft.
       return AlertCopy(
-        title: 'ลงน้ำหนักเท้า$sมากกว่า',
-        detail: 'ตอนเดิน เท้า$sรับแรงกดสูงกว่าเท้า$otherติดต่อกันหลายก้าว',
+        title: 'ลงน้ำหนัก$footSมากกว่า',
+        detail: 'ตอนเดิน $footSรับแรงกดสูงกว่า$footOtherติดต่อกันหลายก้าว',
         steps: const ['ลองเดินช้าลง และลงน้ำหนักให้เท่ากันทั้งสองข้าง'],
         why:
             'เมื่อเท้าข้างหนึ่งรับแรงมากกว่าอีกข้างต่อเนื่อง '
@@ -181,7 +197,7 @@ AlertCopy alertCopyFor(
         title: 'แผ่นรองเท้า$sหลุดการเชื่อมต่อ',
         detail:
             'ขาดการเชื่อมต่อนานกว่า$minutes$nbspนาที '
-            'ระหว่างนี้แอปยังบอกไม่ได้ว่าเท้า$sปลอดภัยหรือไม่',
+            'ระหว่างนี้แอปยังบอกไม่ได้ว่า$footSปลอดภัย$orNot',
         steps: const [
           'ตรวจว่าสวิตช์ที่กล่องอุปกรณ์เปิดอยู่',
           'วางโทรศัพท์ไว้ใกล้ ๆ',
@@ -197,7 +213,7 @@ AlertCopy alertCopyFor(
         // S7 draft (detail, steps, why).
         detail:
             'แบตเตอรี่เหลือ$pct ถ้าแบตเตอรี่หมด '
-            'แอปจะบอกไม่ได้ว่าเท้า$sปลอดภัยหรือไม่',
+            'แอปจะบอกไม่ได้ว่า$footSปลอดภัย$orNot',
         steps: const [
           'ชาร์จแบตเตอรี่ก่อนใช้ครั้งต่อไป',
           'ถ้าต้องใช้ต่อ วางโทรศัพท์ไว้ใกล้ ๆ และดูว่ายังเชื่อมต่ออยู่',

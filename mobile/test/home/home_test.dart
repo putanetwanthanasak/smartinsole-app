@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_lucide/flutter_lucide.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_test/flutter_test.dart' hide expect;
 import 'package:smartinsole/device/mock_data_source.dart';
 import 'package:smartinsole/rules/pressure_level.dart';
 import 'package:smartinsole/ui/screens/home/home_copy.dart';
@@ -12,6 +12,8 @@ import 'package:smartinsole/ui/theme/colors.dart';
 
 import '../helpers/pump_app.dart';
 import 'home_rig.dart';
+
+import '../helpers/plain_text.dart';
 
 /// Every string Home renders.
 List<String> homeTexts(WidgetTester tester) => [
@@ -93,15 +95,15 @@ void main() {
     ]) {
       testWidgets(preset.name, (tester) async {
         await pumpHome(tester, preset);
-        expect(inCard('status-card', find.text(title)), findsOneWidget);
-        expect(inCard('status-card', find.text(detail)), findsOneWidget);
+        expect(inCard('status-card', findPlainText(title)), findsOneWidget);
+        expect(inCard('status-card', findPlainText(detail)), findsOneWidget);
         if (advice == null) {
           expect(
-            inCard('status-card', find.text('สิ่งที่ควรทำตอนนี้')),
+            inCard('status-card', findPlainText('สิ่งที่ควรทำตอนนี้')),
             findsNothing,
           );
         } else {
-          expect(inCard('status-card', find.text(advice)), findsOneWidget);
+          expect(inCard('status-card', findPlainText(advice)), findsOneWidget);
         }
         final noData =
             preset == MockPreset.noData || preset == MockPreset.oneFootMissing;
@@ -133,9 +135,9 @@ void main() {
       tester,
     ) async {
       await pumpApp(tester);
-      expect(find.text('ยังไม่ได้รับข้อมูล'), findsOneWidget);
+      expect(findPlainText('ยังไม่ได้รับข้อมูล'), findsOneWidget);
       expect(statusBackground(tester), StatusColors.noData.background);
-      expect(find.text('ไม่ได้เชื่อมต่อ'), findsNWidgets(2));
+      expect(findPlainText('ไม่ได้เชื่อมต่อ'), findsNWidgets(2));
     });
   });
 
@@ -145,31 +147,31 @@ void main() {
     ) async {
       await pumpHome(tester, MockPreset.oneFootMissing);
       for (final card in ['temp-card', 'balance-card']) {
-        expect(inCard(card, find.text('—')), findsOneWidget, reason: card);
-        expect(inCard(card, find.text(needBothFeet)), findsOneWidget);
+        expect(inCard(card, findPlainText('—')), findsOneWidget, reason: card);
+        expect(inCard(card, findPlainText(needBothFeet)), findsOneWidget);
       }
       // The connected foot still shows its own data.
-      expect(inCard('foot-left', find.text('แบต 92%')), findsOneWidget);
+      expect(inCard('foot-left', findPlainText('แบต 92%')), findsOneWidget);
       expect(
-        inCard('foot-right', find.text('ไม่ได้เชื่อมต่อ')),
+        inCard('foot-right', findPlainText('ไม่ได้เชื่อมต่อ')),
         findsOneWidget,
       );
-      expect(find.bySemanticsLabel('เท้าซ้าย แรงกดกระจายดี'), findsOneWidget);
-      expect(find.bySemanticsLabel('เท้าขวา ยังไม่มีข้อมูล'), findsOneWidget);
+      expect(findPlainSemantics('เท้าซ้าย แรงกดกระจายดี'), findsOneWidget);
+      expect(findPlainSemantics('เท้าขวา ยังไม่มีข้อมูล'), findsOneWidget);
       await unmount(tester);
     });
 
     testWidgets('both feet: ΔT and balance shown', (tester) async {
       await pumpHome(tester, MockPreset.safe);
-      expect(inCard('temp-card', find.text('—')), findsNothing);
-      expect(inCard('temp-card', find.text('0.3°')), findsOneWidget);
+      expect(inCard('temp-card', findPlainText('—')), findsNothing);
+      expect(inCard('temp-card', findPlainText('0.3°')), findsOneWidget);
       expect(
-        inCard('temp-card', find.text('สองข้างอุ่นใกล้เคียงกัน')),
+        inCard('temp-card', findPlainText('สองข้างอุ่นใกล้เคียงกัน')),
         findsOneWidget,
       );
-      expect(inCard('balance-card', find.text('50 : 50')), findsOneWidget);
+      expect(inCard('balance-card', findPlainText('50 : 50')), findsOneWidget);
       expect(
-        inCard('balance-card', find.text('ซ้ายและขวาพอ ๆ กัน')),
+        inCard('balance-card', findPlainText('ซ้ายและขวาพอ ๆ กัน')),
         findsOneWidget,
       );
       await unmount(tester);
@@ -178,9 +180,9 @@ void main() {
 
   testWidgets('rest: the warmer foot is named, the note warns', (tester) async {
     await pumpHome(tester, MockPreset.rest);
-    expect(inCard('temp-card', find.text('2.6°')), findsOneWidget);
+    expect(inCard('temp-card', findPlainText('2.6°')), findsOneWidget);
     expect(
-      inCard('temp-card', find.text('เท้าขวาอุ่นกว่าปกติ')),
+      inCard('temp-card', findPlainText('เท้าขวาอุ่นกว่าปกติ')),
       findsOneWidget,
     );
     expect(
@@ -195,7 +197,7 @@ void main() {
     // The caption names the high zone, in the Be-careful text colour with
     // the warning icon.
     final caption = tester.widget<Text>(
-      inCard('pressure-card', find.text('ปลายเท้าซ้ายรับน้ำหนักมาก')),
+      inCard('pressure-card', findPlainText('ปลายเท้าซ้ายรับน้ำหนักมาก')),
     );
     expect(caption.style!.color, StatusColors.careful.text);
     expect(
@@ -203,11 +205,11 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.bySemanticsLabel('เท้าซ้าย ปลายเท้ารับน้ำหนักมาก'),
+      findPlainSemantics('เท้าซ้าย ปลายเท้ารับน้ำหนักมาก'),
       findsOneWidget,
     );
     expect(
-      find.bySemanticsLabel('เท้าขวา ปลายเท้ารับน้ำหนักปานกลาง'),
+      findPlainSemantics('เท้าขวา ปลายเท้ารับน้ำหนักปานกลาง'),
       findsOneWidget,
     );
     final view = ProviderScope.containerOf(
@@ -248,7 +250,7 @@ void main() {
         'holds', (tester) async {
       await pumpHome(tester, preset);
       final note = tester.widget<Text>(
-        inCard('balance-card', find.text('ลงน้ำหนักเท้าซ้ายมากกว่า')),
+        inCard('balance-card', findPlainText('ลงน้ำหนักเท้าซ้ายมากกว่า')),
       );
       expect(note.style!.color, StatusColors.careful.text);
       expect(
@@ -264,7 +266,7 @@ void main() {
   ) async {
     await pumpHome(tester, MockPreset.safe);
     final note = tester.widget<Text>(
-      inCard('balance-card', find.text('ซ้ายและขวาพอ ๆ กัน')),
+      inCard('balance-card', findPlainText('ซ้ายและขวาพอ ๆ กัน')),
     );
     expect(note.style!.color, isNot(StatusColors.careful.text));
     expect(
@@ -281,10 +283,10 @@ void main() {
     await pumpHome(tester, MockPreset.safeOrangeDot);
     expect(statusBackground(tester), StatusColors.safe.background);
     expect(
-      find.bySemanticsLabel('เท้าซ้าย ปลายเท้ารับน้ำหนักปานกลาง'),
+      findPlainSemantics('เท้าซ้าย ปลายเท้ารับน้ำหนักปานกลาง'),
       findsOneWidget,
     );
-    expect(find.bySemanticsLabel('เท้าขวา แรงกดกระจายดี'), findsOneWidget);
+    expect(findPlainSemantics('เท้าขวา แรงกดกระจายดี'), findsOneWidget);
     await unmount(tester);
   });
 
@@ -300,7 +302,9 @@ void main() {
       inCard('foot-right', find.byIcon(LucideIcons.battery_low)),
       findsNothing,
     );
-    final text = tester.widget<Text>(inCard('foot-left', find.text('แบต 10%')));
+    final text = tester.widget<Text>(
+      inCard('foot-left', findPlainText('แบต 10%')),
+    );
     expect(text.style!.color, StatusColors.careful.text);
     await unmount(tester);
   });
@@ -355,7 +359,7 @@ void main() {
           count == 0 ? findsNothing : findsOneWidget,
         );
         // The badge number is not read on its own.
-        expect(find.bySemanticsLabel('$count'), findsNothing);
+        expect(findPlainSemantics('$count'), findsNothing);
         semantics.dispose();
       });
     }
