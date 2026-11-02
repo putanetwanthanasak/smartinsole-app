@@ -19,4 +19,10 @@ class FakeAlertNotifier implements AlertNotifier {
   @override
   Future<void> show(AlertNotice notice, {required bool sound}) async =>
       shown.add((notice, sound));
+
+  /// Cancelled alert ids, oldest first.
+  final cancelled = <int>[];
+
+  @override
+  Future<void> cancel(int alertId) async => cancelled.add(alertId);
 }

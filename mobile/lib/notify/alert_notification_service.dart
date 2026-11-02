@@ -10,6 +10,7 @@ import '../rules/alert_copy.dart';
 import '../rules/alert_engine.dart';
 import '../rules/alert_providers.dart';
 import '../settings/settings_providers.dart';
+import '../storage/storage_providers.dart';
 import 'alert_notifier.dart';
 import 'local_alert_notifier.dart';
 
@@ -97,6 +98,22 @@ class AlertNotificationService {
   void stop() {
     _sub?.cancel();
     _sub = null;
+  }
+
+  /// Marks alert [alertId] read at [atMs] and takes its notification out
+  /// of the tray, so the launcher badge and the in-app bell agree (S9-2
+  /// checkpoint item 8: Android keeps a notification until it is tapped or
+  /// cancelled). Every place that marks an alert read goes through here.
+  Future<void> markRead(int alertId, int atMs) async {
+    await _ref.read(alertRepositoryProvider).markRead(alertId, atMs);
+    if (!_ref.mounted) return;
+    try {
+      await _ready;
+      if (!_ref.mounted) return;
+      await _ref.read(alertNotifierProvider).cancel(alertId);
+    } catch (e) {
+      debugPrint('alerts: cancel #$alertId failed: $e');
+    }
   }
 
   Future<void> _post(RaisedAlert r) async {

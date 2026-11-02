@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../ble/packets.dart';
 import '../../config/thresholds.dart';
+import '../../notify/alert_notification_service.dart';
 import '../../rules/alert_copy.dart';
 import '../../storage/models.dart';
 import '../../storage/storage_providers.dart';
@@ -41,7 +42,7 @@ class _AlertDetailScreenState extends ConsumerState<AlertDetailScreen> {
   void initState() {
     super.initState();
     ref
-        .read(alertRepositoryProvider)
+        .read(alertNotificationServiceProvider)
         .markRead(
           widget.alertId,
           ref.read(clockProvider)().millisecondsSinceEpoch,
