@@ -353,6 +353,8 @@ Additional info: [optional]
   5. BACKLOG 51's fix merges stances across a short dip (`steps.mergeGapMs` ≤ 150 ms, value from the replay).
   6. The My feet check uses the S8D-2 UI (8-site Temperature tab), not the old site cards. The 30-minute run uses the fixed step detector.
   7. **Hardware for the S9-2 checkpoint:** both simulator boards on 8 + 8 (left on the laptop for `t` / `p` commands, right on a USB charger; the by-id CP2102 port only), the Note 10 on USB, installed with `adb install -r` only.
+  8. **Notification permission (BACKLOG 73, decided 2026-11-02):** also asked once the first time both insoles connect; the "ตรวจเท้า" and reminder asks stay; never during a research capture. Done in S9-1 (PR #35).
+  9. **Baselines (BACKLOG 74, decided 2026-11-02): both, with one code path.** Training and evaluation use capture trial 00 (the 30 s standing calibration, proposal doc 03); live use in the app uses the Researcher "บันทึกค่ายืนนิ่ง 30 วินาที" recording. Both go through the same baseline function (median, same window, same rejection rules) in Dart and in `tools/model/preprocess.py`; a test feeds a trial-00 fixture through both paths and gets identical baselines. Written into DATA-CONTRACT §7 and STUDY-CAPTURE. **Done at the start of S9-2** (not small: the rejection rules and the window must be ported to Python).
 - **First, before anything else in S9: one step per stance (BACKLOG 51, user decision 2026-10-25, must be done before SR).**
   - **Problem:** the app's `StepDetector` (`mobile/lib/rules/step_detector.dart`) must not split one stance when the summed kPa dips briefly below `steps.contactKpa`.
   - **Fix:** add hysteresis, or merge stances separated by a short dip.

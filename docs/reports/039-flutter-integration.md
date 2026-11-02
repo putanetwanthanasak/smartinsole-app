@@ -34,10 +34,16 @@ this PR is merged.
   - A tap opens the alert's detail over Alerts. During a capture a tap
     navigates nowhere (spec-review fix).
   - New icon `ic_stat_foot_alert`, added to keep.xml.
-- **Tests:** 1034 pass and analyze is clean. All emulator checks pass. The
+- **Notification permission (BACKLOG 73, user decision 2026-11-02):** also
+  asked once the first time both insoles stream, never during a research
+  capture. The existing asks stay. Added to this PR after review.
+- **BACKLOG 74 decided 2026-11-02:** one baseline code path for trial 00
+  and the Researcher recording. It is built at the **start of S9-2** (see
+  Decisions).
+- **Tests:** 1039 pass and analyze is clean. All emulator checks pass. The
   spec review found 1 blocker, 1 major and 1 minor issue; all 3 are fixed.
 
-## What changed (5 commits)
+## What changed (7 commits incl. the report)
 
 | Commit | Content |
 |---|---|
@@ -46,6 +52,7 @@ this PR is merged.
 | ec98dee | Preprocessing "ทางเอ": `shared/model_preprocess.json`, `tools/model/preprocess.py`, `lib/gait/preprocess.dart`, vectors, `normalization.json` → baseline-minmax, schema v3 + `baseline_repository.dart`, `baseline_recorder.dart`, `baseline_screen.dart`, `RulesBecause.noBaseline`, dummy model regenerated, goldens |
 | 9d88bf9 | Alert notifications: `LocalNotifications` (one plugin init, taps routed by payload), `AlertNotifier`/`LocalAlertNotifier`, `AlertNotificationService`, `AlertEngine.raised`, `AlertNotificationHost`, icon + keep.xml, tests, DESIGN-SPEC §11.9, BACKLOG 72–74 |
 | a86c952 | Spec-review fixes (table below) |
+| last commit | BACKLOG 73: the ask on the first both-insoles connection (`AlertNotificationHost`, on the 50 Hz path so the 10 Hz ticker stays off when nothing is shown), flag `notify.connectPromptShown`, `test/notify/connect_prompt_test.dart` (5 tests); BACKLOG 74 decision recorded |
 
 ## STEP 0: the evening reminder on the Note 10 (read-only)
 
@@ -81,7 +88,7 @@ sleeping-app lists and the app's foot-check table. Nothing was changed.
 | Check | Result |
 |---|---|
 | `flutter analyze` | pass, no issues |
-| `flutter test` (incl. goldens) | pass, 1034 tests |
+| `flutter test` (incl. goldens) | pass, 1039 tests |
 | `node shared/test_vectors/generate.mjs --check` | pass, "test vectors up to date" |
 | `python3 tools/model/preprocess.py --selftest` | pass (also after the review fixes) |
 | `python3 tools/capture/load_capture.py --selftest` | pass |
@@ -142,8 +149,9 @@ are copied as returned, with a resolution column added.
   - **Resolution:** now stated (finding 1).
 - **§11.9 does not say when the notification permission is asked for foot
   alerts.**
-  - **Resolution:** left open as BACKLOG 73, because it needs a user
-    decision (below).
+  - **Resolution:** the user decided on 2026-11-02 (BACKLOG 73). The app
+    now also asks once, the first time both insoles stream, and §11.9 says
+    so.
 
 ## Leftovers and notes
 
@@ -152,10 +160,12 @@ are copied as returned, with a resolution column added.
   for the replay harness. Fix it with the next simulator edit.
 - **BACKLOG 72:** foot alert notifications with the screen off. Measured in
   S9-2; the result goes into FLUTTER-PLAN §10 as a thesis limitation.
-- **BACKLOG 73:** the notification permission is asked only by the foot
-  check and the reminder.
-- **BACKLOG 74:** the app's baseline is a separate 30 s recording, while
-  training uses capture trial 00. Decide this before Model A is used.
+- **BACKLOG 74 (S9-2, first item):** one baseline function, the same
+  median, window and rejection rules, used by both the Researcher recording
+  and capture trial 00, in Dart and in `preprocess.py`, with a shared
+  trial-00 fixture test. Today `preprocess.py` takes the median of all
+  valid trial-00 rows, with no window or rejection rules. DATA-CONTRACT §7
+  and STUDY-CAPTURE will be updated with the code.
 - **BACKLOG 61:** `ic_stat_foot_alert` is in `AndroidResources` and
   keep.xml. The release check (`tool/check_release_resources.sh`) runs on
   the S9-2 release APK and must list it.
@@ -166,15 +176,23 @@ are copied as returned, with a resolution column added.
   overlapping taps cause the driver-side errors in check 6. adb input was
   used for those taps.
 
-## Decisions needed
+## Decisions (user, 2026-11-02)
 
-1. **BACKLOG 73:** should a first foot alert ask for the Android
-   notification permission? Today a user who never opens "ตรวจเท้า" and
-   never turns on the reminder gets no foot alert notifications.
-   Recommended: ask once at the first connection of both insoles.
-2. **BACKLOG 74:** which baseline should Model A use: the app's
-   Researcher recording or capture trial 00? This is needed before Model A
-   is trained or shipped.
+1. **BACKLOG 73:** ask for the notification permission the first time both
+   insoles connect (the existing asks stay), never during a research
+   capture. Done in this PR.
+2. **BACKLOG 74:** both baselines, with one code path. Training and
+   evaluation use trial 00; the app uses the Researcher recording. Both use
+   the same function and rules in Dart and Python, with a fixture test.
+   This is at the **start of S9-2**, not in this PR, because it is not
+   small:
+   - the walking gate, lost-packet, reconnect, TARE and load checks, and
+     the 30 s sample-time window, must be ported to `preprocess.py`;
+   - the window must be defined so a trial 00 of exactly 30 s completes
+     the same way in both;
+   - a shared trial-00 fixture must be built that both test suites read.
+
+No decisions are pending.
 
 ## Next session: S9-2 (Note 10 checkpoint, waiting on user)
 
@@ -190,6 +208,8 @@ It requires this PR merged. Branch `work/flutter-integration-2`, report 040.
 - The release APK must pass `tool/check_release_resources.sh` and is
   installed with `adb install -r` only.
 
+**Code first:** BACKLOG 74, one baseline code path (decision 2 above).
+
 **Checklist (waiting on user):**
 
 1. 30-minute run with the fixed step detector (battery, smoothness).
@@ -203,3 +223,6 @@ It requires this PR merged. Branch `work/flutter-integration-2`, report 040.
 7. A notification tap during a research capture navigates nowhere.
 8. Record a baseline on the real boards; the Gait tab reason changes.
 9. Connect both insoles unaided.
+10. On the first both-insoles connection, the permission is asked once
+    (Android 12 on the Note 10: there is no prompt; the check only confirms
+    notifications are allowed).

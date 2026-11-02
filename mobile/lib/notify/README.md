@@ -38,7 +38,10 @@ Rules:
 - Notification ids share one space: reminders use `yyyymmdd` (about 20
   million), alerts their row id.
 - A tapped alert notification, or a launch from one, opens that alert's
-  detail over the "แจ้งเตือน" tab (Back → Alerts list).
+  detail over the "แจ้งเตือน" tab (Back → Alerts list). Not while a research capture session is open (nor the reminder's tap).
+- The permission is also asked once the first time both insoles stream
+  (`ui/alert_notification_host.dart`, flag `notify.connectPromptShown`,
+  BACKLOG 73), never during a research capture.
 - No foreground service: alerts are raised only while Android lets the
   app run (BACKLOG 72).
 - The small icons `ic_stat_foot_check` and `ic_stat_foot_alert` are looked up by name, so it is a

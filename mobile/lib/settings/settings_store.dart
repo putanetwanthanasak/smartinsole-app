@@ -23,6 +23,12 @@ abstract interface class SettingsStore {
   /// there; Settings can still ask.
   bool get notificationPromptShown;
   Future<void> setNotificationPromptShown();
+
+  /// Whether the app has asked for notifications the first time both
+  /// insoles streamed (S9, user decision 2026-11-02, BACKLOG 73): asked
+  /// once, apart from the "ตรวจเท้า" ask above.
+  bool get connectPromptShown;
+  Future<void> setConnectPromptShown();
 }
 
 /// Preference keys. Never rename one: a renamed key silently resets that
@@ -35,6 +41,7 @@ abstract final class SettingsKeys {
   static const reminderMinute = 'settings.reminderMinuteOfDay';
   static String boundInsole(FootSide side) => 'insole.bound.${side.name}';
   static const notificationPromptShown = 'notify.promptShown';
+  static const connectPromptShown = 'notify.connectPromptShown';
 }
 
 class PrefsSettingsStore implements SettingsStore {
@@ -101,6 +108,14 @@ class PrefsSettingsStore implements SettingsStore {
   @override
   Future<void> setNotificationPromptShown() =>
       _prefs.setBool(SettingsKeys.notificationPromptShown, true);
+
+  @override
+  bool get connectPromptShown =>
+      _prefs.getBool(SettingsKeys.connectPromptShown) ?? false;
+
+  @override
+  Future<void> setConnectPromptShown() =>
+      _prefs.setBool(SettingsKeys.connectPromptShown, true);
 }
 
 /// In memory only: tests, goldens and the emulator's fake-BLE runs.
@@ -109,6 +124,7 @@ class MemorySettingsStore implements SettingsStore {
     this.settings = const AppSettings(),
     Map<FootSide, String>? bound,
     this.notificationPromptShown = false,
+    this.connectPromptShown = false,
   }) : _bound = {...?bound};
 
   /// What [load] returns; [save] replaces it.
@@ -139,4 +155,10 @@ class MemorySettingsStore implements SettingsStore {
   @override
   Future<void> setNotificationPromptShown() async =>
       notificationPromptShown = true;
+
+  @override
+  bool connectPromptShown;
+
+  @override
+  Future<void> setConnectPromptShown() async => connectPromptShown = true;
 }

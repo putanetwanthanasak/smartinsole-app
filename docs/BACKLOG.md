@@ -1595,7 +1595,7 @@ The result goes here and into FLUTTER-PLAN §1 as a stated limitation for
 the thesis. A foreground service (with its own persistent notification) is
 the fix if the study needs it; not in v1.
 
-## 73. The notification permission is only asked for the reminder **(S9-1)** — OPEN, minor
+## 73. The notification permission is only asked for the reminder **(S9-1)** — RESOLVED in S9-1 (user decision 2026-11-02)
 
 Android 13+ asks for the notification permission at the first open of
 "ตรวจเท้า" and when the reminder switch is turned on (S8C). A user who
@@ -1605,7 +1605,12 @@ Note 10 (Android 12) is not affected: notifications are allowed by
 default there. Fix when an Android 13+ phone is used: also ask on the first
 alert, or at the first connection.
 
-## 74. The app's quiet-standing baseline is a separate recording from capture trial 00 **(S9-1)** — OPEN, decide before Model A is used
+**Resolved (report 039):** the app also asks once the first time both
+insoles stream (`AlertNotificationHost`, flag `notify.connectPromptShown`),
+never during a research capture (then once the session is closed); the
+"ตรวจเท้า" and reminder asks stay. Tests: `test/notify/connect_prompt_test.dart`.
+
+## 74. The app's quiet-standing baseline is a separate recording from capture trial 00 **(S9-1)** — DECIDED 2026-11-02, build at the start of S9-2
 
 Training takes each subject's baseline from capture trial 00 (the 30 s
 standing calibration); the app takes it from Researcher › "บันทึกค่ายืนนิ่ง
@@ -1614,3 +1619,14 @@ but two recordings. Options when Model A arrives (late Nov): record the
 app baseline right after trial 00 on the study day, or have a valid
 trial 00 also save the app baseline (reads the capture's 50 Hz rows only;
 capture recording and timing unchanged).
+
+**Decision (user, 2026-11-02): both, with one code path.** Training and
+evaluation use capture trial 00; live use in the app uses the Researcher
+recording. Both go through the same baseline function (median, same
+window, same rejection rules: lost packets, reconnect, TARE, walking gate,
+foot not loaded above `steps.contactKpa`) in Dart and in
+`tools/model/preprocess.py`. A test feeds a trial-00 fixture through both
+paths and gets identical baselines. DATA-CONTRACT §7 and STUDY-CAPTURE
+say so. Built at the start of S9-2 (SESSIONS §S9 item 9). Today the
+Python side takes the median of all valid trial-00 rows, with no window
+and no rejection rules.

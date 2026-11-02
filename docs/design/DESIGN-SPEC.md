@@ -587,6 +587,7 @@ Not on the boards (user decisions 4–8, 2026-11-01). A system notification for 
 - **Channels:** "แจ้งเตือนเรื่องเท้า" (high importance, sound) and "แจ้งเตือนเรื่องเท้า (ไม่มีเสียง)"; "เสียงแจ้งเตือน" picks one, as for the reminder (§11.8). Both are created at app start.
 - **When:** at once, also while the app is on screen. **Never during a research capture** (an alert raised then is still stored, tagged and shown on the session screen). A site added to an open `TEMP_DELTA` is not a new alert and posts nothing.
 - **Tap:** opens that alert's detail (§7.3) over the "แจ้งเตือน" tab, so Back goes to the Alerts list; also when the tap starts the app. Opening it marks it read (§7.2). **While a research capture session is open, a tap (on an alert or on the evening reminder) only brings the app forward and navigates nowhere:** leaving the session screen would end a running trial as interrupted (STUDY-CAPTURE.md: only the 2 s hold buttons may stop one). The alert is in the Alerts list afterwards.
+- **Permission:** besides the "ตรวจเท้า" and reminder asks (§11.8, decision 14), the app asks once, the first time both insoles stream (user decision 2026-11-02, BACKLOG 73). Never while a research capture session is open: it then asks once the session is closed, if both still stream. Not when notifications already show. It never opens the phone's settings by itself.
 - **Limit (v1):** there is no foreground service, so an alert can only be raised while Android lets the app run. With the screen off the phone may freeze the app (Samsung does), and then nothing is raised or posted until the app runs again. Measured on the Note 10 in S9-2 (FLUTTER-PLAN §1).
 
 ## 12. Motion
@@ -663,7 +664,7 @@ Earlier design-chat decisions: style D for the whole app; plain Thai first with 
 
 12. The saved photo is the true view; the front preview stays mirrored and the guide matches the preview (§11.2).
 13. "เสียงแจ้งเตือน" off makes the evening reminder silent, still shown (§11.8); since S9 also the foot alert notifications (§11.9).
-14. Notification permission: asked at the first open of "ตรวจเท้า" and when the reminder switch is turned on; refused → Settings line, Saved hides the reminder line (§11.8).
+14. Notification permission: asked at the first open of "ตรวจเท้า" and when the reminder switch is turned on; refused → Settings line, Saved hides the reminder line (§11.8); since S9 also once the first time both insoles stream (§11.9).
 15. The found-today tab is the approved proposal (§11.6).
 16. Reminders use the phone's time zone, never UTC.
 17. Saved photos carry no EXIF or other metadata.
