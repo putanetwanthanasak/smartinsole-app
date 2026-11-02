@@ -7,7 +7,12 @@ same in the app (mobile/lib/gait/preprocess.dart) and in training:
 1. Personal baseline. Per foot and channel, the median of that foot's
    samples over the 30 s quiet-standing calibration recorded before the
    trials (capture trial 00). It is subtracted from every model channel
-   (all 28: 8 FSR kPa + accel g + gyro deg/s per foot).
+   (all 28: 8 FSR kPa + accel g + gyro deg/s per foot). The window and
+   its rejection rules are the app's one baseline function
+   (foot_baseline_window here, FootBaselineWindow in
+   mobile/lib/gait/baseline_window.dart, BACKLOG 74): the first
+   baselineSeconds x 50 Hz rows that pass; shared/test_vectors/baseline/
+   checks both.
 2. Min-Max to 0-1: (x - baseline - min) / (max - min), with min/max per
    channel from the training subjects only (per LOSO fold), shipped in
    normalization.json (method "baseline-minmax"). No clipping.
@@ -22,6 +27,8 @@ Standard library only (numpy is not needed).
 
   python3 tools/model/preprocess.py --selftest       check the vectors
   python3 tools/model/preprocess.py --make-vectors   regenerate them
+  python3 tools/model/preprocess.py baseline <session-dir>...
+      each session's trial-00 baseline, or why it has none
   python3 tools/model/preprocess.py fit <session-dir>...
       LOSO folds over the sessions (one subject each): prints each fold's
       min/max; --out DIR writes DIR/<held-out code>/normalization.json
@@ -30,7 +37,9 @@ Standard library only (numpy is not needed).
 from __future__ import annotations
 
 import argparse
+import csv
 import json
+import math
 import random
 import struct
 import sys
@@ -40,6 +49,9 @@ ROOT = Path(__file__).resolve().parents[2]
 SPEC = ROOT / "shared" / "model_preprocess.json"
 MODEL_INPUT = ROOT / "shared" / "model_input.json"
 VECTORS = ROOT / "shared" / "test_vectors" / "model_preprocess" / "vectors.json"
+THRESHOLDS = ROOT / "shared" / "thresholds.json"
+BASELINE_VECTORS = ROOT / "shared" / "test_vectors" / "baseline"
+SAMPLE_MS = 20  # rule 1: sample i at t0 + 20 i
 SIDES = ("L", "R")
 METHOD = "baseline-minmax"
 # Capture trial 00 is the 30 s standing calibration (docs/STUDY-CAPTURE.md).
@@ -139,6 +151,124 @@ def normalization_json(mins: list[float], maxs: list[float], model_input: dict,
             "channels": list(model_input["channels"]), "min": mins, "max": maxs}
 
 
+# --- The one baseline function (BACKLOG 74) ------------------------------------
+#
+# A port of mobile/lib/gait/baseline_window.dart, row by row and in the same
+# float64 order. The failure ids are the Dart enum names.
+
+def dart_round(x: float) -> int:
+    """Dart's num.round() for x >= 0: half away from zero (Python's round()
+    is half to even, which differs at exactly .5). The gate only rounds
+    non-negative values."""
+    if x < 0:
+        raise ValueError("dart_round is for non-negative values")
+    i = math.floor(x)
+    return i + 1 if x - i >= 0.5 else i
+
+
+class WalkingGate:
+    """Contract §8.3.2's walking gate (mobile/lib/rules/walking_gate.dart):
+    walking while the mean of |‖a‖ − 1 g| over the last walkingWindowMs of
+    samples is at or above walkingAccelG, compared in whole mg."""
+
+    def __init__(self, window_ms: int, accel_g: float):
+        self.window_ms = window_ms
+        self.accel_g = accel_g
+        self.devs: list[tuple[float, float]] = []
+
+    def add(self, unix_ms: float, accel: list[float]) -> bool:
+        sq = 0.0
+        for a in accel:
+            sq += a * a
+        self.devs.append((unix_ms, abs(math.sqrt(sq) - 1)))
+        while self.devs[0][0] <= unix_ms - self.window_ms:
+            self.devs.pop(0)
+        total = 0.0
+        for _, d in self.devs:
+            total += d
+        return dart_round(total / len(self.devs) * 1000) >= dart_round(self.accel_g * 1000)
+
+
+def load_thresholds(path: Path = THRESHOLDS) -> dict:
+    """The keys the baseline rules read from shared/thresholds.json."""
+    t = load_json(path)
+    return {"windowMs": t["motion"]["walkingWindowMs"],
+            "accelG": t["motion"]["walkingAccelG"],
+            "contactKpa": t["steps"]["contactKpa"]}
+
+
+def window_samples(spec: dict) -> int:
+    """baselineSeconds at 50 Hz."""
+    return spec["baselineSeconds"] * 1000 // SAMPLE_MS
+
+
+FSR_COLUMNS = [f"fsr{i}_kpa" for i in range(8)]
+ACCEL_COLUMNS = ["accel_x_g", "accel_y_g", "accel_z_g"]
+
+
+def foot_baseline_window(rows: list[dict], cols: list[str], n: int,
+                         thresholds: dict) -> tuple[list[float] | None, str | None, int]:
+    """One foot's baseline from its rows in order (capture CSV row dicts):
+    (values, None, n) once the first n rows pass, else (None, failure id,
+    rows kept). Rules, in order: a new conn_session or missing_before > 0
+    after the first row, calibrating, valid 0, not 8 FSR, the walking gate,
+    summed kPa at or below steps.contactKpa; too few rows: tooShort."""
+    gate = WalkingGate(thresholds["windowMs"], thresholds["accelG"])
+    kept: list[list[float]] = []
+    session = None
+    for r in rows:
+        if len(kept) >= n:
+            break
+        if session is not None and r["conn_session"] != session:
+            return None, "reconnected", len(kept)
+        if session is not None and r["missing_before"] > 0:
+            return None, "lostPackets", len(kept)
+        if r["calibrating"]:
+            return None, "calibrating", len(kept)
+        if r["valid"] != 1:
+            return None, "markedInvalid", len(kept)
+        if any(r.get(c) is None for c in cols):
+            return None, "wrongInsole", len(kept)
+        session = r["conn_session"]
+        if gate.add(r["unix_ms"], [r[c] for c in ACCEL_COLUMNS]):
+            return None, "moved", len(kept)
+        load = 0.0
+        for c in FSR_COLUMNS:
+            load += r[c]
+        if load <= thresholds["contactKpa"]:
+            return None, "notLoaded", len(kept)
+        kept.append([r[c] for c in cols])
+    if len(kept) < n:
+        return None, "tooShort", len(kept)
+    return foot_baseline(kept), None, n
+
+
+def trial_baseline(trial, model_input: dict | None = None, spec: dict | None = None,
+                   thresholds: dict | None = None) -> dict:
+    """A capture trial's baseline per foot: {"L": (values, failure, count),
+    "R": ...}, through foot_baseline_window."""
+    model_input = model_input or load_json(MODEL_INPUT)
+    n = window_samples(spec or load_spec())
+    thresholds = thresholds or load_thresholds()
+    return {side: foot_baseline_window(trial.rows[side], foot_columns(model_input, side),
+                                       n, thresholds)
+            for side in SIDES}
+
+
+def read_trial_csv(path: Path) -> dict:
+    """{"L": [row dicts], "R": [...]} from a capture trial CSV, parsed as
+    tools/capture/load_capture.py parses it."""
+    lc = _load_capture()
+    out = {s: [] for s in SIDES}
+    with path.open(newline="", encoding="utf-8") as f:
+        reader = csv.reader(f)
+        columns = next(reader)
+        for raw in reader:
+            row = {c: lc._parse(c, v) for c, v in zip(columns, raw)}
+            out[row["side"]].append(row)
+    return out
+
+
 # --- Capture sessions ----------------------------------------------------------
 
 def _load_capture():
@@ -148,18 +278,23 @@ def _load_capture():
 
 
 def session_baseline(session, model_input: dict) -> list[float]:
-    """The subject's baseline (28, model order) from the session's valid
-    calibration trial (the newest valid attempt)."""
+    """The subject's baseline (28, model order) from the newest valid
+    calibration attempt (trial 00) whose two feet pass the baseline rules
+    (user decision 2026-11-02); else ValueError naming each attempt's
+    reason."""
     cal = [t for t in session.trials if t.label == CALIBRATION_LABEL and t.valid]
     if not cal:
         raise ValueError(f"{session.path.name}: no valid calibration trial")
-    trial = cal[-1]
-    feet = {}
-    for side in SIDES:
-        cols = foot_columns(model_input, side)
-        rows = [[r[c] for c in cols] for r in trial.rows[side] if r["valid"] == 1]
-        feet[side] = foot_baseline(rows)
-    return model_baseline(feet["L"], feet["R"], model_input)
+    spec, thresholds = load_spec(), load_thresholds()
+    reasons = []
+    for trial in reversed(cal):
+        feet = trial_baseline(trial, model_input, spec, thresholds)
+        failed = [f"{side} {feet[side][1]}" for side in SIDES if feet[side][1]]
+        if not failed:
+            return model_baseline(feet["L"][0], feet["R"][0], model_input)
+        reasons.append(f"{trial.name}: {', '.join(failed)}")
+    raise ValueError(f"{session.path.name}: no calibration attempt gives a baseline ("
+                     + "; ".join(reasons) + ")")
 
 
 def session_gait_rows(session, model_input: dict) -> list[list[float]]:
@@ -275,6 +410,153 @@ def check_vectors(path: Path = VECTORS) -> list[str]:
     return problems
 
 
+# --- Baseline vectors (trial-00 fixture, BACKLOG 74) ----------------------------
+
+CAPTURE_FIXTURE_SIDECAR = (ROOT / "shared" / "capture_fixture" / "schema2"
+                           / "TEST-009_20261110-090000" / "TEST-009_00_calibration_a1.json")
+
+
+def _trial_csv(rng: random.Random, seconds: float, change=None) -> str:
+    """A synthetic schema-2 trial-00 CSV as the app writes it (column order
+    from the capture fixture's sidecar, the app's number formats): both
+    feet standing still, 8-sample packets, a DeviceClock-like 19.95 ms
+    step, the trial window [start, start + seconds). [change](side, i, row)
+    edits row i of a foot before it is written."""
+    columns = load_json(CAPTURE_FIXTURE_SIDECAR)["columns"]
+    start = 1794276000000.0
+    lines = [",".join(columns)]
+    feet = {}
+    for side, offset in (("L", 3.0), ("R", 13.0)):
+        rows = []
+        stand = [rng.uniform(15, 60) for _ in range(8)]
+        i = 0
+        while True:
+            t = start + offset + i * 19.95
+            if t >= start + seconds * 1000:
+                break
+            row = {
+                "unix_ms": t, "device_ms": 50000 + i * 20, "side": side,
+                "conn_session": 1, "seq": i // 8, "i": i % 8,
+                "missing_before": 0, "saturated": 0, "calibrating": 0, "valid": 1,
+                "kpa": [max(0.0, k + rng.gauss(0, 1.5)) for k in stand],
+                "accel": [rng.gauss(0, 0.01), rng.gauss(0, 0.01), 1 + rng.gauss(0, 0.01)],
+                "gyro": [rng.gauss(0, 0.8) for _ in range(3)],
+            }
+            if change:
+                change(side, i, row)
+            if row is not None and not row.get("drop"):
+                rows.append(row)
+            i += 1
+        feet[side] = rows
+    merged = sorted(feet["L"] + feet["R"], key=lambda r: r["unix_ms"])
+    for r in merged:
+        kpa = [f"{k:.3f}" for k in r["kpa"]]
+        adc = [str(int(k * 4)) for k in r["kpa"]]
+        vals = [f"{r['unix_ms']:.3f}", str(r["device_ms"]), r["side"], str(r["conn_session"]),
+                str(r["seq"]), str(r["i"]), str(r["missing_before"]), str(r["saturated"]),
+                str(r["calibrating"]), str(r["valid"]), *adc, *kpa,
+                *(f"{a:.6f}" for a in r["accel"]), *(f"{g:.4f}" for g in r["gyro"])]
+        vals += [""] * (len(columns) - len(vals))
+        lines.append(",".join(vals))
+    return "\n".join(lines) + "\n"
+
+
+def _baseline_cases() -> list[tuple[str, str, float, object]]:
+    """(name, what it shows, seconds, change). Each failure is on one foot;
+    the other foot breaks no rule."""
+    def on(side, lo, hi, **fields):
+        def change(s, i, row):
+            if s == side and lo <= i < hi:
+                for k, v in fields.items():
+                    row[k] = v(row, i) if callable(v) else v
+        return change
+
+    def lost(s, i, row):
+        # Right foot: packet 12 (rows 96-103) lost, the next packet says so.
+        if s == "R" and 96 <= i < 104:
+            row["drop"] = True
+        if s == "R" and i == 104:
+            row["missing_before"] = 1
+
+    def first_loss_ok(s, i, row):
+        # A loss before the trial shows on its first row: not a failure.
+        if i == 0:
+            row["missing_before"] = 2
+        if i >= 1510:  # moving after the window: ignored
+            row["accel"] = [0.0, 0.0, 1.6 if i % 2 else 0.4]
+
+    shake = lambda row, i: [0.0, 0.0, 1.5 if i % 2 else 0.5]  # noqa: E731
+    light = lambda row, i: [0.4] * 8  # noqa: E731
+    # The failure cases are 4 s (the other foot then reads tooShort), to
+    # keep the fixture small; only "ok" needs the whole window.
+    return [
+        ("ok", "30 s standing, both feet: the first 1500 rows of each (a loss before "
+               "the trial on the first row and movement after the window are ignored)",
+         30.0, first_loss_ok),
+        ("lost_packets", "right foot: a lost packet at 1.9 s", 4.0, lost),
+        ("reconnected", "left foot: a new conn_session from 2.4 s", 4.0,
+         on("L", 120, 10**6, conn_session=2, seq=lambda r, i: (i - 120) // 8)),
+        ("calibrating", "right foot: a TARE running at 1.2 s", 4.0,
+         on("R", 60, 68, calibrating=1)),
+        ("marked_invalid", "left foot: rows marked invalid at 3 s", 4.0,
+         on("L", 150, 170, valid=0)),
+        ("moved", "right foot: the walking gate turns on at 2 s", 4.0,
+         on("R", 100, 200, accel=shake)),
+        ("not_loaded", "left foot: summed kPa at or below steps.contactKpa at 2.6 s", 4.0,
+         on("L", 130, 10**6, kpa=light)),
+        ("too_short", "a 10 s rehearsal calibration: both feet too short", 10.0, None),
+    ]
+
+
+def _expected(rows: dict, model_input: dict, spec: dict, thresholds: dict) -> dict:
+    n = window_samples(spec)
+    out = {}
+    for side in SIDES:
+        values, failure, count = foot_baseline_window(rows[side], foot_columns(model_input, side),
+                                                      n, thresholds)
+        out[side] = {"failure": failure, "sampleCount": count, "values": values}
+    return out
+
+
+def make_baseline_vectors(path: Path = BASELINE_VECTORS) -> dict:
+    model_input, spec, thresholds = load_json(MODEL_INPUT), load_spec(), load_thresholds()
+    rng = random.Random(20261102)
+    path.mkdir(parents=True, exist_ok=True)
+    cases = []
+    for name, about, seconds, change in _baseline_cases():
+        csv_path = path / f"{name}.csv"
+        csv_path.write_text(_trial_csv(rng, seconds, change), encoding="utf-8")
+        cases.append({"name": name, "about": about, "csv": csv_path.name,
+                      "expected": _expected(read_trial_csv(csv_path), model_input, spec,
+                                            thresholds)})
+    doc = {
+        "about": "Trial-00 baseline vectors (S9-2, BACKLOG 74): synthetic schema-2 capture "
+                 "trial CSVs, each run through the one baseline function "
+                 "(tools/model/preprocess.py foot_baseline_window; the app's "
+                 "FootBaselineWindow must give the same). Made by preprocess.py "
+                 "--make-vectors; never hand-edited. expected per foot: failure id (null = "
+                 "ok), rows kept, the 14 float64 medians in the foot's model channel order.",
+        "baselineSeconds": spec["baselineSeconds"],
+        "thresholds": thresholds,
+        "cases": cases,
+    }
+    (path / "expected.json").write_text(json.dumps(doc, indent=1) + "\n", encoding="utf-8")
+    return doc
+
+
+def check_baseline_vectors(path: Path = BASELINE_VECTORS) -> list[str]:
+    model_input, spec, thresholds = load_json(MODEL_INPUT), load_spec(), load_thresholds()
+    doc = load_json(path / "expected.json")
+    problems = []
+    if doc["thresholds"] != thresholds or doc["baselineSeconds"] != spec["baselineSeconds"]:
+        problems.append("baseline vectors were made with other thresholds; --make-vectors")
+    for case in doc["cases"]:
+        got = _expected(read_trial_csv(path / case["csv"]), model_input, spec, thresholds)
+        if got != case["expected"]:
+            problems.append(f"baseline {case['name']}: differs")
+    return problems
+
+
 def selftest() -> bool:
     ok = True
 
@@ -301,15 +583,40 @@ def selftest() -> bool:
         expect(True, "a constant channel is refused")
     mins, maxs = fit_minmax([[[0.0, 5.0]], [[2.0, -5.0]]])
     expect(mins == [0.0, -5.0] and maxs == [2.0, 5.0], "min/max over subjects")
+    expect(dart_round(2.5) == 3 and dart_round(149.5) == 150 and dart_round(0.49) == 0,
+           "the gate rounds half away from zero, as Dart")
+    th = load_thresholds()
+    gate = WalkingGate(th["windowMs"], th["accelG"])
+    expect(not gate.add(0.0, [0.0, 0.0, 1.0]) and gate.add(20.0, [0.0, 0.0, 1 + 4 * th["accelG"]]),
+           "the walking gate turns on at a mean deviation of walkingAccelG")
     lc = _load_capture()
     fixture = lc.load_session(ROOT / "shared" / "capture_fixture" / "schema2"
                               / "TEST-009_20261110-090000")
-    base = session_baseline(fixture, mi)
-    cal = [t for t in fixture.trials if t.label == CALIBRATION_LABEL][0]
-    col = foot_columns(mi, "R")[1]
-    want = median([r[col] for r in cal.rows["R"] if r["valid"] == 1])
-    expect(len(base) == 28 and base[14 + 1] == want,
-           "a session's baseline is its calibration trial's per-foot median")
+    # The capture fixture's trial 00 (6.4 s, synthetic accel far from 1 g)
+    # breaks the rules: no baseline, and the error names the attempt.
+    try:
+        session_baseline(fixture, mi)
+        expect(False, "a calibration that breaks the rules gives no baseline")
+    except ValueError as e:
+        expect("TEST-009_00_calibration_a1: L " in str(e),
+               "a calibration that breaks the rules gives no baseline, naming the attempt")
+    for p in check_baseline_vectors():
+        print("FAIL " + p)
+        ok = False
+    expect(not check_baseline_vectors(),
+           f"baseline vectors in {BASELINE_VECTORS.relative_to(ROOT)} reproduce")
+    doc = load_json(BASELINE_VECTORS / "expected.json")
+    kinds = {c["name"]: {s: c["expected"][s]["failure"] for s in SIDES} for c in doc["cases"]}
+    expect(kinds["ok"] == {"L": None, "R": None}
+           and all(c["expected"][s]["sampleCount"] == window_samples(load_spec())
+                   for c in doc["cases"] if c["name"] == "ok" for s in SIDES),
+           "the ok trial gives both feet exactly baselineSeconds x 50 rows")
+    expect(kinds["lost_packets"]["R"] == "lostPackets" and kinds["reconnected"]["L"] == "reconnected"
+           and kinds["calibrating"]["R"] == "calibrating"
+           and kinds["marked_invalid"]["L"] == "markedInvalid"
+           and kinds["moved"]["R"] == "moved" and kinds["not_loaded"]["L"] == "notLoaded"
+           and kinds["too_short"] == {"L": "tooShort", "R": "tooShort"},
+           "each failure case names its failure")
     problems = check_vectors()
     for p in problems:
         print("FAIL " + p)
@@ -326,10 +633,13 @@ def main(argv: list[str]) -> int:
     fit = sub.add_parser("fit", help="LOSO min/max over capture sessions")
     fit.add_argument("sessions", nargs="+", type=Path)
     fit.add_argument("--out", type=Path)
+    base = sub.add_parser("baseline", help="each session's trial-00 baseline")
+    base.add_argument("sessions", nargs="+", type=Path)
     args = ap.parse_args(argv)
     if args.make_vectors:
         make_vectors()
-        print(f"wrote {VECTORS.relative_to(ROOT)}")
+        make_baseline_vectors()
+        print(f"wrote {VECTORS.relative_to(ROOT)} and {BASELINE_VECTORS.relative_to(ROOT)}/")
         return 0
     if args.selftest:
         return 0 if selftest() else 1
@@ -347,6 +657,18 @@ def main(argv: list[str]) -> int:
                     json.dumps(normalization_json(mins, maxs, mi, about), indent=2) + "\n",
                     encoding="utf-8")
         return 0
+    if args.cmd == "baseline":
+        mi = load_json(MODEL_INPUT)
+        lc = _load_capture()
+        bad = 0
+        for d in args.sessions:
+            try:
+                b = session_baseline(lc.load_session(d), mi)
+                print(f"{Path(d).name}: OK {b}")
+            except ValueError as e:
+                bad += 1
+                print(e)
+        return 1 if bad else 0
     ap.print_help()
     return 2
 
