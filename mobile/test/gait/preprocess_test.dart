@@ -49,6 +49,9 @@ void main() {
         ('version', 2),
         ('baselineSeconds', 0),
         ('baselineSeconds', 2.5),
+        ('baselineToleranceSamples', -1),
+        ('baselineToleranceSamples', 1500),
+        ('baselineToleranceSamples', null),
       ]) {
         final m = {...good, key: value};
         expect(

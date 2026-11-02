@@ -30,7 +30,7 @@ enum BaselineFailure {
   /// not standing on that insole.
   notLoaded,
 
-  /// The rows ended before [FootBaselineWindow.samples] were kept
+  /// The rows ended with fewer than [FootBaselineWindow.minSamples] kept
   /// (capture trial 00 only, e.g. a 10 s rehearsal calibration).
   tooShort,
 
@@ -81,7 +81,9 @@ class BaselineRow {
 ///
 /// Rows are taken in order. The first [samples] rows that pass make the
 /// window (`baselineSeconds` × 50 Hz: that much sample time, rule 1); rows
-/// after it are ignored. Any row before then that breaks a rule ends it
+/// after it are ignored. Rows that end before it ([end]) with every rule
+/// passed still give a baseline from at least [minSamples] rows
+/// (`baselineToleranceSamples` short). Any row before then that breaks a rule ends it
 /// with a [BaselineFailure], checked in this order: a new session after
 /// the first row, packets lost after the first row, a TARE, a row marked
 /// invalid, not 8 FSR, the walking gate on, summed kPa at or below
@@ -89,15 +91,18 @@ class BaselineRow {
 class FootBaselineWindow {
   FootBaselineWindow({
     required this.samples,
+    int? minSamples,
     required int walkingWindowMs,
     required double walkingAccelG,
     required this.contactKpa,
-  }) : _gate = WalkingGate(windowMs: walkingWindowMs, accelG: walkingAccelG);
+  }) : minSamples = minSamples ?? samples,
+       _gate = WalkingGate(windowMs: walkingWindowMs, accelG: walkingAccelG);
 
   /// [PreprocessSpec.baselineSeconds] at 50 Hz, with this app's thresholds.
   FootBaselineWindow.of(PreprocessSpec spec, Thresholds thresholds)
     : this(
         samples: windowSamples(spec),
+        minSamples: windowSamples(spec) - spec.baselineToleranceSamples,
         walkingWindowMs: thresholds.walkingWindowMs,
         walkingAccelG: thresholds.walkingAccelG,
         contactKpa: thresholds.stepContactKpa,
@@ -110,12 +115,16 @@ class FootBaselineWindow {
       SensorLayout.sampleSpacingMs;
 
   final int samples;
+
+  /// The fewest rows that still give a baseline when the rows [end] early.
+  final int minSamples;
   final double contactKpa;
   final WalkingGate _gate;
 
   final rows = <List<double>>[];
   int? _session;
   BaselineFailure? _failure;
+  bool _endedShort = false;
 
   BaselineFailure? get failure => _failure;
 
@@ -150,12 +159,21 @@ class FootBaselineWindow {
     return null;
   }
 
-  /// No more rows will come: a window not filled by now is [tooShort].
+  /// No more rows will come: a window with fewer than [minSamples] rows by
+  /// now is [tooShort].
   BaselineFailure? end() {
-    if (_failure == null && !complete) _failure = BaselineFailure.tooShort;
+    if (_failure == null && !complete) {
+      if (rows.length >= minSamples) {
+        _endedShort = true;
+      } else {
+        _failure = BaselineFailure.tooShort;
+      }
+    }
     return _failure;
   }
 
-  /// The per-channel median, once [complete].
-  List<double>? get values => complete ? footBaseline(rows) : null;
+  /// The per-channel median, once [complete], or once [end] found at least
+  /// [minSamples] rows.
+  List<double>? get values =>
+      complete || (_endedShort && _failure == null) ? footBaseline(rows) : null;
 }

@@ -1,6 +1,7 @@
 {
  "about": "Trial-00 baseline vectors (S9-2, BACKLOG 74): synthetic schema-2 capture trial CSVs, each run through the one baseline function (tools/model/preprocess.py foot_baseline_window; the app's FootBaselineWindow must give the same). Made by preprocess.py --make-vectors; never hand-edited. expected per foot: failure id (null = ok), rows kept, the 14 float64 medians in the foot's model channel order.",
  "baselineSeconds": 30,
+ "baselineToleranceSamples": 5,
  "thresholds": {
   "windowMs": 800,
   "accelG": 0.15,
@@ -170,6 +171,53 @@
      "failure": "tooShort",
      "sampleCount": 501,
      "values": null
+    }
+   }
+  },
+  {
+   "name": "slow_clock",
+   "about": "30 s standing with a 20.05 ms step (a board clock slow against the phone): 1497 / 1496 rows, within baselineToleranceSamples",
+   "csv": "slow_clock.csv",
+   "expected": {
+    "L": {
+     "failure": null,
+     "sampleCount": 1497,
+     "values": [
+      18.32,
+      41.601,
+      28.208,
+      51.053,
+      20.087,
+      46.428,
+      47.69,
+      54.678,
+      -0.000207,
+      0.000241,
+      0.999973,
+      -0.0283,
+      0.0008,
+      -0.0092
+     ]
+    },
+    "R": {
+     "failure": null,
+     "sampleCount": 1496,
+     "values": [
+      43.657,
+      24.8575,
+      39.548,
+      41.7185,
+      49.224000000000004,
+      28.404,
+      56.249,
+      52.697,
+      0.000152,
+      -0.0002795,
+      1.0000525,
+      0.00825,
+      -0.0392,
+      -0.048299999999999996
+     ]
     }
    }
   }

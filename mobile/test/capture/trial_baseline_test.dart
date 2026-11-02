@@ -28,6 +28,10 @@ void main() {
     expect(t['accelG'], testThresholds.walkingAccelG);
     expect(t['contactKpa'], testThresholds.stepContactKpa);
     expect(doc['baselineSeconds'], testPreprocess.baselineSeconds);
+    expect(
+      doc['baselineToleranceSamples'],
+      testPreprocess.baselineToleranceSamples,
+    );
   });
 
   for (final c in cases) {
@@ -49,7 +53,7 @@ void main() {
         // Exact: the same float64 bits as Python.
         expect(f.values, want?.toList(), reason: '$side values');
       }
-      expect(got.ok, c['name'] == 'ok');
+      expect(got.ok, ['ok', 'slow_clock'].contains(c['name']));
     });
   }
 

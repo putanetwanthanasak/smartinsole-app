@@ -72,6 +72,10 @@ def load_spec(path: Path = SPEC) -> dict:
         if spec.get(key) != value:
             raise ValueError(f"model_preprocess.json {key} is {spec.get(key)!r}, "
                              f"this code does {value!r}")
+    tol = spec.get("baselineToleranceSamples")
+    if type(tol) is not int or not 0 <= tol < window_samples(spec):
+        raise ValueError(f"model_preprocess.json baselineToleranceSamples is {tol!r}, not a "
+                         f"whole number from 0 to below the window")
     return spec
 
 
@@ -202,17 +206,25 @@ def window_samples(spec: dict) -> int:
     return spec["baselineSeconds"] * 1000 // SAMPLE_MS
 
 
+def min_samples(spec: dict) -> int:
+    """The fewest rows a trial may end with and still give a baseline."""
+    return window_samples(spec) - spec["baselineToleranceSamples"]
+
+
 FSR_COLUMNS = [f"fsr{i}_kpa" for i in range(8)]
 ACCEL_COLUMNS = ["accel_x_g", "accel_y_g", "accel_z_g"]
 
 
-def foot_baseline_window(rows: list[dict], cols: list[str], n: int,
-                         thresholds: dict) -> tuple[list[float] | None, str | None, int]:
+def foot_baseline_window(rows: list[dict], cols: list[str], n: int, thresholds: dict,
+                         min_n: int | None = None
+                         ) -> tuple[list[float] | None, str | None, int]:
     """One foot's baseline from its rows in order (capture CSV row dicts):
     (values, None, n) once the first n rows pass, else (None, failure id,
     rows kept). Rules, in order: a new conn_session or missing_before > 0
     after the first row, calibrating, valid 0, not 8 FSR, the walking gate,
-    summed kPa at or below steps.contactKpa; too few rows: tooShort."""
+    summed kPa at or below steps.contactKpa. Rows that end with every rule
+    passed give a baseline from the k rows kept when k >= min_n (default
+    n; baselineToleranceSamples below it), else tooShort."""
     gate = WalkingGate(thresholds["windowMs"], thresholds["accelG"])
     kept: list[list[float]] = []
     session = None
@@ -238,9 +250,9 @@ def foot_baseline_window(rows: list[dict], cols: list[str], n: int,
         if load <= thresholds["contactKpa"]:
             return None, "notLoaded", len(kept)
         kept.append([r[c] for c in cols])
-    if len(kept) < n:
+    if len(kept) < (n if min_n is None else min_n):
         return None, "tooShort", len(kept)
-    return foot_baseline(kept), None, n
+    return foot_baseline(kept), None, len(kept)
 
 
 def trial_baseline(trial, model_input: dict | None = None, spec: dict | None = None,
@@ -248,10 +260,10 @@ def trial_baseline(trial, model_input: dict | None = None, spec: dict | None = N
     """A capture trial's baseline per foot: {"L": (values, failure, count),
     "R": ...}, through foot_baseline_window."""
     model_input = model_input or load_json(MODEL_INPUT)
-    n = window_samples(spec or load_spec())
+    spec = spec or load_spec()
     thresholds = thresholds or load_thresholds()
     return {side: foot_baseline_window(trial.rows[side], foot_columns(model_input, side),
-                                       n, thresholds)
+                                       window_samples(spec), thresholds, min_samples(spec))
             for side in SIDES}
 
 
@@ -416,11 +428,11 @@ CAPTURE_FIXTURE_SIDECAR = (ROOT / "shared" / "capture_fixture" / "schema2"
                            / "TEST-009_20261110-090000" / "TEST-009_00_calibration_a1.json")
 
 
-def _trial_csv(rng: random.Random, seconds: float, change=None) -> str:
+def _trial_csv(rng: random.Random, seconds: float, change=None, step: float = 19.95) -> str:
     """A synthetic schema-2 trial-00 CSV as the app writes it (column order
     from the capture fixture's sidecar, the app's number formats): both
-    feet standing still, 8-sample packets, a DeviceClock-like 19.95 ms
-    step, the trial window [start, start + seconds). [change](side, i, row)
+    feet standing still, 8-sample packets, a DeviceClock-like [step] (19.95 ms by default)
+    between samples, the trial window [start, start + seconds). [change](side, i, row)
     edits row i of a foot before it is written."""
     columns = load_json(CAPTURE_FIXTURE_SIDECAR)["columns"]
     start = 1794276000000.0
@@ -431,7 +443,7 @@ def _trial_csv(rng: random.Random, seconds: float, change=None) -> str:
         stand = [rng.uniform(15, 60) for _ in range(8)]
         i = 0
         while True:
-            t = start + offset + i * 19.95
+            t = start + offset + i * step
             if t >= start + seconds * 1000:
                 break
             row = {
@@ -461,9 +473,9 @@ def _trial_csv(rng: random.Random, seconds: float, change=None) -> str:
     return "\n".join(lines) + "\n"
 
 
-def _baseline_cases() -> list[tuple[str, str, float, object]]:
-    """(name, what it shows, seconds, change). Each failure is on one foot;
-    the other foot breaks no rule."""
+def _baseline_cases() -> list[tuple[str, str, float, object, float]]:
+    """(name, what it shows, seconds, change, sample step ms). Each failure
+    is on one foot; the other foot breaks no rule."""
     def on(side, lo, hi, **fields):
         def change(s, i, row):
             if s == side and lo <= i < hi:
@@ -492,19 +504,23 @@ def _baseline_cases() -> list[tuple[str, str, float, object]]:
     return [
         ("ok", "30 s standing, both feet: the first 1500 rows of each (a loss before "
                "the trial on the first row and movement after the window are ignored)",
-         30.0, first_loss_ok),
-        ("lost_packets", "right foot: a lost packet at 1.9 s", 4.0, lost),
+         30.0, first_loss_ok, 19.95),
+        ("lost_packets", "right foot: a lost packet at 1.9 s", 4.0, lost, 19.95),
         ("reconnected", "left foot: a new conn_session from 2.4 s", 4.0,
-         on("L", 120, 10**6, conn_session=2, seq=lambda r, i: (i - 120) // 8)),
+         on("L", 120, 10**6, conn_session=2, seq=lambda r, i: (i - 120) // 8), 19.95),
         ("calibrating", "right foot: a TARE running at 1.2 s", 4.0,
-         on("R", 60, 68, calibrating=1)),
+         on("R", 60, 68, calibrating=1), 19.95),
         ("marked_invalid", "left foot: rows marked invalid at 3 s", 4.0,
-         on("L", 150, 170, valid=0)),
+         on("L", 150, 170, valid=0), 19.95),
         ("moved", "right foot: the walking gate turns on at 2 s", 4.0,
-         on("R", 100, 200, accel=shake)),
+         on("R", 100, 200, accel=shake), 19.95),
         ("not_loaded", "left foot: summed kPa at or below steps.contactKpa at 2.6 s", 4.0,
-         on("L", 130, 10**6, kpa=light)),
-        ("too_short", "a 10 s rehearsal calibration: both feet too short", 10.0, None),
+         on("L", 130, 10**6, kpa=light), 19.95),
+        ("too_short", "a 10 s rehearsal calibration: both feet too short", 10.0, None, 19.95),
+        # Last, so the cases above keep their random draws.
+        ("slow_clock", "30 s standing with a 20.05 ms step (a board clock slow against "
+                       "the phone): 1497 / 1496 rows, within baselineToleranceSamples",
+         30.0, None, 20.05),
     ]
 
 
@@ -513,7 +529,7 @@ def _expected(rows: dict, model_input: dict, spec: dict, thresholds: dict) -> di
     out = {}
     for side in SIDES:
         values, failure, count = foot_baseline_window(rows[side], foot_columns(model_input, side),
-                                                      n, thresholds)
+                                                      n, thresholds, min_samples(spec))
         out[side] = {"failure": failure, "sampleCount": count, "values": values}
     return out
 
@@ -523,9 +539,9 @@ def make_baseline_vectors(path: Path = BASELINE_VECTORS) -> dict:
     rng = random.Random(20261102)
     path.mkdir(parents=True, exist_ok=True)
     cases = []
-    for name, about, seconds, change in _baseline_cases():
+    for name, about, seconds, change, step in _baseline_cases():
         csv_path = path / f"{name}.csv"
-        csv_path.write_text(_trial_csv(rng, seconds, change), encoding="utf-8")
+        csv_path.write_text(_trial_csv(rng, seconds, change, step), encoding="utf-8")
         cases.append({"name": name, "about": about, "csv": csv_path.name,
                       "expected": _expected(read_trial_csv(csv_path), model_input, spec,
                                             thresholds)})
@@ -537,6 +553,7 @@ def make_baseline_vectors(path: Path = BASELINE_VECTORS) -> dict:
                  "--make-vectors; never hand-edited. expected per foot: failure id (null = "
                  "ok), rows kept, the 14 float64 medians in the foot's model channel order.",
         "baselineSeconds": spec["baselineSeconds"],
+        "baselineToleranceSamples": spec["baselineToleranceSamples"],
         "thresholds": thresholds,
         "cases": cases,
     }
@@ -548,7 +565,8 @@ def check_baseline_vectors(path: Path = BASELINE_VECTORS) -> list[str]:
     model_input, spec, thresholds = load_json(MODEL_INPUT), load_spec(), load_thresholds()
     doc = load_json(path / "expected.json")
     problems = []
-    if doc["thresholds"] != thresholds or doc["baselineSeconds"] != spec["baselineSeconds"]:
+    if (doc["thresholds"] != thresholds or doc["baselineSeconds"] != spec["baselineSeconds"]
+            or doc.get("baselineToleranceSamples") != spec["baselineToleranceSamples"]):
         problems.append("baseline vectors were made with other thresholds; --make-vectors")
     for case in doc["cases"]:
         got = _expected(read_trial_csv(path / case["csv"]), model_input, spec, thresholds)
@@ -617,6 +635,23 @@ def selftest() -> bool:
            and kinds["moved"]["R"] == "moved" and kinds["not_loaded"]["L"] == "notLoaded"
            and kinds["too_short"] == {"L": "tooShort", "R": "tooShort"},
            "each failure case names its failure")
+    slow = next(c for c in doc["cases"] if c["name"] == "slow_clock")["expected"]
+    spec = load_spec()
+    n, lo = window_samples(spec), min_samples(spec)
+    expect(all(slow[s]["failure"] is None and lo <= slow[s]["sampleCount"] < n for s in SIDES),
+           "a trial a few rows short (slow board clock) still gives a baseline")
+    cols = [f"c{i}" for i in range(14)]
+    def standing(k):
+        return [{"unix_ms": 1000.0 + i * 20, "conn_session": 1, "missing_before": 0,
+                 "calibrating": 0, "valid": 1, **{c: 30.0 for c in FSR_COLUMNS},
+                 "accel_x_g": 0.0, "accel_y_g": 0.0, "accel_z_g": 1.0,
+                 **{c: float(i % 3) for c in cols}} for i in range(k)]
+    thr = load_thresholds()
+    expect(foot_baseline_window(standing(lo), cols, n, thr, lo)[1] is None
+           and foot_baseline_window(standing(lo - 1), cols, n, thr, lo)[1] == "tooShort"
+           and foot_baseline_window(standing(n + 3), cols, n, thr, lo)[2] == n,
+           "the tolerance boundary: N - tolerance rows pass, one fewer is tooShort, "
+           "a longer trial keeps exactly N")
     problems = check_vectors()
     for p in problems:
         print("FAIL " + p)

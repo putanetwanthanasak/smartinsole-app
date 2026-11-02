@@ -92,4 +92,29 @@ void main() {
     expect(w.end(), BaselineFailure.tooShort);
     expect(w.values, isNull);
   });
+
+  // User decision 2026-11-02: a board clock a little slow against the
+  // phone puts 1499 samples in a 30 s trial 00.
+  test('rows ending at most baselineToleranceSamples short still give a '
+      'baseline; one fewer is tooShort', () {
+    final lo = n - testPreprocess.baselineToleranceSamples;
+    expect(lo, lessThan(n));
+    FootBaselineWindow fed(int k) {
+      final w = make();
+      for (var i = 0; i < k; i++) {
+        w.add(row(i));
+      }
+      return w;
+    }
+
+    final short = fed(lo);
+    expect(short.complete, isFalse);
+    expect(short.values, isNull, reason: 'not before the rows end');
+    expect(short.end(), isNull);
+    expect(short.rows, hasLength(lo));
+    expect(short.values, hasLength(14));
+    final tooShort = fed(lo - 1);
+    expect(tooShort.end(), BaselineFailure.tooShort);
+    expect(tooShort.values, isNull);
+  });
 }

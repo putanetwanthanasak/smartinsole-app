@@ -23,7 +23,8 @@ Nothing here sets a level: the gait result is never a risk level (rule 11).
 - `baseline_window.dart` (S9-2, BACKLOG 74) — `FootBaselineWindow`, the
   one baseline function: the first `baselineSeconds` × 50 samples per foot
   that pass, or a named `BaselineFailure` (reconnected, lost packets,
-  TARE, marked invalid, not 8 FSR, moved, not loaded, too short). Capture
+  TARE, marked invalid, not 8 FSR, moved, not loaded, too short; a trial 00
+  that ends at most `baselineToleranceSamples` short still passes). Capture
   trial 00 (`capture/trial_baseline.dart`) and the recorder below both use
   it; `tools/model/preprocess.py foot_baseline_window` is its port,
   matched on `shared/test_vectors/baseline/`.
