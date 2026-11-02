@@ -92,6 +92,8 @@ AlertCopy alertCopyFor(
   // A short last word kept with the one before it (BACKLOG 46).
   final walking = keepTogether('ตอนเดิน');
   final orNot = keepTogether('หรือไม่');
+  // One word to a reader, two to the dictionary (S10 emulator check).
+  final continuous = keepTogether('ต่อเนื่อง');
   switch (code) {
     case AlertCode.tempDelta:
       final siteName =
@@ -134,9 +136,9 @@ AlertCopy alertCopyFor(
       );
     case AlertCode.pressurePti:
       return AlertCopy(
-        title: '$regionTitleรับน้ำหนักมากต่อเนื่องนานเกินไป',
+        title: '$regionTitleรับน้ำหนักมาก$continuousนานเกินไป',
         // S7 draft (detail, steps, why).
-        detail: '$zoneSรับแรงกดนานในทุกก้าว ต่อเนื่องมาตลอดช่วงที่ผ่านมา',
+        detail: '$zoneSรับแรงกดนานในทุกก้าว $continuousมาตลอดช่วงที่ผ่านมา',
         steps: const [
           'นั่งพักเท้าสักครู่',
           'ขยับเท้า เปลี่ยนท่ายืนหรือท่าเดิน',
@@ -146,7 +148,7 @@ AlertCopy alertCopyFor(
             'เมื่อจุดเดิมของฝ่าเท้ารับแรงกดนาน ๆ ซ้ำทุกก้าว ผิวบริเวณนั้น'
             'อาจได้เลือดไปเลี้ยงน้อยลงและเกิดแผลได้ โดยเฉพาะเมื่อเท้ารู้สึกได้น้อยลง',
         todo: 'ลองขยับเท้า เปลี่ยนท่ายืน หรือนั่งพักสักครู่',
-        homeDetail: '$regionSรับน้ำหนักมากต่อเนื่องนานเกินไป',
+        homeDetail: '$regionSรับน้ำหนักมาก$continuousนานเกินไป',
         homeAdvice: 'ลองขยับเท้า เปลี่ยนท่ายืน หรือนั่งพักสักครู่',
       );
     case AlertCode.loadConcentration:

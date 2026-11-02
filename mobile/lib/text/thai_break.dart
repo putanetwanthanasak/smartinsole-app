@@ -46,11 +46,13 @@ const thaiWords = {
   'ส้นเท้า': 'ส้น|เท้า',
   'หน้าเท้า': 'หน้า|เท้า',
   'เท้า': 'เท้า',
-  // A foot, and short last words (BACKLOG 46).
+  // A foot, short last words (BACKLOG 46) and a word the dictionary
+  // splits.
   'เท้าซ้าย': 'เท้า|ซ้าย',
   'เท้าขวา': 'เท้า|ขวา',
   'ตอนเดิน': 'ตอน|เดิน',
   'หรือไม่': 'หรือ|ไม่',
+  'ต่อเนื่อง': 'ต่อ|เนื่อง',
 };
 
 /// [phrase] with a [wordJoiner] between its words ([thaiWords]), so no line

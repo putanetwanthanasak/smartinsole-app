@@ -186,6 +186,17 @@ void main() {
     expectTogetherWhenFits(peak.detail, keepTogether('ตอนเดิน'), AppText.body);
   });
 
+  test('"ต่อเนื่อง" stays one word in the PTI copy', () {
+    final pti = alertCopyFor(
+      AlertCode.pressurePti,
+      side: FootSide.left,
+      channel: 1,
+    );
+    for (final t in [pti.detail, pti.homeDetail!]) {
+      expectTogetherWhenFits(t, keepTogether('ต่อเนื่อง'), AppText.body);
+    }
+  });
+
   test('Home\'s date keeps the day with its month', () {
     final d = DateTime(2026, 10, 18);
     expectTogether(
