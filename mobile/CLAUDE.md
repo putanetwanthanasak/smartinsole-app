@@ -104,6 +104,10 @@ lib/
                        trial 00 (S9-2, BACKLOG 74) (see its README.md); never sets
                        a level (rule 11); no numeric literals (a test
                        checks)
+  text/                thai_break.dart (S10): keepTogether(phrase) joins
+                       a phrase's words with U+2060 so a line never
+                       breaks inside it; display only (see Thai line
+                       breaks below)
   settings/            Settings (S8B): AppSettings, SettingsStore over
                        shared_preferences (name, text size, sound,
                        reminder, each foot's remembered insole), text
@@ -248,6 +252,32 @@ Research capture tools live at the repo root: `tools/capture/load_capture.py`
 (loader, checks, `--selftest`) and `tools/capture/export_capture.py` (adb
 pull + SHA-256 + checks). Any change to the capture file format must keep
 `load_capture.py --selftest` passing.
+
+## Thai line breaks
+
+Thai has no spaces, so Flutter breaks lines by dictionary and can split a
+site name or strand a short last word. `lib/text/thai_break.dart`
+(`keepTogether`) joins a phrase's words with U+2060 WORD JOINER.
+
+- Join **between words only**, as listed in `thaiWords` ("|" between the
+  dictionary's words; `test/text/thai_break_test.dart` checks each entry
+  against `TextPainter.getWordBoundary`). A joiner inside a word makes
+  Flutter break plain words nearby ("สู / งมาก").
+- Only inside running text, and only phrases narrower than the narrowest
+  line at 1.88 × (about 260 px in `body`). Titles and names that are a
+  whole `Text` stay plain (`FootZone.nameTh`; `displayTh` is the joined
+  form).
+- **Display only.** Never in anything stored, exported or captured; the
+  test checks `lib/storage`, `lib/capture`, `lib/ble`, `lib/device` and
+  `lib/gait` never reference it.
+- Tests compare plain text: `import 'package:flutter_test/flutter_test.dart'
+  hide expect;` plus `test/helpers/plain_text.dart` (`expect`,
+  `findPlainText`, `findPlainSemantics`).
+- **Reapplying after copy edits (S10b):** add the phrase to `thaiWords`,
+  wrap it in `keepTogether` where the copy is composed, add it to
+  `test/footcheck/thai_line_break_test.dart`, run
+  `flutter test test/text test/footcheck`, then regenerate and review the
+  goldens. The "only breaks between words" test covers all alert copy.
 
 ## BLE parsing rules
 

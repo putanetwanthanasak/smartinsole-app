@@ -1246,7 +1246,7 @@ reset reconnected on its own, with no DEVICE_LOST.
 - **Still to check:** a 30-minute screen-off run with resets in it
   (SR, together with item 52).
 
-## 46. Thai line breaks leave a short word alone on the last line **(found in the S6B phone check)** — OPEN, for S10
+## 46. Thai line breaks leave a short word alone on the last line **(found in the S6B phone check)** — RESOLVED in S10
 
 Thai has no spaces between words, so Flutter breaks lines by dictionary.
 A short word can end up alone on the last line, e.g. "ไม่" in the
@@ -1257,6 +1257,11 @@ In S10: keep such phrases together, e.g. with a non-breaking join
 (U+2060 WORD JOINER between the last two words) or a shared helper that
 binds the final short word to the one before it. Check every screen at
 100 % and 200 % text. The goldens show the change.
+
+
+**RESOLVED in S10.** "หรือไม่" (DEVICE_LOST, BATTERY_LOW) and "ตอนเดิน"
+(PEAK) are joined as phrases, so the last line keeps both words. See
+BACKLOG 60 for the helper and its tests.
 
 ## 47. My feet sub-tab labels break inside words at 200 % text **(found in S6B part 2)** — OPEN — after study (S10 sort)
 
@@ -1453,7 +1458,7 @@ finding (§11.5). A finding from two or more days ago, with no check since,
 shows nothing on Saved; the alert stays in "แจ้งเตือน". Listed under
 "Not designed yet" in DESIGN-SPEC §14.
 
-## 60. Thai word breaking can split phrases in other running text **(found in S8C)** — OPEN, for S10
+## 60. Thai word breaking can split phrases in other running text **(found in S8C)** — RESOLVED in S10
 
 Flutter's Thai line breaker split "ไม่แน่ใจ", "ตั้งเวลา" and "แพทย์ดู"
 in foot-check copy (report 036). These are now kept together with word
@@ -1463,6 +1468,32 @@ was not checked. S10's large-text pass should look for awkward splits at
 1.3 × "ใหญ่มาก" and add joiners, extending that test to cover them.
 BACKLOG 69 (the alert-detail sites line) is done in the same pass (user
 decision 2026-10-31).
+
+
+**RESOLVED in S10.** `mobile/lib/text/thai_break.dart`: `keepTogether`
+puts U+2060 between the words of a phrase, as Flutter's dictionary
+splits them (a table, `thaiWords`, checked against
+`TextPainter.getWordBoundary`). Applied where copy is composed for the
+screen: site and region names, "เท้าซ้าย/ขวา", "ตอนเดิน", "หรือไม่"
+inside running text on Home, Alerts (list and detail), My feet and in
+notification bodies; a no-break space before each "·" in the sites line
+and in Home's date. Titles and names standing alone (rows, table cells,
+chart labels, TalkBack labels) stay plain. Finding: a joiner **inside** a
+word (the first S10 version joined every letter) cuts the Thai around it
+into pieces the dictionary cannot read, and Flutter then breaks plain
+words nearby ("สู / งมาก"); a joined phrase wider than the line has the
+same effect, so titles (28–32 px) keep plain names. Tests:
+`test/text/thai_break_test.dart` (table = dictionary words; every line
+break in every alert copy falls between words at 260–400 px and scales
+1.0/1.3/1.88, with a control that proves the check fails; storage,
+capture, BLE, device and gait never see a joiner) and
+`test/footcheck/thai_line_break_test.dart` (site names, the sites line,
+46's words, Home's date). New goldens at 130 % for Home, Alerts and My
+feet. Lines holding a joiner sit about 2 px lower (U+2060 is not in the
+body font, so a fallback font's line metrics count); the Note 10 smoke
+check looks at the Samsung font. The foot-check copy keeps its own
+joiners from S8C. The capture screens are English and researcher-only:
+nothing to join.
 
 ## 61. Resources looked up by name must be kept in release builds **(found at the S8C Note 10 run)** — FIXED for the reminder; standing check for S9
 
@@ -1592,7 +1623,7 @@ that crosses midnight. Check the other "today" labels (Alerts groups,
 Temperature tab `watchDay`, Foot check "วันนี้ยังไม่ได้ดูเท้า") for the same
 pattern.
 
-## 69. The alert-detail sites line can break inside a site name **(found in S8D-2)** — OPEN, for S10
+## 69. The alert-detail sites line can break inside a site name **(found in S8D-2)** — RESOLVED in S10
 
 The `TEMP_DELTA` detail's line "จุดที่อุ่นกว่าบนเท้าขวา: กลางส้นเท้า ·
 ส้นเท้าด้านนอก" wraps at 100 % text on 390 dp between "ส้นเท้า" and
@@ -1600,6 +1631,11 @@ The `TEMP_DELTA` detail's line "จุดที่อุ่นกว่าบน
 words. Keep each name together (word joiners, as DESIGN-SPEC decision 22)
 or put the list on its own line. Same family as BACKLOG 46 and 60.
 **Scheduled with BACKLOG 60 in S10** (user decision 2026-10-31).
+
+
+**RESOLVED in S10** (BACKLOG 60): each name in the line is joined and a
+no-break space sits before each "·", so a line breaks only after "· ";
+`thai_line_break_test.dart` checks the line with all 8 sites.
 
 ## 70. The chart's end label can cover part of the threshold line **(found in S8D-2)** — RESOLVED in S8D-2
 
