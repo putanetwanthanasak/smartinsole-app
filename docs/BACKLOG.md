@@ -5,6 +5,13 @@ Ordered roughly by what blocks what. Items marked **(assistant-flagged)** were
 raised by Claude during earlier passes rather than requested by the user —
 worth knowing which is which when prioritizing.
 
+**S10 sort (2026-11-02, report 041).** Before the study (12 Nov) only
+what a volunteer sees or hears, or what affects capture, alerts or the
+study day, is done. Every open item's header says where it goes:
+"SR" (checked with the real boards 8–11 Nov; the list is in
+`docs/SESSIONS.md` SR checklist), "user action", or "after study" (the
+study phone's build is frozen 12–30 Nov; these wait until December).
+
 ---
 
 ## 1. Gait screen pass — IMPLEMENTED
@@ -106,7 +113,7 @@ This is ready to implement — no further decision is pending.
 
 ---
 
-## 2. Redundant encoding on the two bilateral charts — needs usability validation **(assistant-flagged)**
+## 2. Redundant encoding on the two bilateral charts — needs usability validation **(assistant-flagged)** — after study (S10 sort)
 
 The gait symmetry bar chart and the 24h temperature chart both distinguish
 left vs. right by colour alone (`--brand-primary` green vs. `--brand-accent`
@@ -136,7 +143,7 @@ round of colour-theory analysis — tag it as such when picked up.
 
 ---
 
-## 3. Font subsetting before Capacitor
+## 3. Font subsetting before Capacitor — after study (S10 sort)
 
 `dist/` is currently ~1.6 MB; 98 of its 101 files are font files. The
 `@fontsource/*` packages ship every Unicode subset (Latin, Latin-ext, Greek,
@@ -148,7 +155,7 @@ given device would fetch. Needs trimming to the subsets actually used
 
 ---
 
-## 4. `PRESSURE_WATCH_KPA = 75` / `PRESSURE_ALERT_KPA = 200` are provisional — still open
+## 4. `PRESSURE_WATCH_KPA = 75` / `PRESSURE_ALERT_KPA = 200` are provisional — still open — SR (S10 sort; `docs/SESSIONS.md` SR checklist)
 
 Both values are documented in comments at their declarations in
 `constants.ts`, repeating here so it isn't missed: published peak plantar
@@ -187,7 +194,7 @@ to avoid rebuilding for.
 
 ---
 
-## 5. Settings sensitivity slider — inert, proposed mapping not implemented
+## 5. Settings sensitivity slider — inert, proposed mapping not implemented — after study (S10 sort)
 
 `settings.ts`'s "Alert sensitivity" slider writes to in-memory `state` and
 drives nothing. Proposed mapping, not implemented: it should scale
@@ -213,7 +220,7 @@ exports — see item 11, which this item depends on.
 
 ---
 
-## 6. Seed alerts anchored to "today" — will go stale, and can be future-dated
+## 6. Seed alerts anchored to "today" — will go stale, and can be future-dated — after study (S10 sort)
 
 `mockData.ts`'s seed alerts (`MOCK_DATA.recentAlerts`) are timestamped
 relative to the moment the app runs (`at(daysAgo, hh, mm)`) specifically so
@@ -228,7 +235,7 @@ being demoed from a cold start).
 
 ---
 
-## 7. Dead CSS rule in `heatmap.css` **(assistant-flagged)**
+## 7. Dead CSS rule in `heatmap.css` **(assistant-flagged)** — after study (S10 sort)
 
 `css/heatmap.css` line 95, `fill: url(#shade)`, targets an SVG gradient id
 that doesn't exist — the actual per-foot gradients are `shade-left` /
@@ -238,7 +245,7 @@ fires) but should be deleted or corrected next time that file is touched.
 
 ---
 
-## 8. Other items flagged during earlier passes, not yet actioned **(assistant-flagged)**
+## 8. Other items flagged during earlier passes, not yet actioned **(assistant-flagged)** — after study (S10 sort)
 
 - **`RiskAssessment` type does not exist yet.** Every pass so far has been
   explicitly told to keep Home's derived-status logic ad hoc rather than
@@ -260,7 +267,7 @@ fires) but should be deleted or corrected next time that file is touched.
 
 ---
 
-## 9. `AlertStore` implements 2 of the contract's 9 alert codes **(found reconciling against Data Contract v1.1, §8.3)**
+## 9. `AlertStore` implements 2 of the contract's 9 alert codes **(found reconciling against Data Contract v1.1, §8.3)** — after study (S10 sort)
 
 > Note (2026-10-24): v1.1 had 9 codes; v1.2 removed `GAIT_ABNORMAL`, so the current contract (v1.5) has **8**. The Flutter app follows the 8.
 
@@ -287,7 +294,7 @@ attempted ahead of that work landing.
 
 ---
 
-## 10. DEFECT — `TEMP_DELTA` fires on one reading; contract requires two consecutive **(found reconciling against Data Contract v1.1, §8.3)**
+## 10. DEFECT — `TEMP_DELTA` fires on one reading; contract requires two consecutive **(found reconciling against Data Contract v1.1, §8.3)** — after study (S10 sort)
 
 **This is a defect, not an enhancement.** It changes what the app tells a
 patient today, not just what it will eventually support.
@@ -369,7 +376,7 @@ adjacent rules.
 
 ---
 
-## 11. Thresholds are hardcoded; the contract requires them runtime-loadable **(found reconciling against Data Contract v1.1, §8.3)**
+## 11. Thresholds are hardcoded; the contract requires them runtime-loadable **(found reconciling against Data Contract v1.1, §8.3)** — after study (S10 sort)
 
 Data Contract v1.1 §8.3 requires every threshold value to live in a
 runtime-loadable `thresholds.json`, not be hardcoded in source, explicitly
@@ -421,7 +428,7 @@ architectural decision, not a threshold correction.
 
 ---
 
-## 12. FSR calibration curve validation near ADC saturation — blocked on PCB arrival **(found in docs/reports/008-*.md, stopgapped in docs/reports/009-*.md)**
+## 12. FSR calibration curve validation near ADC saturation — blocked on PCB arrival **(found in docs/reports/008-*.md, stopgapped in docs/reports/009-*.md)** — SR (S10 sort; `docs/SESSIONS.md` SR checklist)
 
 Illustrative (not measured) values while investigating the Pa/kPa bug in
 report 008 showed the FSR curve's `F_newton = a × R_fsr^b` term is steeply
@@ -460,7 +467,7 @@ data exists there, not once the warning heuristic exists.
 
 ---
 
-## 13. Bundle tree-shaking of the BLE stack is non-deterministic — resolve before Capacitor packaging, not before **(found in docs/reports/007-*.md, reconfirmed in docs/reports/008-*.md)**
+## 13. Bundle tree-shaking of the BLE stack is non-deterministic — resolve before Capacitor packaging, not before **(found in docs/reports/007-*.md, reconfirmed in docs/reports/008-*.md)** — after study (S10 sort)
 
 `WebBleDataSource` and everything it pulls in (`bleProtocol.ts`,
 `blePacketParser.ts`, `webBluetooth.d.ts`) are gated behind
@@ -564,7 +571,7 @@ What the opcodes mean with several centrals (decided at S2C plan approval):
 Device Status `state` is 1 while any connection streams. What the app
 must do about the device-wide ones is item 21.
 
-## 18. Simulator scenario mode (`0x10 SET_SCENARIO`) **(FLUTTER-PLAN §2, not before the main app)**
+## 18. Simulator scenario mode (`0x10 SET_SCENARIO`) **(FLUTTER-PLAN §2, not before the main app)** — after study (S10 sort)
 
 The simulator's data comes only from a `DataSource`
 (`firmware/simulator/lib/insole_core/src/data_source.h`): pure functions
@@ -581,7 +588,7 @@ S7 note: a serial-command subset exists now (`n`/`t`/`p`/`?`,
 check), each a pure `DataSource` as planned here. There is still no BLE
 opcode, and still no low-battery, sensor-fault or `-32768` scenario.
 
-## 19. `seq` / `t0_ms` behaviour across connections is not in the Data Contract **(found in S2B)**
+## 19. `seq` / `t0_ms` behaviour across connections is not in the Data Contract **(found in S2B)** — SR (S10 sort; `docs/SESSIONS.md` SR checklist)
 
 Contract §3.1 only says `seq` "wraps at 65535, used to detect dropped
 packets", and that `t0_ms` is ms since boot. It doesn't say whether `seq`
@@ -600,7 +607,7 @@ The contract owner should add these three lines to §3.1 so real firmware
 behaves the same. The old sibling-repo simulator restarted `t0_ms` on
 `START_STREAM` instead (report 015), which contradicts "ms since boot".
 
-## 20. Rule 9 (drop stale packets): design for S3A/S4 **(found in S2B)**
+## 20. Rule 9 (drop stale packets): design for S3A/S4 **(found in S2B)** — after study (S10 sort)
 
 Given item 19's behaviour, the app should drop a stale packet left over
 from an earlier connection with two checks, per foot:
@@ -676,7 +683,7 @@ The phone app must:
   relying on the swing phase. Real firmware cannot rely on that: it
   measures whatever load is on the insole when TARE arrives.
 
-## 22. `SET_RATE` conflicts with rule 1 **(found in S2C, contract owner)**
+## 22. `SET_RATE` conflicts with rule 1 **(found in S2C, contract owner)** — after study (S10 sort)
 
 Contract §3.4 `0x04 SET_RATE` (uint8 Hz, "for testing") changes the sample
 rate. The packet has no field for sample spacing, and §3.1 / rule 1 fix
@@ -686,7 +693,7 @@ and logs and ignores other rates (decided at S2C plan approval). The contract ow
 should either drop `SET_RATE`, limit it to 50, or add the spacing to the
 packet header.
 
-## 23. No "calibration changed" signal after TARE **(found in S2C, contract owner)**
+## 23. No "calibration changed" signal after TARE **(found in S2C, contract owner)** — after study (S10 sort)
 
 The Calibration characteristic is Read-only and read once at connect (§5.1).
 After a `TARE` from one central, any other connected central keeps the old
@@ -700,7 +707,7 @@ when flags bit1 goes from 1 to 0. Packets keep the old offsets until the
 new read returns. The contract-owner question (should Calibration notify?)
 is still open.
 
-## 24. Malformed control writes can't be reported **(found in S2C, contract owner)**
+## 24. Malformed control writes can't be reported **(found in S2C, contract owner)** — after study (S10 sort)
 
 Contract §3.4 gives each opcode a payload but says nothing about a write
 with the wrong length or an unknown opcode. The simulator requires the
@@ -709,7 +716,7 @@ exact length, logs and ignores anything else, and changes no state (a
 succeeds at the ATT level, so the app can't tell its command was ignored.
 The contract could add an ATT error response or a status `error_code`.
 
-## 25. Android connection interval is slower than requested **(found in S2C, for S3A)**
+## 25. Android connection interval is slower than requested **(found in S2C, for S3A)** — after study (S10 sort)
 
 The simulator requests a 15–30 ms interval (contract §2.3). The laptop
 (BlueZ) got 30 ms. The Note 10 in nRF Connect stayed at 48.75 ms (after a
@@ -746,7 +753,7 @@ result comes from the S4 Note 10 checkpoint.
   originally planned write-latency bound couldn't get below 23 ms (left)
   and 51 ms (right).
 
-## 26. Android ≤ 11 location permission and the `permission_handler` pin **(found in S3A)**
+## 26. Android ≤ 11 location permission and the `permission_handler` pin **(found in S3A)** — after study (S10 sort)
 
 - The manifest declares `ACCESS_FINE_LOCATION` (maxSdk 30) for BLE scanning
   on Android 11 and below, but the app only asks for `bluetoothScan` /
@@ -801,7 +808,7 @@ late packet from the old link is still dropped.
   stayed 0 on both feet.
 - Resolved.
 
-## 28. Web-app CSV: resync steps of exactly 160 ms, and no `seq` **(found in S3B; user decided: no web-app change)**
+## 28. Web-app CSV: resync steps of exactly 160 ms, and no `seq` **(found in S3B; user decided: no web-app change)** — after study (S10 sort)
 
 The fallback web app's `tUnixMs` is device time plus an offset that
 `WebBleDataSource.syncTime()` re-estimates every 5 minutes as "send time −
@@ -840,7 +847,7 @@ sets nothing. Writing `seq` into the CSV is S4C. **For the contract owner:**
 contract §4 describes the web app's formula; the app deliberately
 doesn't follow it.
 
-## 29. Chrome on Linux can't reconnect a remembered insole after about 30 s **(found in S3B)**
+## 29. Chrome on Linux can't reconnect a remembered insole after about 30 s **(found in S3B)** — after study (S10 sort)
 
 The web app's Connect reuses the remembered `BluetoothDevice` without a
 new scan. BlueZ deletes an unpaired device `TemporaryTimeout` (30 s) after
@@ -902,7 +909,7 @@ band test (`mobile/test/device/mock_data_source_test.dart`) are built on
 that reading. S7 must confirm it with the contract owner. If S7 chooses a
 different reading, change the presets and the test with it.
 
-## 32. Align the TestProtocol doc with proposal doc 03 **(found in S4C)**
+## 32. Align the TestProtocol doc with proposal doc 03 **(found in S4C)** — after study (S10 sort)
 
 The IRB-approved procedure is proposal doc 03 (Thai). It differs from
 `docs/SmartInsole_TestProtocol_v1.md` in two places, and the app follows
@@ -925,7 +932,7 @@ is 21–25 / 26–30. Doc 03's foot-length inclusion (25.5–27.5 cm, shoe
 size 42) is enforced for `SI-` codes in the same file
 (`footLengthEligible`). BACKLOG 32 should add both to TestProtocol_v1.
 
-## 34. The mock can't drop one foot's link mid-recording **(found in S4C)**
+## 34. The mock can't drop one foot's link mid-recording **(found in S4C)** — after study (S10 sort)
 
 The emulator rehearsal could not show the link-lost banner and cue live:
 the mock's presets are switched from Settings, which is unreachable while
@@ -935,7 +942,7 @@ part of the Note 10 checklist with a real board reset. If a live emulator
 check is wanted later, add a debug-only way to drop a mock foot (e.g. a
 mock "link drop in N s" option).
 
-## 35. Retire the web app's capture mode after the study **(FLUTTER-PLAN §10, S4C)**
+## 35. Retire the web app's capture mode after the study **(FLUTTER-PLAN §10, S4C)** — after study (S10 sort)
 
 Phone capture (S4C) is the study tool; the web app's capture page stays
 only as the fallback in `docs/STUDY-FALLBACK.md`. After the November data
@@ -1092,7 +1099,7 @@ What is still missing:
    capture flow was out of scope; until it is, deleting a capture leaves
    its alerts in the database (harmless, but they are never cleaned up).
 
-## 41. `rotated_foot` has no in/out-toeing direction for the gait note **(found in S7, for S8A)**
+## 41. `rotated_foot` has no in/out-toeing direction for the gait note **(found in S7, for S8A)** — after study (S10 sort)
 
 Contract §8.3.1 gives the `rotated_foot` note different zones for
 in-toeing and out-toeing, but Model A's class is just `rotated_foot`.
@@ -1158,7 +1165,7 @@ simulator's default output), or leave it until real-board data sets
 simulator does, so this is a simulator limit, not evidence the gate is
 too strict.
 
-## 43. The PTI threshold's source does not confirm 80 kPa·s **(found in S6B, deadline 2026-11-05)** — OPEN
+## 43. The PTI threshold's source does not confirm 80 kPa·s **(found in S6B, deadline 2026-11-05)** — OPEN — user action before the medical review (5 Nov)
 
 The alert detail shows "ที่มาของเกณฑ์" from `shared/thresholds.json`
 `sources` (S6B), copied word for word from DATA-CONTRACT §8.3. For
@@ -1170,7 +1177,7 @@ change the value to one the source supports, and update §8.3,
 keeps the contract's text unchanged; nothing on screen says it is
 unverified.
 
-## 44. Icon stroke is Lucide's 2, not the spec's 2.25 **(found in the S6B review)** — OPEN, for S10
+## 44. Icon stroke is Lucide's 2, not the spec's 2.25 **(found in the S6B review)** — OPEN — after study (S10 sort)
 
 DESIGN-SPEC §5 gives `stroke 2.25` for the back link's `chevron-left` and
 the status tag's icon (and the boards draw every Lucide icon at 2.25).
@@ -1180,7 +1187,7 @@ Options for S10: accept 2 and change §5, or draw the icons from the Lucide
 SVGs (e.g. `flutter_svg`, stroke 2.25) everywhere. Not changed per screen,
 so the app stays consistent.
 
-## 45. The left insole was not reconnected within 5 minutes after S7 **(found in S6B, check in S9, before SR)** — MEASURED in S9-2 (waiting on user)
+## 45. The left insole was not reconnected within 5 minutes after S7 **(found in S6B, check in S9, before SR)** — MEASURED in S9-2 (waiting on user) — SR (S10 sort; `docs/SESSIONS.md` SR checklist)
 
 After the S7 Note 10 run (report 030), the phone's database showed:
 - the left foot's last temperature row at 19:05:36;
@@ -1251,7 +1258,7 @@ In S10: keep such phrases together, e.g. with a non-breaking join
 binds the final short word to the one before it. Check every screen at
 100 % and 200 % text. The goldens show the change.
 
-## 47. My feet sub-tab labels break inside words at 200 % text **(found in S6B part 2)** — OPEN, for S10
+## 47. My feet sub-tab labels break inside words at 200 % text **(found in S6B part 2)** — OPEN — after study (S10 sort)
 
 At 200 % text the segmented control's three labels wrap inside a word
 ("แรง/กด", "อุณห/ภูมิ", "การ/เดิน"; goldens `my_feet_*_200`). Each
@@ -1263,7 +1270,7 @@ with the user's OK. The bottom bar labels behave the same at 200 %
 "ติดกัน"; on the emulator it breaks correctly (BACKLOG 46 covers the
 general case).
 
-## 48. Model A's runtime makes the release APK bigger **(found in S8A)** — OPEN, for S9
+## 48. Model A's runtime makes the release APK bigger **(found in S8A)** — OPEN — after study (S10 sort)
 
 `tflite_flutter` 0.12.1 bundles LiteRT's native libraries for every ABI
 (arm64: `libtensorflowlite_jni.so` 4.3 MB + `libtensorflowlite_gpu_jni.so`
@@ -1274,7 +1281,7 @@ room, so nothing is needed for the study. Options for S9: per-ABI APKs
 dummy model (`assets/models_dummy/`, 266 KB with `check.json`) is also in
 release builds, never loaded there.
 
-## 49. Rule-based gait classes are provisional **(found in S8A, before the study start, 2026-11-12)** — OPEN, for SR
+## 49. Rule-based gait classes are provisional **(found in S8A, before the study start, 2026-11-12)** — OPEN — SR (S10 sort; `docs/SESSIONS.md` SR checklist)
 
 The `gait.*` keys (`ruleSteps` 4, `toeHeelPtiPct` 10,
 `heelForefootPtiPct` 15, `stanceAsymmetryPct` 15; DATA-CONTRACT §8 S8A
@@ -1286,7 +1293,7 @@ are 1200 vs 960 ms, which the rule correctly calls asymmetric). The rules
 never give `rotated_foot`. The gait result never changes a level
 (rule 11).
 
-## 50. "ยืนหรือนั่งอยู่" wraps in the Gait tab's half-width card **(found in S8A)** — OPEN, for S10
+## 50. "ยืนหรือนั่งอยู่" wraps in the Gait tab's half-width card **(found in S8A)** — OPEN — after study (S10 sort)
 
 At 24/700 the "ตอนนี้" value "ยืนหรือนั่งอยู่" needs two lines in its
 half-width card at the 390 dp reference width even at 100 % text:
@@ -1346,7 +1353,7 @@ as without the merge. The existing step tests keep every assertion; only
 their helper adds `mergeGapMs` of unloaded samples (user decision
 2026-11-01). SR's hand count also checks `mergeGapMs`.
 
-## 52. Auto-reconnect searches without a time limit **(found in S8B)** — OPEN, for S9
+## 52. Auto-reconnect searches without a time limit **(found in S8B)** — OPEN — SR (S10 sort; `docs/SESSIONS.md` SR checklist)
 
 At app start, a remembered insole is reconnected by `BleDataSource`'s own
 retry loop (S3A), which keeps scanning until the insole advertises. The
@@ -1364,7 +1371,7 @@ off from 14:38 to 15:02 while auto-reconnect scanned. The battery rose
 7 → 11 % on laptop USB over that time, so the drain was too small to
 show against charging.
 
-## 53. The Diagnostics "Connect as" path does not remember the insole **(found in S8B)** — OPEN, minor
+## 53. The Diagnostics "Connect as" path does not remember the insole **(found in S8B)** — OPEN, minor — after study (S10 sort)
 
 Diagnostics' scan list connects through `BleDataSource.connectTo`
 directly, not through `FootFinder`, so an insole connected there is not
@@ -1372,7 +1379,7 @@ remembered for auto-reconnect at the next start. Researchers should use
 Connection. Either route Diagnostics' connect through the finder, or
 leave it as a raw tool and say so on the card.
 
-## 54. Home's two foot tiles stay side by side at 1.3 × "ใหญ่มาก" **(found in S8B)** — OPEN, for S10
+## 54. Home's two foot tiles stay side by side at 1.3 × "ใหญ่มาก" **(found in S8B)** — tiles RESOLVED in S10; tab-bar labels after study
 
 At the Note 10's phone scale 1.3 with "ใหญ่มาก" (≈ 1.88) nothing clips
 (golden `home_safe_130xl`), but the foot tiles stay in two columns with
@@ -1381,6 +1388,11 @@ The Note 10 run (report 035) shows the same wrap already at phone
 1.0 × ใหญ่มาก, as does the "ใหญ่มาก" option itself in Settings.
 S10's large-text pass should decide whether the tiles stack above 1.3 like
 the other two-column rows, and how the bar handles two-line labels.
+
+**S10 (report 041):** the foot chips stack full width above text scale
+1.3, the same breakpoint as the small cards (`home_screen.dart`
+`_FootChips`; goldens `home_*_130xl`, `home_*_200`). **After study:** the
+tab bar's two-line labels at "ใหญ่มาก" (they wrap, nothing clips).
 
 ## 55. ModemManager wrote to a replugged simulator board **(found at the S8B Note 10 run)** — RESOLVED 2026-10-25
 
@@ -1395,7 +1407,7 @@ repo; on another laptop, add the same rule. Sending `?` through the
 logger's `--commands` FIFO after a replug still confirms the scenario
 before a phone connects.
 
-## 56. The foot-check reminder shows "smartinsole" and the Flutter launcher icon **(found in S8C)** — OPEN, for S10
+## 56. The foot-check reminder shows "smartinsole" and the Flutter launcher icon **(found in S8C)** — RESOLVED in S10 (2026-11-02)
 
 The notification's header shows the app label `smartinsole` and the
 default Flutter launcher icon (the small status-bar icon is our
@@ -1403,7 +1415,18 @@ default Flutter launcher icon (the small status-bar icon is our
 "smartinsole" (report 035). S10 should set the Thai/English app name and a real
 launcher icon; nothing in `lib/notify/` needs to change.
 
-## 57. Front preview mirroring on the camera plugin's SurfaceTexture path is untested **(found in S8C)** — OPEN, Note 10 checkpoint
+**Done in S10 (report 041, user decisions 2026-11-02):** `android:label`
+"SmartInsole"; an adaptive launcher icon (`mipmap-anydpi-v26/ic_launcher.xml`:
+white Lucide `footprints` on `primary` #155E75, also as the monochrome
+layer). Android 7 keeps Flutter's PNGs (no image tools on the laptop). The
+notification header's icon is the small icon, not the launcher icon: no
+notification uses `@mipmap/ic_launcher` (the reminder and the plugin's
+init default use `ic_stat_foot_check`); the foot alerts' `ic_stat_foot_alert`
+changed from Lucide `bell` to `footprints` (white outline, transparent,
+kept in `keep.xml`, so `tool/check_release_resources.sh` checks it). Both
+notifications are tinted `primary`.
+
+## 57. Front preview mirroring on the camera plugin's SurfaceTexture path is untested **(found in S8C)** — OPEN, Note 10 checkpoint — after study (S10 sort)
 
 `camera_android_camerax` mirrors the front preview only on its ImageReader
 path. On the SurfaceTexture path the app mirrors it itself, after asking
@@ -1413,7 +1436,7 @@ a widget test. The Note 10 checklist (report 036, items 3–4) logs the path
 and checks the preview. If a later plugin version mirrors on both paths,
 the preview would be mirrored twice; re-check after any `camera` upgrade.
 
-## 58. The MCP driver build keeps the database in memory **(found in S8C)** — OPEN, minor
+## 58. The MCP driver build keeps the database in memory **(found in S8C)** — OPEN, minor — after study (S10 sort)
 
 `test_driver/main_mcp.dart` runs with an in-memory database (mock and
 fake-BLE rule), so a restart or reboot on the emulator loses saved foot
@@ -1423,7 +1446,7 @@ goldens. If an emulator check across restarts is needed, add a driver flag
 for a file database in the app's private folder (never the phone's real
 one).
 
-## 59. The Saved reminder for a finding older than yesterday is not designed **(found in S8C)** — OPEN, needs a design
+## 59. The Saved reminder for a finding older than yesterday is not designed **(found in S8C)** — OPEN, needs a design — after study (S10 sort)
 
 Saved shows "เมื่อวานพบสิ่งที่ควรให้แพทย์ดู …" only for yesterday's
 finding (§11.5). A finding from two or more days ago, with no check since,
@@ -1467,7 +1490,7 @@ the same rule.
 `AndroidResources` and keep.xml; the S9-2 release APK must pass the check
 with it listed.
 
-## 62. Evening reminders may come up to 1 hour late **(found at the S8C Note 10 run)** — OPEN, for S10 if needed
+## 62. Evening reminders may come up to 1 hour late **(found at the S8C Note 10 run)** — CLOSED in S10: accepted (user decision 2026-11-02)
 
 The reminders are inexact alarms (`inexactAllowWhileIdle`, no exact-alarm
 permission). On the Note 10, `dumpsys alarm` shows each one, set a day or
@@ -1476,6 +1499,10 @@ more ahead, with a delivery window of 1 hour, so 19:00 may come as late as
 it too late, options are a window alarm (`setWindow`, e.g. 15 minutes) or
 exact alarms, which need `SCHEDULE_EXACT_ALARM` / `USE_EXACT_ALARM` and
 their policy review.
+
+**Closed (S10):** the reminders stay inexact
+(`inexactAllowWhileIdle`, no exact-alarm permission); up to 1 hour late is
+accepted for the study. Reopen only if patients find it too late.
 
 ## 63. The laptop web fallback cannot capture from 8-sensor boards **(found in S8D-1)** — CLOSED 2026-11-01 (user decision 2026-10-31: one phone only)
 
@@ -1502,7 +1529,7 @@ power bank and a spare USB cable on study days. Written into
 `docs/STUDY-CAPTURE.md` and `docs/STUDY-FALLBACK.md` (now a "retired"
 page) in S9-1 (report 039).
 
-## 64. `concentrationPct` 40 % was set for 6 sensors **(found in S8D-1)** — OPEN, check in SR
+## 64. `concentrationPct` 40 % was set for 6 sensors **(found in S8D-1)** — OPEN — SR (S10 sort; `docs/SESSIONS.md` SR checklist)
 
 `LOAD_CONCENTRATION` keeps `asymmetry.concentrationPct` 40 % (user decision
 2026-10-29: not changed silently). Over 8 zones an even load is 12.5 % per
@@ -1513,7 +1540,7 @@ whether to change the value before the study (12 Nov). A test documents
 the current behaviour (`alert_engine_test.dart`, "an even load over 8
 zones").
 
-## 65. `steps.contactKpa` and the gait PTI shares now sum 8 zones **(found in S8D-1)** — OPEN, check in SR
+## 65. `steps.contactKpa` and the gait PTI shares now sum 8 zones **(found in S8D-1)** — OPEN — SR (S10 sort; `docs/SESSIONS.md` SR checklist)
 
 `steps.contactKpa` (10) is compared with the sum of all zones' kPa, which
 now has 8 terms; `gait.toeHeelPtiPct` and `heelForefootPtiPct` are shares of
@@ -1521,14 +1548,14 @@ a whole that now includes the medial arch and lateral midfoot (heel = sites
 5 + 7, forefoot = 0–3). All were tuned on 6 zones. Check them with SR's
 instructed gaits together with BACKLOG 49 and 51.
 
-## 66. Model B's temperature features name the old 2 sites **(found in S8D-1)** — OPEN, before Model B training
+## 66. Model B's temperature features name the old 2 sites **(found in S8D-1)** — OPEN, before Model B training — after study (S10 sort)
 
 DATA-CONTRACT §7.3 features 0–5 are forefoot / heel temperatures and ΔT.
 With 8 sites per foot they have to be redefined (per site, or the largest
 |ΔT| and its site) with the AI team before Model B is trained. Model A is
 not affected beyond its 28-channel input (done in S8D-1).
 
-## 67. Send DATA-CONTRACT v1.6 to the hardware team **(S8D-1)** — OPEN, user action, before the boards (~8 Nov)
+## 67. Send DATA-CONTRACT v1.6 to the hardware team **(S8D-1)** — OPEN — user action before the boards (~8 Nov)
 
 Appendix C of `docs/DATA-CONTRACT.md` is the one-page summary for the
 hardware team: channel order, the 232-byte sensor packet, temperature v2,
@@ -1595,7 +1622,7 @@ dropped; the banner and the top-3 rows already name the site. Above or
 below the dot it is kept as is, including the short stretch of threshold
 line its backdrop covers below the dot.
 
-## 71. Two pushed foot-check screens read the day at build **(found in S8D-2)** — OPEN, minor
+## 71. Two pushed foot-check screens read the day at build **(found in S8D-2)** — OPEN, minor — after study (S10 sort)
 
 `compare_screen.dart:56` ("วันนี้ · {d MMM}" caption) and
 `photo_history_screen.dart:34` ("วันนี้" / "เมื่อวาน" day titles) read
@@ -1604,7 +1631,7 @@ screens a user leaves quickly, so the window is small: one open across
 midnight shows yesterday's words until something rebuilds it. Fix the same
 way (watch `todayProvider`) when either screen is next touched.
 
-## 72. Foot alert notifications with the screen off **(S9-1, user decision 9)** — MEASURED in S9-2 (waiting on user); the limitation stays
+## 72. Foot alert notifications with the screen off **(S9-1, user decision 9)** — MEASURED in S9-2 (waiting on user); the limitation stays — SR (S10 sort; `docs/SESSIONS.md` SR checklist)
 
 S9 posts a system notification for `TEMP_DELTA`, `PRESSURE_PEAK`,
 `PRESSURE_PTI` and `LOAD_CONCENTRATION` (DESIGN-SPEC §11.9), but only while
@@ -1713,7 +1740,7 @@ badge 1 and bell 16 on the Note 10. Options:
 launcher badge counts tray notifications and the bell counts unread
 alerts.
 
-## 76. One `p` event gives two sound notifications about 21 s apart **(found at the S9-2 Note 10 checkpoint)** — OPEN, decided: do in S10
+## 76. One `p` event gives two sound notifications about 21 s apart **(found at the S9-2 Note 10 checkpoint)** — RESOLVED in S10 (2026-11-02)
 
 A high MTH1 load raises PRESSURE_PEAK at once and LOAD_CONCENTRATION
 about 21–26 s later (its window). Each posts its own notification with
@@ -1729,7 +1756,17 @@ for the same foot, post the next one silently. It is still shown in the
 tray. Do it in S10, with a test. The 2 minutes go in `thresholds.json`
 (rule 12), and DESIGN-SPEC §11.9 is updated with it.
 
-## 77. A refused side shows as "disconnected by user" in the BLE log **(found at the S9-2 Note 10 checkpoint)** — OPEN, minor
+**Done in S10 (report 041):** `NotificationQuietWindow`
+(`mobile/lib/notify/quiet_window.dart`) in `AlertNotificationService`. With
+sound on, a foot alert notification raised within `alerts.quietNotifyMin`
+(2, both `thresholds.json` copies, `version` 1) of the last one that
+**sounded** for the same foot goes on the silent channel and is still
+posted (user decision at plan approval: counted from the last sounded one).
+Timed by the alerts' own `atMs`; per foot; in memory (after an app restart
+the next alert sounds). Tests in `test/notify/alert_notification_test.dart`.
+DESIGN-SPEC §11.9 and decision 32; DATA-CONTRACT addendum row.
+
+## 77. A refused side shows as "disconnected by user" in the BLE log **(found at the S9-2 Note 10 checkpoint)** — OPEN, minor — after study (S10 sort)
 
 When "เชื่อมต่อเท้าซ้าย" first reached the right board and refused it by
 its side byte (rule 8), the event log line read "disconnected by user".
