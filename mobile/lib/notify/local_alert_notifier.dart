@@ -1,6 +1,7 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import 'alert_notifier.dart';
+import '../ui/theme/colors.dart';
 import 'android_resources.dart';
 import 'local_notifications.dart';
 
@@ -41,6 +42,7 @@ class LocalAlertNotifier implements AlertNotifier {
       playSound: c.playSound,
       enableVibration: c.enableVibration,
       icon: AndroidResources.alertIcon,
+      color: AppColors.primary,
       visibility: NotificationVisibility.private,
       styleInformation: BigTextStyleInformation(body),
     ),

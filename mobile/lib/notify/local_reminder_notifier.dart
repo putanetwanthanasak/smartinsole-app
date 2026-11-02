@@ -4,6 +4,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/timezone.dart' as tz;
 
+import '../ui/theme/colors.dart';
 import 'android_resources.dart';
 import 'local_notifications.dart';
 import 'notification_access.dart';
@@ -55,6 +56,7 @@ class LocalReminderNotifier implements ReminderNotifier {
         playSound: c.playSound,
         enableVibration: c.enableVibration,
         icon: AndroidResources.reminderIcon,
+        color: AppColors.primary,
       );
 
   AndroidFlutterLocalNotificationsPlugin? get _android => _shared.android;
