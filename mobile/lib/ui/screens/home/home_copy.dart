@@ -2,6 +2,7 @@ import '../../../config/foot_layout.dart';
 import '../../../rules/alert_copy.dart';
 import '../../../rules/patient_status.dart';
 import '../../../rules/pressure_level.dart';
+import '../../../text/thai_break.dart';
 import 'home_model.dart';
 
 export '../../../rules/alert_copy.dart' show formatDelta, nbsp, sideTh;
@@ -71,7 +72,10 @@ StatusCopy statusCopy(PatientStatus status) {
   }
   if (high != null) {
     final zone = footLayout.zones[high.topChannel!];
-    return ('${zone.region.displayTh}${sideTh(high.side)}รับน้ำหนักมาก', true);
+    return (
+      '${zone.region.displayTh}${sideTh(high.side)}รับ${keepTogether('น้ำหนัก')}มาก',
+      true,
+    );
   }
   final withData = [left, right].where((m) => m.hasData).toList();
   if (withData.isEmpty) {

@@ -94,6 +94,7 @@ AlertCopy alertCopyFor(
   final orNot = keepTogether('หรือไม่');
   // One word to a reader, two to the dictionary (S10 emulator check).
   final continuous = keepTogether('ต่อเนื่อง');
+  final weight = keepTogether('น้ำหนัก');
   switch (code) {
     case AlertCode.tempDelta:
       final siteName =
@@ -118,7 +119,7 @@ AlertCopy alertCopyFor(
       );
     case AlertCode.pressurePeak:
       return AlertCopy(
-        title: '$regionTitleรับน้ำหนักมาก$walking',
+        title: '$regionTitleรับ$weightมาก$walking',
         // S7 draft: the board's "หลายก้าวติดกัน" is not what the rule
         // checks (one walking sample above the boundary raises it).
         detail: '$zoneSรับแรงกดสูงมาก$walking',
@@ -131,12 +132,12 @@ AlertCopy alertCopyFor(
             'แรงกดที่สูงมากซ้ำ ๆ ที่จุดเดิมขณะเดิน อาจทำให้ผิวบริเวณนั้นช้ำ'
             'และเกิดแผลได้ โดยเฉพาะเมื่อเท้ารู้สึกได้น้อยลง',
         todo: 'ลองเดินช้าลง ก้าวให้สั้นลง หรือนั่งพักสักครู่',
-        homeDetail: '$regionSรับน้ำหนักมาก$walking',
+        homeDetail: '$regionSรับ$weightมาก$walking',
         homeAdvice: 'ลองเดินช้าลง ก้าวให้สั้นลง หรือนั่งพักสักครู่',
       );
     case AlertCode.pressurePti:
       return AlertCopy(
-        title: '$regionTitleรับน้ำหนักมาก$continuousนานเกินไป',
+        title: '$regionTitleรับ$weightมาก$continuousนานเกินไป',
         // S7 draft (detail, steps, why).
         detail: '$zoneSรับแรงกดนานในทุกก้าว $continuousมาตลอดช่วงที่ผ่านมา',
         steps: const [
@@ -148,17 +149,17 @@ AlertCopy alertCopyFor(
             'เมื่อจุดเดิมของฝ่าเท้ารับแรงกดนาน ๆ ซ้ำทุกก้าว ผิวบริเวณนั้น'
             'อาจได้เลือดไปเลี้ยงน้อยลงและเกิดแผลได้ โดยเฉพาะเมื่อเท้ารู้สึกได้น้อยลง',
         todo: 'ลองขยับเท้า เปลี่ยนท่ายืน หรือนั่งพักสักครู่',
-        homeDetail: '$regionSรับน้ำหนักมาก$continuousนานเกินไป',
+        homeDetail: '$regionSรับ$weightมาก$continuousนานเกินไป',
         homeAdvice: 'ลองขยับเท้า เปลี่ยนท่ายืน หรือนั่งพักสักครู่',
       );
     case AlertCode.loadConcentration:
       return AlertCopy(
-        title: 'น้ำหนักลงที่$regionTitleจุดเดียวมากเกินไป',
+        title: '$weightลงที่$regionTitle${keepTogether('จุดเดียว')}มากเกินไป',
         // S7 draft (detail, steps, why, and the advice: the rule now
         // counts walking steps, so the board's standing advice became a
         // walking one).
         detail:
-            'ทุกก้าวที่ผ่านมา น้ำหนักลงที่$zoneSมากกว่าจุดอื่นของฝ่าเท้ามาก',
+            'ทุกก้าวที่ผ่านมา $weightลงที่$zoneSมากกว่าจุดอื่นของฝ่าเท้ามาก',
         steps: const [
           'ลองเดินช้าลง ให้น้ำหนักลงทั้งฝ่าเท้า',
           'นั่งพักสักครู่ แล้วขยับเท้าเปลี่ยนท่า',
@@ -168,14 +169,14 @@ AlertCopy alertCopyFor(
             'เมื่อน้ำหนักลงที่จุดเดียวของฝ่าเท้ามากเกินไปทุกก้าว '
             'ผิวบริเวณนั้นต้องรับแรงมากกว่าปกติ และอาจเกิดแผลได้ '
             'โดยเฉพาะเมื่อเท้ารู้สึกได้น้อยลง',
-        todo: 'ลองเดินช้าลงให้น้ำหนักลงทั้งฝ่าเท้า หรือนั่งพักสักครู่',
-        homeDetail: 'น้ำหนักลงที่$regionSจุดเดียวมากเกินไป',
-        homeAdvice: 'ลองเดินช้าลงให้น้ำหนักลงทั้งฝ่าเท้า หรือนั่งพักสักครู่',
+        todo: 'ลองเดินช้าลงให้$weightลงทั้งฝ่าเท้า หรือนั่งพักสักครู่',
+        homeDetail: '$weightลงที่$regionS${keepTogether('จุดเดียว')}มากเกินไป',
+        homeAdvice: 'ลองเดินช้าลงให้$weightลงทั้งฝ่าเท้า หรือนั่งพักสักครู่',
       );
     case AlertCode.pressureWatch:
       // Level 2: stored, never listed (DESIGN-SPEC §7.1). S7 draft.
       return AlertCopy(
-        title: '$regionTitleรับน้ำหนักค่อนข้างมาก',
+        title: '$regionTitleรับ$weightค่อนข้างมาก',
         detail: '$zoneSรับแรงกดสูงกว่าปกติ',
         steps: const ['ลองขยับเท้า หรือเปลี่ยนท่า'],
         why: 'แอปเฝ้าดูจุดที่รับแรงกดสูง เพื่อเตือนก่อนที่แรงกดจะสูงจนเสี่ยงเกิดแผล',
@@ -185,13 +186,13 @@ AlertCopy alertCopyFor(
       // Level 2: stored, never listed; Home shows it as the orange
       // balance note. S7 draft.
       return AlertCopy(
-        title: 'ลงน้ำหนัก$footSมากกว่า',
+        title: 'ลง$weight$footSมากกว่า',
         detail: 'ตอนเดิน $footSรับแรงกดสูงกว่า$footOtherติดต่อกันหลายก้าว',
         steps: const ['ลองเดินช้าลง และลงน้ำหนักให้เท่ากันทั้งสองข้าง'],
         why:
             'เมื่อเท้าข้างหนึ่งรับแรงมากกว่าอีกข้างต่อเนื่อง '
             'เท้าข้างนั้นมีโอกาสเกิดแผลมากขึ้น',
-        todo: 'ลองเดินช้าลง และลงน้ำหนักให้เท่ากันทั้งสองข้าง',
+        todo: 'ลองเดินช้าลง และลง$weightให้เท่ากันทั้งสองข้าง',
       );
     case AlertCode.deviceLost:
       final minutes = threshold == null ? '' : ' ${threshold.round()}';

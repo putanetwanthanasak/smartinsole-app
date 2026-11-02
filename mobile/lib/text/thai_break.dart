@@ -53,6 +53,8 @@ const thaiWords = {
   'ตอนเดิน': 'ตอน|เดิน',
   'หรือไม่': 'หรือ|ไม่',
   'ต่อเนื่อง': 'ต่อ|เนื่อง',
+  'น้ำหนัก': 'น้ำ|หนัก',
+  'จุดเดียว': 'จุด|เดียว',
 };
 
 /// [phrase] with a [wordJoiner] between its words ([thaiWords]), so no line
