@@ -53,7 +53,7 @@ user confirms it.
 | d633edd | Version 1.0.0+3 |
 | 6e3dd77 | Item 9: `AlertRepository.watchForCapture`, `captureAlertsProvider`; `SessionAlertsLine` on the capture Ready and Saved screens ("Alerts this session: N (no notification) · latest CODE side HH:mm", grey, only when there are any); widget rig gets an in-memory database; 1 test; STUDY-CAPTURE session step 5; version 1.0.0+4 |
 | d894d81 | Spec review finding 1: `baselineToleranceSamples` (5) in `model_preprocess.json`; `FootBaselineWindow.end()` and `foot_baseline_window` accept a trial 00 that ends at most that many samples short with every rule passed; fixture case `slow_clock` (20.05 ms step, 1497 / 1496 rows); tests for the boundary; DATA-CONTRACT §7.1; version 1.0.0+5 |
-| (this commit) | Report 040 and screenshots; BACKLOG 45, 52, 72 results and new items 75–77; FLUTTER-PLAN §1, DESIGN-SPEC §11.9 (screen-off result, session screen named); STUDY-CAPTURE (redo wording, tolerance) |
+| a73ed54 | Report 040 and screenshots; BACKLOG 45, 52, 72 results and new items 75–77; FLUTTER-PLAN §1, DESIGN-SPEC §11.9 (screen-off result, session screen named); STUDY-CAPTURE (redo wording, tolerance) |
 
 Checks on the final state: `flutter analyze` no issues; `flutter test`
 **1066 passed** (goldens unchanged since 34fabcb); `preprocess.py
