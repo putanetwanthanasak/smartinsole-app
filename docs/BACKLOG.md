@@ -1610,7 +1610,7 @@ insoles stream (`AlertNotificationHost`, flag `notify.connectPromptShown`),
 never during a research capture (then once the session is closed); the
 "ตรวจเท้า" and reminder asks stay. Tests: `test/notify/connect_prompt_test.dart`.
 
-## 74. The app's quiet-standing baseline is a separate recording from capture trial 00 **(S9-1)** — DECIDED 2026-11-02, build at the start of S9-2
+## 74. The app's quiet-standing baseline is a separate recording from capture trial 00 **(S9-1)** — RESOLVED in S9-2 (2026-11-02)
 
 Training takes each subject's baseline from capture trial 00 (the 30 s
 standing calibration); the app takes it from Researcher › "บันทึกค่ายืนนิ่ง
@@ -1630,3 +1630,18 @@ paths and gets identical baselines. DATA-CONTRACT §7 and STUDY-CAPTURE
 say so. Built at the start of S9-2 (SESSIONS §S9 item 9). Today the
 Python side takes the median of all valid trial-00 rows, with no window
 and no rejection rules.
+
+**Resolved (S9-2, report 040; user decisions 1a, 2a, 3a, 4b):** one
+per-foot function, `FootBaselineWindow` (`mobile/lib/gait/baseline_window.dart`)
+and its Python port `foot_baseline_window` (`tools/model/preprocess.py`):
+the first `baselineSeconds` × 50 samples that pass; refused on a reconnect,
+lost packets, a TARE, a sample marked invalid (new), not 8 FSR, the walking
+gate, a foot not loaded, or too few samples (new). The Researcher recording
+feeds it from the 50 Hz path (now exactly 1500 samples per foot; the time
+rule kept 1501 on the emulator); capture trial 00 feeds it from its CSV
+(`capture/trial_baseline.dart`, and `trial_baseline` in Python). Training
+uses the newest valid trial-00 attempt that passes. The capture Saved
+screen shows trial 00's result right after it is saved, so it can be redone
+while the volunteer is there (display only), and `load_capture.py check`
+reports it (FAIL study, INFO rehearsal). `shared/test_vectors/baseline/`
+is matched exactly by both Dart paths. DATA-CONTRACT §7.1, STUDY-CAPTURE.

@@ -68,7 +68,16 @@ Built in S4C (`docs/reports/027-flutter-capture.md`). Code:
    session**. The screen stays on from here until you leave the session.
 2. **Calibration (30 s standing still):** ask the volunteer to stand still
    with weight on both feet, then tap **Start recording**. It stops on its
-   own.
+   own. Trial 00 is also each volunteer's Model A baseline (DATA-CONTRACT
+   §7.1, BACKLOG 74): when it is saved, the screen shows
+   **Baseline (30 s standing): OK**, or **Baseline failed** with the foot
+   and the reason (packets lost, the insole reconnected, a TARE, the
+   volunteer moved, not standing on the insole, part marked invalid,
+   shorter than 30 s). On a failure, **Redo this trial now, while the
+   volunteer is here**: training uses the newest valid trial-00 attempt
+   that passes, and a volunteer with none has no baseline. Nothing is
+   blocked; the line is only information. A `TEST-` rehearsal's 10 s
+   calibration says "Baseline not checked" instead.
 3. **For each of the 5 gaits**, in the order shown:
    1. Demonstrate the gait. For antalgic the screen shows the pain side;
       for rotated foot, pick in-toeing or out-toeing first (required).
@@ -222,6 +231,12 @@ line per check; `PASS` at the end means no FAIL.
   just shown.
 - **INFO**: problems in attempts already marked invalid (e.g. a redone
   one).
+- **Trial 00 baseline** (S9-2, BACKLOG 74): OK names the calibration
+  attempt training will use and its samples per foot; "no baseline" lists
+  each valid attempt's failure. FAIL in a study session, INFO in a
+  rehearsal (its 10 s calibration is shorter than the 30 s window).
+  `python3 tools/model/preprocess.py baseline <session folder>` prints the
+  baseline itself.
 - **`alerts.csv`**: FAIL on an unknown code, a level that does not match
   its code, a zone / site / side that is not valid for the code, rows
   out of time order, or an alert from before the session was created.
