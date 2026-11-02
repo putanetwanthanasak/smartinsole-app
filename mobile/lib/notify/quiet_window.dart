@@ -15,6 +15,7 @@ class NotificationQuietWindow {
 
   final Duration window;
   final _lastSoundAtMs = <FootSide, int>{};
+  final _beforeLast = <FootSide, int?>{};
 
   /// True when a notification for [side] raised at [atMs] may sound; it
   /// then counts as the last sounded one for [side]. False when it falls
@@ -24,7 +25,20 @@ class NotificationQuietWindow {
     if (last != null && (atMs - last).abs() < window.inMilliseconds) {
       return false;
     }
+    _beforeLast[side] = last;
     _lastSoundAtMs[side] = atMs;
     return true;
+  }
+
+  /// Undoes [claimSound] for [side] at [atMs] when that notification was
+  /// never posted, so it does not silence the next one (nothing sounded).
+  void release(FootSide side, int atMs) {
+    if (_lastSoundAtMs[side] != atMs) return;
+    final before = _beforeLast.remove(side);
+    if (before == null) {
+      _lastSoundAtMs.remove(side);
+    } else {
+      _lastSoundAtMs[side] = before;
+    }
   }
 }

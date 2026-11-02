@@ -16,9 +16,17 @@ class FakeAlertNotifier implements AlertNotifier {
   @override
   Future<int?> launchAlertId() async => launchedFrom;
 
+  /// The next this many [show] calls throw, as a failed post would.
+  int failNext = 0;
+
   @override
-  Future<void> show(AlertNotice notice, {required bool sound}) async =>
-      shown.add((notice, sound));
+  Future<void> show(AlertNotice notice, {required bool sound}) async {
+    if (failNext > 0) {
+      failNext--;
+      throw StateError('post failed');
+    }
+    shown.add((notice, sound));
+  }
 
   /// Cancelled alert ids, oldest first.
   final cancelled = <int>[];

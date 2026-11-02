@@ -233,6 +233,8 @@ TempMapView? tempMapOf(StoredAlert a) {
   };
   final names = [for (final i in sites) footLayout.zones[i].displayTh];
   final name = names.first;
+  // TalkBack reads names plain (S10: joiners are for line breaks only).
+  final spoken = [for (final i in sites) footLayout.zones[i].nameTh];
   final s = sideTh(side);
   final o = sideTh(otherSide(side));
   return TempMapView(
@@ -248,7 +250,7 @@ TempMapView? tempMapOf(StoredAlert a) {
         : 'จุดที่อุ่นกว่าบน${keepTogether('เท้า$s')}: '
               '${names.join('$nbsp· ')}',
     labels: {
-      side: 'เท้า$s ${joinTh(names)}อุ่นกว่าเท้า$o',
+      side: 'เท้า$s ${joinTh(spoken)}อุ่นกว่าเท้า$o',
       // S8D-1 draft (was "ที่หน้าเท้าและส้นเท้า", the 2 sites).
       otherSide(side):
           'เท้า$o จุดวัดความอุ่นทั้ง ${footLayout.zones.length} จุด',
@@ -294,7 +296,9 @@ PressureMapView? pressureMapOf(StoredAlert a, Thresholds t) {
     return null;
   }
   final zone = footLayout.zones[channel].displayTh;
-  final triggerLabel = 'เท้า${sideTh(side)} $zoneรับน้ำหนักมาก';
+  // TalkBack: plain (S10).
+  final triggerLabel =
+      'เท้า${sideTh(side)} ${footLayout.zones[channel].nameTh}รับน้ำหนักมาก';
   final caption = 'จุดที่มีวงล้อม: $zone${sideTh(side)}';
   final map = a.details?['map'];
   if (map is Map) {
@@ -493,7 +497,7 @@ List<DetailRow> detailRowsOf(StoredAlert a, Thresholds t) {
         if (sites.length > 1)
           DetailRow(
             'จุดที่เกินเกณฑ์',
-            '${[for (final e in sites) '${siteName(e.zone)} ${_c(e.deltaC)}'].join(' · ')} °C',
+            '${[for (final e in sites) '${siteName(e.zone)} ${_c(e.deltaC)}'].join('$nbsp· ')} °C',
           ),
         level,
         at,

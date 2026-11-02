@@ -480,7 +480,7 @@ List<DetailRow> tempDetailRows(
           for (final a in counted)
             '${_siteInText(a.site)} ${a.consecutive} ครั้ง '
                 '(เกณฑ์ ${t.consecutiveReadings} ครั้ง)',
-        ].join(' · '),
+        ].join('$nbsp· '),
       ),
     DetailRow('วัดทุก', '$period วินาที$latest'),
     threshold,
@@ -488,7 +488,7 @@ List<DetailRow> tempDetailRows(
       'คุณภาพสัญญาณ',
       bad.isEmpty
           ? 'ดีทั้ง ${FootSide.values.length * TempLayout.siteCount} จุด'
-          : bad.join(' · '),
+          : bad.join('$nbsp· '),
     ),
   ];
 }

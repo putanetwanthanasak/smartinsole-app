@@ -173,6 +173,23 @@ void main() {
           expect(fake.shown.map((s) => s.$2), [true, true]);
         });
 
+        test('a failed post does not silence the next alert', () async {
+          await start();
+          fake.failNext = 1;
+          raisedCtl.add(raised(1, AlertKind.pressurePeak, atMs: 1000));
+          await pumpEventQueue();
+          // Raised after the failed post (alerts raised together are
+          // judged before it fails).
+          raisedCtl
+            ..add(raised(2, AlertKind.loadConcentration, atMs: 2000))
+            ..add(raised(3, AlertKind.pressurePti, atMs: 3000));
+          await pumpEventQueue();
+          expect(fake.shown.map((s) => (s.$1.alertId, s.$2)), [
+            (2, true),
+            (3, false),
+          ]);
+        });
+
         test('the other foot is not affected', () async {
           await start();
           raisedCtl

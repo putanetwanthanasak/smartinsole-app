@@ -146,6 +146,8 @@ class AlertNotificationService {
         '(${sound ? 'sound' : 'silent'})',
       );
     } catch (e) {
+      // Nothing sounded, so the next alert for this foot may (§11.9).
+      if (sound) _quiet.release(r.alert.side!, r.alert.atMs);
       debugPrint('alerts: notification failed: $e');
     }
   }
