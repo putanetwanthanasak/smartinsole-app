@@ -28,6 +28,7 @@ class Thresholds {
     required this.batteryLowPct,
     required this.deviceLostAfterMin,
     required this.repeatMin,
+    required this.quietNotifyMin,
     required this.stepContactKpa,
     required this.minStanceMs,
     required this.maxStanceMs,
@@ -65,6 +66,7 @@ class Thresholds {
       batteryLowPct: d('battery', 'lowPct'),
       deviceLostAfterMin: i('device', 'lostAfterMin'),
       repeatMin: i('alerts', 'repeatMin'),
+      quietNotifyMin: i('alerts', 'quietNotifyMin'),
       stepContactKpa: d('steps', 'contactKpa'),
       minStanceMs: i('steps', 'minStanceMs'),
       maxStanceMs: i('steps', 'maxStanceMs'),
@@ -146,6 +148,13 @@ class Thresholds {
   /// The same alert (code + side + zone or site) at most once per this
   /// many minutes (contract §8.5).
   final int repeatMin;
+
+  /// A foot alert notification within this many minutes of the last one
+  /// that sounded for the same foot is posted silently (still in the
+  /// tray; BACKLOG 76, user decision 2026-11-02; DESIGN-SPEC §11.9).
+  /// One cause, e.g. a high MTH1 load raising `PRESSURE_PEAK` and then
+  /// `LOAD_CONCENTRATION`, then plays one sound, not two.
+  final int quietNotifyMin;
 
   /// Step detection: a stance is the summed zone kPa above
   /// [stepContactKpa], [minStanceMs] to [maxStanceMs] long, with the

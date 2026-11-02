@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smartinsole/ble/packets.dart';
 import 'package:smartinsole/capture/capture_providers.dart';
+import 'package:smartinsole/config/thresholds.dart';
 import 'package:smartinsole/notify/alert_notification_service.dart';
 import 'package:smartinsole/notify/alert_notifier.dart';
 import 'package:smartinsole/rules/alert_code.dart';
@@ -27,12 +28,13 @@ RaisedAlert raised(
   FootSide side = FootSide.left,
   String? zone = 'meta1',
   String? stamp,
+  int atMs = 0,
 }) => RaisedAlert(
   id,
   NewAlert(
     kind: kind,
     patientLevel: PatientLevel.careful,
-    atMs: 0,
+    atMs: atMs,
     side: side,
     zone: zone,
     measuredValue: 2.5,
@@ -113,6 +115,7 @@ void main() {
           raisedAlertsProvider.overrideWithValue(raisedCtl.stream),
           alertNotifierProvider.overrideWithValue(fake),
           settingsStoreProvider.overrideWithValue(MemorySettingsStore()),
+          thresholdsProvider.overrideWithValue(testThresholds),
         ],
       );
     });
@@ -130,11 +133,103 @@ void main() {
       raisedCtl
         ..add(raised(1, AlertKind.tempDelta))
         ..add(raised(2, AlertKind.pressureWatch))
-        ..add(raised(3, AlertKind.loadConcentration));
+        ..add(raised(3, AlertKind.loadConcentration, side: FootSide.right));
       await pumpEventQueue();
       expect(fake.shown.map((s) => s.$1.alertId), [1, 3]);
       expect(fake.shown.every((s) => s.$2), isTrue);
     });
+
+    // BACKLOG 76 (user decision 2026-11-02): one cause, one sound.
+    group(
+      'within alerts.quietNotifyMin of a sounded one for the same foot',
+      () {
+        final quietMs = Duration(minutes: testThresholds.quietNotifyMin)
+            .inMilliseconds;
+
+        test('the window is 2 minutes, from thresholds.json', () {
+          expect(testThresholds.quietNotifyMin, 2);
+        });
+
+        test('same foot inside the window: silent, still posted', () async {
+          await start();
+          raisedCtl
+            ..add(raised(1, AlertKind.pressurePeak, atMs: 1000))
+            ..add(
+              raised(2, AlertKind.loadConcentration, atMs: 1000 + quietMs - 1),
+            );
+          await pumpEventQueue();
+          expect(fake.shown.map((s) => (s.$1.alertId, s.$2)), [
+            (1, true),
+            (2, false),
+          ]);
+        });
+
+        test('same foot at the window or later: sound again', () async {
+          await start();
+          raisedCtl
+            ..add(raised(1, AlertKind.pressurePeak, atMs: 1000))
+            ..add(raised(2, AlertKind.loadConcentration, atMs: 1000 + quietMs));
+          await pumpEventQueue();
+          expect(fake.shown.map((s) => s.$2), [true, true]);
+        });
+
+        test('the other foot is not affected', () async {
+          await start();
+          raisedCtl
+            ..add(raised(1, AlertKind.pressurePeak, atMs: 1000))
+            ..add(
+              raised(2, AlertKind.tempDelta, side: FootSide.right, atMs: 2000),
+            )
+            ..add(raised(3, AlertKind.loadConcentration, atMs: 3000));
+          await pumpEventQueue();
+          expect(fake.shown.map((s) => (s.$1.alertId, s.$2)), [
+            (1, true),
+            (2, true),
+            (3, false),
+          ]);
+        });
+
+        test(
+          'counted from the last sounded one, not the last silent one',
+          () async {
+            await start();
+            raisedCtl
+              ..add(raised(1, AlertKind.pressurePeak, atMs: 0))
+              ..add(raised(2, AlertKind.loadConcentration, atMs: quietMs - 1))
+              ..add(raised(3, AlertKind.tempDelta, atMs: quietMs));
+            await pumpEventQueue();
+            expect(fake.shown.map((s) => s.$2), [true, false, true]);
+          },
+        );
+
+        test('with sound off nothing counts as sounded', () async {
+          await start();
+          await c.read(settingsProvider.notifier).setSound(false);
+          raisedCtl.add(raised(1, AlertKind.pressurePeak, atMs: 0));
+          await pumpEventQueue();
+          await c.read(settingsProvider.notifier).setSound(true);
+          raisedCtl.add(raised(2, AlertKind.loadConcentration, atMs: 1000));
+          await pumpEventQueue();
+          expect(fake.shown.map((s) => s.$2), [false, true]);
+        });
+
+        test('a capture alert posts nothing and starts no window', () async {
+          await start();
+          raisedCtl
+            ..add(
+              raised(
+                1,
+                AlertKind.pressurePeak,
+                atMs: 0,
+                stamp: '20261110-093000',
+              ),
+            )
+            ..add(raised(2, AlertKind.loadConcentration, atMs: 1000));
+          await pumpEventQueue();
+          expect(fake.shown.map((s) => (s.$1.alertId, s.$2)), [(2, true)]);
+        });
+      },
+    );
 
     test('sound off → the silent channel', () async {
       await start();
