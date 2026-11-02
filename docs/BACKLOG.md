@@ -1474,11 +1474,14 @@ decision 2026-10-31).
 puts U+2060 between the words of a phrase, as Flutter's dictionary
 splits them (a table, `thaiWords`, checked against
 `TextPainter.getWordBoundary`). Applied where copy is composed for the
-screen: site and region names, "เท้าซ้าย/ขวา", "ตอนเดิน", "หรือไม่"
-inside running text on Home, Alerts (list and detail), My feet and in
-notification bodies; a no-break space before each "·" in the sites line
-and in Home's date. Titles and names standing alone (rows, table cells,
-chart labels, TalkBack labels) stay plain. Finding: a joiner **inside** a
+screen: site and region names, "เท้าซ้าย/ขวา", "ตอนเดิน", "หรือไม่",
+and (found on the emulator) "ต่อเนื่อง", "น้ำหนัก", "จุดเดียว", inside
+running text on Home, Alerts (list and detail), My feet and in
+notifications; a no-break space before each "·" in the sites line and in
+Home's date. Site names in titles, and names standing alone (rows, table
+cells, chart labels, TalkBack labels), stay plain. Other dictionary splits
+that read oddly (e.g. "ท่า / เดิน" in a PTI step) are left for S10b's
+copy review. Finding: a joiner **inside** a
 word (the first S10 version joined every letter) cuts the Thai around it
 into pieces the dictionary cannot read, and Flutter then breaks plain
 words nearby ("สู / งมาก"); a joined phrase wider than the line has the

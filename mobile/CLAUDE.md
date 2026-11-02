@@ -264,9 +264,9 @@ site name or strand a short last word. `lib/text/thai_break.dart`
   against `TextPainter.getWordBoundary`). A joiner inside a word makes
   Flutter break plain words nearby ("สู / งมาก").
 - Only inside running text, and only phrases narrower than the narrowest
-  line at 1.88 × (about 260 px in `body`). Titles and names that are a
-  whole `Text` stay plain (`FootZone.nameTh`; `displayTh` is the joined
-  form).
+  line at 1.88 × (about 260 px in `body`). Site names in titles, and
+  names that are a whole `Text`, stay plain (`FootZone.nameTh`;
+  `displayTh` is the joined form).
 - **Display only.** Never in anything stored, exported or captured; the
   test checks `lib/storage`, `lib/capture`, `lib/ble`, `lib/device` and
   `lib/gait` never reference it.
