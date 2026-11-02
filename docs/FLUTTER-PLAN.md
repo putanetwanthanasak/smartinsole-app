@@ -14,7 +14,7 @@
 |---|---|
 | Screens: Home, Gait, Temperature, Alerts, Device connection, Settings, **Daily foot check** | — |
 | **Research capture mode** (S4C): trials, labels, 50 Hz raw CSV, export | |
-| Two ESP32 insoles connected at the same time | Background operation / push notifications with screen off (S9: foot alerts post a system notification while the app runs, DESIGN-SPEC §11.9; there is no foreground service, so with the screen off Android may stop the app and nothing is raised. A stated limitation for the thesis, user decision 2026-11-01; measured in S9-2, BACKLOG 72) |
+| Two ESP32 insoles connected at the same time | Background operation / push notifications with screen off (S9: foot alerts post a system notification while the app runs, DESIGN-SPEC §11.9; there is no foreground service, so with the screen off Android may stop the app and nothing is raised. A stated limitation for the thesis, user decision 2026-11-01. Measured in S9-2 (BACKLOG 72): on the Note 10 the app was not frozen with two BLE links up, and a TEMP_DELTA was posted with sound after 28 min in the background with the screen off; nothing guarantees this without a foreground service) |
 | All 8 alert codes from the contract | Firebase / cloud sync |
 | Rule-based gait estimate + slot for a TFLite model | Real AI model (separate workstream) |
 | Local storage (SQLite), including foot photos | AI analysis of foot photos (future work) |
@@ -180,7 +180,7 @@ Levels 1–5 are still stored internally for reporting and for expert review.
 
 | Feature | What exists now |
 |---|---|
-| Background operation / push alerts | BLE, rules, storage independent of UI; `AlertNotifier` posts while the app runs (S9); a foreground service would keep the rules running with the screen off (not in v1, BACKLOG 72) |
+| Background operation / push alerts | BLE, rules, storage independent of UI; `AlertNotifier` posts while the app runs (S9); a foreground service would keep the rules running with the screen off (not in v1, BACKLOG 72; S9-2 saw no freeze on the Note 10, a longer screen-off run is for SR) |
 | Firebase | Storage behind a repository pattern |
 | TFLite model | `GaitClassifier` interface + `assets/models/` |
 | New sensor counts | Read from calibration + `sensor_layout.json` |

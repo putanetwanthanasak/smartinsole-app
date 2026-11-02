@@ -74,4 +74,7 @@ class LocalAlertNotifier implements AlertNotifier {
         ),
         payload: alertPayloadOf(notice.alertId),
       );
+
+  @override
+  Future<void> cancel(int alertId) => _shared.plugin.cancel(id: alertId);
 }

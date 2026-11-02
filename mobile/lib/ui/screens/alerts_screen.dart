@@ -3,6 +3,7 @@ import 'package:flutter_lucide/flutter_lucide.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../footcheck/footcheck_providers.dart';
+import '../../notify/alert_notification_service.dart';
 import '../../storage/models.dart';
 import '../../storage/storage_providers.dart';
 import '../clock.dart';
@@ -176,7 +177,7 @@ class _AlertCard extends ConsumerWidget {
     final a = alert;
     final nav = Navigator.of(context);
     Future<void> markRead() => ref
-        .read(alertRepositoryProvider)
+        .read(alertNotificationServiceProvider)
         .markRead(a.id, ref.read(clockProvider)().millisecondsSinceEpoch);
     switch (targetOf(a.kind)) {
       case AlertTarget.detail:

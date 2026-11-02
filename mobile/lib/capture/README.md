@@ -10,6 +10,7 @@ are in `docs/STUDY-CAPTURE.md`; the decisions are in
 | `capture_protocol.dart` | Doc 03 protocol: `GaitClass` (contract §7.2 ids and model indices), `Rotation`, `SubjectCode` (`SI-nnn` / `TEST-nnn` only; pain side by parity), `Sex`, doc 03 inclusion (`ageRanges` 21–25 / 26–30, `footLengthEligible` 25.5–27.5 cm for `SI-` codes), `trialOrder(seed)`, `CaptureTimings` (study and rehearsal) |
 | `capture_files.dart` | File format: CSV columns and rows, file names, calibration JSON, atomic JSON writes. `captureSchema` versions it: 2 since S8D (`fsr0..7`, `temp_unix_ms`, `temp0_c..temp7_c`, `temp0_q..temp7_q`); schema 1 had 6 FSR and forefoot / heel temperatures |
 | `trial_recorder.dart` | `TrialRecorder`: one attempt from `DeviceManager.batches` / `temps` to a CSV; gaps, invalid segments, per-foot counts |
+| `trial_baseline.dart` | `checkTrialBaseline`: a closed trial CSV through the one baseline function (`gait/baseline_window.dart`, BACKLOG 74); the Saved screen shows trial 00's result (display only, S9-2) |
 | `capture_session.dart` | `CaptureSession`: the state machine, `session.json`, sidecars, redo, resume; `missingForStudy` (fields an `SI-` code requires); `precheckIssues`; `listSessions` |
 | `cues.dart` | `Cue` (sound + vibration pattern), `CaptureCues`, `DeviceCues` (audioplayers + vibration) |
 | `export.dart` | `stageExport`: copy + `manifest.json` (SHA-256) to the app-specific external folder; `exportSession` (adds `alerts.csv`) and `deleteSession` (files and alerts) |

@@ -52,9 +52,9 @@ From `docs/FLUTTER-PLAN.md` section 6:
 | … add `--dart-define=MOCK=<preset>` | Same, with `MockDataSource` for both feet (debug builds only): `safe`, `safeOrangeDot`, `watch`, `rest`, `noData`, `oneFootMissing`, `lowBattery`, and for the Gait tab `standing` (still IMU, both feet loaded) and `toeWalk` (no heel load); Settings → "Mock preset (debug)" switches live, "Seed sample alerts (debug)" stores the design boards' sample alerts, and "Seed sample day (debug)" stores today's temperature readings from 08:00 shaped by the preset (one period above ΔT, one connection gap; `lib/storage/sample_day.dart`). Both write only to the in-memory database |
 | … add `--dart-define=GAIT_MODEL=dummy` | Debug/profile only: load the untrained dummy Model A from `assets/models_dummy/` (shapes, channel order, timing; Researcher › Diagnostics › "Gait model" shows the check). `GAIT_MODEL=demo-toe` instead fakes a model answering toe walking at 78 % (the FeetDGaitToe board). Release builds ignore the define |
 | `uv run tools/model/make_dummy_model.py` (repo root) | Regenerate the dummy model, its `normalization.json` and `check.json` (TensorFlow via uv's cache, not the repo) |
-| `python3 tools/model/preprocess.py --selftest` / `--make-vectors` (repo root) | Check / regenerate the Model A preprocessing vectors (S9); the app's `test/gait/preprocess_test.dart` must match them bit for bit |
+| `python3 tools/model/preprocess.py --selftest` / `--make-vectors` (repo root) | Check / regenerate the Model A preprocessing vectors (S9) and the trial-00 baseline vectors (`shared/test_vectors/baseline/`, S9-2); the app's `test/gait/preprocess_test.dart` and `test/capture/trial_baseline_test.dart` must match them exactly |
 | `flutter run -d <device-id>` | Plain debug run (e.g. the Note 10) |
-| `flutter build apk --release && tool/check_release_resources.sh` | Release APK for the phone. The check must pass before the APK goes on the Note 10: it fails if the APK lacks a resource the app looks up by name at runtime (see Release resources below) |
+| `flutter build apk --release && tool/check_release_resources.sh` | Release APK for the phone. The check must pass before the APK goes on the Note 10: it fails if the APK lacks a resource the app looks up by name at runtime (see Release resources below). **Bump the build number (`version: 1.0.0+N` in `pubspec.yaml`) for every APK installed on the study phone**, and record the version and the APK's SHA-256 in that session's report (user decision, S9-2; 1.0.0+2 was the first) |
 | `dart format lib test test_driver` | Formatting |
 | `dart run build_runner build` | Regenerate drift code (`lib/storage/database.g.dart`) after a table change |
 | `dart run drift_dev make-migrations` | After bumping `schemaVersion`: dump the schema, write migration steps and tests |
@@ -77,7 +77,8 @@ lib/
                        mock presets, timing check
   capture/             research capture (S4C): protocol (doc 03), trial
                        recorder on the 50 Hz path, session state machine,
-                       cues, export staging with alerts.csv (see its
+                       cues, export staging with alerts.csv, trial 00's
+                       baseline check (S9-2) (see its
                        README.md and docs/STUDY-CAPTURE.md)
   config/              thresholds.json loader (thresholdsProvider) and the
                        foot layout (foot_layout.dart mirrors
@@ -98,7 +99,9 @@ lib/
                        tflite_classifier.dart), estimator on a 1 s stride
                        of sample time, step counter (daily_summary.steps),
                        CoP, PTI asymmetry, Model A preprocessing and the
-                       baseline recorder (S9) (see its README.md); never sets
+                       baseline recorder (S9); baseline_window.dart, the
+                       one baseline function for the recorder and capture
+                       trial 00 (S9-2, BACKLOG 74) (see its README.md); never sets
                        a level (rule 11); no numeric literals (a test
                        checks)
   settings/            Settings (S8B): AppSettings, SettingsStore over

@@ -30,6 +30,10 @@ abstract interface class AlertNotifier {
   /// Posts [notice]. [sound] false = the silent channel (Settings
   /// "เสียงแจ้งเตือน" off).
   Future<void> show(AlertNotice notice, {required bool sound});
+
+  /// Removes alert [alertId]'s notification from the tray, if it is there
+  /// (the launcher badge counts what is in the tray).
+  Future<void> cancel(int alertId);
 }
 
 /// The payload of alert [id]'s notification, and back.

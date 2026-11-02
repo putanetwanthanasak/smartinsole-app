@@ -466,6 +466,27 @@ def _temp_sites_problems(cell: str, zone: str) -> list[str]:
     return out
 
 
+def check_baseline(session: Session) -> list[tuple[str, str, str]]:
+    """Trial 00's baseline for Model A training (BACKLOG 74): the newest
+    valid calibration attempt that passes the app's baseline rules
+    (tools/model/preprocess.py session_baseline). A study session without
+    one is a FAIL; a rehearsal's (10 s calibration) is INFO."""
+    cal = [t for t in session.trials if t.label == "calibration" and t.valid]
+    if not cal:
+        return []  # "no valid attempt" is reported above
+    sys.path.insert(0, str(REPO / "tools" / "model"))
+    import preprocess  # noqa: E402  (it imports this module lazily)
+    reasons = []
+    for t in reversed(cal):
+        feet = preprocess.trial_baseline(t)
+        failed = [f"{side} {feet[side][1]}" for side in SIDES if feet[side][1]]
+        if not failed:
+            return [(t.name, "OK", f"baseline: L {feet['L'][2]} / R {feet['R'][2]} samples")]
+        reasons.append(f"{t.name} {', '.join(failed)}")
+    level = "INFO" if session.meta["rehearsal"] else "FAIL"
+    return [("trial 0 calibration", level, "no baseline: " + "; ".join(reasons))]
+
+
 def check_session(session: Session) -> list[tuple[str, str, str]]:
     """(trial, level, message)."""
     out = []
@@ -483,6 +504,7 @@ def check_session(session: Session) -> list[tuple[str, str, str]]:
             out.append((f"trial {n} {label}", level, "no valid attempt"))
         elif len(valid) > 1:
             out.append((f"trial {n} {label}", "FAIL", f"{len(valid)} valid attempts"))
+    out.extend(check_baseline(session))
     for level, msg in check_alerts(session):
         out.append((ALERTS_CSV, level, msg))
     return out
@@ -548,6 +570,9 @@ def selftest() -> bool:
         expect(any("gap R seq_gap" in m for m in fails), "the sidecar's seq gap is reported")
         expect(not any(m.startswith("L:") for m in fails), "the left foot passes 50 Hz with no gaps")
         expect(not any("temperature quality" in m for m in fails), "temperature qualities are known")
+        base = [(level, m) for name, level, m in report if name == "trial 0 calibration"]
+        expect(len(base) == 1 and base[0][0] == "INFO" and base[0][1].startswith("no baseline: "),
+               f"a rehearsal's trial-00 baseline is INFO, not a FAIL ({base})")
         alerts = [(level, m) for name, level, m in report if name == ALERTS_CSV]
         want = ("1 alert(s): PRESSURE_PEAK" if schema == 1
                 else "2 alert(s): PRESSURE_PEAK, TEMP_DELTA")

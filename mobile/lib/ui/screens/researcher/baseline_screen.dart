@@ -99,6 +99,11 @@ String baselineFailureText(BaselineFailure f, FootSide? side) {
       'แผ่นรองเท้าไม่ใช่รุ่น 8 เซนเซอร์$foot · Not an 8-sensor insole.',
     BaselineFailure.stopped =>
       'แผ่นรองเท้าหยุดส่งข้อมูล$foot · An insole stopped streaming.',
+    // Capture trial 00 only (lib/capture/trial_baseline.dart); a live
+    // recording has no invalid marks and runs until its window is full.
+    BaselineFailure.markedInvalid =>
+      'มีช่วงที่ทำเครื่องหมายว่าใช้ไม่ได้$foot · Marked invalid.',
+    BaselineFailure.tooShort => 'บันทึกได้ไม่ครบเวลา$foot · Too short.',
   };
   return '$why ไม่ได้บันทึก ให้บันทึกใหม่ · Not saved; record again.';
 }

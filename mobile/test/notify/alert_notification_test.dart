@@ -13,6 +13,7 @@ import 'package:smartinsole/rules/patient_status.dart';
 import 'package:smartinsole/settings/settings_providers.dart';
 import 'package:smartinsole/settings/settings_store.dart';
 import 'package:smartinsole/storage/models.dart';
+import 'package:smartinsole/storage/storage_providers.dart';
 import 'package:smartinsole/ui/shell/app_shell.dart';
 
 import '../alerts/alerts_rig.dart';
@@ -188,6 +189,33 @@ void main() {
     expect(byKey('back-link'), findsOneWidget, reason: 'still on Settings');
     expect(c.read(selectedTabProvider), AppTab.today);
     c.read(activeCaptureProvider.notifier).close('S01_20261110_0930');
+  });
+
+  // Checkpoint item 8 (S9-2): Android keeps a notification until it is
+  // tapped or cancelled, and the launcher badge counts the tray.
+  group('opening an alert in the app takes its notification out of the '
+      'tray', () {
+    for (final (kind, opens) in [
+      (AlertKind.loadConcentration, 'detail-status-card'),
+      (AlertKind.batteryLow, 'connection-scroll'),
+    ]) {
+      testWidgets('${kind.name} (opens $opens)', (tester) async {
+        final (db, ids) = await seededDatabase(tester);
+        final id = ids[kind]!;
+        final fake = FakeAlertNotifier();
+        await pumpApp(tester, database: db, alertNotifier: fake);
+        await tester.tap(byKey('tab-alerts'));
+        await tester.pumpAndSettle();
+        expect(fake.cancelled, isEmpty);
+        await openAlert(tester, ids, kind);
+        expect(byKey(opens), findsOneWidget);
+        expect(fake.cancelled, [id]);
+        final stored = await tester.runAsync(
+          () => containerOf(tester).read(alertRepositoryProvider).byId(id),
+        );
+        expect(stored!.isRead, isTrue);
+      });
+    }
   });
 
   group('a tap opens that alert over the Alerts tab', () {

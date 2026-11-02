@@ -7,6 +7,10 @@ import 'package:smartinsole/capture/capture_providers.dart';
 import 'package:smartinsole/ble/link_state.dart';
 import 'package:smartinsole/capture/capture_files.dart';
 import 'package:smartinsole/capture/capture_session.dart';
+import 'package:smartinsole/ble/packets.dart';
+import 'package:smartinsole/rules/patient_status.dart';
+import 'package:smartinsole/storage/alert_repository.dart';
+import 'package:smartinsole/storage/models.dart';
 import 'package:smartinsole/ui/routes.dart';
 import 'package:smartinsole/ui/screens/researcher_screen.dart';
 import 'package:smartinsole/ui/screens/capture/capture_flow_screen.dart';
@@ -313,6 +317,121 @@ void main() {
         ..right.set(const LinkSearching(deviceId: 'X'));
       await rig.walk(tester, const Duration(seconds: 1));
       expect(byKey('capture-link-lost-right'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    });
+  });
+
+  // User decision 5 (2026-11-01): an alert raised while the session
+  // screen is open posts no notification, so the screen shows it.
+  testWidgets('alerts of this session show on Ready and Saved, not while '
+      'recording; another session\'s do not', (tester) async {
+    final s = rig.newSession();
+    NewAlert alert(String stamp, AlertKind kind, int minute) => NewAlert(
+      kind: kind,
+      patientLevel: PatientLevel.careful,
+      atMs: DateTime(2026, 11, 10, 9, minute).millisecondsSinceEpoch,
+      side: FootSide.left,
+      zone: 'meta1',
+      measuredValue: 2.5,
+      threshold: 2.2,
+      captureStamp: stamp,
+    );
+    final repo = DriftAlertRepository(rig.db);
+    await tester.runAsync(
+      () => repo.add(alert('20261109-090000', AlertKind.pressurePeak, 1)),
+    );
+    await pumpCapture(tester, rig, CaptureFlowScreen(session: s));
+    expect(byKey('capture-session-alerts'), findsNothing);
+
+    await tester.runAsync(
+      () => repo.add(
+        alert(captureStampOf(s.sessionId), AlertKind.tempDelta, 2),
+      ),
+    );
+    await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+    await tester.pump();
+    const line =
+        'Alerts this session: 1 (no notification) · latest TEMP_DELTA L 09:02';
+    expect(find.text(line), findsOneWidget);
+
+    await tapScrolled(tester, 'capture-record');
+    expect(s.phase, CapturePhase.recording);
+    expect(byKey('capture-session-alerts'), findsNothing);
+    await rig.walk(tester, const Duration(seconds: 11));
+    expect(s.phase, CapturePhase.saved);
+    expect(find.text(line), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  group('trial-00 baseline line (BACKLOG 74, user decision 4b)', () {
+    const vectors = '../shared/test_vectors/baseline';
+
+    /// Pumps until the line's file read (real I/O) has finished.
+    Future<void> settle(WidgetTester tester) async {
+      for (var k = 0; k < 20; k++) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 20)),
+        );
+        await tester.pump();
+        if (find.textContaining('Checking').evaluate().isEmpty) return;
+      }
+    }
+
+    Future<void> pumpLine(WidgetTester tester, String csv, Duration planned) =>
+        pumpCapture(
+          tester,
+          rig,
+          Scaffold(
+            body: TrialBaselineLine(
+              csv: File('$vectors/$csv'),
+              plannedCalibration: planned,
+            ),
+          ),
+        );
+
+    testWidgets('a good 30 s trial 00: OK with both feet\'s samples', (
+      tester,
+    ) async {
+      await pumpLine(tester, 'ok.csv', const Duration(seconds: 30));
+      await settle(tester);
+      expect(
+        find.text(
+          'Baseline (30 s standing): OK · left 1500 · right 1500 samples',
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a failed trial 00: the foot, the reason and redo now', (
+      tester,
+    ) async {
+      await pumpLine(tester, 'moved.csv', const Duration(seconds: 30));
+      await settle(tester);
+      expect(
+        find.text(
+          'Baseline failed (left: shorter than 30 s; right: the volunteer '
+          'moved). Redo trial 00 now, while the volunteer is here',
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a rehearsal (TEST-) calibration: information, not a failure, '
+        'on the Saved screen', (tester) async {
+      final s = rig.newSession();
+      await pumpCapture(tester, rig, CaptureFlowScreen(session: s));
+      await tapScrolled(tester, 'capture-record');
+      await rig.walk(tester, const Duration(seconds: 11));
+      expect(s.phase, CapturePhase.saved);
+      expect(
+        find.text(
+          'Baseline not checked: it needs 30 s of standing; this rehearsal '
+          'calibration is 10 s',
+        ),
+        findsOneWidget,
+      );
+      // Display only: the flow goes on as before.
+      expect(byKey('capture-next'), findsOneWidget);
       await tester.pumpWidget(const SizedBox());
     });
   });

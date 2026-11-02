@@ -1180,7 +1180,7 @@ Options for S10: accept 2 and change §5, or draw the icons from the Lucide
 SVGs (e.g. `flutter_svg`, stroke 2.25) everywhere. Not changed per screen,
 so the app stays consistent.
 
-## 45. The left insole was not reconnected within 5 minutes after S7 **(found in S6B, check in S9, before SR)** — OPEN
+## 45. The left insole was not reconnected within 5 minutes after S7 **(found in S6B, check in S9, before SR)** — MEASURED in S9-2 (waiting on user)
 
 After the S7 Note 10 run (report 030), the phone's database showed:
 - the left foot's last temperature row at 19:05:36;
@@ -1222,6 +1222,22 @@ both stream, once with the screen on and once with it off. Keep both
 serial loggers running throughout, and record how long auto-reconnect
 takes. Expected: well under `deviceLostAfterMin`, with no DEVICE_LOST.
 If either case does not reconnect, fix it before SR.
+
+**S9-2 result (2026-11-02, release 1.0.0+3, report 040 item 4):** every
+reset reconnected on its own, with no DEVICE_LOST.
+
+- Android notices a board that resets about 8.3–8.7 s after it went
+  down (the link supervision timeout). Auto-reconnect then takes
+  1.9–3.2 s, with 0 failed tries.
+- **Screen on, app on screen:** an EN press reconnected in 2.2 s.
+- **Screen off, app in the background:** five resets. Four were USB power
+  drops of the left board and one was an EN press; the logger reopen
+  gave the timed one. The app was never frozen. From the board's boot
+  (logger) to streaming took 9.8 s.
+- **Not reproduced:** the S7 failure, where the board did not come back
+  for 5 minutes. Its cause stays unknown.
+- **Still to check:** a 30-minute screen-off run with resets in it
+  (SR, together with item 52).
 
 ## 46. Thai line breaks leave a short word alone on the last line **(found in the S6B phone check)** — OPEN, for S10
 
@@ -1340,6 +1356,13 @@ in the background. S9 (battery and background run) should measure what it
 costs and decide whether to back off, e.g. stop after a few minutes and
 retry when the app comes to the foreground. Each attempt is logged
 (BACKLOG 45), so the Reconnects card shows it.
+
+**S9-2:** not measured. The 30-minute unplugged run (checkpoint items 1
+and 5) needs the Note 10 at ≥ 60 % battery, and it was at 15 %. The
+user moved it to SR (2026-11-02). One data point: the right board was
+off from 14:38 to 15:02 while auto-reconnect scanned. The battery rose
+7 → 11 % on laptop USB over that time, so the drain was too small to
+show against charging.
 
 ## 53. The Diagnostics "Connect as" path does not remember the insole **(found in S8B)** — OPEN, minor
 
@@ -1581,7 +1604,7 @@ screens a user leaves quickly, so the window is small: one open across
 midnight shows yesterday's words until something rebuilds it. Fix the same
 way (watch `todayProvider`) when either screen is next touched.
 
-## 72. Foot alert notifications with the screen off **(S9-1, user decision 9)** — OPEN, measure in S9-2
+## 72. Foot alert notifications with the screen off **(S9-1, user decision 9)** — MEASURED in S9-2 (waiting on user); the limitation stays
 
 S9 posts a system notification for `TEMP_DELTA`, `PRESSURE_PEAK`,
 `PRESSURE_PTI` and `LOAD_CONCENTRATION` (DESIGN-SPEC §11.9), but only while
@@ -1594,6 +1617,32 @@ app in the background, and the screen off (after 1, 5 and 15 minutes).
 The result goes here and into FLUTTER-PLAN §1 as a stated limitation for
 the thesis. A foreground service (with its own persistent notification) is
 the fix if the study needs it; not in v1.
+
+**S9-2 result (2026-11-02, Note 10, release 1.0.0+2/+3, report 040
+item 7):** in this run Samsung did not freeze the app. Freecess froze
+other apps (Shopee at 15:15:44) but never `th.ac.kmutt.smartinsole`,
+which held two BLE links. Every alert was posted:
+
+| Case | Command | Notification |
+|---|---|---|
+| Screen on, app on screen | `t` 14:23:44 | TEMP_DELTA 14:24:44, sound (the user heard the later one at 15:04:36) |
+| Screen on, app in the background (1 min after Home) | `p` 15:07:37 | PRESSURE_PEAK +4 s, LOAD_CONCENTRATION +26 s, both sound |
+| Screen off, app in the background for 28 min | `t` 15:34:12 | TEMP_DELTA 15:35:06, sound (`notification_alert` buzz + beep) |
+
+- **The screen-off stretches were shorter than planned.** A tap (Samsung
+  "tap to show") woke the screen twice, so the screen was off 15:14:43–
+  15:19:54 and from 15:31:06. At the alert it had been off 4 min, with
+  the app in the background since 15:06:40. The 1- and 5-minute points
+  had no fresh alert code (30-minute repeat window), so for them only
+  "not frozen, data still arriving" was checked.
+- **A longer screen-off run is for SR.** Freecess might freeze the app
+  after a longer screen-off time, or with no BLE link up. It goes with
+  the 30-minute run (items 1 and 5).
+- **The thesis limitation stands:** there is no foreground service, so
+  nothing guarantees the app keeps running.
+- **Seen too:** Android grouped 4 of the app's notifications into one
+  group (`ranker_group`), and an app update removes the app's
+  notifications from the tray.
 
 ## 73. The notification permission is only asked for the reminder **(S9-1)** — RESOLVED in S9-1 (user decision 2026-11-02)
 
@@ -1610,7 +1659,7 @@ insoles stream (`AlertNotificationHost`, flag `notify.connectPromptShown`),
 never during a research capture (then once the session is closed); the
 "ตรวจเท้า" and reminder asks stay. Tests: `test/notify/connect_prompt_test.dart`.
 
-## 74. The app's quiet-standing baseline is a separate recording from capture trial 00 **(S9-1)** — DECIDED 2026-11-02, build at the start of S9-2
+## 74. The app's quiet-standing baseline is a separate recording from capture trial 00 **(S9-1)** — RESOLVED in S9-2 (2026-11-02)
 
 Training takes each subject's baseline from capture trial 00 (the 30 s
 standing calibration); the app takes it from Researcher › "บันทึกค่ายืนนิ่ง
@@ -1630,3 +1679,60 @@ paths and gets identical baselines. DATA-CONTRACT §7 and STUDY-CAPTURE
 say so. Built at the start of S9-2 (SESSIONS §S9 item 9). Today the
 Python side takes the median of all valid trial-00 rows, with no window
 and no rejection rules.
+
+**Resolved (S9-2, report 040; user decisions 1a, 2a, 3a, 4b):** one
+per-foot function, `FootBaselineWindow` (`mobile/lib/gait/baseline_window.dart`)
+and its Python port `foot_baseline_window` (`tools/model/preprocess.py`):
+the first `baselineSeconds` × 50 samples that pass; refused on a reconnect,
+lost packets, a TARE, a sample marked invalid (new), not 8 FSR, the walking
+gate, a foot not loaded, or too few samples (new). The Researcher recording
+feeds it from the 50 Hz path (now exactly 1500 samples per foot; the time
+rule kept 1501 on the emulator); capture trial 00 feeds it from its CSV
+(`capture/trial_baseline.dart`, and `trial_baseline` in Python). Training
+uses the newest valid trial-00 attempt that passes. The capture Saved
+screen shows trial 00's result right after it is saved, so it can be redone
+while the volunteer is there (display only), and `load_capture.py check`
+reports it (FAIL study, INFO rehearsal). `shared/test_vectors/baseline/`
+is matched exactly by both Dart paths. DATA-CONTRACT §7.1, STUDY-CAPTURE.
+
+## 75. The launcher badge and the in-app bell count different things **(found at the S9-2 Note 10 checkpoint)** — RESOLVED: left as is (user decision 2026-11-02)
+
+The Samsung launcher badge counts the app's notifications in the tray.
+The bell counts every unread alert in the Alerts list, including
+DEVICE_LOST, BATTERY_LOW and PRESSURE_WATCH, which never notify, and
+alerts whose notification was already removed. S9-2 fixed the case
+that made them drift: opening an alert in the app now cancels its
+notification (report 040, item 8). The counts can still differ, e.g.
+badge 1 and bell 16 on the Note 10. Options:
+- leave it (the badge says "something to look at", the bell says how
+  many);
+- set the badge number from the bell's unread count (a launcher-badge
+  plugin; Samsung supports it).
+
+**User decision (2026-11-02):** leave it. DESIGN-SPEC §7.2 now says the
+launcher badge counts tray notifications and the bell counts unread
+alerts.
+
+## 76. One `p` event gives two sound notifications about 21 s apart **(found at the S9-2 Note 10 checkpoint)** — OPEN, decided: do in S10
+
+A high MTH1 load raises PRESSURE_PEAK at once and LOAD_CONCENTRATION
+about 21–26 s later (its window). Each posts its own notification with
+sound, so the patient hears two alerts for one cause. This is per spec:
+each code notifies (DESIGN-SPEC §11.9). Options:
+- keep it;
+- post the second one silently when it is the same foot and zone within
+  a few minutes;
+- group them as one notification.
+
+**User decision (2026-11-02):** within 2 minutes of a foot notification
+for the same foot, post the next one silently. It is still shown in the
+tray. Do it in S10, with a test. The 2 minutes go in `thresholds.json`
+(rule 12), and DESIGN-SPEC §11.9 is updated with it.
+
+## 77. A refused side shows as "disconnected by user" in the BLE log **(found at the S9-2 Note 10 checkpoint)** — OPEN, minor
+
+When "เชื่อมต่อเท้าซ้าย" first reached the right board and refused it by
+its side byte (rule 8), the event log line read "disconnected by user".
+That is misleading in a diagnostic log. Log the refusal reason
+("wrong side") instead. Log text only; behaviour is correct.
+

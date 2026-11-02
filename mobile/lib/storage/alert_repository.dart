@@ -34,6 +34,10 @@ abstract interface class AlertRepository {
   /// the capture export, BACKLOG).
   Future<List<StoredAlert>> forCapture(String captureStamp);
 
+  /// [forCapture], live: the session screen's alerts line (S9-2, user
+  /// decision 5 of 2026-11-01).
+  Stream<List<StoredAlert>> watchForCapture(String captureStamp);
+
   /// Removes one capture's alerts. Only for "Delete from phone" of that
   /// capture; retention never removes them. Returns how many went.
   Future<int> deleteForCapture(String captureStamp);
@@ -122,14 +126,16 @@ class DriftAlertRepository implements AlertRepository {
           .write(AlertsCompanion(readAtMs: Value(atMs)));
 
   @override
-  Future<List<StoredAlert>> forCapture(String captureStamp) async {
-    final rows =
-        await (_db.select(_db.alerts)
-              ..where((t) => t.captureStamp.equals(captureStamp))
-              ..orderBy([(t) => OrderingTerm.asc(t.atMs)]))
-            .get();
-    return rows.map(_toModel).toList();
-  }
+  Future<List<StoredAlert>> forCapture(String captureStamp) =>
+      watchForCapture(captureStamp).first;
+
+  @override
+  Stream<List<StoredAlert>> watchForCapture(String captureStamp) =>
+      (_db.select(_db.alerts)
+            ..where((t) => t.captureStamp.equals(captureStamp))
+            ..orderBy([(t) => OrderingTerm.asc(t.atMs)]))
+          .watch()
+          .map((rows) => rows.map(_toModel).toList());
 
   @override
   Future<int> deleteForCapture(String captureStamp) => (_db.delete(

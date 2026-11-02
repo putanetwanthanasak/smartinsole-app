@@ -1,0 +1,225 @@
+{
+ "about": "Trial-00 baseline vectors (S9-2, BACKLOG 74): synthetic schema-2 capture trial CSVs, each run through the one baseline function (tools/model/preprocess.py foot_baseline_window; the app's FootBaselineWindow must give the same). Made by preprocess.py --make-vectors; never hand-edited. expected per foot: failure id (null = ok), rows kept, the 14 float64 medians in the foot's model channel order.",
+ "baselineSeconds": 30,
+ "baselineToleranceSamples": 5,
+ "thresholds": {
+  "windowMs": 800,
+  "accelG": 0.15,
+  "contactKpa": 10
+ },
+ "cases": [
+  {
+   "name": "ok",
+   "about": "30 s standing, both feet: the first 1500 rows of each (a loss before the trial on the first row and movement after the window are ignored)",
+   "csv": "ok.csv",
+   "expected": {
+    "L": {
+     "failure": null,
+     "sampleCount": 1500,
+     "values": [
+      40.5025,
+      59.2855,
+      32.0165,
+      43.8535,
+      20.3995,
+      17.0795,
+      52.745999999999995,
+      24.0805,
+      1.8e-05,
+      -0.0001975,
+      0.9999990000000001,
+      -0.00935,
+      0.022949999999999998,
+      -0.045
+     ]
+    },
+    "R": {
+     "failure": null,
+     "sampleCount": 1500,
+     "values": [
+      53.2745,
+      30.097,
+      27.0615,
+      47.7535,
+      32.539,
+      38.4015,
+      36.355,
+      25.116999999999997,
+      -2.95e-05,
+      -3.1e-05,
+      1.0002715,
+      -0.0529,
+      -0.05995,
+      -0.01715
+     ]
+    }
+   }
+  },
+  {
+   "name": "lost_packets",
+   "about": "right foot: a lost packet at 1.9 s",
+   "csv": "lost_packets.csv",
+   "expected": {
+    "L": {
+     "failure": "tooShort",
+     "sampleCount": 201,
+     "values": null
+    },
+    "R": {
+     "failure": "lostPackets",
+     "sampleCount": 96,
+     "values": null
+    }
+   }
+  },
+  {
+   "name": "reconnected",
+   "about": "left foot: a new conn_session from 2.4 s",
+   "csv": "reconnected.csv",
+   "expected": {
+    "L": {
+     "failure": "reconnected",
+     "sampleCount": 120,
+     "values": null
+    },
+    "R": {
+     "failure": "tooShort",
+     "sampleCount": 200,
+     "values": null
+    }
+   }
+  },
+  {
+   "name": "calibrating",
+   "about": "right foot: a TARE running at 1.2 s",
+   "csv": "calibrating.csv",
+   "expected": {
+    "L": {
+     "failure": "tooShort",
+     "sampleCount": 201,
+     "values": null
+    },
+    "R": {
+     "failure": "calibrating",
+     "sampleCount": 60,
+     "values": null
+    }
+   }
+  },
+  {
+   "name": "marked_invalid",
+   "about": "left foot: rows marked invalid at 3 s",
+   "csv": "marked_invalid.csv",
+   "expected": {
+    "L": {
+     "failure": "markedInvalid",
+     "sampleCount": 150,
+     "values": null
+    },
+    "R": {
+     "failure": "tooShort",
+     "sampleCount": 200,
+     "values": null
+    }
+   }
+  },
+  {
+   "name": "moved",
+   "about": "right foot: the walking gate turns on at 2 s",
+   "csv": "moved.csv",
+   "expected": {
+    "L": {
+     "failure": "tooShort",
+     "sampleCount": 201,
+     "values": null
+    },
+    "R": {
+     "failure": "moved",
+     "sampleCount": 111,
+     "values": null
+    }
+   }
+  },
+  {
+   "name": "not_loaded",
+   "about": "left foot: summed kPa at or below steps.contactKpa at 2.6 s",
+   "csv": "not_loaded.csv",
+   "expected": {
+    "L": {
+     "failure": "notLoaded",
+     "sampleCount": 130,
+     "values": null
+    },
+    "R": {
+     "failure": "tooShort",
+     "sampleCount": 200,
+     "values": null
+    }
+   }
+  },
+  {
+   "name": "too_short",
+   "about": "a 10 s rehearsal calibration: both feet too short",
+   "csv": "too_short.csv",
+   "expected": {
+    "L": {
+     "failure": "tooShort",
+     "sampleCount": 502,
+     "values": null
+    },
+    "R": {
+     "failure": "tooShort",
+     "sampleCount": 501,
+     "values": null
+    }
+   }
+  },
+  {
+   "name": "slow_clock",
+   "about": "30 s standing with a 20.05 ms step (a board clock slow against the phone): 1497 / 1496 rows, within baselineToleranceSamples",
+   "csv": "slow_clock.csv",
+   "expected": {
+    "L": {
+     "failure": null,
+     "sampleCount": 1497,
+     "values": [
+      18.32,
+      41.601,
+      28.208,
+      51.053,
+      20.087,
+      46.428,
+      47.69,
+      54.678,
+      -0.000207,
+      0.000241,
+      0.999973,
+      -0.0283,
+      0.0008,
+      -0.0092
+     ]
+    },
+    "R": {
+     "failure": null,
+     "sampleCount": 1496,
+     "values": [
+      43.657,
+      24.8575,
+      39.548,
+      41.7185,
+      49.224000000000004,
+      28.404,
+      56.249,
+      52.697,
+      0.000152,
+      -0.0002795,
+      1.0000525,
+      0.00825,
+      -0.0392,
+      -0.048299999999999996
+     ]
+    }
+   }
+  }
+ ]
+}

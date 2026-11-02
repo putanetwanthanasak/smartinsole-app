@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../ble/ble_protocol.dart';
 import '../ble/packets.dart';
 import '../storage/baseline_repository.dart';
 import 'model_spec.dart';
@@ -22,7 +23,11 @@ import 'model_spec.dart';
 /// Float64 in that order, then float32: the same bits as Python
 /// (`shared/test_vectors/model_preprocess/`, checked by a test).
 class PreprocessSpec {
-  const PreprocessSpec({required this.version, required this.baselineSeconds});
+  const PreprocessSpec({
+    required this.version,
+    required this.baselineSeconds,
+    required this.baselineToleranceSamples,
+  });
 
   /// Parses `model_preprocess.json`; refuses any method value other than
   /// the decided ones (median, all channels, Min-Max, no clipping) rather
@@ -52,9 +57,22 @@ class PreprocessSpec {
         'whole number',
       );
     }
+    final tolerance = m['baselineToleranceSamples'];
+    if (tolerance is! int ||
+        tolerance < 0 ||
+        tolerance >=
+            seconds *
+                Duration.millisecondsPerSecond ~/
+                SensorLayout.sampleSpacingMs) {
+      throw FormatException(
+        'model_preprocess.json baselineToleranceSamples is $tolerance, not a '
+        'whole number from 0 to below the window',
+      );
+    }
     return PreprocessSpec(
       version: (m['version'] as num).toInt(),
       baselineSeconds: seconds,
+      baselineToleranceSamples: tolerance,
     );
   }
 
@@ -70,6 +88,12 @@ class PreprocessSpec {
   final int baselineSeconds;
 
   Duration get baselineDuration => Duration(seconds: baselineSeconds);
+
+  /// How many samples short of the window a capture trial 00 may end and
+  /// still give a baseline from the rows it has (user decision 2026-11-02:
+  /// a board clock a little slow against the phone puts 1499 samples in a
+  /// 30 s trial). The live recording always fills the window.
+  final int baselineToleranceSamples;
 }
 
 /// Loaded once in `runSmartInsole` and injected with an override, like

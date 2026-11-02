@@ -1,14 +1,23 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_lucide/flutter_lucide.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../ble/packets.dart';
+import '../../../capture/capture_files.dart';
 import '../../../capture/capture_protocol.dart';
 import '../../../capture/capture_providers.dart';
 import '../../../capture/capture_session.dart';
+import '../../../capture/trial_baseline.dart';
+import '../../../config/thresholds.dart';
 import '../../../device/device_providers.dart';
+import '../../../gait/baseline_window.dart';
+import '../../../gait/preprocess.dart';
+import '../../../storage/models.dart';
+import '../../../storage/storage_providers.dart';
+import '../../clock.dart';
 import '../../theme/colors.dart';
 import '../../theme/dimens.dart';
 import '../../theme/typography.dart';
@@ -188,9 +197,11 @@ class _Ready extends ConsumerWidget {
     final s = session;
     final calibration = s.current.plan.isCalibration;
     final canGo = s.canStart && bothUsable;
+    final alerts = sessionAlertsOf(ref, s.sessionId);
     return PageBody(
       children: [
         _TrialHeader(session: s),
+        if (alerts.isNotEmpty) SessionAlertsLine(alerts: alerts),
         if (s.current.plan.gait == GaitClass.rotatedFoot)
           Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -420,14 +431,15 @@ class _Saving extends StatelessWidget {
   }
 }
 
-class _Saved extends StatelessWidget {
+class _Saved extends ConsumerWidget {
   const _Saved({required this.session});
 
   final CaptureSession session;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final s = session;
+    final alerts = sessionAlertsOf(ref, s.sessionId);
     final a = s.attempt!;
     final gaps = s.lastGaps;
     final nextIndex = s.trials.indexWhere((t) => !t.done);
@@ -444,6 +456,13 @@ class _Saved extends StatelessWidget {
               '${a.valid ? '' : ' · invalid (${a.invalidReason})'}',
         ),
         _TrialHeader(session: s),
+        if (alerts.isNotEmpty) SessionAlertsLine(alerts: alerts),
+        if (s.current.plan.isCalibration && a.valid)
+          TrialBaselineLine(
+            key: ValueKey('capture-baseline-${a.baseName}'),
+            csv: File('${s.dir.path}/${a.baseName}.csv'),
+            plannedCalibration: s.timings.calibration,
+          ),
         Card(
           child: Padding(
             padding: const EdgeInsets.all(Dimens.cardPadding),
@@ -515,3 +534,138 @@ class _Saved extends StatelessWidget {
     if (ok ?? false) session.redo();
   }
 }
+
+/// Trial 00's baseline (S9-2, BACKLOG 74, user decision 4b): once the
+/// calibration attempt is saved, its closed CSV goes through the same
+/// baseline function as training (`checkTrialBaseline`), so the researcher
+/// can redo trial 00 while the volunteer is still there. Display only:
+/// nothing is blocked and the recording is not touched.
+class TrialBaselineLine extends ConsumerStatefulWidget {
+  const TrialBaselineLine({
+    super.key,
+    required this.csv,
+    required this.plannedCalibration,
+  });
+
+  final File csv;
+
+  /// The session's calibration length: a rehearsal's is shorter than the
+  /// baseline window, so its result is information, not a failure.
+  final Duration plannedCalibration;
+
+  @override
+  ConsumerState<TrialBaselineLine> createState() => _TrialBaselineLineState();
+}
+
+class _TrialBaselineLineState extends ConsumerState<TrialBaselineLine> {
+  late final PreprocessSpec _spec = ref.read(preprocessSpecProvider);
+  // Made once: the Saved screen rebuilds every second for the rest timer.
+  late final Future<TrialBaseline> _result = checkTrialBaseline(
+    widget.csv,
+    spec: _spec,
+    thresholds: ref.read(thresholdsProvider),
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    final seconds = _spec.baselineSeconds;
+    if (widget.plannedCalibration < _spec.baselineDuration) {
+      return CaptureBanner(
+        palette: StatusColors.noData,
+        icon: LucideIcons.info,
+        text:
+            'Baseline not checked: it needs $seconds s of standing; this '
+            'rehearsal calibration is '
+            '${widget.plannedCalibration.inSeconds} s',
+      );
+    }
+    return FutureBuilder<TrialBaseline>(
+      future: _result,
+      builder: (context, snap) {
+        final r = snap.data;
+        if (snap.hasError) {
+          return CaptureBanner(
+            palette: StatusColors.careful,
+            icon: LucideIcons.triangle_alert,
+            text: 'Baseline could not be checked (${snap.error})',
+          );
+        }
+        if (r == null) {
+          return const CaptureBanner(
+            palette: StatusColors.noData,
+            icon: LucideIcons.hourglass,
+            text: 'Checking the baseline…',
+          );
+        }
+        if (r.ok) {
+          return CaptureBanner(
+            palette: StatusColors.safe,
+            icon: LucideIcons.check,
+            text:
+                'Baseline ($seconds s standing): OK · '
+                '${[for (final side in FootSide.values) '${sideName(side)} ${r.feet[side]!.sampleCount}'].join(' · ')} samples',
+          );
+        }
+        final failed = [
+          for (final side in FootSide.values)
+            if (r.feet[side]!.failure case final f?)
+              '${sideName(side)}: ${baselineFailureEn(f, seconds)}',
+        ];
+        return CaptureBanner(
+          palette: StatusColors.careful,
+          icon: LucideIcons.triangle_alert,
+          text:
+              'Baseline failed (${failed.join('; ')}). Redo trial 00 now, '
+              'while the volunteer is here',
+        );
+      },
+    );
+  }
+}
+
+/// The alerts stored with session [sessionId]'s stamp so far, oldest first
+/// (empty until the first read).
+List<StoredAlert> sessionAlertsOf(WidgetRef ref, String sessionId) =>
+    ref.watch(captureAlertsProvider(captureStampOf(sessionId))).value ??
+    const [];
+
+/// The alerts raised while this session screen is open (user decision 5,
+/// 2026-11-01): they post no system notification, so the researcher sees
+/// them here, on the Ready and Saved screens (never while recording).
+/// Display only; the screens leave it out while there are none.
+class SessionAlertsLine extends StatelessWidget {
+  const SessionAlertsLine({super.key, required this.alerts});
+
+  /// Not empty, oldest first.
+  final List<StoredAlert> alerts;
+
+  @override
+  Widget build(BuildContext context) {
+    final latest = alerts.last;
+    final side = latest.side;
+    return CaptureBanner(
+      key: const ValueKey('capture-session-alerts'),
+      palette: StatusColors.noData,
+      icon: LucideIcons.bell,
+      text:
+          'Alerts this session: ${alerts.length} (no notification) · latest '
+          '${latest.kind.wireName}'
+          '${side == null ? '' : ' ${sideCode(side)}'} '
+          '${hhmm(DateTime.fromMillisecondsSinceEpoch(latest.atMs))}',
+    );
+  }
+}
+
+/// A baseline failure in words, for the researcher (English, as the rest
+/// of research capture).
+String baselineFailureEn(BaselineFailure f, int seconds) => switch (f) {
+  BaselineFailure.lostPackets => 'packets were lost',
+  BaselineFailure.reconnected => 'the insole reconnected',
+  BaselineFailure.calibrating => 'a TARE was running',
+  BaselineFailure.markedInvalid => 'part was marked invalid',
+  BaselineFailure.wrongInsole => 'not an 8-sensor insole',
+  BaselineFailure.moved => 'the volunteer moved',
+  BaselineFailure.notLoaded => 'not standing on the insole',
+  BaselineFailure.tooShort => 'shorter than $seconds s',
+  BaselineFailure.stopped => 'the insole stopped streaming',
+};

@@ -32,8 +32,14 @@ Built in S4C (`docs/reports/027-flutter-capture.md`). Code:
 
 ## Before the volunteer arrives
 
-0. **Study-day kit:** the phone charged, a charged power bank, and a spare
-   USB cable. The previous participant's session is exported and its
+0. **Study-day kit:** the phone charged, a charged power bank, a spare
+   USB cable, and a new USB cable for the left board (the old one dropped
+   the board 4 times in S9-2). Turn the **notification volume** up, not
+   only the ringer: foot alerts sound on the notification stream. Before
+   the first participant, check that one test foot alert is heard: a `t`
+   on a simulator board, **outside a capture** (alerts during a capture
+   post no notification), then wait for the TEMP_DELTA notification
+   (about 1 min). The previous participant's session is exported and its
    laptop copy passed `load_capture.py check` (see "Export"); do not start
    a new participant before that.
 1. Phone charged. Sound on, media volume up: the cues play on the media
@@ -68,7 +74,18 @@ Built in S4C (`docs/reports/027-flutter-capture.md`). Code:
    session**. The screen stays on from here until you leave the session.
 2. **Calibration (30 s standing still):** ask the volunteer to stand still
    with weight on both feet, then tap **Start recording**. It stops on its
-   own.
+   own. Trial 00 is also each volunteer's Model A baseline (DATA-CONTRACT
+   §7.1, BACKLOG 74): when it is saved, the screen shows
+   **Baseline (30 s standing): OK**, or **Baseline failed** with the foot
+   and the reason (packets lost, the insole reconnected, a TARE, the
+   volunteer moved, not standing on the insole, part marked invalid,
+   shorter than 30 s), and "Redo trial 00 now, while the volunteer is
+   here". Do that: training uses the newest valid trial-00 attempt that
+   passes, and a volunteer with none has no baseline. A trial that ends up
+   to 0.1 s short (`baselineToleranceSamples`, a board clock a little slow
+   against the phone) still passes. Nothing is
+   blocked; the line is only information. A `TEST-` rehearsal's 10 s
+   calibration says "Baseline not checked" instead.
 3. **For each of the 5 gaits**, in the order shown:
    1. Demonstrate the gait. For antalgic the screen shows the pain side;
       for rotated foot, pick in-toeing or out-toeing first (required).
@@ -84,7 +101,13 @@ Built in S4C (`docs/reports/027-flutter-capture.md`). Code:
    - **Stop early**: ends the recording now. It is saved as
      `stopped_early` and stays valid; the analysis decides later whether
      to use it. Press Redo if you want a full recording.
-5. **Cues** (sound + vibration), so you don't need to look:
+5. **Foot alerts during the session** post no system notification and
+   never interrupt a trial; a tap on an old notification in the tray
+   does nothing while the session screen is open. Between trials (the
+   Ready and Saved screens) a grey line shows them: "Alerts this
+   session: 2 (no notification) · latest TEMP_DELTA L 16:12". They are
+   in the export's `alerts.csv`.
+6. **Cues** (sound + vibration), so you don't need to look:
 
    | Cue | Sound | Vibration |
    |---|---|---|
@@ -98,14 +121,14 @@ Built in S4C (`docs/reports/027-flutter-capture.md`). Code:
    Holding **Mark invalid** confirms with the "10 s left" cue; **Valid
    again** confirms with the "link back" cue.
 
-6. **After each recording**, the screen shows samples per foot and any
+7. **After each recording**, the screen shows samples per foot and any
    gaps. Rest is open-ended (doc 03); the rest clock is only for your
    information.
    - **Next** when the volunteer is ready.
    - **Redo this trial** if it went wrong (a gap, wrong gait, stopped
      early). The old attempt is **kept**, marked invalid (`redo`), and the
      trial is recorded again as attempt 2.
-7. After the last gait, the summary shows every trial. Any done trial can
+8. After the last gait, the summary shows every trial. Any done trial can
    still be redone from there.
 
 **If the app closes mid-session**, open Settings → hold **ส่วนผู้วิจัย**
@@ -222,6 +245,12 @@ line per check; `PASS` at the end means no FAIL.
   just shown.
 - **INFO**: problems in attempts already marked invalid (e.g. a redone
   one).
+- **Trial 00 baseline** (S9-2, BACKLOG 74): OK names the calibration
+  attempt training will use and its samples per foot; "no baseline" lists
+  each valid attempt's failure. FAIL in a study session, INFO in a
+  rehearsal (its 10 s calibration is shorter than the 30 s window).
+  `python3 tools/model/preprocess.py baseline <session folder>` prints the
+  baseline itself.
 - **`alerts.csv`**: FAIL on an unknown code, a level that does not match
   its code, a zone / site / side that is not valid for the code, rows
   out of time order, or an alert from before the session was created.

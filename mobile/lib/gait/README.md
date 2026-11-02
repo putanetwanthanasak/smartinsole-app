@@ -20,10 +20,17 @@ Nothing here sets a level: the gait result is never a risk level (rule 11).
   same float32 bits as `tools/model/preprocess.py`
   (`shared/test_vectors/model_preprocess/`); `modelBaselineOf` finds the
   connected insoles' stored baselines.
+- `baseline_window.dart` (S9-2, BACKLOG 74) — `FootBaselineWindow`, the
+  one baseline function: the first `baselineSeconds` × 50 samples per foot
+  that pass, or a named `BaselineFailure` (reconnected, lost packets,
+  TARE, marked invalid, not 8 FSR, moved, not loaded, too short; a trial 00
+  that ends at most `baselineToleranceSamples` short still passes). Capture
+  trial 00 (`capture/trial_baseline.dart`) and the recorder below both use
+  it; `tools/model/preprocess.py foot_baseline_window` is its port,
+  matched on `shared/test_vectors/baseline/`.
 - `baseline_recorder.dart` (S9) — the researcher's 30 s quiet-standing
-  recording on the 50 Hz path, with a named failure (lost packets,
-  reconnect, TARE, moved, not loaded); stored by
-  `storage/baseline_repository.dart`.
+  recording on the 50 Hz path, each sample through `FootBaselineWindow`;
+  stored by `storage/baseline_repository.dart`.
 - `model_classifier.dart` — the model slot: `assets/models/` (release,
   empty until after data collection, late Nov) or `assets/models_dummy/`
   (debug/profile with `--dart-define=GAIT_MODEL=dummy`); `ModelMissing` / `ModelInvalid` /
