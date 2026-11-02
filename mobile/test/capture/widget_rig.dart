@@ -13,6 +13,8 @@ import 'package:smartinsole/config/thresholds.dart';
 import 'package:smartinsole/device/device_manager.dart';
 import 'package:smartinsole/device/device_providers.dart';
 import 'package:smartinsole/gait/preprocess.dart';
+import 'package:smartinsole/storage/database.dart';
+import 'package:smartinsole/storage/storage_providers.dart';
 import 'package:smartinsole/ui/screens/capture/capture_flow_screen.dart';
 import 'package:smartinsole/ui/clock.dart';
 import 'package:smartinsole/ui/theme/app_theme.dart';
@@ -48,6 +50,10 @@ class WidgetRig {
   late final DeviceManager manager;
   late final Directory root;
   final cues = FakeCues();
+
+  /// The app database [pumpCapture] uses (the session screen's alerts
+  /// line); [pumpApp] callers pass their own.
+  final db = AppDatabase.memory();
   final wakelock = <bool>[];
   bool rightOn = true;
 
@@ -98,6 +104,7 @@ class WidgetRig {
 
   void dispose() {
     manager.dispose();
+    db.close();
     if (root.existsSync()) root.deleteSync(recursive: true);
   }
 }
@@ -123,6 +130,7 @@ Future<void> pumpCapture(
         // pumpApp sets these itself.
         thresholdsProvider.overrideWithValue(testThresholds),
         preprocessSpecProvider.overrideWithValue(testPreprocess),
+        databaseProvider.overrideWithValue(rig.db),
         ...rig.overrides,
       ],
       child: MaterialApp(

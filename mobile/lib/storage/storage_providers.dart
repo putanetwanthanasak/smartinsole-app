@@ -102,6 +102,13 @@ final visibleAlertsProvider = StreamProvider<List<StoredAlert>>(
       .watchVisible(ref.watch(clockProvider)().millisecondsSinceEpoch),
 );
 
+/// The alerts of one research capture ([captureStampOf]), oldest first,
+/// live: the session screen's alerts line.
+final captureAlertsProvider = StreamProvider.autoDispose
+    .family<List<StoredAlert>, String>(
+      (ref, stamp) => ref.watch(alertRepositoryProvider).watchForCapture(stamp),
+    );
+
 /// One stored alert, for its detail screen.
 final alertByIdProvider = FutureProvider.autoDispose.family<StoredAlert?, int>(
   (ref, id) => ref.watch(alertRepositoryProvider).byId(id),

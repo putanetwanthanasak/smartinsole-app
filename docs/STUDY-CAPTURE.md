@@ -93,7 +93,13 @@ Built in S4C (`docs/reports/027-flutter-capture.md`). Code:
    - **Stop early**: ends the recording now. It is saved as
      `stopped_early` and stays valid; the analysis decides later whether
      to use it. Press Redo if you want a full recording.
-5. **Cues** (sound + vibration), so you don't need to look:
+5. **Foot alerts during the session** post no system notification and
+   never interrupt a trial; a tap on an old notification in the tray
+   does nothing while the session screen is open. Between trials (the
+   Ready and Saved screens) a grey line shows them: "Alerts this
+   session: 2 (no notification) · latest TEMP_DELTA L 16:12". They are
+   in the export's `alerts.csv`.
+6. **Cues** (sound + vibration), so you don't need to look:
 
    | Cue | Sound | Vibration |
    |---|---|---|
@@ -107,14 +113,14 @@ Built in S4C (`docs/reports/027-flutter-capture.md`). Code:
    Holding **Mark invalid** confirms with the "10 s left" cue; **Valid
    again** confirms with the "link back" cue.
 
-6. **After each recording**, the screen shows samples per foot and any
+7. **After each recording**, the screen shows samples per foot and any
    gaps. Rest is open-ended (doc 03); the rest clock is only for your
    information.
    - **Next** when the volunteer is ready.
    - **Redo this trial** if it went wrong (a gap, wrong gait, stopped
      early). The old attempt is **kept**, marked invalid (`redo`), and the
      trial is recorded again as attempt 2.
-7. After the last gait, the summary shows every trial. Any done trial can
+8. After the last gait, the summary shows every trial. Any done trial can
    still be redone from there.
 
 **If the app closes mid-session**, open Settings → hold **ส่วนผู้วิจัย**
