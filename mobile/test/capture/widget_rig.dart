@@ -9,8 +9,10 @@ import 'package:smartinsole/ble/packets.dart';
 import 'package:smartinsole/capture/capture_protocol.dart';
 import 'package:smartinsole/capture/capture_providers.dart';
 import 'package:smartinsole/capture/capture_session.dart';
+import 'package:smartinsole/config/thresholds.dart';
 import 'package:smartinsole/device/device_manager.dart';
 import 'package:smartinsole/device/device_providers.dart';
+import 'package:smartinsole/gait/preprocess.dart';
 import 'package:smartinsole/ui/screens/capture/capture_flow_screen.dart';
 import 'package:smartinsole/ui/clock.dart';
 import 'package:smartinsole/ui/theme/app_theme.dart';
@@ -115,7 +117,14 @@ Future<void> pumpCapture(
   addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [clockProvider.overrideWithValue(rig.now), ...rig.overrides],
+      overrides: [
+        clockProvider.overrideWithValue(rig.now),
+        // The trial-00 baseline line on the Saved screen (BACKLOG 74);
+        // pumpApp sets these itself.
+        thresholdsProvider.overrideWithValue(testThresholds),
+        preprocessSpecProvider.overrideWithValue(testPreprocess),
+        ...rig.overrides,
+      ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light(),

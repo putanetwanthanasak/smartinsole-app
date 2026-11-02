@@ -1,6 +1,8 @@
 @Tags(['golden'])
 library;
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smartinsole/ble/link_state.dart';
@@ -180,5 +182,39 @@ void main() {
       await golden(tester, 'capture_summary');
       await tester.pumpWidget(const SizedBox());
     });
+
+    // S9-2 (BACKLOG 74, decision 4b): the trial-00 baseline line for a
+    // 30 s study calibration, from the shared fixture's trials.
+    for (final (csv, name) in [
+      ('ok.csv', 'capture_baseline_ok'),
+      ('moved.csv', 'capture_baseline_failed'),
+    ]) {
+      testWidgets(name, (tester) async {
+        await pumpCapture(
+          tester,
+          rig,
+          Scaffold(
+            body: Padding(
+              padding: const EdgeInsets.all(24),
+              child: TrialBaselineLine(
+                csv: File('../shared/test_vectors/baseline/$csv'),
+                plannedCalibration: const Duration(seconds: 30),
+              ),
+            ),
+          ),
+        );
+        for (
+          var k = 0;
+          k < 20 && find.textContaining('Checking').evaluate().isNotEmpty;
+          k++
+        ) {
+          await tester.runAsync(
+            () => Future<void>.delayed(const Duration(milliseconds: 20)),
+          );
+          await tester.pump();
+        }
+        await golden(tester, name);
+      });
+    }
   });
 }

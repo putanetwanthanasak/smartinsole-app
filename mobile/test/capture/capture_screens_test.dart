@@ -316,4 +316,77 @@ void main() {
       await tester.pumpWidget(const SizedBox());
     });
   });
+
+  group('trial-00 baseline line (BACKLOG 74, user decision 4b)', () {
+    const vectors = '../shared/test_vectors/baseline';
+
+    /// Pumps until the line's file read (real I/O) has finished.
+    Future<void> settle(WidgetTester tester) async {
+      for (var k = 0; k < 20; k++) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 20)),
+        );
+        await tester.pump();
+        if (find.textContaining('Checking').evaluate().isEmpty) return;
+      }
+    }
+
+    Future<void> pumpLine(WidgetTester tester, String csv, Duration planned) =>
+        pumpCapture(
+          tester,
+          rig,
+          Scaffold(
+            body: TrialBaselineLine(
+              csv: File('$vectors/$csv'),
+              plannedCalibration: planned,
+            ),
+          ),
+        );
+
+    testWidgets('a good 30 s trial 00: OK with both feet\'s samples', (
+      tester,
+    ) async {
+      await pumpLine(tester, 'ok.csv', const Duration(seconds: 30));
+      await settle(tester);
+      expect(
+        find.text(
+          'Baseline (30 s standing): OK · left 1500 · right 1500 samples',
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a failed trial 00: the foot, the reason and redo now', (
+      tester,
+    ) async {
+      await pumpLine(tester, 'moved.csv', const Duration(seconds: 30));
+      await settle(tester);
+      expect(
+        find.text(
+          'Baseline failed (left: shorter than 30 s; right: the volunteer '
+          'moved). Redo trial 00 now, while the volunteer is here',
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a rehearsal (TEST-) calibration: information, not a failure, '
+        'on the Saved screen', (tester) async {
+      final s = rig.newSession();
+      await pumpCapture(tester, rig, CaptureFlowScreen(session: s));
+      await tapScrolled(tester, 'capture-record');
+      await rig.walk(tester, const Duration(seconds: 11));
+      expect(s.phase, CapturePhase.saved);
+      expect(
+        find.text(
+          'Baseline not checked: it needs 30 s of standing; this rehearsal '
+          'calibration is 10 s',
+        ),
+        findsOneWidget,
+      );
+      // Display only: the flow goes on as before.
+      expect(byKey('capture-next'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    });
+  });
 }
