@@ -32,8 +32,14 @@ Built in S4C (`docs/reports/027-flutter-capture.md`). Code:
 
 ## Before the volunteer arrives
 
-0. **Study-day kit:** the phone charged, a charged power bank, and a spare
-   USB cable. The previous participant's session is exported and its
+0. **Study-day kit:** the phone charged, a charged power bank, a spare
+   USB cable, and a new USB cable for the left board (the old one dropped
+   the board 4 times in S9-2). Turn the **notification volume** up, not
+   only the ringer: foot alerts sound on the notification stream. Before
+   the first participant, check that one test foot alert is heard: a `t`
+   on a simulator board, **outside a capture** (alerts during a capture
+   post no notification), then wait for the TEMP_DELTA notification
+   (about 1 min). The previous participant's session is exported and its
    laptop copy passed `load_capture.py check` (see "Export"); do not start
    a new participant before that.
 1. Phone charged. Sound on, media volume up: the cues play on the media

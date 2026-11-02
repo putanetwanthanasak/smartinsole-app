@@ -4,9 +4,8 @@ Branch `work/flutter-integration-2` · 2026-11-02 · from main b2f8eb5 (PR
 #35, S9-1). Plan approved 2026-11-02 with user decisions 1a, 2a, 3a, 4b,
 5b, 6a (below). Part A is code (BACKLOG 74). Part B is the release APK.
 Part C is the Note 10 checkpoint, report 039's checklist plus the S9-2
-additions. **The checkpoint is waiting on user:** the results below are
-what was observed in this session. Nothing is marked passed until the
-user confirms it.
+additions. **Checkpoint confirmed by the user (2026-11-02):** items 2, 3,
+4, 6, 7, 8, 9, 10, 11 and 12 pass as observed; items 1 and 5 move to SR.
 
 ## Summary
 
@@ -35,8 +34,8 @@ user confirms it.
   - Spec review finding 1: a trial 00 up to 5 samples short still gives a
     baseline (+5, user decision 2026-11-02).
 - **Checkpoint:** items 2, 3, 4, 6, 7, 8, 9, 10, 11 and 12 were run on the
-  Note 10. Items 1 and 5 were moved to SR by the user (battery 15 %).
-  **Waiting on user.**
+  Note 10. **The user confirmed all ten as passed** (2026-11-02). Items 1
+  and 5 were moved to SR by the user (battery 15 %).
 
 ## What changed
 
@@ -80,7 +79,22 @@ Checks on the final state: `flutter analyze` no issues; `flutter test`
 - The release model slot `assets/models/` holds only its README. The dummy
   model is bundled for debug only, and release ignores it.
 
-## Note 10 checkpoint (waiting on user)
+## Note 10 checkpoint (confirmed by the user 2026-11-02)
+
+| Item | Result |
+|---|---|
+| 1. 30-minute run | Moved to SR (user) |
+| 2. My feet, `p` / `t`, right board off | **Pass** (user) |
+| 3. DEVICE_LOST | **Pass** (user) |
+| 4. Auto-reconnect after a reset | **Pass** (user) |
+| 5. Scanning cost | Moved to SR (user) |
+| 6. Reduce motion | **Pass** (user) |
+| 7. Alert notifications | **Pass** (user) |
+| 8. Badge | **Pass** (user), after the 0f083eb fix |
+| 9. Alerts during a capture | **Pass** (user), after the 6e3dd77 fix |
+| 10. Researcher baseline | **Pass** (user), for what walking simulators can show; the rest is for SR |
+| 11. Connect both unaided | **Pass** (user) |
+| 12. Export and check | **Pass** (user) |
 
 Phone: Note 10, RF8M83P4STZ, Android 12 (sdk 31), font scale 1.3.
 
@@ -155,8 +169,9 @@ Screenshots are in `docs/reports/040-flutter-integration-2/`.
     searching since 14:38.
   - At 15:03:19 the right link dropped again, and auto-reconnect recovered
     it in 16.8 s with 0 failed tries.
-  - Whether the user tapped is to be confirmed by the user. Item 4 measures
-    auto-reconnect on its own.
+  - Whether the user tapped Disconnect is still not known: the confirmation's choice was left unfilled ("[did / did not]"). Item
+    4 measures auto-reconnect on its own, so the pass does not depend on
+    it.
 
 ### 3. DEVICE_LOST
 
@@ -209,8 +224,11 @@ Screenshots are in `docs/reports/040-flutter-integration-2/`.
 - Android grouped the app's notifications (`ranker_group`).
 - The separate 1- and 5-minute points had no fresh alert code (30-minute
   repeat window). For them only "not frozen, still streaming" was checked.
-- **To confirm by the user:** whether the 15:35 sound was heard, and
-  whether the phone was touched at about 15:20.
+- **Still not known:** whether the 15:35 sound was heard, and whether the
+  phone was touched at about 15:20. The confirmation's choices were left
+  unfilled ("[heard / did not hear]", "[touched / did not touch]").
+  `notification_alert …,1,1,0` shows Android played the sound. Whether it
+  can be heard is SR item 4, with the study-day kit check below.
 - The limitation stands (no foreground service). It is recorded in
   BACKLOG 72, FLUTTER-PLAN §1 and DESIGN-SPEC §11.9. A longer screen-off
   run is for SR.
@@ -339,17 +357,29 @@ Copied as returned (paths shortened), with a resolution column.
 - The left board's USB cable is flaky: 4 drops at 15:53–15:54. Use
   another cable at SR.
 - Item 2: whether the user tapped Disconnect on the right foot at 15:02:39
-  is unconfirmed.
+  is still not known (the confirmation's choice was left unfilled ("[did / did not]")).
 - The phone still holds TEST-003, TEST-004 and TEST-012 staged, and
   TEST-013 (trial 00 only). Nothing was deleted.
 
-## Decisions needed
+## Decisions (user, 2026-11-02)
 
-1. Confirm or reject each checkpoint item above (waiting on user).
-2. BACKLOG 76: two sounds for one cause. Keep, make the second one
-   silent, or group them?
-3. BACKLOG 75: leave the badge vs. bell difference, or set the badge
-   from the unread count (S10)?
+1. **Checkpoint:** items 2, 3, 4, 6, 7, 8, 9, 10, 11 and 12 pass as
+   observed. Items 1 and 5 move to SR.
+2. **BACKLOG 76:** within 2 minutes of a foot notification for the same
+   foot, post the next one silently (still shown in the tray). Do it in
+   S10, with a test. The 2 minutes go in `thresholds.json` (rule 12).
+3. **BACKLOG 75:** leave it as is. DESIGN-SPEC §7.2 now says the launcher
+   badge counts tray notifications and the bell counts unread alerts
+   (done here).
+4. **STUDY-CAPTURE study-day kit** (done here):
+   - turn the notification volume up, not only the ringer;
+   - before the first participant, check that one test foot alert is
+     heard (`t` on a simulator board, outside a capture: alerts during a
+     capture post no notification);
+   - a new USB cable for the left board.
+
+Still open: the two unfilled choices (item 2 Disconnect tap; item 7 sound
+heard and touch at 15:20). Neither changes a result.
 
 ## SR must still check (8–11 Nov, real boards)
 
@@ -362,7 +392,8 @@ Copied as returned (paths shortened), with a resolution column.
 3. **A real 30 s trial 00** in a rehearsal shows "Baseline … OK", with
    the sample counts per foot (1495–1501 is fine).
 4. **Sound:** that a foot alert is heard on the study phone at the
-   volume the volunteer will use.
+   volume the volunteer will use (the STUDY-CAPTURE kit check, with the
+   notification volume up).
 5. **Screen off for longer:** a foot alert after 1, 5 and 15 min with
    the screen off (BACKLOG 72), during the 30-minute run.
 6. **The auto-reconnect search cost** with one board off for a long

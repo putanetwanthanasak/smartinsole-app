@@ -289,7 +289,7 @@ The board examples above are the design's; the app's copy is `alertCopyFor` and 
 ### 7.2 Alerts list
 
 - Title "แจ้งเตือน" with "ยังไม่ได้อ่าน {n} รายการ" under it (16 `inkMuted`, polite live region).
-- An alert becomes read once the user opens it: its detail, Connection for `BATTERY_LOW`, or the result screen for a foot-check finding (decision 7). A read card loses the "ใหม่" chip and its `outline` border; the badge counts unread alerts.
+- An alert becomes read once the user opens it: its detail, Connection for `BATTERY_LOW`, or the result screen for a foot-check finding (decision 7). A read card loses the "ใหม่" chip and its `outline` border; the badge counts unread alerts. The phone's launcher icon badge is Android's and counts the app's notifications in the tray, so the two can differ (e.g. app-only codes such as `DEVICE_LOST` are in the bell, never in the tray); opening an alert in the app removes its notification (S9-2). Left as is (user decision 2026-11-02, BACKLOG 75).
 - Grouped by day, newest first. Group titles 20/600, 16 above the first card: "วันนี้", "เมื่อวาน · อังคาร 20 ต.ค." (format: "เมื่อวาน · " + weekday + day + short month); older days use weekday + day + short month. "วันนี้" / "เมื่อวาน" follow today's date, which rolls over at local midnight and on resume (BACKLOG 68).
 - **Alert card** (the whole card is one link): white, radius 16, padding 16, gap 12, 16 between cards. Unread: `outline` 1.5 px border and the "ใหม่" chip; read: `divider` 1 px. Content column (gap 8):
   1. Status tag + time "HH:mm" (16 `inkMuted`) + "ใหม่" chip when unread (wraps if needed)

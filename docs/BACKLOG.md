@@ -1695,7 +1695,7 @@ while the volunteer is there (display only), and `load_capture.py check`
 reports it (FAIL study, INFO rehearsal). `shared/test_vectors/baseline/`
 is matched exactly by both Dart paths. DATA-CONTRACT §7.1, STUDY-CAPTURE.
 
-## 75. The launcher badge and the in-app bell count different things **(found at the S9-2 Note 10 checkpoint)** — OPEN, minor
+## 75. The launcher badge and the in-app bell count different things **(found at the S9-2 Note 10 checkpoint)** — RESOLVED: left as is (user decision 2026-11-02)
 
 The Samsung launcher badge counts the app's notifications in the tray.
 The bell counts every unread alert in the Alerts list, including
@@ -1709,9 +1709,11 @@ badge 1 and bell 16 on the Note 10. Options:
 - set the badge number from the bell's unread count (a launcher-badge
   plugin; Samsung supports it).
 
-Decide in S10.
+**User decision (2026-11-02):** leave it. DESIGN-SPEC §7.2 now says the
+launcher badge counts tray notifications and the bell counts unread
+alerts.
 
-## 76. One `p` event gives two sound notifications about 21 s apart **(found at the S9-2 Note 10 checkpoint)** — OPEN, decide
+## 76. One `p` event gives two sound notifications about 21 s apart **(found at the S9-2 Note 10 checkpoint)** — OPEN, decided: do in S10
 
 A high MTH1 load raises PRESSURE_PEAK at once and LOAD_CONCENTRATION
 about 21–26 s later (its window). Each posts its own notification with
@@ -1722,7 +1724,10 @@ each code notifies (DESIGN-SPEC §11.9). Options:
   a few minutes;
 - group them as one notification.
 
-User decision.
+**User decision (2026-11-02):** within 2 minutes of a foot notification
+for the same foot, post the next one silently. It is still shown in the
+tray. Do it in S10, with a test. The 2 minutes go in `thresholds.json`
+(rule 12), and DESIGN-SPEC §11.9 is updated with it.
 
 ## 77. A refused side shows as "disconnected by user" in the BLE log **(found at the S9-2 Note 10 checkpoint)** — OPEN, minor
 
