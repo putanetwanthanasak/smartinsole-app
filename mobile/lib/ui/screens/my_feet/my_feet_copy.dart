@@ -9,6 +9,7 @@ import '../../../rules/alert_code.dart';
 import '../../../rules/alert_copy.dart';
 import '../../../rules/patient_status.dart';
 import '../../../rules/pressure_level.dart';
+import '../../../text/thai_break.dart';
 import '../../clock.dart';
 import '../../widgets/details_expander.dart';
 import '../../widgets/temp_site_map.dart' show TempSiteMark;
@@ -78,7 +79,12 @@ FootSide? _missingOf(bool left, bool right) => !left
 String _foot(FootSide s) => 'เท้า${sideTh(s)}';
 
 /// Temperature site i is zone i (DATA-CONTRACT v1.6).
+/// A site's name on its own (a row, a table cell, a TalkBack label).
 String _siteTh(int site) => footLayout.zones[site].nameTh;
+
+/// A site's name inside running text: never split across lines (S10,
+/// BACKLOG 60; display only, `lib/text/thai_break.dart`).
+String _siteInText(int site) => footLayout.zones[site].displayTh;
 
 /// Whole number, or one decimal when it has one ("200", "2.2").
 String _n(double v) =>
@@ -113,7 +119,7 @@ BannerView pressureBanner(PressureTabView v) {
     // S6B draft: one foot missing (no board).
     return BannerView(
       level: PatientLevel.noData,
-      title: 'ยังไม่ได้รับข้อมูล${_foot(missing)}',
+      title: 'ยังไม่ได้รับข้อมูล${keepTogether(_foot(missing))}',
       line: 'ต้องเชื่อมต่อแผ่นรองเท้า${sideTh(missing)}ก่อน',
       connect: true,
     );
@@ -241,7 +247,8 @@ BannerView tempBanner(
     return BannerView(
       level: PatientLevel.rest,
       title:
-          '${_siteTh(alert.site)}$warmอุ่นกว่า$other '
+          '${footLayout.zones[alert.site].titleTh}$warm'
+          '${keepTogether('อุ่นกว่า')}$other '
           '${formatDelta(alert.deltaC)}$nbspองศา',
       line: 'ติดต่อกันมาสักพัก',
       linkCode: AlertCode.tempDelta,
@@ -459,9 +466,9 @@ List<DetailRow> tempDetailRows(
       else
         for (var i = 0; i < f.quality.length; i++)
           if (f.quality[i] != TempQuality.normal)
-            '${_foot(f.side)} ${_siteTh(i)} ${_qualityTh(f.quality[i])}'
+            '${_foot(f.side)} ${_siteInText(i)} ${_qualityTh(f.quality[i])}'
           else if (f.at(i) == null)
-            '${_foot(f.side)} ${_siteTh(i)} ยังวัดไม่ได้',
+            '${_foot(f.side)} ${_siteInText(i)} ยังวัดไม่ได้',
   ];
   final counted = [
     for (final a in v.alerts.values)
@@ -473,9 +480,9 @@ List<DetailRow> tempDetailRows(
         'วัดเกินเกณฑ์ติดกัน',
         [
           for (final a in counted)
-            '${_siteTh(a.site)} ${a.consecutive} ครั้ง '
+            '${_siteInText(a.site)} ${a.consecutive} ครั้ง '
                 '(เกณฑ์ ${t.consecutiveReadings} ครั้ง)',
-        ].join(' · '),
+        ].join('$nbsp· '),
       ),
     DetailRow('วัดทุก', '$period วินาที$latest'),
     threshold,
@@ -483,7 +490,7 @@ List<DetailRow> tempDetailRows(
       'คุณภาพสัญญาณ',
       bad.isEmpty
           ? 'ดีทั้ง ${FootSide.values.length * TempLayout.siteCount} จุด'
-          : bad.join(' · '),
+          : bad.join('$nbsp· '),
     ),
   ];
 }

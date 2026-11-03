@@ -1,4 +1,4 @@
-import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_test/flutter_test.dart' hide expect;
 import 'package:smartinsole/ble/ble_protocol.dart';
 import 'package:smartinsole/ble/packets.dart';
 import 'package:smartinsole/config/foot_layout.dart';
@@ -12,6 +12,7 @@ import 'package:smartinsole/ui/widgets/temp_site_map.dart' show TempSiteMark;
 import 'package:smartinsole/ui/screens/my_feet/my_feet_model.dart';
 
 import '../helpers/pump_app.dart' show testThresholds;
+import '../helpers/plain_text.dart';
 
 const _low = PressureLevel.low;
 const _mid = PressureLevel.medium;
@@ -483,7 +484,7 @@ void main() {
       );
       expect(
         rows.last.value,
-        'เท้าซ้าย ยังวัดไม่ได้ · เท้าขวา โคนนิ้วหัวแม่เท้า ยังวัดไม่ได้',
+        'เท้าซ้าย ยังวัดไม่ได้\u00A0· เท้าขวา โคนนิ้วหัวแม่เท้า ยังวัดไม่ได้',
       );
     });
 

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../capture/capture_providers.dart';
 import '../config/foot_layout.dart';
+import '../config/thresholds.dart';
 import '../rules/alert_code.dart';
 import '../rules/alert_copy.dart';
 import '../rules/alert_engine.dart';
@@ -13,6 +14,7 @@ import '../settings/settings_providers.dart';
 import '../storage/storage_providers.dart';
 import 'alert_notifier.dart';
 import 'local_alert_notifier.dart';
+import 'quiet_window.dart';
 
 /// The codes that become a system notification (user decision 4,
 /// 2026-11-01): the foot alerts a patient should act on. The others stay
@@ -63,8 +65,10 @@ final alertNotifierProvider = Provider<AlertNotifier>(
 
 /// Posts a notification for each new foot alert ([noticeFor]), on the
 /// sound or silent channel by Settings "เสียงแจ้งเตือน" (user decision 7),
-/// also while the app is on screen (decision 8). Started by
-/// `AlertNotificationHost`.
+/// also while the app is on screen (decision 8). With sound on, one within
+/// `alerts.quietNotifyMin` of the last sounded one for the same foot goes
+/// on the silent channel ([NotificationQuietWindow], BACKLOG 76). Started
+/// by `AlertNotificationHost`.
 final alertNotificationServiceProvider = Provider<AlertNotificationService>((
   ref,
 ) {
@@ -74,9 +78,13 @@ final alertNotificationServiceProvider = Provider<AlertNotificationService>((
 });
 
 class AlertNotificationService {
-  AlertNotificationService(this._ref);
+  AlertNotificationService(this._ref)
+    : _quiet = NotificationQuietWindow(
+        Duration(minutes: _ref.read(thresholdsProvider).quietNotifyMin),
+      );
 
   final Ref _ref;
+  final NotificationQuietWindow _quiet;
   StreamSubscription<RaisedAlert>? _sub;
 
   /// Sets up the notifications and starts posting. [openAlert] runs for a
@@ -123,7 +131,12 @@ class AlertNotificationService {
       capturing: _ref.read(activeCaptureProvider) != null,
     );
     if (notice == null) return;
-    final sound = _ref.read(settingsProvider).sound;
+    // Decided before any await, so alerts arriving together are judged in
+    // the order they were raised. noticeFor only returns a notice for an
+    // alert with a side.
+    final sound =
+        _ref.read(settingsProvider).sound &&
+        _quiet.claimSound(r.alert.side!, r.alert.atMs);
     try {
       await _ready;
       if (!_ref.mounted) return;
@@ -133,6 +146,8 @@ class AlertNotificationService {
         '(${sound ? 'sound' : 'silent'})',
       );
     } catch (e) {
+      // Nothing sounded, so the next alert for this foot may (§11.9).
+      if (sound) _quiet.release(r.alert.side!, r.alert.atMs);
       debugPrint('alerts: notification failed: $e');
     }
   }

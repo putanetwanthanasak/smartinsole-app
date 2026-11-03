@@ -166,7 +166,7 @@ deliberately unwired — see `docs/BACKLOG.md`.
 
 ---
 
-## Current state
+## Current state (web app, frozen since Oct 2026)
 
 **Wired to live data (via `DeviceManager` / `AlertStore`):** Home, Temperature,
 Alerts, Settings.
@@ -185,3 +185,31 @@ are usable); the heatmap's per-foot "no data" overlay; the temperature foot
 map's per-foot "no data" overlay; the status badge's `0/5 Not worn` /
 `tone-neutral` state; the risk summary's `"No data"` state (distinct from
 `"No high-risk zones"`); the 24h temperature chart's line gaps.
+
+---
+
+## 7. Flutter app (Oct–Nov 2026)
+
+The web app above is frozen. Active work is the Flutter app in `mobile/`
+(`docs/FLUTTER-PLAN.md`, `docs/SESSIONS.md`); each session's full record
+is its report in `docs/reports/` (019 onward). In short:
+
+| Session | What changed | Report |
+|---|---|---|
+| S0B–S1B | Repo setup, `shared/thresholds.json`, `mobile/` scaffold, theme, fonts, goldens | 019, 020 |
+| S2A–S2C | Dart parser + test vectors from the TS parser; new PlatformIO/NimBLE simulator (core, control, 2 centrals) | 021–023 |
+| S3A–S4 | Per-foot BLE, rules 8/9; DeviceManager (50 Hz / 10 Hz, read-time staleness, DeviceClock); web fallback checked | 024–026 |
+| S4C | Research capture on the phone (doc 03 protocol, CSV + sidecar, export) | 027 |
+| S5–S7 | Home (style D); drift storage + retention; AlertEngine (8 codes, walking gate, steps) | 028–030 |
+| S6B–S8C | Alerts, My feet (Pressure, Temperature, Gait + Model A slot), Connection, Settings, Researcher, Daily foot check | 031–036 |
+| S8D | 8 FSR + 8 NTC per foot (DATA-CONTRACT v1.6) and its UI | 037, 038 |
+| S9 | Step merge, Model A preprocessing, foot alert notifications, one baseline function, release APK, Note 10 checkpoint | 039, 040 |
+| S10 | Wrap-up before SR: one sound per cause, app name and icons, large-text and Thai line-break fixes, BACKLOG sort, SR checklist | 041 |
+
+**Where it stands (2026-11-02):** every screen is built and has been run
+on the Note 10 with both simulator boards. What remains before the study
+(12 Nov) is S10b (the medical expert's text fixes) and SR (8–11 Nov, the
+real boards; checklist in `docs/SESSIONS.md` §3 SR). Everything else in
+`docs/BACKLOG.md` is marked "after study": the study phone's build is
+frozen 12–30 Nov. Model A arrives after data collection (late Nov) as two
+asset files in `mobile/assets/models/`.

@@ -129,11 +129,25 @@ class _Header extends ConsumerWidget {
 
 // --- Foot chips -------------------------------------------------------------
 
+/// The two foot chips: side by side, stacked above the same text scale as
+/// the small cards below (S10, BACKLOG 54: at 1.3 × "ใหญ่มาก" the
+/// side-by-side chips left only a few characters per line).
 class _FootChips extends StatelessWidget {
   const _FootChips();
 
   @override
   Widget build(BuildContext context) {
+    final scale = MediaQuery.textScalerOf(context).scale(1);
+    if (scale > _SmallCards._stackAboveScale) {
+      return const Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _FootChip(side: FootSide.left),
+          SizedBox(height: Dimens.gridGap),
+          _FootChip(side: FootSide.right),
+        ],
+      );
+    }
     return const IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,

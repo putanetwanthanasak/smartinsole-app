@@ -5,7 +5,7 @@
 
 ---
 
-## Status (2026-10-29)
+## Status (2026-11-02)
 
 | Session | Result | PR / report |
 |---|---|---|
@@ -27,9 +27,16 @@
 | S8A | ✅ Gait tab, GaitClassifier + Model A slot | PR #30 · report 034 |
 | S8B | ✅ Connection, Settings, Researcher | PR #31 · report 035 |
 | S8C | ✅ Daily foot check, evening reminder | PR #32 · report 036 |
-| S8D → S10 | ⏳ S8D-1 30 Oct, S8D-2 31 Oct, S9 1–3 Nov, S10 4–5 Nov (schedule v2.6 below); SR 8–11 Nov; study starts 2026-11-12 | — |
+| S8D-1 | ✅ 8 FSR + 8 NTC data path, DATA-CONTRACT v1.6, simulator 8 + 8 | PR #33 · report 037 |
+| S8D-2 | ✅ UI for 8 sites (Temperature layout A, alert map, dot sizes) | PR #34 · report 038 |
+| S9-1 | ✅ Step merge (BACKLOG 51), preprocessing "ทางเอ", foot alert notifications | PR #35 · report 039 |
+| S9-2 | ✅ One baseline function, release 1.0.0+5, Note 10 checkpoint (items 1 and 5 moved to SR) | PR #36 · report 040 |
+| S10 | ⏳ Wrap-up before SR: BACKLOG sort, 76, 56, 54, Thai line breaks, docs, SR checklist, release 1.0.0+6 | this PR · report 041 |
+| S10b | ⏳ Expert text fixes (feedback due 5 Nov) + build 1.0.0+7, 6–7 Nov, before SR | — |
+| SR | ⏳ 8–11 Nov with the real boards (checklist in §3 SR) | — |
+| Study | ⏳ starts Thu 12 Nov; study phone build frozen 12–30 Nov | — |
 
-**Demo state of the app:** installed on the Note 10 as a release build (S8C); every screen is built. Until S8D-1 the app and the simulator boards are on 6 FSR + 2 temperature sites per foot.
+**Demo state of the app:** installed on the Note 10 as release 1.0.0+5 (S9-2; S10 brings 1.0.0+6); every screen is built; the app and both simulator boards are on 8 FSR + 8 temperature sites per foot (S8D).
 
 ## Study plan (decided 2026-10-21)
 
@@ -56,7 +63,7 @@ Schedule (v2.6, user decision 2026-10-29: the real insole is final at 8 FSR + 8 
 | Sat 31 Oct | **S8D-2** (UI for 8 sites) | requires S8D-1 merged |
 | Sun 1 – Tue 3 Nov | S9 (integration + APK) | S9-1 code, S9-2 Note 10 checkpoint; first item: BACKLOG 51; BACKLOG 63 decided 2026-10-31 (one phone only) |
 | Wed 4 – Thu 5 Nov | S10 (wrap-up) | **medical text review by Thu 5 Nov** (Appendix A) |
-| Fri 6 – Sat 7 Nov | buffer | |
+| Fri 6 – Sat 7 Nov | **S10b** + buffer | expert text fixes (medical feedback due 5 Nov) and build 1.0.0+7, before SR |
 | Sun 8 – Wed 11 Nov | SR with the real boards | boards ready about 8 Nov; the simulator if not |
 | **Thu 12 Nov** | **study starts** | IRB window 1–30 Nov; study phone build frozen 12–30 Nov |
 
@@ -185,7 +192,8 @@ Additional info: [optional]
 | 30 Oct | S8D-1 | Claude Code + user | 8 FSR + 8 NTC: data path, simulator, contract v1.6 | `work/flutter-8-sensors` |
 | 31 Oct | S8D-2 | Claude Code | 8 FSR + 8 NTC: UI | `work/flutter-8-sensors-ui` |
 | 1–3 Nov | S9 | User + Claude Code | Integration test + APK | `work/flutter-integration` |
-| 4–5 Nov | S10 | Claude Code | Wrap-up + docs + screenshots | `work/flutter-wrapup` |
+| 2–5 Nov | S10 | Claude Code | Wrap-up before SR (group A only) + docs | `work/flutter-wrapup` |
+| 6–7 Nov | S10b | Claude Code | Expert text fixes + build 1.0.0+7 | `work/flutter-expert-text` |
 
 ---
 
@@ -307,6 +315,60 @@ Additional info: [optional]
 - **Clear the test data before 2026-11-12 (added in S6B).** On the study phone, Research capture → **4 · App database (test data)** → *Clear app database (test data)* (2 confirmations; see `docs/STUDY-CAPTURE.md`). It deletes untagged alerts, temperature readings, daily summaries, foot checks and foot photos; it never deletes capture-tagged alerts, capture session folders or the export folder. Then restart the app and confirm on Researcher › Diagnostics (S8B) that "alerts N" equals "capture-tagged N".
 - **Done when:** the user is confident to run the study on 2026-11-12.
 
+#### SR checklist (collected in S10 from reports 037–040 and the BACKLOG)
+
+Every item that an earlier session sent to SR, in study-day order. Real
+boards unless noted; record each result in the SR report.
+
+1. **First real-board connection** (037, BACKLOG 67): Researcher ›
+   Diagnostics shows `N 8 · temperature v2, 8 sites · rejects 0` for each
+   foot; otherwise stop and compare against DATA-CONTRACT Appendix C.
+   Also "missing at start" 0 after a few reconnects: the real firmware
+   restarts `seq` at 0 on START (BACKLOG 19).
+2. **Kit and sound** (040 item 4, STUDY-CAPTURE step 0): notification
+   volume up, not only the ringer; one test foot alert heard at the
+   volunteer's volume, outside a capture. A second alert for the same foot
+   within 2 min is silent by design (BACKLOG 76, S10).
+3. **Baseline standing still** (040): the Researcher "บันทึกค่ายืนนิ่ง 30
+   วินาที" recording is accepted; refused as "moved" when the person
+   shifts, and on a disconnect. If refused standing still, record the
+   walking-gate statistic and tune `motion.walkingAccelG`.
+4. **Trial 00 in a rehearsal** (040): Saved shows "Baseline … OK" with
+   1495–1501 samples per foot.
+5. **Step hand count** (037, BACKLOG 51, 65): one normal-gait trial, steps
+   counted by hand per foot vs the app; checks `steps.contactKpa`
+   (8 zones), `minStanceMs`/`maxStanceMs` and `mergeGapMs` (120); note
+   the too-short stances.
+6. **Peak hold** (`pressure.peakHoldMs` 2500): one PEAK/WATCH per walk,
+   ending within a few seconds of stopping.
+7. **Walking gate statistic** (BACKLOG 42): in the standing calibration
+   and each normal-gait trial; adjust `motion.walkingAccelG` if needed.
+8. **PTI / concentration firing rate** (BACKLOG 31, 64): from each
+   session's `alerts.csv`; top-zone share per step over 8 zones; decide on
+   `asymmetry.concentrationPct` 40 % before 12 Nov.
+9. **Gait confusion table** (BACKLOG 49, 65): class shown vs instructed
+   gait for the 5 trials; tune `gait.*`.
+10. **Pressure thresholds and FSR curve** (BACKLOG 4, 12): note real peak
+    kPa at heel strike and any raw ADC ≥ 3000; 75/200 kPa stay as agreed
+    unless the user decides otherwise.
+11. **Warm compress** with the session screen open: `TEMP_DELTA` lands in
+    that session's `alerts.csv` (STUDY-CAPTURE).
+12. **30-minute unplugged run** at ≥ 60 % battery (040 items 1 and 5,
+    BACKLOG 45, 52, 72): gaps, steps, smoothness, battery; resets with the
+    screen off; a foot alert after 1, 5 and 15 min of screen off; the
+    auto-reconnect scanning cost with one board off for a long time.
+13. **Medical text** (BACKLOG 43, Appendix A): the alert text on the phone
+    is the version the medical expert reviewed (S10b, build 1.0.0+7);
+    the PTI source for 80 kPa·s is settled.
+14. **Thai text on the Samsung font** (S10): Home, one alert detail with
+    site names and My feet show no boxes or missing glyphs.
+15. **Export** after every rehearsal participant and `load_capture.py
+    check` on the laptop copy before the next one.
+16. **Before 12 Nov:** clear the test data (Research capture › 4 · App
+    database (test data)), restart, and check Diagnostics "alerts N" =
+    "capture-tagged N". Install the final build with `adb install -r`
+    only and record its version and SHA-256.
+
 ### S8A — Gait screen
 - **Do:** PAI, CoP, step count, label "estimate, not a diagnosis", animations. `GaitClassifier` interface with a rule-based implementation and a TFLite implementation in an isolate per DATA-CONTRACT §7: loads `assets/models/model_a.tflite` + `normalization.json` when present, input `[1,100,24]` (2 s window, 1 s stride, channel order §7.1, units as in S4C), outputs `gait_probs` [1,5] and `gait_embedding` [1,32]; falls back to the rules when the model is missing or confidence < 0.60. Prove the slot with a dummy model of the right shapes generated by a committed Python script (untrained weights): loads, channel order correct, inference ≤ 100 ms on the Note 10. Swapping in the real model after data collection (late Nov) must need only the two asset files. Model B stays out of scope (S7 rules give the status level).
 - **Verify:** unit + golden tests · **You:** emulator + mock presets, screenshots via Dart MCP.
@@ -380,6 +442,12 @@ Additional info: [optional]
 ### S10 — Wrap-up
 - **Do:** fix leftover bugs; update `mobile/CLAUDE.md`, `docs/PROGRESS.md`, `docs/BACKLOG.md`; screenshots of every screen in `docs/screenshots/`.
 - **Done when:** docs match the code.
+- **Scope (user decision 2026-11-02, report 041):** only group A before SR (what a volunteer sees or hears, or what affects capture, alerts or the study day): BACKLOG 76 (one sound per cause), 56 (app name, launcher and notification icons), 54 (Home foot tiles at large text), 46/60/69 (Thai line breaks on volunteer-facing text), 62 closed; docs, the SR checklist, release 1.0.0+6. Everything else is marked "after study" in BACKLOG; the screenshots of every screen are after the study (thesis).
+
+### S10b — Expert text fixes (6–7 Nov, before SR)
+- **Requires:** S10 merged; the medical expert's feedback on the draft copy (DESIGN-SPEC Appendix A, due 5 Nov).
+- **Do:** apply the reviewed wording to the app's copy and Appendix A; reapply the Thai word joiners to any edited phrase with `keepTogether` (S10, `mobile/CLAUDE.md`) and extend the line-break test to it; release 1.0.0+7, `tool/check_release_resources.sh`, short Note 10 check.
+- **Done when:** the phone shows the reviewed text.
 
 ---
 

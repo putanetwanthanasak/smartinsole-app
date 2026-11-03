@@ -1,5 +1,5 @@
 import 'package:fake_async/fake_async.dart';
-import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_test/flutter_test.dart' hide expect;
 import 'package:smartinsole/ble/insole_data_source.dart';
 import 'package:smartinsole/ble/packets.dart';
 import 'package:smartinsole/device/device_manager.dart';
@@ -12,6 +12,7 @@ import 'package:smartinsole/ui/screens/home/home_model.dart';
 
 import '../device/fake_source.dart';
 import '../helpers/pump_app.dart';
+import '../helpers/plain_text.dart';
 
 const safeRules = RulesView(status: PatientStatus.safe, conditions: []);
 

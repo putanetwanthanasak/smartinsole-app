@@ -29,7 +29,7 @@
     <!-- No backup, no device transfer: health and study data stay on this
          phone (S6A, rule 15). See res/xml/data_extraction_rules.xml. -->
     <application
-        android:label="smartinsole"
+        android:label="SmartInsole"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:allowBackup="false"
