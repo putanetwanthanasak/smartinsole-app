@@ -264,9 +264,16 @@ site name or strand a short last word. `lib/text/thai_break.dart`
   against `TextPainter.getWordBoundary`). A joiner inside a word makes
   Flutter break plain words nearby ("สู / งมาก").
 - Only inside running text, and only phrases narrower than the narrowest
-  line at 1.88 × (about 260 px in `body`). Site names in titles, and
-  names that are a whole `Text`, stay plain (`FootZone.nameTh`;
-  `displayTh` is the joined form).
+  line at 1.88 × (about 260 px in `body`). Names that are a whole `Text`
+  stay plain (`FootZone.nameTh`; `displayTh` is the joined form).
+- **Titles** (alert detail 28 px, Alerts list and My feet banner 18 px
+  bold, Home status 32 px): short words are joined too; a long name
+  joined whole is wider than the line at 1.88 × on a 360 dp phone, so it
+  goes through `keepTogetherInTitle` (`titleParts`: "โคน / นิ้วหัวแม่เท้า",
+  "ขอบเท้า / ด้านนอก", "ส้นเท้า / ด้านนอก"; `FootZone/FootRegion.titleTh`).
+  "แผ่นรองเท้า" stays plain for the same reason. The guard test holds
+  titles to more than word boundaries: no break inside any short
+  `thaiWords` phrase, joined or not.
 - **Display only.** Never in anything stored, exported or captured; the
   test checks `lib/storage`, `lib/capture`, `lib/ble`, `lib/device` and
   `lib/gait` never reference it.
@@ -277,7 +284,9 @@ site name or strand a short last word. `lib/text/thai_break.dart`
   wrap it in `keepTogether` where the copy is composed, add it to
   `test/footcheck/thai_line_break_test.dart`, run
   `flutter test test/text test/footcheck`, then regenerate and review the
-  goldens. The "only breaks between words" test covers all alert copy.
+  goldens. The "only breaks between words" test covers all alert copy
+  and every title; to list a title's actual line breaks, lay it out with
+  `TextPainter` at the guard's widths and print `getLineBoundary`.
 
 ## BLE parsing rules
 

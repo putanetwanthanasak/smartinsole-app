@@ -1478,17 +1478,25 @@ screen: site and region names, "เท้าซ้าย/ขวา", "ตอน�
 and (found on the emulator) "ต่อเนื่อง", "น้ำหนัก", "จุดเดียว", inside
 running text on Home, Alerts (list and detail), My feet and in
 notifications; a no-break space before each "·" in the sites line and in
-Home's date. Site names in titles, and names standing alone (rows, table
-cells, chart labels, TalkBack labels), stay plain. Other dictionary splits
+Home's date. Names standing alone (rows, table cells, chart labels,
+TalkBack labels) stay plain. Titles (follow-up 2026-11-04, 3789261): short
+names and words kept whole too ("อุ่นกว่า", "เกินไป", "ค่อนข้าง",
+"เชื่อมต่อ", "เหลือน้อย"); the long names break only between their parts
+(`keepTogetherInTitle`: "โคน / นิ้วหัวแม่เท้า", "ขอบเท้า / ด้านนอก",
+"ส้นเท้า / ด้านนอก"); "แผ่นรองเท้า" stays plain (too wide joined).
+Other dictionary splits
 that read oddly (e.g. "ท่า / เดิน" in a PTI step) are left for S10b's
 copy review. Finding: a joiner **inside** a
 word (the first S10 version joined every letter) cuts the Thai around it
 into pieces the dictionary cannot read, and Flutter then breaks plain
 words nearby ("สู / งมาก"); a joined phrase wider than the line has the
-same effect, so titles (28–32 px) keep plain names. Tests:
+same effect, so long names in titles break between their parts. Tests:
 `test/text/thai_break_test.dart` (table = dictionary words; every line
 break in every alert copy falls between words at 260–400 px and scales
-1.0/1.3/1.88, with a control that proves the check fails; storage,
+1.0/1.3/1.88, with a control that proves the check fails; every title,
+in each style it is drawn in (detail, list, My feet banner from 216 px,
+Home status), also never breaks inside a short table phrase, with a
+control; storage,
 capture, BLE, device and gait never see a joiner) and
 `test/footcheck/thai_line_break_test.dart` (site names, the sites line,
 46's words, Home's date). New goldens at 130 % for Home, Alerts and My

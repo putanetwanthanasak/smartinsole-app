@@ -31,7 +31,13 @@ Plan file: `~/.claude/plans/s10-s10-wrap-up-before-rippling-moon.md`.
 - **Docs:** PROGRESS, mobile/CLAUDE.md, SESSIONS (status rows, schedule,
   S10b row and entry, SR checklist), DESIGN-SPEC §6, §11.9, decisions 22
   and 32, DATA-CONTRACT addendum.
-- **Release 1.0.0+6** built from 4885b9b. It passed
+- **Follow-up 2026-11-04 (3789261):** short words in titles kept whole
+  too. The first screenshots showed "รับน้ำ / หนักมาก" in the PTI title;
+  they predated 537f591, and a retake on 4885b9b showed it fixed. Listing
+  every title line break found other splits ("อุ่น / กว่า", "ปลาย /
+  เท้า", "เกิน / ไป", "เชื่อม / ต่อ", "ค่อน / ข้าง", "เหลือ / น้อย"),
+  now joined. The guard covers every title style.
+- **Release 1.0.0+6** rebuilt from 3789261. It passed
   `check_release_resources.sh` and the model slot is empty.
 - **Note 10 smoke check: waiting on user.** Ask before plugging in (below).
 
@@ -49,6 +55,7 @@ Plan file: `~/.claude/plans/s10-s10-wrap-up-before-rippling-moon.md`.
 | 1858d17, 537f591 | Found on the emulator: "ต่อ / เนื่อง", "รับน้ำ / หนัก" and "จุด / เดียว" joined in the pressure alert copy and Home lines; goldens |
 | e53ddde | Docs wording for those |
 | 4885b9b | Spec review fixes 1–3 (below); DESIGN-SPEC §11.9 one sentence |
+| 3789261 | Titles (follow-up, below): `keepTogetherInTitle` + `titleParts`, `FootZone/FootRegion.titleTh`; "อุ่นกว่า", "เกินไป", "ค่อนข้าง", "เชื่อมต่อ", "เหลือน้อย" joined (also "อุ่นกว่า"/"เกินไป" in the same alerts' detail and Home lines, and the My feet banners); the guard covers every title style and fails a break inside a short table phrase; goldens (25 + 13) |
 
 ## Thai line breaks: how and what was learned
 
@@ -61,10 +68,10 @@ Plan file: `~/.claude/plans/s10-s10-wrap-up-before-rippling-moon.md`.
   งมากตอนเดิน". A joiner inside a word cuts the Thai around it into pieces
   the dictionary cannot read, so Flutter falls back to breaking by
   character. A joined phrase wider than the line does the same.
-  - Site names in titles (28–32 px, up to 410 px wide at 1.88×) therefore
-    stay plain.
-  - So do names that are a whole `Text` on their own: rows, table cells,
-    chart labels, TalkBack labels.
+  - So a long name joined whole cannot go in a title (see "Titles"
+    below).
+  - Names that are a whole `Text` on their own stay plain: rows, table
+    cells, chart labels, TalkBack labels.
 - **Guard test:** `copy only breaks lines between words`.
   - It runs every alert copy (8 codes × 2 feet × 8 sites) at widths
     260–400 px and scales 1.0, 1.3 and 1.88.
@@ -99,12 +106,52 @@ Plan file: `~/.claude/plans/s10-s10-wrap-up-before-rippling-moon.md`.
   phrase to `thaiWords`, wrap it where the copy is composed, and add it to
   `thai_line_break_test.dart`.
 
+### Titles (follow-up 2026-11-04, 3789261)
+
+- **Cause of the user's finding:** `emu-alert-detail-pti.png` showed
+  "ปลายเท้าซ้ายรับน้ำ / หนักมาก…". It was taken at 22:12 on 2 Nov, before
+  537f591 (22:19) joined "น้ำหนัก". Retaken on 4885b9b: "ปลายเท้าซ้ายรับ /
+  น้ำหนักมากต่อเนื่อง / นานเกินไป". The word-boundary guard could not have
+  caught it: "น้ำ|หนัก" is two words to the dictionary.
+- **Every title line break listed** (each alert code × foot × site, in
+  `pageTitle`, `bodyStrong` and `button`, 260–400 px, scales 1.0/1.3/1.88).
+  Splits inside a short word found and joined: "อุ่น / กว่า" (TEMP_DELTA),
+  "ปลาย / เท้า" and "ส้น / เท้า" (region names, plain in titles until
+  now), "เกิน / ไป" (PTI, LOAD_CONCENTRATION), "ค่อน / ข้าง"
+  (PRESSURE_WATCH), "เชื่อม / ต่อ" (DEVICE_LOST), "เหลือ / น้อย"
+  (BATTERY_LOW), "ด้าน / นอก"; in My feet, "เท้า / ซ้าย" in
+  "ยังไม่ได้รับข้อมูลเท้าซ้าย".
+- **Long names in titles:** joined whole they are wider than the line at
+  1.88× (Flutter then breaks them by letter: "โคนนิ้วหัวแม่เ / ท้า",
+  "แผ่นรองเท้ / า", found by the guard). `keepTogetherInTitle` joins their
+  parts instead, so they break only at "โคน / นิ้วหัวแม่เท้า", "ขอบเท้า /
+  ด้านนอก", "ส้นเท้า / ด้านนอก". "แผ่นรองเท้า" stays plain: "รองเท้า" is
+  one word, so it can only break as "แผ่น / รองเท้า". A side stays a
+  separate word ("ปลายเท้า / ซ้าย"): "ปลายเท้าซ้าย" joined is wider than
+  260 px at 1.88×.
+- **Guard extended** (`copy only breaks lines between words`):
+  - every alert title in the alert detail (`pageTitle` 28), Alerts list
+    (`bodyStrong` 18) and My feet banner (`button` 18, 216–340 px: the
+    banner text is the screen less 144 dp, 216 on a 360 dp phone, 267 on
+    the Note 10); Home's status titles (`statusTitle` 32) and the My feet
+    banner titles, including the Temperature one for every site;
+  - titles must also never break inside a short (≤ 3-word) `thaiWords`
+    phrase, read word by word, longest first; a control (the PTI title
+    without joiners) proves it catches "รับน้ำ / หนัก".
+- **Same-alert body lines:** "อุ่นกว่า" and "เกินไป" are joined in the
+  TEMP_DELTA detail and the PTI / LOAD_CONCENTRATION Home lines too, as
+  "น้ำหนัก" is. Other body copy is unchanged (S10b).
+- Visible copy unchanged (joiners are invisible). Goldens: 25 changed at
+  the title step, 13 at the body step. Reviewed side by side: the fixed
+  breaks (e.g. TEMP_DELTA at 200 %: "เท้าขวา / อุ่นกว่า / เท้าซ้าย") and
+  the ~2 px joiner shift; nothing else.
+
 ## Checks
 
 | Check | Result |
 |---|---|
 | `flutter analyze` | No issues |
-| `flutter test` | **1107 passed** (166 goldens) |
+| `flutter test` | **1107 passed** (166 goldens), again at 3789261 |
 | Goldens reviewed | Changed: alert details (all), alerts list, Home (100 / 130xl / 200), My feet watch / temp_rest. Text and line breaks reviewed side by side against main; the only change besides the fixed breaks is the ~2 px line shift above. New: 22 goldens at 130 % |
 | `thresholds.json` copies | Byte-identical (`cmp`) |
 | FLUTTER-PLAN §6 rule 12 | `quietNotifyMin` read from thresholds; no literal |
@@ -115,7 +162,7 @@ Plan file: `~/.claude/plans/s10-s10-wrap-up-before-rippling-moon.md`.
 | Model slot | `assets/models/` holds only README.md |
 | Emulator, quiet window (`MOCK=watch`, sound on) | `pressurePeak #5 (sound)`, then `pressurePti #9 (silent)`, `#10 (silent)` for the same foot within 2 min. Tray shows all three |
 | Emulator, notification | Header "SmartInsole", colour `0xff155e75`; status-bar icons are footprints; launcher icon is the new footprints icon. The shade's round header icon still showed the Flutter logo: SystemUI's cached icon from the earlier install (the debug APK's `application-icon-*` all resolve to `mipmap-anydpi-v26/ic_launcher.xml`). The Note 10 check confirms it on a clean install-over |
-| Emulator, screens | Home at "ใหญ่", Alerts list, PTI alert detail, My feet Pressure: site names whole, no split words in the joined phrases (screenshots below) |
+| Emulator, screens | Home at "ใหญ่", Alerts list, PTI alert detail, My feet Pressure: site names whole, no split words in the joined phrases (screenshots below). Alerts list and PTI detail retaken at 3789261 (2026-11-04): title "ปลายเท้าซ้ายรับ / น้ำหนักมากต่อเนื่อง / นานเกินไป" |
 
 Note on the emulator: its saved Settings had **sound off** from an earlier
 session, so the first run's notifications were all silent. That is
@@ -132,12 +179,13 @@ taps timed out on this build, so it was not opened on the emulator).
 
 | Build | Version | SHA-256 | Size | Built from |
 |---|---|---|---|---|
-| **+6 (for the smoke check and SR)** | 1.0.0+6 (versionCode 6) | `76b18d3fd1b113a52e3d0f7e0f24b9b1e1dbfafb95a8b3d036bc0a66ff053552` | 93,804,889 B | 4885b9b, 2026-11-02 |
+| **+6 (for the smoke check and SR)** | 1.0.0+6 (versionCode 6) | `5d9e3b134f90751eb48254c28996acbea45174beeb874213b28b15ac6e4bcfbc` | 93,804,889 B | 3789261, 2026-11-04 |
 
-- Two earlier +6 builds were never installed anywhere and are replaced by
-  the build above: one from f1736bf (`5a5bb361…3e4f`), before the
-  emulator copy fixes, and one from e53ddde (`d8fb5ed2…4259`), before the
-  spec-review fixes.
+- Three earlier +6 builds were never installed anywhere and are replaced
+  by the build above: from f1736bf (`5a5bb361…3e4f`), before the emulator
+  copy fixes; from e53ddde (`d8fb5ed2…4259`), before the spec-review
+  fixes; and from 4885b9b (`76b18d3f…3552`), before the title follow-up.
+- aapt badging: label `SmartInsole`, versionCode 6, versionName 1.0.0.
 - `tool/check_release_resources.sh` passed (`ic_stat_foot_check`,
   `ic_stat_foot_alert`). `assets/models/` holds only its README.
 - **Not installed yet:** waiting on the smoke check.
@@ -155,8 +203,12 @@ decisions 22 and 32, Appendix A; DATA-CONTRACT §8; FLUTTER-PLAN §6 rules 5,
 | 3 | minor | `mobile/lib/notify/alert_notification_service.dart:139` | DESIGN-SPEC §11.9 "of the last one that **sounded**" | `claimSound` records the alert as sounded before `show()`; if posting throws, a later alert within 2 min for that foot is silent though nothing sounded | **Fixed** in 4885b9b: `NotificationQuietWindow.release` undoes the claim on failure; test "a failed post does not silence the next alert"; §11.9 says so. Alerts raised together with the failed one are already judged (decided before any await, by design) |
 
 Spec gaps the reviewer noted (no code change):
-- DESIGN-SPEC does not say whether TalkBack labels may hold U+2060. Now
-  plain everywhere; mobile/CLAUDE.md states the rule.
+- DESIGN-SPEC does not say whether TalkBack labels may hold U+2060. The
+  labels the app writes itself are plain; mobile/CLAUDE.md states the
+  rule. Correction (2026-11-04, seen in the emulator's accessibility
+  tree): labels that merge the visible text, such as Home's status card
+  and the Alerts list cards, do carry the joiners. U+2060 is a format
+  character, so TalkBack is expected to skip it; not heard yet (Leftovers).
 - The adaptive icon is API 26+ only; Android 7 keeps Flutter's PNG
   (Leftovers).
 - What counts as "sounded" when the user mutes the sound channel in
@@ -176,11 +228,16 @@ clear`.
 3. Press `t` on a board: one TEMP_DELTA alert is **heard**.
    - The notification header reads "SmartInsole" with the footprints
      small icon. No white blob, no Flutter logo.
+   - Pull the shade down and look at the **round header icon** next to
+     the app name too, not only the status bar. If it still shows the
+     Flutter logo after a launcher refresh, report it (the emulator kept
+     SystemUI's cached icon from the earlier install).
    - A second alert for the same foot within 2 min (e.g. `p` right after)
      is in the tray, **silent**.
 4. Open the TEMP_DELTA detail and check the Samsung font: site names whole,
-   no boxes or missing glyphs, and the sites line breaks only after "· ".
-   Look at Home and My feet the same way.
+   no boxes or missing glyphs, the title not split inside a word ("อุ่น /
+   กว่า"), and the sites line breaks only after "· ". Look at Home and My
+   feet the same way.
 5. Researcher › start a TEST- capture. Trial 00 starts and saves.
 
 ## Leftovers
@@ -193,6 +250,9 @@ clear`.
   helper.
 - **Joiner line-height shift:** about 2 px per joined line (fallback font
   metrics). Cosmetic; check on the Note 10.
+- **TalkBack with joined text:** merged labels (Home status card, Alerts
+  list cards) hold U+2060. Expected silent, not listened to. After study
+  unless SR turns TalkBack on.
 - **BACKLOG 54 tab-bar labels, 47, 50:** after study (no small safe fix;
   volunteers are 21–30, so large text is unlikely on study days).
 - **Duplicate PTI notifications:** one PTI per zone, so two zones in the
