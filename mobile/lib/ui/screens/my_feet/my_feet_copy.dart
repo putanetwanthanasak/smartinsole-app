@@ -9,6 +9,7 @@ import '../../../rules/alert_code.dart';
 import '../../../rules/alert_copy.dart';
 import '../../../rules/patient_status.dart';
 import '../../../rules/pressure_level.dart';
+import '../../../text/thai_break.dart';
 import '../../clock.dart';
 import '../../widgets/details_expander.dart';
 import '../../widgets/temp_site_map.dart' show TempSiteMark;
@@ -118,7 +119,7 @@ BannerView pressureBanner(PressureTabView v) {
     // S6B draft: one foot missing (no board).
     return BannerView(
       level: PatientLevel.noData,
-      title: 'ยังไม่ได้รับข้อมูล${_foot(missing)}',
+      title: 'ยังไม่ได้รับข้อมูล${keepTogether(_foot(missing))}',
       line: 'ต้องเชื่อมต่อแผ่นรองเท้า${sideTh(missing)}ก่อน',
       connect: true,
     );
@@ -246,7 +247,8 @@ BannerView tempBanner(
     return BannerView(
       level: PatientLevel.rest,
       title:
-          '${_siteInText(alert.site)}$warmอุ่นกว่า$other '
+          '${footLayout.zones[alert.site].titleTh}$warm'
+          '${keepTogether('อุ่นกว่า')}$other '
           '${formatDelta(alert.deltaC)}$nbspองศา',
       line: 'ติดต่อกันมาสักพัก',
       linkCode: AlertCode.tempDelta,

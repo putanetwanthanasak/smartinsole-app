@@ -63,6 +63,10 @@ enum FootRegion {
   /// [th] for the screen: never split across lines (S10, display only;
   /// `lib/text/thai_break.dart`).
   String get displayTh => keepTogether(th);
+
+  /// [th] for titles: a short name kept whole, a long one breaking only
+  /// between its parts (S10, display only; `keepTogetherInTitle`).
+  String get titleTh => keepTogetherInTitle(th);
 }
 
 class FootZone {
@@ -84,6 +88,10 @@ class FootZone {
   /// (S10, BACKLOG 69; display only, never stored or exported:
   /// `lib/text/thai_break.dart`).
   String get displayTh => keepTogether(nameTh);
+
+  /// [nameTh] for titles: a long name breaks only between its parts
+  /// (S10, display only; `keepTogetherInTitle`).
+  String get titleTh => keepTogetherInTitle(nameTh);
 
   /// Left-foot position in mm (`sensor_layout.json` frame).
   final Offset mm;
