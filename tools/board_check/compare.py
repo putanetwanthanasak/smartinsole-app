@@ -494,19 +494,24 @@ def analyse(o: Out, run_dir: Path, run: str, prev_last_t0):
             col = [s["fsr_adc"][i] for s in S]
             o.p(f"  ch {i} {SITES[i] if i < 8 else '':16s} {min(col):5d} / {int(statistics.median(col)):5d}"
                 f" / {max(col):5d}")
+        # Unloaded FSRs all read about 0, so only samples where one of the two
+        # is loaded say anything; "same" allows ADC noise of +-3.
         dup = []
         for a in range(n_parse):
             for b in range(a + 1, n_parse):
-                same = sum(s["fsr_adc"][a] == s["fsr_adc"][b] for s in S) / len(S)
+                live = [s for s in S if max(s["fsr_adc"][a], s["fsr_adc"][b]) > 20]
+                if len(live) < 100:
+                    continue
+                same = sum(abs(s["fsr_adc"][a] - s["fsr_adc"][b]) <= 3 for s in live) / len(live)
                 if same >= 0.5:
                     dup.append((a, b, same))
-        o.check(run, "sensor", "channel pairs reading the same value (>= 50 % of samples)", "§3.1",
+        o.check(run, "sensor", "channel pairs reading the same value (+-3 ADC, loaded samples)", "§3.1",
                 "PASS" if not dup else "INFO",
-                ", ".join(f"ch {a}={b} in {f * 100:.0f} %" for a, b, f in dup) or "none")
+                ", ".join(f"ch {a}~{b} in {f * 100:.0f} %" for a, b, f in dup) or "none")
         hard = [(a, b, f) for a, b, f in dup if f >= 0.95]
         if hard:
             o.finding("issue", "sensor", "§3.1, App. C item 1", "8 independent FSR channels",
-                      "identical readings: " + ", ".join(f"ch {a} = ch {b} in {f * 100:.1f} % of samples"
+                      "the same reading (+-3 ADC): " + ", ".join(f"ch {a} ~ ch {b} in {f * 100:.1f} % of loaded samples"
                                                          for a, b, f in hard),
                       "two sites show one sensor's reading: the map, PTI and concentration get the wrong "
                       "zone (wiring or mux address?)")
