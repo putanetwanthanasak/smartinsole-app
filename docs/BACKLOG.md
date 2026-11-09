@@ -1778,8 +1778,11 @@ Correct:
 
 ## 80. On first connect the app binds the first matching insole it sees **(found in SR-1, report 042)** — OPEN, decision needed before the study
 
-`FootFinder.find` (Connection) tries every board with the service UUID, in
-the order first seen. It takes the first whose `foot_side` matches, or a
+`FootFinder.find` (Connection) tries boards with the service UUID one at a
+time: first those already seen (most recently seen first), then any whose
+advert arrives while no attempt is running; signal strength plays no part,
+and boards not seen in the last 3 s are skipped. It takes the first whose
+`foot_side` matches, or a
 board of this foot that cannot stream. Nothing checks which board it is.
 After that the app sticks to that address. So a spare board or another
 team's insole within range during the first connect can be bound instead
@@ -1799,7 +1802,12 @@ the capture sidecars. Options (they can combine):
 ## 81. The calibration JSON must fit in 512 bytes **(found in SR-1, report 042)** — RESOLVED in the contract (2026-11-09)
 
 A GATT value holds at most 512 bytes. The Appendix C 8-channel example is
-848 bytes as printed (492 compact), and `INSOLE-L-001`'s read stopped at
+594 bytes as printed (478 compact), and `INSOLE-L-001`'s read stopped at
 511. Appendix C item 4 now says: send it compact (no spaces or newlines),
 at most 512 bytes. Both firmware tracks must follow it; FW-1's acceptance
-checks it (`compare.py`).
+checks it (`compare.py`). Still open in the contract (spec review, report 042):
+nothing limits the digits in the numbers. Compact, the 8-channel test
+vector is 492 bytes (20 spare), so fitted per-sensor `a`/`b` written with
+long decimals could overflow. A rule like "at most 4 significant digits
+for `b`, integers for `a` and `offset_adc`" would settle it; this needs the
+user's OK as a contract change.

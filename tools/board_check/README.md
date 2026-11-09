@@ -39,11 +39,15 @@ RUN=~/smartinsole-data/board-checks/<run>
 # 1. serial log (read-only), started first and left running
 /usr/bin/python3 tools/board_check/serial_read.py \
     /dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_<...>-if00 $RUN/serial.log &
-# 2. BLE capture: START, 65 s, STOP; then the app's sequence (SYNC_TIME first)
+# 2. BLE capture: START, 65 s, STOP; then the app's sequence (SYNC_TIME first).
+#    --usb-mac = the MAC in the board's by-id name: only that chip is ever
+#    connected (never a board picked by name or service UUID; --scan-only
+#    just looks and needs no --usb-mac).
+MAC=<MAC from the by-id name>
 firmware/simulator/tools/.venv/bin/python tools/board_check/board_capture.py \
-    --side R --duration 65 --out $RUN/run1-start-stop
+    --side R --usb-mac $MAC --duration 65 --out $RUN/run1-start-stop
 firmware/simulator/tools/.venv/bin/python tools/board_check/board_capture.py \
-    --side R --duration 10 --app-sequence --out $RUN/run2-app-sequence
+    --side R --usb-mac $MAC --duration 10 --app-sequence --out $RUN/run2-app-sequence
 # 3. offline comparison (no Bluetooth) and the app's own parsers
 python3 tools/board_check/compare.py $RUN/run1-start-stop $RUN/run2-app-sequence \
     --serial $RUN/serial.log --md $RUN/analysis.md
@@ -57,5 +61,8 @@ t0 + 160 ms per packet, 6.25 Hz, flags, ADC range, IMU, walking-gate
 statistic, channels pressed in time order) and temperature v2, prints the
 first packet of each kind next to its Appendix C example, and ends with a
 mismatch table (blocker / issue / note, each with its effect in the app).
+A run shorter than 35 s is not judged on temperature (the contract sets a
+30 s period, not when the first packet comes). It never overwrites: an
+existing `analysis.md` gets a time-stamped sibling instead.
 `mobile/tool/check_capture.dart` runs the app's Dart parsers over the same
 capture and prints what Researcher › Diagnostics would show.

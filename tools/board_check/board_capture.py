@@ -9,9 +9,15 @@ docs/FLUTTER-PLAN.md section 5). Any other control write (TARE, REBOOT,
 SET_RATE, anything unknown) is refused in code. Nothing is judged here;
 compare.py reads the capture afterwards.
 
-    tools/.venv/bin/python ../../tools/board_check/board_capture.py \\
-        --side R --duration 65 --out ~/smartinsole-data/board-checks/<run>
-    (run with firmware/simulator/tools/.venv/bin/python, which has bleak)
+    firmware/simulator/tools/.venv/bin/python tools/board_check/board_capture.py \\
+        --side R --usb-mac <MAC from the by-id name> --duration 65 \\
+        --out ~/smartinsole-data/board-checks/<run>
+    (that venv has bleak)
+
+It connects only to the cabled chip (--usb-mac: the base MAC in its
+/dev/serial/by-id name, BLE address = base + 0..3), never to a board picked
+by name or service UUID: in SR-1 another team's insole was in range, and our
+own simulators advertise the same names. --scan-only needs no --usb-mac.
 
 Writes into --out (refused inside the repo):
   capture.jsonl     one JSON record per event: scan adverts, GATT table,
@@ -85,8 +91,8 @@ async def scan(r: Recorder, want_name: str, timeout: float, targets: set[str]):
     """Unfiltered scan (a board that leaves the service UUID out of its
     advertising would be invisible to a filtered one). Records only adverts
     from the target address or carrying the service UUID or a SMARTINSOLE
-    name, nobody else's. Picks the target address if given, else the exact
-    name; never "any board with the UUID" (SR-1: another insole nearby)."""
+    name, nobody else's. Picks only the target address, never a board by
+    name or "any board with the UUID" (SR-1: another insole nearby)."""
     from bleak import BleakScanner
 
     seen = {}
@@ -104,11 +110,11 @@ async def scan(r: Recorder, want_name: str, timeout: float, targets: set[str]):
         seen[dev.address] = (dev, adv)
 
     def pick():
-        if targets:
-            return [d for d, _ in seen.values() if d.address.upper() in targets]
-        return [d for d, a in seen.values() if (a.local_name or d.name) == want_name]
+        # Connecting needs targets (main() enforces --usb-mac); a scan-only
+        # run without them just lists what is near.
+        return [d for d, _ in seen.values() if d.address.upper() in targets]
 
-    what = "the cabled board's address" if targets else want_name
+    what = "the cabled board's address" if targets else "nothing in particular (scan only)"
     r.say(f"scanning up to {timeout:.0f} s for {what} (unfiltered; recording only the target, "
           f"SMARTINSOLE names and the service UUID) ...")
     async with BleakScanner(on_adv):
@@ -147,14 +153,14 @@ async def run(args) -> int:
 
     targets = mac_targets(args.usb_mac)
     dev = await scan(r, want_name, args.scan_timeout, targets)
+    if args.scan_only:
+        r.say("scan only: target " + ("seen" if dev else "not seen" if targets else "not given"))
+        r.rec("end", ok=True, reason="scan only", target_seen=dev is not None)
+        return 0
     if dev is None:
-        r.say("target board not found: " + ("no advert from the cabled board's address"
-                                            if targets else f"no device named {want_name}"))
+        r.say("target board not found: no advert from the cabled board's address")
         r.rec("end", ok=False, reason="not found")
         return 1
-    if args.scan_only:
-        r.rec("end", ok=True, reason="scan only")
-        return 0
 
     r.rec("connecting", address=dev.address)
     disconnected = []
@@ -164,13 +170,19 @@ async def run(args) -> int:
         r.rec("disconnected")
 
     async with BleakClient(dev, disconnected_callback=on_disconnect) as client:
+        # Without a successful acquire, bleak reports its default 23, which
+        # says nothing about the board: recorded so compare.py doesn't judge it.
+        acquired = False
         acquire = getattr(getattr(client, "_backend", None), "_acquire_mtu", None)
         if acquire:
             try:
                 await acquire()
+                acquired = True
             except Exception as e:  # noqa: BLE001
                 r.say(f"  MTU acquire failed: {e}")
-        r.rec("connected", mtu=client.mtu_size)
+        else:
+            r.say("  this bleak backend cannot acquire the MTU")
+        r.rec("connected", mtu=client.mtu_size, mtu_acquired=acquired)
         r.say(f"connected, mtu {client.mtu_size}")
 
         table = []
@@ -286,7 +298,11 @@ def main() -> int:
     ap.add_argument("--scan-only", action="store_true",
                     help="scan and report, never connect")
     ap.add_argument("--out", required=True, help="new folder outside the repo")
-    return asyncio.run(run(ap.parse_args()))
+    args = ap.parse_args()
+    if not args.usb_mac and not args.scan_only:
+        ap.error("--usb-mac is required to connect (only the cabled board is ever "
+                 "connected); use --scan-only to just look")
+    return asyncio.run(run(args))
 
 
 if __name__ == "__main__":

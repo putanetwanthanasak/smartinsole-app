@@ -13,7 +13,8 @@ judged.
         [--serial SERIAL_LOG] [--md OUT.md]
 
 Prints the analysis and writes it as Markdown (default: analysis.md in the
-first RUN_DIR). Device addresses are never printed.
+first RUN_DIR, or analysis-<time>.md if that exists: it never overwrites).
+Device addresses are never printed.
 
 Result per check: PASS, FAIL (the board does not do what the contract
 says), INFO (recorded, no contract value to judge against), N/A.
@@ -32,6 +33,7 @@ import re
 import statistics
 import struct
 import sys
+import time
 from contextlib import redirect_stdout
 from pathlib import Path
 
@@ -46,6 +48,7 @@ SENSOR_BYTES = 8 + 8 * (2 * N_FSR + 12)  # 232
 TEMP_BYTES = 32
 STATUS_BYTES = 8
 MIN_MTU = SENSOR_BYTES + 3  # 235
+TEMP_JUDGE_AFTER_S = 35  # one 30 s temperature period (§3.2) + 5 s
 # The capture pre-check's battery floor lives in Dart, not thresholds.json.
 CAPTURE_MIN_BATTERY = int(re.search(
     r"minBatteryPct\s*=\s*(\d+)",
@@ -188,9 +191,14 @@ def analyse(o: Out, run_dir: Path, run: str, prev_last_t0):
         o.check(run, "connection", "connects", "§2", "FAIL", "no connection")
         return None
     mtu = connected["mtu"]
-    o.check(run, "connection", f"MTU >= {MIN_MTU} (232-byte packet + 3)", "§2.3",
-            "PASS" if mtu >= MIN_MTU else "FAIL", f"{mtu}")
-    if mtu < MIN_MTU:
+    if connected.get("mtu_acquired") is False:
+        # bleak's default 23, not the board's: nothing to judge.
+        o.check(run, "connection", f"MTU >= {MIN_MTU} (232-byte packet + 3)", "§2.3", "INFO",
+                f"not measured (bleak could not acquire it; it reports {mtu})")
+    else:
+        o.check(run, "connection", f"MTU >= {MIN_MTU} (232-byte packet + 3)", "§2.3",
+                "PASS" if mtu >= MIN_MTU else "FAIL", f"{mtu}")
+    if mtu < MIN_MTU and connected.get("mtu_acquired") is not False:
         o.finding("blocker", "connection", "§2.3", f"MTU >= {MIN_MTU}", f"MTU {mtu} on the laptop",
                   "full packets do not fit; the app needs the 4-sample fallback or shows MTU too small")
 
@@ -233,10 +241,13 @@ def analyse(o: Out, run_dir: Path, run: str, prev_last_t0):
         ok_len = len(b) == STATUS_BYTES
         o.check(run, "status", f"{label}: exactly 8 bytes", "§3.3", "PASS" if ok_len else "FAIL",
                 f"{len(b)} bytes: {hexs(b)}")
-        if not ok_len:
+        if len(b) < STATUS_BYTES:
             o.finding("blocker", "status", "§3.3", "8-byte Device Status", f"{len(b)} bytes",
-                      "tooShort / lengthMismatch: the app rejects it and cannot confirm the foot side")
+                      "tooShort: the app rejects it and cannot confirm the foot side (the connect stops)")
             continue
+        if len(b) > STATUS_BYTES:
+            o.finding("issue", "status", "§3.3", "8-byte Device Status", f"{len(b)} bytes",
+                      "the app reads the first 8 bytes and ignores the rest (sim_check.py rejects it)")
         st = sc.parse_status(b)
         first_status = first_status or (label, b, st)
         o.check(run, "status", f"{label}: foot_side {want_side} ({side})", "§3.3",
@@ -424,10 +435,11 @@ def analyse(o: Out, run_dir: Path, run: str, prev_last_t0):
         if counts != [8]:
             o.finding("issue", "sensor", "§3.1", "count 8", f"counts {counts}",
                       "the app accepts other counts if the length matches, but the rate is wrong")
-        o.check(run, "sensor", "first seq after START is 0", "§3.1, BACKLOG 19",
+        o.check(run, "sensor", "first seq after START is 0", "BACKLOG 19 (not in the contract)",
                 "PASS" if P[0]["seq"] == 0 else "FAIL", str(P[0]["seq"]))
         if P[0]["seq"] != 0:
-            o.finding("issue", "sensor", "§3.1, BACKLOG 19", "seq restarts at 0 on every START_STREAM",
+            o.finding("issue", "sensor", "BACKLOG 19 (not in the contract)",
+                      "seq restarts at 0 on every START_STREAM (the app's and the simulator's behaviour)",
                       f"first seq {P[0]['seq']}",
                       "Diagnostics counts packets 'missing at start'; the gap counter is off")
         gaps = [(a["seq"], b["seq"]) for a, b in zip(P, P[1:]) if (a["seq"] + 1) & 0xFFFF != b["seq"]]
@@ -488,6 +500,15 @@ def analyse(o: Out, run_dir: Path, run: str, prev_last_t0):
             o.finding("issue", "sensor", "§3.1", "flags bit1 (calibrating) only during a TARE",
                       f"{sum(v for k, v in flags.items() if k & 2)} packets flagged calibrating, no TARE sent",
                       "baseline recordings refuse calibrating samples; captures mark them")
+        # Half scale is below any ADC ceiling (a C3 at 2.5 V tops out near
+        # 3100 counts of 3.3 V), so bit0 there cannot mean saturated.
+        sat_low = [p for p in P if p["flags"] & 0x01
+                   and max(max(x["fsr_adc"]) for x in p["samples"]) < 2048]
+        if sat_low:
+            o.finding("issue", "sensor", "§3.1",
+                      "flags bit0 (saturated) only when a reading reaches the ADC's limit",
+                      f"bit0 set on {len(sat_low)} of {len(P)} packets whose readings all stay below 2048",
+                      "captures mark these samples saturated")
         S = [s for p in P for s in p["samples"]]
         o.p(f"\n{run}: FSR raw ADC per channel over {len(S)} samples (min / median / max):")
         for i in range(n_parse):
@@ -557,12 +578,15 @@ def analyse(o: Out, run_dir: Path, run: str, prev_last_t0):
         g = [math.sqrt(sum(v * v for v in a)) / 4096 for a in acc]
         win = THRESHOLDS["motion"]["walkingWindowMs"] // 20
         thr_g = THRESHOLDS["motion"]["walkingAccelG"]
-        stats = [statistics.fmean(abs(x - 1) for x in g[k:k + win]) for k in range(0, len(g) - win + 1, win)]
+        # Sliding window, walking at or above the threshold (§8.3.2,
+        # walking_gate.dart).
+        dev = [abs(x - 1) for x in g]
+        stats = [statistics.fmean(dev[k:k + win]) for k in range(0, len(dev) - win + 1)]
         if stats:
-            on = sum(s > thr_g for s in stats)
-            o.check(run, "sensor", f"walking-gate statistic (mean |a| - 1 g| over {win * 20} ms)", "§8.3.2",
-                    "INFO", f"{min(stats):.3f}..{max(stats):.3f} g; above {thr_g} g in {on}/{len(stats)} "
-                    f"windows while the board lay still")
+            on = sum(s >= thr_g for s in stats)
+            o.check(run, "sensor", f"walking-gate statistic (mean |a| - 1 g| over {win * 20} ms, sliding)",
+                    "§8.3.2", "INFO", f"{min(stats):.3f}..{max(stats):.3f} g; at or above {thr_g} g in "
+                    f"{on}/{len(stats)} window positions")
             constant = len({tuple(a) for a in acc}) == 1 and len({tuple(r) for r in gyr}) == 1
             what = (f"accel {acc[0]} and gyro {gyr[0]} raw in every sample (no IMU fitted)" if constant
                     else f"|a| {min(g):.3f}..{max(g):.3f} g at rest")
@@ -585,10 +609,16 @@ def analyse(o: Out, run_dir: Path, run: str, prev_last_t0):
     tafter = [x for x in temp if t_stop_ack is not None and x[0] > t_stop_ack + grace]
     tbefore = [x for x in temp if t_start_sent is not None and x[0] < t_start_sent]
     dur_s = (t_stop_sent - t_start_sent) if t_start_sent and t_stop_sent else 0
+    # The contract sets the 30 s period but not when the first packet comes
+    # after START, so only a run longer than one period plus a margin can
+    # miss one.
+    long_enough = dur_s >= TEMP_JUDGE_AFTER_S
     o.check(run, "temperature", "packets during the stream (every 30 s)", "§2.2, §3.2",
-            "PASS" if tdur else "FAIL", f"{len(tdur)} in {dur_s:.0f} s"
+            "PASS" if tdur else "FAIL" if long_enough else "INFO",
+            f"{len(tdur)} in {dur_s:.0f} s" + ("" if tdur or long_enough else
+                                               f" (run shorter than {TEMP_JUDGE_AFTER_S} s: not judged)")
             + (f"; {len(tbefore)} before START, {len(tafter)} after STOP" if tbefore or tafter else ""))
-    if not tdur:
+    if not tdur and long_enough:
         o.finding("issue", "temperature", "§3.2, App. C item 3",
                   "a 32-byte temperature v2 packet every 30 s; with no NTC fitted, temp -32768 and quality 2 "
                   "per site", f"no temperature packet in {dur_s:.0f} s",
@@ -624,7 +654,8 @@ def analyse(o: Out, run_dir: Path, run: str, prev_last_t0):
         made_up = [i for i, (c, q) in enumerate(zip(p["celsius"], p["quality"])) if c is not None and q == 0]
         odd = [i for i in made_up if not 15 <= p["celsius"][i] <= 45]
         if odd and not NO_NTC:
-            o.finding("issue", "temperature", "§3.2", "quality 0 only for a plausible skin reading",
+            o.finding("issue", "temperature", "tool check, not in §3.2",
+                      "quality 0 only for a plausible skin reading (15-45 °C)",
                       f"sites {odd} read {[p['celsius'][i] for i in odd[:3]]} °C with quality 0",
                       "the app shows these as real skin temperatures")
         if made_up and NO_NTC:
@@ -728,10 +759,21 @@ def main() -> int:
     tables = render_tables(o)
     for ln in tables:
         print(ln)
-    md_path = args.md or (args.runs[0].expanduser() / "analysis.md")
+    # Never overwrite: a run folder may already hold an earlier analysis
+    # (~/smartinsole-data is never overwritten without asking). The default
+    # name gets a time suffix instead; an explicit --md must be new.
+    md_path = args.md.expanduser() if args.md else args.runs[0].expanduser() / "analysis.md"
     if REPO in md_path.resolve().parents:
         print(f"not writing {md_path}: inside the repo", file=sys.stderr)
         return 2
+    if md_path.exists():
+        if args.md:
+            print(f"not writing {md_path}: it exists; give a new --md", file=sys.stderr)
+            return 2
+        md_path = md_path.with_name(time.strftime("analysis-%Y%m%d-%H%M%S.md"))
+        if md_path.exists():
+            print(f"not writing {md_path}: it exists", file=sys.stderr)
+            return 2
     md_path.write_text("\n".join(o.lines + tables) + "\n", encoding="utf-8")
     print(f"\nwritten {md_path}")
     blockers = sum(f["severity"] == "blocker" for f in o.findings)

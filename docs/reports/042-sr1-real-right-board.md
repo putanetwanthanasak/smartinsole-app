@@ -179,8 +179,11 @@ Mismatches for the hardware team on this board:
   Every board advertising it is a candidate.
 - **First connect** (Connection › find, `FootFinder.find`,
   `mobile/lib/ble/foot_finder.dart`):
-  - Candidates are tried **in the order they were first seen**, not by
-    signal strength. Boards the other foot holds are skipped.
+  - Candidates are tried one at a time: first the boards already seen,
+    **most recently seen first**, then any board whose advert arrives
+    while no attempt is running (`foot_finder.dart:181-191`,
+    `ble_hub.dart:59-61`). **Signal strength plays no part.** Boards the
+    other foot holds, and boards not seen in the last 3 s, are skipped.
   - The first board whose status `foot_side` matches this foot is taken.
   - A board of this foot that cannot stream (calibration rejected, MTU too
     small) is **also kept**, and the search stops there ("connected, no
@@ -195,9 +198,10 @@ Mismatches for the hardware team on this board:
 - **Where the identity shows:** Researcher › Diagnostics shows the address,
   the advertised name and `cal <device_id>` per foot
   (`debug_ble_screen.dart:233`, `:505`). Connection shows only the
-  firmware. Each capture session's sidecar records each foot's calibration
-  with its `device_id` (`capture_files.dart`, `calibrationJson`), so the
-  board can be checked afterwards.
+  firmware. Each trial attempt's sidecar records each foot's calibration
+  (with its `deviceId`), firmware and battery at the start
+  (`capture_session.dart:450-457`, written at `:691-697`), so the board
+  can be checked afterwards. `session.json` has no calibration.
 - **Study-day risk:** if another team's insole, or a spare, is on and in
   range during the first connect, the app can bind to whichever matching
   board it sees first. Today `INSOLE-L-001` at −80 dBm would have been
@@ -211,7 +215,7 @@ Mismatches for the hardware team on this board:
 
 - **DATA-CONTRACT Appendix C item 4** (user decision 3): send the
   calibration JSON compact (no spaces or newlines), at most 512 bytes, the
-  GATT value limit. The Appendix C example is 848 bytes as printed and 492
+  GATT value limit. The Appendix C example is 594 bytes as printed and 478
   compact. History row "1.6 addendum, 2026-11-09, SR-1". `INSOLE-L-001`
   shows the failure in practice (L1).
 - **`.gitignore` guard** (user decision 1). Blocked: anything named after
@@ -250,8 +254,8 @@ Mismatches for the hardware team on this board:
     the writes, as JSONL.
   - **Only START_STREAM, STOP_STREAM and (`--app-sequence`) SYNC_TIME can
     be written; anything else is refused in code.**
-  - `--usb-mac` connects only to the cabled chip; `--scan-only` never
-    connects.
+  - `--usb-mac` is required to connect, and only the cabled chip is ever
+    connected; `--scan-only` never connects.
 - **`compare.py`:** offline check against v1.6 / Appendix C.
   - It runs `sim_check.py`'s parser selftest first (89 vector cases), so
     the parsers are proven against `shared/test_vectors/`.
@@ -275,7 +279,10 @@ Mismatches for the hardware team on this board:
 | `sim_check.py --selftest` (parsers against `shared/test_vectors/`) | pass, 89 cases |
 | `compare.py` on synthetic captures built from the vectors | a correct board passes except the 562-byte spaced calibration (the finding behind the Appendix C line); a bad board gets every planted fault: N 6, battery 0, error 1, no temperature, first seq 5, gaps, zero IMU; `offset_adc` 4000 → the 0 kPa blocker |
 | `check_capture.dart` on the same captures | correct board: `format N 8 · temperature v2, 8 sites · rejects 0`, accepted; N = 6: refused, `N 6 (needs 8)` |
-| `flutter analyze` / `flutter test` | see below (run after the tool and doc changes) |
+| `flutter analyze` / `flutter test` | pass: no issues; 1,066 tests passed (after the tool and doc changes; `mobile/lib/` is unchanged) |
+| `dart analyze tool/check_capture.dart` (after the review fixes) | no issues |
+| Review fixes re-run offline on the synthetic captures and the saved `INSOLE-L-001` capture | `compare.py`: same findings as before, plus the new saturated-flag issue on `INSOLE-L-001` (= L4); `check_capture.dart`: correct board accepted with rejects 0, N = 6 refused; `INSOLE-L-001` refused at the status step (it is a left board in a run that asked for R), its calibration shown as "not reached by the app" |
+| Data folder | **one derived file overwritten:** re-running `compare.py` on the `INSOLE-L-001` capture rewrote that folder's `analysis.md` (made by `compare.py` itself earlier in this pass). The raw `capture.jsonl` and `calibration.json` were not touched, and the earlier full output is still in `analysis.out` next to it. `compare.py` now never overwrites: an existing `analysis.md` gets a time-stamped sibling, and an explicit `--md` must be new |
 | Requested BLE checks on the right board | **not possible: no BLE** (table above) |
 | Serial log, boot messages, version, errors | done: self-test sketch, no version line, no errors; chip unknown |
 | Raw captures saved | yes, outside the repo (`~/smartinsole-data/board-checks/042-sr1-right/`: `serial.log`, `serial.log.raw`, `scan1/`, `other-board-SMARTINSOLE-L-run1/`) |
@@ -283,8 +290,40 @@ Mismatches for the hardware team on this board:
 
 ## Spec review
 
-(spec-reviewer on `git diff main...HEAD`, sections: DATA-CONTRACT §2–§3,
-§5.1, Appendix C; FLUTTER-PLAN §6; the session's standing rules.)
+`spec-reviewer` on `git diff main...HEAD` (DATA-CONTRACT §2.1–§2.3,
+§3.1–§3.4, §4, §5.1, §8.3.2, Appendix A and C; FLUTTER-PLAN §5 and §6; the
+session's safety rules). Findings as returned (lightly shortened), plus the
+resolution.
+
+| # | Severity | File:line | Finding | Resolution |
+|---|---|---|---|---|
+| 1 | should-fix | `tools/board_check/board_capture.py:106-109, 284-285`; README; this report | `--usb-mac` was optional; without it the script took any board advertising `SMARTINSOLE-<side>` (our simulators, or `INSOLE-L-001` with `--side L`), but the report said it connects only to the cabled board | **Fixed:** `--usb-mac` is required to connect (`--scan-only` without it just lists), and `pick()` matches the target address only. README commands and docstring updated |
+| 2 | should-fix | `tools/board_check/compare.py:588-596` | A run with no temperature packet failed however short it was; the README's 10 s run 2 would always fail on a correct board | **Fixed:** temperature is judged only when the run is at least 35 s (one 30 s period + 5 s); shorter runs get an INFO line |
+| 3 | minor | `docs/DATA-CONTRACT.md:791-792` (+ history row, this report, BACKLOG 81) | "848 bytes as printed, 492 compact" were the sizes of the test vector, not of the Appendix C example (594 as printed, 478 compact) | **Fixed** in all four places (measured: 594 / 478) |
+| 4 | minor | this report; BACKLOG 80 | "Candidates are tried in the order first seen" was wrong: seen boards are tried most recently seen first, then as adverts arrive; boards not seen in 3 s are skipped | **Fixed** in the report and BACKLOG 80 |
+| 5 | minor | this report | The calibration is in each trial attempt's sidecar (`feet.<side>.calibration`), not in "each capture session's sidecar"; `session.json` has none | **Fixed** |
+| 6 | minor | `mobile/tool/check_capture.dart:66-69` | Decoded the calibration with `allowMalformed: true`; the app decodes strictly (`calibrationNotJson`) | **Fixed:** strict decode, `FormatException` → `calibrationNotJson` |
+| 7 | minor | `mobile/tool/check_capture.dart:87-131, 154-163` | Did not gate like the connect sequence: (a) a rejected status read still allowed "would accept"; (b) a missing status read was not flagged; (c) packets before START were counted as rejects, but the app drops them (rule 9); (d) a refused board's stream was still counted | **Fixed:** the first status read gates (missing or rejected → refuse); packets before the START write are counted separately as "dropped before START"; nothing is parsed from a refused board; after a refused status the calibration is shown as "not reached by the app" and not counted |
+| 8 | minor | `tools/board_check/compare.py:236-238` | A status longer than 8 bytes was a blocker ("the app rejects it"), but the parser rejects only shorter ones | **Fixed:** shorter → blocker; longer → issue ("the app reads the first 8 bytes") |
+| 9 | minor | `tools/board_check/compare.py:427-432, 624-629` | Two tool heuristics were cited as contract rules: seq restarting at 0 on START (BACKLOG 19, not §3.1) and a 15–45 °C plausibility range (not in §3.2) | **Fixed:** labelled "BACKLOG 19 (not in the contract)" and "tool check, not in §3.2" |
+| 10 | minor | `tools/board_check/compare.py:482-490` | Bit0 (saturated) on every packet with low readings was only INFO; report L4 rates it an issue | **Fixed:** bit0 on a packet whose readings all stay below 2048 (below any ADC ceiling, including a C3's) is an issue |
+| 11 | minor | `tools/board_check/compare.py:558-564` | The walking-gate statistic used back-to-back windows and "greater than"; the contract and `walking_gate.dart` use a sliding window and "at or above" | **Fixed** (sliding, `>=`) |
+| 12 | minor | `board_capture.py:167-174`; `compare.py:190-195` | If bleak cannot acquire the MTU it reports 23, which became a false MTU blocker | **Fixed:** the capture records `mtu_acquired`; `compare.py` and `check_capture.dart` report "not measured" instead of judging |
+| 13 | minor | this report | The flutter results and this section were empty | **Fixed** (Checks table, this table) |
+
+The reviewer also listed gaps in the contract:
+- Nothing limits the digits in calibration numbers. Compact, the 8-channel
+  test vector leaves 20 bytes spare (492 of 512), so fitted per-sensor
+  values with long decimals could overflow.
+- The contract does not say when the first temperature packet comes after
+  START.
+- Whether seq restarts at 0 on START is still BACKLOG 19.
+- Status packets longer than 8 bytes are not covered in Appendix C.
+
+These are added to BACKLOG 81 (digits) and left as they are (the rest);
+none blocks this pass. No areas had blocker findings. Safety rules (control
+writes, serial read-only, output paths), the standing rules and the public
+repo were all confirmed clean.
 
 ## Leftovers
 
