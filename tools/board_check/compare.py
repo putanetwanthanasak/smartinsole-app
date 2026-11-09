@@ -515,6 +515,16 @@ def analyse(o: Out, run_dir: Path, run: str, prev_last_t0):
                                                          for a, b, f in hard),
                       "two sites show one sensor's reading: the map, PTI and concentration get the wrong "
                       "zone (wiring or mux address?)")
+        if cal and len(cal["channels"]) == n_parse:
+            above = [sum(s["fsr_adc"][i] > cal["channels"][i]["offset_adc"] for s in S) for i in range(n_parse)]
+            o.check(run, "sensor", "samples above offset_adc per channel (kPa > 0)", "§5.1", "INFO",
+                    ", ".join(f"ch {i}: {k}" for i, k in enumerate(above)))
+            if not any(above):
+                o.finding("blocker", "calibration", "§5.1", "offset_adc = the channel's unloaded reading "
+                          "(the TARE result)", "offset_adc " + str(sorted({c["offset_adc"] for c in cal["channels"]}))
+                          + f" while the readings stay at or below it (max {max(a for s in S for a in s['fsr_adc'])})",
+                          "adc - offset_adc clamps to 0: every zone reads 0 kPa, so no pressure map, alert "
+                          "or step")
         mx = max(a for s in S for a in s["fsr_adc"])
         o.check(run, "sensor", "FSR raw ADC 0-4095 (12-bit)", "§3.1", "PASS" if mx <= 4095 else "FAIL",
                 f"max {mx}")
