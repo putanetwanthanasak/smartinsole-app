@@ -95,7 +95,7 @@ If real boards are not ready by 8 Nov, SR runs on the simulator boards (8 + 8 si
 
 ### Waiting on others
 - **Phumirapee (hardware):** firmware to DATA-CONTRACT v1.6 (8 FSR + 8 NTC, 232-byte sensor packets, 32-byte temperature v2; the contract's Appendix C is the hand-off the user sends); exact-length packets; SET_RATE must not change the real rate (or add a spacing field); contract gap BACKLOG 19. (Count and positions decided 2026-10-29.)
-- **Phumirapee:** real boards ready about 8 Nov for SR.
+- **Phumirapee:** real boards ready about 8 Nov for SR. **Update 2026-11-09 (SR-1, report 042):** the right board arrived running a hardware self-test sketch with no BLE (MPU6050 and SD card present); the left board `INSOLE-L-001` runs their firmware 1.6, whose calibration JSON is cut off at 511 bytes (BACKLOG 78, 79). **New plan, agreed with the hardware team:** each side writes its own v1.6 firmware for the real boards; whichever passes first is used on both insoles. Ours is FW-1 (`firmware/insole/`, report 043). Their left board stays theirs: no connection to it without their agreement.
 - **Advisor (2026-10-26):** daily foot check in scope?; IRB notification needed?; medical expert to review advice text; NTC 6 per foot.
 - **User:** a full-app redesign started on 2026-10-20 (three Home directions A/B/C on the design canvas). Pick one before S5; the Alerts and Temperature designs are needed before S6B. DESIGN-SPEC is updated after the choice.
 

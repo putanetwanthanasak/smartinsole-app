@@ -16,6 +16,25 @@ Start each session with `/session <ID> [notes]` (`.claude/skills/session/SKILL.m
 - App id `th.ac.kmutt.smartinsole`; Dart package `smartinsole`
   (`import 'package:smartinsole/...'`).
 
+## Study data and the public repo (user decisions 2026-11-09, SR-1)
+
+The repo is public. Nothing from a volunteer goes into it.
+
+- **Screenshots for reports or the thesis use `TEST-` data only:** never an
+  `SI-` subject code, never a volunteer's alerts, readings or session
+  screens.
+- **Trained model files stay outside the repo** (`model_a.tflite`,
+  `normalization.json`: the weights and the min/max come from the
+  participants) until the user has checked the consent form and IRB. Never
+  commit them; `.gitignore` lists both under `assets/models/`, and the
+  app builds with them locally.
+- Study exports, capture folders and real-board captures live in
+  `~/smartinsole-data/`, outside the repo; `.gitignore` also blocks
+  anything named after an `SI-` code (`TEST-` fixtures are committed on
+  purpose). Real-board firmware output (serial logs, calibration JSON,
+  raw packets) is the hardware team's work: reports quote short excerpts
+  only and never a board's MAC address (`tools/board_check/README.md`).
+
 ## The 16 rules that must never be broken
 
 From `docs/FLUTTER-PLAN.md` section 6:
@@ -186,7 +205,8 @@ assets/config/         thresholds.json, model_input.json and (S9)
 assets/models/         the Model A slot: README only until the AI team's
                        model_a.tflite + normalization.json arrive
                        (after data collection, late Nov); dropping them
-                       in is the whole change
+                       in is the whole change; never committed (see
+                       "Study data and the public repo")
 assets/models_dummy/   untrained dummy + check.json (dev only, see
                        GAIT_MODEL above)
 assets/sounds/         capture cue beeps, made by tool/make_cues.py

@@ -1736,3 +1736,78 @@ its side byte (rule 8), the event log line read "disconnected by user".
 That is misleading in a diagnostic log. Log the refusal reason
 ("wrong side") instead. Log text only; behaviour is correct.
 
+
+## 78. The real right board runs a self-test sketch, no BLE **(found in SR-1, report 042)** — OPEN: FW-1
+
+The hardware team's right board, on its own ESP32 USB-Serial/JTAG port,
+runs a hardware self-test: at boot it checks an MPU6050 (0x68, PASS) and a
+64 GB SD card, then prints a 16-channel `MUX raw ADC` table every second.
+It never advertises. So it cannot send v1.6 data, and none of report 042's
+BLE checks could run. At rest every mux channel reads 319–1247 (not near 0),
+and C05 ≈ C06 within ±3 ADC in 99 % of readings. The chip is unknown: the
+ROM banner is printed before the USB port comes up.
+
+**User plan (2026-11-09, agreed with the hardware team):** each side writes
+its own v1.6 firmware; the first to pass is used on both insoles. Ours is
+FW-1 (`firmware/insole/`, report 043). Flash only after the user confirms
+the hardware team agreed to overwrite their sketch.
+
+## 79. The hardware team's left board (INSOLE-L-001, firmware 1.6) does not pass v1.6 **(found in SR-1, report 042)** — OPEN, for the hardware team
+
+Reached by mistake in SR-1 (only START/STOP sent). **Do not connect to it
+again unless the user says the hardware team agreed.** Report 042's
+labelled section has the details. Blockers:
+- the calibration JSON is cut off at 511 bytes, so the app refuses the
+  insole (`calibrationNotJson`); writing `b` as `-1` instead of `-1.0000`
+  would fit;
+- every channel has `offset_adc` 4000 and the same `a`/`b`, so every
+  reading would be 0 kPa.
+
+Issues:
+- ch0 ≈ ch1 and ch4 ≈ ch5 (98 %);
+- the saturated flag is set on every packet;
+- t0 steps of 161 ms in 45/561 and a clock of +819 ppm;
+- the temperature period is 30,015 ms;
+- the battery is a constant 100 % / 4100 mV.
+
+Correct:
+- 232-byte packets, seq from 0 with no gaps, 6.25 Hz;
+- the IMU works;
+- temperature v2 is 32 bytes / count 8;
+- status changes are notified.
+
+## 80. On first connect the app binds the first matching insole it sees **(found in SR-1, report 042)** — OPEN, decision needed before the study
+
+`FootFinder.find` (Connection) tries boards with the service UUID one at a
+time: first those already seen (most recently seen first), then any whose
+advert arrives while no attempt is running; signal strength plays no part,
+and boards not seen in the last 3 s are skipped. It takes the first whose
+`foot_side` matches, or a
+board of this foot that cannot stream. Nothing checks which board it is.
+After that the app sticks to that address. So a spare board or another
+team's insole within range during the first connect can be bound instead
+of the study's own: in SR-1, `INSOLE-L-001` was in range at −80 dBm. The
+identity shows only on Researcher › Diagnostics (`cal <device_id>`) and in
+the capture sidecars. Options (they can combine):
+- a procedure: only the two study boards powered while connecting, then
+  check `cal` on Diagnostics (no code);
+- show the calibration `device_id` on Connection and on the Researcher
+  readiness card;
+- a Researcher setting with the expected `device_id` per foot; any other
+  board is refused (rule 8 style);
+- try candidates by signal strength;
+- refuse a calibration whose `device_id` ends in `-TEST` (FW-1's test
+  board) for `SI-` captures, so a test board can never record study data.
+
+## 81. The calibration JSON must fit in 512 bytes **(found in SR-1, report 042)** — RESOLVED in the contract (2026-11-09)
+
+A GATT value holds at most 512 bytes. The Appendix C 8-channel example is
+594 bytes as printed (478 compact), and `INSOLE-L-001`'s read stopped at
+511. Appendix C item 4 now says: send it compact (no spaces or newlines),
+at most 512 bytes. Both firmware tracks must follow it; FW-1's acceptance
+checks it (`compare.py`). Still open in the contract (spec review, report 042):
+nothing limits the digits in the numbers. Compact, the 8-channel test
+vector is 492 bytes (20 spare), so fitted per-sensor `a`/`b` written with
+long decimals could overflow. A rule like "at most 4 significant digits
+for `b`, integers for `a` and `offset_adc`" would settle it; this needs the
+user's OK as a contract change.
