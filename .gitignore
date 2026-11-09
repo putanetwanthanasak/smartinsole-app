@@ -22,3 +22,16 @@ mobile/build/
 # Simulator check script's Python virtualenv
 firmware/simulator/tools/.venv/
 __pycache__/
+
+# Study data never enters this public repo (SR-1, report 042). Study session
+# folders and files are named after SI- subject codes (TEST- rehearsals are
+# not ignored: shared/capture_fixture/ uses them on purpose); exports and
+# board captures belong in ~/smartinsole-data/, outside the repo.
+SI-[0-9][0-9][0-9]*
+.incoming/
+smartinsole-data/
+board-checks/
+# Trained Model A files stay out of git until the consent form and IRB are
+# checked (user decision 2026-11-09); the app builds with them locally.
+mobile/assets/models/*.tflite
+mobile/assets/models/normalization.json
