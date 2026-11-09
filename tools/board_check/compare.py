@@ -50,6 +50,7 @@ MIN_MTU = SENSOR_BYTES + 3  # 235
 CAPTURE_MIN_BATTERY = int(re.search(
     r"minBatteryPct\s*=\s*(\d+)",
     (REPO / "mobile" / "lib" / "capture" / "capture_protocol.dart").read_text()).group(1))
+NO_NTC = False  # set from --no-ntc
 ERROR_CODES = {0: "none", 1: "IMU not responding", 2: "NTC unreadable",
                3: "ADC saturated (short circuit?)", 4: "battery critically low",
                5: "internal memory full"}
@@ -442,10 +443,14 @@ def analyse(o: Out, run_dir: Path, run: str, prev_last_t0):
         o.check(run, "sensor", "t0_ms step 160 ms (8 samples x 20 ms)", "§3.1",
                 "PASS" if set(steps) == {160} else "FAIL", str(dict(sorted(steps.items()))))
         if set(steps) != {160}:
-            o.finding("blocker", "sensor", "§3.1", "t0_ms advances 160 ms per packet (20 ms per sample)",
+            small = set(steps) <= {159, 160, 161}
+            o.finding("issue" if small else "blocker", "sensor", "§3.1",
+                      "t0_ms advances exactly 160 ms per packet (20 ms per sample)",
                       f"t0 steps {dict(sorted(steps.items()))}",
-                      "rule 1: the app times samples t0 + i x 20 ms; other spacing puts samples at the "
-                      "wrong times (and the DeviceClock flags jumps)")
+                      "rule 1: the app times samples t0 + i x 20 ms; a 161 ms step means one sample "
+                      "interval was 21 ms (sample timer not locked to the t0 clock; 1 ms, small)" if small
+                      else "rule 1: the app times samples t0 + i x 20 ms; this spacing puts samples at "
+                      "the wrong times")
         o.check(run, "sensor", "t0_ms (ms since boot) at first packet", "§3.1", "INFO",
                 f"{P[0]['t0_ms']} ms = {P[0]['t0_ms'] / 1000:.1f} s since boot")
         if prev_last_t0 is not None:
@@ -489,6 +494,22 @@ def analyse(o: Out, run_dir: Path, run: str, prev_last_t0):
             col = [s["fsr_adc"][i] for s in S]
             o.p(f"  ch {i} {SITES[i] if i < 8 else '':16s} {min(col):5d} / {int(statistics.median(col)):5d}"
                 f" / {max(col):5d}")
+        dup = []
+        for a in range(n_parse):
+            for b in range(a + 1, n_parse):
+                same = sum(s["fsr_adc"][a] == s["fsr_adc"][b] for s in S) / len(S)
+                if same >= 0.5:
+                    dup.append((a, b, same))
+        o.check(run, "sensor", "channel pairs reading the same value (>= 50 % of samples)", "§3.1",
+                "PASS" if not dup else "INFO",
+                ", ".join(f"ch {a}={b} in {f * 100:.0f} %" for a, b, f in dup) or "none")
+        hard = [(a, b, f) for a, b, f in dup if f >= 0.95]
+        if hard:
+            o.finding("issue", "sensor", "§3.1, App. C item 1", "8 independent FSR channels",
+                      "identical readings: " + ", ".join(f"ch {a} = ch {b} in {f * 100:.1f} % of samples"
+                                                         for a, b, f in hard),
+                      "two sites show one sensor's reading: the map, PTI and concentration get the wrong "
+                      "zone (wiring or mux address?)")
         mx = max(a for s in S for a in s["fsr_adc"])
         o.check(run, "sensor", "FSR raw ADC 0-4095 (12-bit)", "§3.1", "PASS" if mx <= 4095 else "FAIL",
                 f"max {mx}")
@@ -586,14 +607,19 @@ def analyse(o: Out, run_dir: Path, run: str, prev_last_t0):
         o.check(run, "temperature", f"seq {p['seq']}: °C per site / quality", "§3.2", "INFO",
                 f"{p['celsius']} / {p['quality']}")
         made_up = [i for i, (c, q) in enumerate(zip(p["celsius"], p["quality"])) if c is not None and q == 0]
-        if made_up:
+        odd = [i for i in made_up if not 15 <= p["celsius"][i] <= 45]
+        if odd and not NO_NTC:
+            o.finding("issue", "temperature", "§3.2", "quality 0 only for a plausible skin reading",
+                      f"sites {odd} read {[p['celsius'][i] for i in odd[:3]]} °C with quality 0",
+                      "the app shows these as real skin temperatures")
+        if made_up and NO_NTC:
             o.finding("blocker", "temperature", "§3.2",
                       "a site with no NTC sends -32768 (could not read), quality 2",
                       f"sites {made_up} send numbers with quality 0, e.g. "
                       f"{[p['celsius'][i] for i in made_up[:3]]} °C",
                       "the app shows these as real skin temperatures and computes ΔT from them: a "
                       "fabricated reading")
-        elif any(c is not None for c in p["celsius"]):
+        elif NO_NTC and any(c is not None for c in p["celsius"]):
             o.finding("issue", "temperature", "§3.2", "a site with no NTC sends -32768",
                       "numbers with quality 1/2", "the app shows the number with a quality warning")
     if len(T) >= 2:
@@ -664,8 +690,12 @@ def main() -> int:
     ap.add_argument("runs", nargs="+", type=Path)
     ap.add_argument("--serial", type=Path)
     ap.add_argument("--md", type=Path)
+    ap.add_argument("--no-ntc", action="store_true",
+                    help="the board has no NTC fitted: any temperature number is made up")
     args = ap.parse_args()
 
+    global NO_NTC
+    NO_NTC = args.no_ntc
     o = Out()
     buf = io.StringIO()
     with redirect_stdout(buf):
