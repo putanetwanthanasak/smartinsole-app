@@ -104,6 +104,10 @@ lib/
                        trial 00 (S9-2, BACKLOG 74) (see its README.md); never sets
                        a level (rule 11); no numeric literals (a test
                        checks)
+  text/                thai_break.dart (S10): keepTogether(phrase) joins
+                       a phrase's words with U+2060 so a line never
+                       breaks inside it; display only (see Thai line
+                       breaks below)
   settings/            Settings (S8B): AppSettings, SettingsStore over
                        shared_preferences (name, text size, sound,
                        reminder, each foot's remembered insole), text
@@ -116,7 +120,8 @@ lib/
   notify/              Evening reminder (S8C): reminder plan in the
                        phone's time zone, ReminderService; foot alert
                        notifications (S9): AlertNotificationService on
-                       AlertEngine.raised; one shared plugin instance
+                       AlertEngine.raised, with one sound per cause per
+                       foot (quiet_window.dart, S10); one shared plugin instance
                        (local_notifications.dart); the only
                        flutter_local_notifications importers (see its
                        README.md); android_resources.dart names every
@@ -236,11 +241,52 @@ reminder icon was gone and reminder setup failed on the Note 10 with
   `tool/check_release_resources.sh` checks the built release APK. S9's
   alert notifications added `ic_stat_foot_alert` the same way (their
   sound is the phone's default).
+- Notification small icons are white outlines on transparent
+  (`res/drawable/ic_stat_*.xml`), never `@mipmap/ic_launcher`. The
+  launcher icon (S10) is adaptive: `res/mipmap-anydpi-v26/ic_launcher.xml`,
+  foreground `drawable/ic_launcher_foreground.xml` (Lucide footprints),
+  background `values/colors.xml` (`primary`). The app name is
+  `android:label` "SmartInsole".
 
 Research capture tools live at the repo root: `tools/capture/load_capture.py`
 (loader, checks, `--selftest`) and `tools/capture/export_capture.py` (adb
 pull + SHA-256 + checks). Any change to the capture file format must keep
 `load_capture.py --selftest` passing.
+
+## Thai line breaks
+
+Thai has no spaces, so Flutter breaks lines by dictionary and can split a
+site name or strand a short last word. `lib/text/thai_break.dart`
+(`keepTogether`) joins a phrase's words with U+2060 WORD JOINER.
+
+- Join **between words only**, as listed in `thaiWords` ("|" between the
+  dictionary's words; `test/text/thai_break_test.dart` checks each entry
+  against `TextPainter.getWordBoundary`). A joiner inside a word makes
+  Flutter break plain words nearby ("สู / งมาก").
+- Only inside running text, and only phrases narrower than the narrowest
+  line at 1.88 × (about 260 px in `body`). Names that are a whole `Text`
+  stay plain (`FootZone.nameTh`; `displayTh` is the joined form).
+- **Titles** (alert detail 28 px, Alerts list and My feet banner 18 px
+  bold, Home status 32 px): short words are joined too; a long name
+  joined whole is wider than the line at 1.88 × on a 360 dp phone, so it
+  goes through `keepTogetherInTitle` (`titleParts`: "โคน / นิ้วหัวแม่เท้า",
+  "ขอบเท้า / ด้านนอก", "ส้นเท้า / ด้านนอก"; `FootZone/FootRegion.titleTh`).
+  "แผ่นรองเท้า" stays plain for the same reason. The guard test holds
+  titles to more than word boundaries: no break inside any short
+  `thaiWords` phrase, joined or not.
+- **Display only.** Never in anything stored, exported or captured; the
+  test checks `lib/storage`, `lib/capture`, `lib/ble`, `lib/device` and
+  `lib/gait` never reference it.
+- Tests compare plain text: `import 'package:flutter_test/flutter_test.dart'
+  hide expect;` plus `test/helpers/plain_text.dart` (`expect`,
+  `findPlainText`, `findPlainSemantics`).
+- **Reapplying after copy edits (S10b):** add the phrase to `thaiWords`,
+  wrap it in `keepTogether` where the copy is composed, add it to
+  `test/footcheck/thai_line_break_test.dart`, run
+  `flutter test test/text test/footcheck`, then regenerate and review the
+  goldens. The "only breaks between words" test covers all alert copy
+  and every title; to list a title's actual line breaks, lay it out with
+  `TextPainter` at the guard's widths and print `getLineBoundary`.
 
 ## BLE parsing rules
 

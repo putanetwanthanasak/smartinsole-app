@@ -13,13 +13,17 @@ import 'package:smartinsole/storage/database.dart';
 import '../alerts/alerts_rig.dart';
 import '../helpers/pump_app.dart';
 
-/// Alerts list, empty state and alert details (DESIGN-SPEC §7) at 100 %
-/// and 200 % text, on surfaces tall enough for the whole page.
+/// Alerts list, empty state and alert details (DESIGN-SPEC §7) at 100 %,
+/// 130 % (S10) and 200 % text, on surfaces tall enough for the whole page.
 /// Regenerate: flutter test --update-goldens test/goldens/alerts_golden_test.dart
 void main() {
-  for (final scale in [1.0, 2.0]) {
+  for (final scale in [1.0, 1.3, 2.0]) {
     final pct = (scale * 100).round();
-    final tall = scale == 1 ? 1900.0 : 4600.0;
+    final tall = switch (scale) {
+      1.0 => 1900.0,
+      1.3 => 2700.0,
+      _ => 4600.0,
+    };
 
     testWidgets('alerts_list_$pct', (tester) async {
       // Mixed read / unread over three days.
@@ -55,7 +59,11 @@ void main() {
         final ids = await pumpAlerts(
           tester,
           textScale: scale,
-          size: Size(390, scale == 1 ? 2300 : 5600),
+          size: Size(390, switch (scale) {
+            1.0 => 2300.0,
+            1.3 => 3300.0,
+            _ => 5600.0,
+          }),
         );
         await openAlert(tester, ids, kind);
         if (open) {
