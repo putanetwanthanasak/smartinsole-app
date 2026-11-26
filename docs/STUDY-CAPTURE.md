@@ -267,14 +267,16 @@ line per check; `PASS` at the end means no FAIL.
 | `manifest.json` | Size and SHA-256 of every file (from the export) |
 
 `nn` is 00 for calibration, then 01–05 in the subject's order. For
-training, `load_capture.model_matrix(trial)` gives the 28 model channels
+training, `load_capture.model_matrix(trial)` gives the 24 model channels
 in `shared/model_input.json` order. It pairs the feet by the same rule
 the app uses (`pairing` in that file) and drops rows marked invalid.
 
-**Capture schema 2 (S8D, 8 FSR + 8 temperature sites).** Every sidecar
-names its schema. Files recorded before S8D are schema 1 (6 FSR, forefoot
-/ heel temperature) and still load; their model rows are the 24-channel v1
-layout, never padded to 28. A session started on the old app and finished
-on the new one mixes the two; the loader reads each trial by its own
-schema. Clear test data before the study starts (12 Nov), so study
-sessions are schema 2 only.
+**Capture schema 3 (S11, 6 FSR + 6 temperature sites, DATA-CONTRACT
+v1.7).** Every sidecar names its schema. Older files still load: schema 2
+(S8D, 8 FSR + 8 temperature sites, 28-channel model rows) and schema 1
+(before S8D: 6 FSR, forefoot / heel temperature, the 24-channel v1
+layout). A schema-2 trial never gives schema-3 model rows, and a schema-2
+trial 00 is refused as a baseline for a v1.7 insole (`wrongInsole`). A
+session started on an older app and finished on the new one mixes
+schemas; the loader reads each trial by its own schema. Clear test data
+before the study starts, so study sessions are schema 3 only.

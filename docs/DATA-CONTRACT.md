@@ -27,8 +27,8 @@ merge, now resolved by this version's own §8.3/§8.3.1 rewrite).
 **v1.6 (2026-10-29, S8D) is defined in this repo, not by the contract
 owner.** The real insole had 8 FSR and 8 NTC per foot, NTC i next to FSR i
 (user decision 2026-10-29; reduced to 6 + 6 by v1.7). Sections changed for v1.6 are written in English
-(repo rule); the rest is the owner's text as before. Appendix C is the
-one-page summary for the hardware team. Not yet confirmed by the hardware
+(repo rule); the rest is the owner's text as before. Appendix C was the
+one-page summary for the hardware team (rewritten for v1.7). Not yet confirmed by the hardware
 team (Appendix B) or the contract owner.
 
 **v1.7 (2026-11-25, S11) is defined in this repo, not by the contract
@@ -810,87 +810,99 @@ users/{uid}
 - [ ] Hardware team confirms the 26-byte temperature v2 packet (§3.2) and a 6-channel calibration JSON (§5.1); see Appendix C
 - [ ] ตกลงว่าใครเป็นผู้ดูแลเอกสารนี้เมื่อมีการเปลี่ยนแปลง
 
-## Appendix C — v1.6 for the hardware team
+## Appendix C — v1.7 for the hardware team
 
-What changes in the firmware for the 8 FSR + 8 NTC insole. Everything not
-listed here is unchanged from v1.5: UUIDs, advertising, the Device Status
-packet, Control commands, the calibration formula, little-endian byte
-order.
+What changes in the firmware for the 6 + 6 insole (v1.7, 2026-11-25).
+Everything not listed here is unchanged: UUIDs, advertising, the Device
+Status packet, Control commands, the calibration formula and the units of
+v1.6 addendum 2, little-endian byte order.
 
-1. **Channels.** 8 FSR per foot, the same order on both feet (§3.1):
-   0 hallux, 1 MTH1, 2 MTH2–3, 3 MTH5, 4 lateral midfoot, 5 heel centre,
-   6 medial arch, 7 lateral heel. NTC i sits next to FSR i. Indexes 0–5
-   mean what they meant in v1.5.
-2. **Sensor Stream** (`...b45901`): the same format with N = 8: 28-byte
-   samples (fsr uint16 × 8, accel int16 × 3, gyro int16 × 3), 8 + 8 × 28 =
-   232-byte packets, which fit MTU 247.
-3. **Temperature v2** (`...b45902`): exactly 32 bytes every 30 s: seq
-   uint16, t_ms uint32, count uint8 = 8, reserved uint8 = 0, temp int16 × 8
-   (0.01 °C, -32768 = could not read), quality uint8 × 8 (0 normal, 1 poor
-   contact, 2 sensor error).
-4. **Calibration JSON** (`...b45905`): `channels` lists exactly 8 entries,
-   indexes 0–7. Send it compact (no spaces or newlines), at most 512 bytes:
+1. **Sites.** 6 per foot, the same order on both feet (§3.1):
+   0 hallux, 1 MTH1, 2 MTH2–3, 3 MTH5, 4 lateral midfoot, 5 heel centre.
+   Indexes 0–5 mean what they meant in v1.5 and v1.6. Each site has one
+   Velostat pressure sensor ("FSR" in this document) and one NTC next to
+   it: NTC i sits next to FSR i.
+   - **The insoles keep their 8 Velostat pads.** The firmware reads only
+     the pads at sites 0–5. The pads at v1.6's sites 6 (medial arch) and
+     7 (lateral heel) stay in the insole, unread, and are never sent.
+   - **Mux channels.** Each site needs its own mux channel. On the right
+     board checked in report 043, pressing the hallux showed on C05 and
+     C06 together: choose the 6 channels so that no two sites share a
+     bridged pair, and tell us which channel each site uses.
+2. **Sensor Stream** (`...b45901`): the same format with N = 6: 24-byte
+   samples (fsr uint16 × 6, accel int16 × 3, gyro int16 × 3), 8 + 8 × 24 =
+   200-byte packets, which fit MTU 247 (the app needs MTU 203; with 4
+   samples per packet, 104 bytes, MTU 107).
+3. **Temperature v2** (`...b45902`): `8 + 3 × count` bytes every 30 s,
+   with count 6: **26 bytes**. seq uint16, t_ms uint32, count uint8 = 6,
+   reserved uint8 = 0, temp int16 × 6 (0.01 °C, -32768 = could not read),
+   quality uint8 × 6 (0 normal, 1 poor contact, 2 sensor error). The
+   quality bytes start at offset `8 + 2 × count` = 16. A site with no NTC
+   fitted sends -32768 with quality 2.
+4. **Calibration JSON** (`...b45905`): `channels` lists exactly 6 entries,
+   indexes 0–5. Send it compact (no spaces or newlines), at most 512 bytes:
    a GATT characteristic value holds at most 512 bytes. The example below
-   is spaced out for reading (594 bytes as printed, 478 compact).
+   is 381 bytes compact.
 
-**The app needs N = 8 exactly.** It does not guess around a mismatch: it
-refuses, and shows why per foot on Researcher › Diagnostics.
+**The app needs 6 sites exactly.** It does not guess around a mismatch:
+it refuses, and shows why per foot on Researcher › Diagnostics. It checks
+a temperature packet in this order: its length first, then its count,
+then the quality bytes.
 
 | What the board sends | What the app does | Diagnostics shows |
 |---|---|---|
-| Calibration JSON with a channel count other than 8 | Refuses the insole ("calibration rejected"); nothing streams | format `N 6 (needs 8)` (for example), reject `calibrationFsrCount` |
-| The old 12-byte temperature packet, or any temperature packet that is not 32 bytes | Drops it and counts it | reject `tempLength` |
-| A 32-byte temperature packet whose count is not 8 | Drops it and counts it | reject `tempCount` |
+| Calibration JSON with a channel count other than 6 (for example v1.6's 8) | Refuses the insole ("calibration rejected"); nothing streams | format `N 8 (needs 6)` (for example), reject `calibrationFsrCount` |
+| The old 12-byte temperature packet, a packet shorter than its 8-byte header, or a length other than `8 + 3 × count` for its own count byte | Drops it and counts it | reject `tempLength` |
+| A temperature packet whose length matches its count, but the count is not 6 (the v1.6 32-byte packet has count 8) | Drops it and counts it | reject `tempCount` |
 | A temperature quality byte above 2 | Drops the packet and counts it | reject `invalidQuality` |
-| A sensor packet whose length does not match its count at N = 8 | Drops it and counts it | reject `lengthMismatch` or `truncated` |
+| A sensor packet whose length does not match its count at N = 6 (a 232-byte v1.6 packet included) | Drops it and counts it | reject `lengthMismatch` or `truncated` |
 | A sensor packet shorter than its 8-byte header, or a status packet shorter than 8 bytes | Drops it and counts it | reject `tooShort` |
 
-On a correct board, Diagnostics shows `format N 8 · temperature v2, 8
+On a correct board, Diagnostics shows `format N 6 · temperature v2, 6
 sites · rejects 0` for each foot once the first temperature packet has
 arrived. If it shows anything else on the real boards, the mismatch is on
 the firmware side: compare the board's packets and calibration JSON with
-the examples below before anything else.
+the examples below before anything else (`tools/board_check/compare.py`
+prints a board's first packets next to them).
 
 **Examples.** Generated from the app's test vectors in
 `shared/test_vectors/` (the files the parser tests run against), not typed
 by hand. Offsets on the left are hex.
 
-**Sensor Stream, N = 8, 8 samples, 232 bytes** (`sensor_n8.json` → `n8_8_samples`):
+**Sensor Stream, N = 6, 8 samples, 200 bytes** (`sensor.json` → `normal_8_samples_200_bytes`):
 
 ```
-0000  6c 00 50 c3 00 00 08 00 65 0e 70 00 7b 02 86 04
-0010  91 06 9c 08 a7 0a b2 0c 04 f2 8c 05 00 10 e4 01
-0020  18 fe 00 00 36 02 41 04 4c 06 57 08 62 0a 6d 0c
-0030  78 0e 83 00 3b f3 51 06 db 0f 19 02 d1 fd 0d 00
-0040  07 06 12 08 1d 0a 28 0c 33 0e 3e 00 49 02 54 04
-0050  72 f4 16 07 b6 0f 4e 02 8a fd 1a 00 d8 09 e3 0b
-0060  ee 0d f9 0f 04 02 0f 04 1a 06 25 08 a9 f5 db 07
-0070  91 0f 83 02 43 fd 27 00 a9 0d b4 0f bf 01 ca 03
-0080  d5 05 e0 07 eb 09 f6 0b e0 f6 a0 08 6c 0f b8 02
-0090  fc fc 34 00 7a 01 85 03 90 05 9b 07 a6 09 b1 0b
-00a0  bc 0d c7 0f 17 f8 65 09 47 0f ed 02 b5 fc 41 00
-00b0  4b 05 56 07 61 09 6c 0b 77 0d 82 0f 8d 01 98 03
-00c0  4e f9 2a 0a 22 0f 22 03 6e fc 4e 00 1c 09 27 0b
-00d0  32 0d 3d 0f 48 01 53 03 5e 05 69 07 85 fa ef 0a
-00e0  fd 0e 57 03 27 fc 5b 00
+0000  d2 04 cd 81 01 00 08 00 94 00 9f 02 aa 04 b5 06
+0010  c0 08 cb 0a 37 f1 c5 f0 00 10 4d fc b9 ff 00 00
+0020  65 04 70 06 7b 08 86 0a 91 0c 9c 0e 6e f2 8a f1
+0030  db 0f 82 fc 72 ff 0d 00 36 08 41 0a 4c 0c 57 0e
+0040  62 00 6d 02 a5 f3 4f f2 b6 0f b7 fc 2b ff 1a 00
+0050  07 0c 12 0e 1d 00 28 02 33 04 3e 06 dc f4 14 f3
+0060  91 0f ec fc e4 fe 27 00 d8 0f e3 01 ee 03 f9 05
+0070  04 08 0f 0a 13 f6 d9 f3 6c 0f 21 fd 9d fe 34 00
+0080  a9 03 b4 05 bf 07 ca 09 d5 0b e0 0d 4a f7 9e f4
+0090  47 0f 56 fd 56 fe 41 00 7a 07 85 09 90 0b 9b 0d
+00a0  a6 0f b1 01 81 f8 63 f5 22 0f 8b fd 0f fe 4e 00
+00b0  4b 0b 56 0d 61 0f 6c 01 77 03 82 05 b8 f9 28 f6
+00c0  fd 0e c0 fd c8 fd 5b 00
 ```
 
-Header: seq 108, t0_ms 50000, count 8, flags 0. Sample 0 (bytes 8–35): fsr ADC [3685, 112, 635, 1158, 1681, 2204, 2727, 3250], accel raw [-3580, 1420, 4096], gyro raw [484, -488, 0]; sample 1 starts at byte 36 (t_ms 50020).
+Header: seq 1234, t0_ms 98765, count 8, flags 0. Sample 0 (bytes 8–31): fsr [148, 671, 1194, 1717, 2240, 2763], accel raw [-3785, -3899, 4096], gyro raw [-947, -71, 0]; sample 1 starts at byte 32 (t_ms 98785).
 
-**Temperature v2, 32 bytes** (`temperature_v2.json` → `quality_mixed`):
-
-```
-0000  06 00 20 bf 02 00 08 00 6c 0c 8f 0c 7e 0c 32 0c
-0010  a8 0c 21 0c bc 0c 12 0c 00 01 02 00 01 02 00 00
-```
-
-seq 6, t_ms 180000, count 8, reserved 0; °C per site 0–7 [31.8, 32.15, 31.98, 31.22, 32.4, 31.05, 32.6, 30.9]; quality per site 0–7 [0, 1, 2, 0, 1, 2, 0, 0].
-
-A site that could not be read (`unreadable_one_site`): site 6 is `00 80` (-32768) → no value (could not read).
+**Temperature v2, 26 bytes** (`temperature_v2.json` → `quality_mixed`):
 
 ```
-0000  04 00 c0 d4 01 00 08 00 6c 0c 8f 0c 7e 0c 32 0c
-0010  a8 0c 21 0c 00 80 12 0c 00 00 00 00 00 00 00 00
+0000  06 00 20 bf 02 00 06 00 6c 0c 8f 0c 7e 0c 32 0c
+0010  a8 0c 21 0c 00 01 02 00 01 00
+```
+
+seq 6, t_ms 180000, count 6, reserved 0; °C per site 0–5 [31.8, 32.15, 31.98, 31.22, 32.4, 31.05]; quality per site 0–5 [0, 1, 2, 0, 1, 0] (from offset 0x10).
+
+A site that could not be read (`unreadable_one_site`): site 4 is `00 80` (-32768) → no value (could not read).
+
+```
+0000  04 00 c0 d4 01 00 06 00 6c 0c 8f 0c 7e 0c 32 0c
+0010  00 80 21 0c 00 00 00 00 00 00
 ```
 
 **Device Status, 8 bytes, unchanged** (`status.json` → `left_streaming`):
@@ -901,22 +913,26 @@ A site that could not be read (`unreadable_one_site`): site 6 is `00 80` (-32768
 
 battery 87 % (3987 mV), foot_side 0 (left), firmware 1.4, state 1 (streaming), error_code 0.
 
-**Calibration JSON with 8 channels** (`sensor_n8.json` → `calibrations.INSOLE-N8-TEST`; the values are test values, each board has its own):
+**Calibration JSON with 6 channels** (`sensor.json` → `calibrations.varied`; the values are test values, each board has its own). Sent compact, as here, it is 381 bytes:
+
+```json
+{"device_id":"INSOLE-R-002","r_pulldown_ohm":10000,"sensor_area_m2":0.000113,"channels":[{"index":0,"a":123000,"b":-1.05,"offset_adc":12},{"index":1,"a":98000,"b":-1.02,"offset_adc":0},{"index":2,"a":141000,"b":-1.1,"offset_adc":40},{"index":3,"a":105000,"b":-0.98,"offset_adc":100},{"index":4,"a":87000,"b":-1.07,"offset_adc":7},{"index":5,"a":160000,"b":-1.12,"offset_adc":250}]}
+```
+
+The same, spaced out for reading:
 
 ```json
 {
-  "device_id": "INSOLE-N8-TEST",
+  "device_id": "INSOLE-R-002",
   "r_pulldown_ohm": 10000,
   "sensor_area_m2": 0.000113,
   "channels": [
-    {"index": 0, "a": 100000, "b": -1, "offset_adc": 0},
-    {"index": 1, "a": 107500, "b": -1.02, "offset_adc": 9},
-    {"index": 2, "a": 115000, "b": -1.04, "offset_adc": 18},
-    {"index": 3, "a": 122500, "b": -1.06, "offset_adc": 27},
-    {"index": 4, "a": 130000, "b": -1.08, "offset_adc": 36},
-    {"index": 5, "a": 137500, "b": -1.1, "offset_adc": 45},
-    {"index": 6, "a": 145000, "b": -1.12, "offset_adc": 54},
-    {"index": 7, "a": 152500, "b": -1.14, "offset_adc": 63}
+    {"index": 0, "a": 123000, "b": -1.05, "offset_adc": 12},
+    {"index": 1, "a": 98000, "b": -1.02, "offset_adc": 0},
+    {"index": 2, "a": 141000, "b": -1.1, "offset_adc": 40},
+    {"index": 3, "a": 105000, "b": -0.98, "offset_adc": 100},
+    {"index": 4, "a": 87000, "b": -1.07, "offset_adc": 7},
+    {"index": 5, "a": 160000, "b": -1.12, "offset_adc": 250}
   ]
 }
 ```
@@ -927,10 +943,10 @@ battery 87 % (3987 mV), foot_side 0 (left), firmware 1.4, state 1 (streaming), e
 0000  0a 00 e0 93 04 00 6c 0c d1 0b 00 00
 ```
 
-**Rejected: 32 bytes but count 6** (`count_6`, reason `tempCount`):
+**Rejected: the v1.6 packet, 32 bytes with count 8** (`v16_8_sites_32_bytes`, reason `tempCount`; the parser's reason text: "temperature count 8, needs 6 (the v1.6 8-site packet)"):
 
 ```
-0000  0b 00 10 09 05 00 06 00 6c 0c 8f 0c 7e 0c 32 0c
+0000  0e 00 a0 68 06 00 08 00 6c 0c 8f 0c 7e 0c 32 0c
 0010  a8 0c 21 0c bc 0c 12 0c 00 00 00 00 00 00 00 00
 ```
 
@@ -955,3 +971,4 @@ battery 87 % (3987 mV), foot_side 0 (left), firmware 1.4, state 1 (streaming), e
 | 1.6 addendum | 2026-11-02 | S10 (this repo) | `alerts.quietNotifyMin` (2): a foot alert notification within this many minutes of the last one that sounded for the same foot is posted silently (app notification behaviour only, no alert rule changes; BACKLOG 76, DESIGN-SPEC §11.9). Additive: the file's `"version"` stays 1. Not yet sent back to the contract owner. |
 | 1.6 addendum | 2026-11-09 | SR-1 (this repo) | Appendix C item 4: the calibration JSON is sent compact (no spaces or newlines), at most 512 bytes (the GATT value limit; the Appendix C example is 594 bytes as printed, 478 compact). Found while preparing the first real-board check (report 042). For the hardware team. |
 | 1.6 addendum 2 | 2026-11-09 | FW-1 plan (this repo, user decisions) | §3.1 / §5.1: `fsr` and `offset_adc` are the divider voltage in 12-bit counts of 3.3 V (`mV × 4095 / 3300`), not the raw ADC code; the ESP32-C3 tops out at 2.5 V and sets flags bit0 there. §3.3: `battery_pct` 255 with `battery_mv` 0 = no battery (external power). §5.2: one IMU axis frame for both insoles (x toes, y left, z up), mapped per foot in firmware. |
+| 1.7 | 2026-11-25 | S11 (this repo, user decision) | 6 sites per foot, the v1.6 indexes 0–5 with their meaning; a Velostat pressure sensor and an NTC at each site, NTC i next to FSR i; the insoles keep 8 pads, sites 6 (medial arch) and 7 (lateral heel) are no longer read and stay only as names for v1.6 data (§1, §3.1, `shared/sensor_layout.json` version 2). Sensor sample 24 bytes, packet 200 bytes at N = 6 (§2.2, §2.3, §3.1); temperature v2 generalized to `8 + 3 × count` bytes, count 6 = 26 bytes, checked length (12-byte v1 hint first), count, then quality (§3.2); the calibration JSON lists exactly 6 channels (§5.1); Model A input `[1, 100, 24]`, `model_input.json` version 3 (§7.1); Model B features over 6 sites (§7.3); load concentration over 6 zones, 40 % as set for 6 sensors (§8.2); heel = heel centre (§8.3.1, S8A addendum). Appendix C rewritten for the hardware team (8 pads stay, 6 read, avoid bridged mux pairs). Defined in this repo; not yet confirmed by the hardware team or the contract owner. |

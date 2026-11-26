@@ -32,11 +32,13 @@
 | S9-1 | ✅ Step merge (BACKLOG 51), preprocessing "ทางเอ", foot alert notifications | PR #35 · report 039 |
 | S9-2 | ✅ One baseline function, release 1.0.0+5, Note 10 checkpoint (items 1 and 5 moved to SR) | PR #36 · report 040 |
 | S10 | ⏳ Wrap-up before SR: BACKLOG sort, 76, 56, 54, Thai line breaks, docs, SR checklist, release 1.0.0+6 | this PR · report 041 |
-| S10b | ⏳ Expert text fixes (feedback due 5 Nov) + build 1.0.0+7, 6–7 Nov, before SR | — |
+| S11-1 | ⏳ 6 sites per foot (6 FSR + 6 NTC, v1.6 indexes 0–5): data path, DATA-CONTRACT v1.7, simulator and FW-1 at 6 + 6, laptop tools | `work/six-sites` · report 044 |
+| S11-2 | ⏳ 6 sites per foot: UI, docs, release 1.0.0+7, Note 10 checkpoint (with the S10 phone checks) | `work/six-sites-ui` · report 045 |
+| S10b | ⏳ Expert text fixes + build 1.0.0+8 (after S11; was +7), the battery-255 "USB" / `SI-` capture guard, BACKLOG 80 | — |
 | SR | ⏳ 8–11 Nov with the real boards (checklist in §3 SR) | — |
 | Study | ⏳ starts Thu 12 Nov; study phone build frozen 12–30 Nov | — |
 
-**Demo state of the app:** installed on the Note 10 as release 1.0.0+5 (S9-2; S10 brings 1.0.0+6); every screen is built; the app and both simulator boards are on 8 FSR + 8 temperature sites per foot (S8D).
+**Demo state of the app:** installed on the Note 10 as release 1.0.0+5 (S9-2; S10 brings 1.0.0+6, S11 1.0.0+7); every screen is built. From S11-1 the app, the simulator and FW-1 are on 6 sites per foot (6 FSR + 6 temperature, contract v1.7); the phone build before 1.0.0+7 still expects 8 + 8.
 
 ## Study plan (decided 2026-10-21)
 
@@ -193,7 +195,9 @@ Additional info: [optional]
 | 31 Oct | S8D-2 | Claude Code | 8 FSR + 8 NTC: UI | `work/flutter-8-sensors-ui` |
 | 1–3 Nov | S9 | User + Claude Code | Integration test + APK | `work/flutter-integration` |
 | 2–5 Nov | S10 | Claude Code | Wrap-up before SR (group A only) + docs | `work/flutter-wrapup` |
-| 6–7 Nov | S10b | Claude Code | Expert text fixes + build 1.0.0+7 | `work/flutter-expert-text` |
+| 26 Nov | S11-1 | Claude Code + user | 6 FSR + 6 NTC: data path, contract v1.7, firmware, tools | `work/six-sites` |
+| after S11-1 | S11-2 | Claude Code + user | 6 FSR + 6 NTC: UI, docs, release 1.0.0+7 | `work/six-sites-ui` |
+| after S11 | S10b | Claude Code | Expert text fixes + build 1.0.0+8 | `work/flutter-expert-text` |
 
 ---
 
@@ -358,7 +362,7 @@ boards unless noted; record each result in the SR report.
     screen off; a foot alert after 1, 5 and 15 min of screen off; the
     auto-reconnect scanning cost with one board off for a long time.
 13. **Medical text** (BACKLOG 43, Appendix A): the alert text on the phone
-    is the version the medical expert reviewed (S10b, build 1.0.0+7);
+    is the version the medical expert reviewed (S10b, build 1.0.0+8);
     the PTI source for 80 kPa·s is settled.
 14. **Thai text on the Samsung font** (S10): Home, one alert detail with
     site names and My feet show no boxes or missing glyphs.
@@ -444,10 +448,25 @@ boards unless noted; record each result in the SR report.
 - **Done when:** docs match the code.
 - **Scope (user decision 2026-11-02, report 041):** only group A before SR (what a volunteer sees or hears, or what affects capture, alerts or the study day): BACKLOG 76 (one sound per cause), 56 (app name, launcher and notification icons), 54 (Home foot tiles at large text), 46/60/69 (Thai line breaks on volunteer-facing text), 62 closed; docs, the SR checklist, release 1.0.0+6. Everything else is marked "after study" in BACKLOG; the screenshots of every screen are after the study (thesis).
 
-### S10b — Expert text fixes (6–7 Nov, before SR)
-- **Requires:** S10 merged; the medical expert's feedback on the draft copy (DESIGN-SPEC Appendix A, due 5 Nov).
-- **Do:** apply the reviewed wording to the app's copy and Appendix A; reapply the Thai word joiners to any edited phrase with `keepTogether` (S10, `mobile/CLAUDE.md`) and extend the line-break test to it; release 1.0.0+7, `tool/check_release_resources.sh`, short Note 10 check.
-- **Done when:** the phone shows the reviewed text.
+### S11 — 6 sites per foot (new, user decision 2026-11-25)
+- **Requires:** S10 (#37), SR-1 (#38) and FW-1 step a (#39) merged.
+- **Why:** each foot has 6 sites, the v1.6 indexes 0–5 with their meaning (0 hallux, 1 MTH1, 2 MTH2–3, 3 MTH5, 4 lateral midfoot, 5 heel centre); a Velostat pressure sensor and an NTC at each, NTC i next to FSR i. The v1.6 medial arch (6) and lateral heel (7) are dropped. The insoles keep their 8 Velostat pads; the firmware reads 6. Matches proposal doc 03's 24 model channels and 6 pressure sensors. Not a revert to before S8D: the S8C–S10 work stays.
+- **Contract (DATA-CONTRACT v1.7):** sensor packet 200 bytes at N = 6; temperature v2 generalized to `8 + 3 × count` bytes, count 6 = 26 bytes, checked length (the 12-byte v1 packet first), then count, then quality; calibration JSON exactly 6 channels; Model A `[1, 100, 24]`, `model_input.json` version 3; capture schema 3. Appendix C rewritten for the hardware team (moved into S11-1 from S11-2).
+- **Stored data:** no drift schema change (v3). The `site6_*`/`site7_*` columns stay and are no longer written. Old 14-value baselines count as "record again" and are never deleted. The ids `medialArch`/`lateralHeel` stay in `sensor_layout.json` `retired`, only to name v1.6 alerts and days; no map draws them.
+- **Split (plan approved 2026-11-25):**
+  - **S11-1 — data path** (`work/six-sites`, report 044): contract v1.7, `shared/`, test vectors, app data path, retired names, capture schema 3, `load_capture.py` (schemas 1–3), `preprocess.py`, dummy model; simulator (`left`/`right` at 6, `fsr8` build check) and FW-1 at 6 (mux map still a placeholder; avoid both halves of a bridged pair, report 043); `sim_check.py`, `compare.py`, `cal_trial.py`; goldens; the simulator boards reflashed (with the user's OK) and checked live.
+  - **S11-2 — UI, docs, release** (`work/six-sites-ui`, report 045): dot sizes (pressure 8/11/14, ring +7; temperature 10/14 if they fit at 260–400 px, else 8/12), Temperature tab for 6 sites, copy and Thai joiners for the retired names, DESIGN-SPEC, BACKLOG, PROGRESS, `mobile/CLAUDE.md`, SESSIONS status rows; release **1.0.0+7**.
+- **Note 10 checkpoint (end of S11-2, user; the S10 phone checks move here):** (1) record Storage counts and `firstInstallTime`, `adb install -r` only, everything still there; (2) both simulator boards: Diagnostics `N 6 · temperature v2, 6 sites · rejects 0`; (3) 5 min with 0 gaps; (4) `t` gives a TEMP_DELTA at a site; (5) old 8-site alerts show retired Thai names, no raw ids, no dot for site 6/7; (6) the old baseline shows "record again", a new 30 s recording is accepted; (7) TEST capture → export → `load_capture.py check` PASS, schema 3, 24 channels; (8) My feet shows 6 dots per foot on the Samsung font; (9) the notification header shows "SmartInsole" with the footprints small icon, and the round header icon is not the Flutter logo after a launcher refresh; (10) a second foot notification for the same foot within 2 min is silent but in the tray; (11) Thai site names and joined phrases are whole, with no boxes, in the Samsung font.
+- **Done when:** both feet stream 6 + 6 on the phone with every rule and capture working, and the screens show 6 sites per DESIGN-SPEC.
+
+### S10b — Expert text fixes (after S11)
+- **Requires:** S11 merged; the medical expert's feedback on the draft copy (DESIGN-SPEC Appendix A).
+- **Do:**
+  - apply the reviewed wording to the app's copy and Appendix A; reapply the Thai word joiners to any edited phrase with `keepTogether` (S10, `mobile/CLAUDE.md`) and extend the line-break test to it;
+  - **no-battery boards (report 043, contract v1.6 addendum 2):** when `battery_pct` is 255 (`battery_mv` 0, external power), show "USB" instead of a percentage wherever the battery is shown, and refuse to start an `SI-` research capture on such a board (`TEST-` captures stay allowed), with the reason on the pre-check;
+  - **BACKLOG 80 (board binding):** the user's decision on how the first connect picks the study's own board (procedure, `device_id` on Connection/readiness, or an expected `device_id` per foot);
+  - release **1.0.0+8** (S11 is +7), `tool/check_release_resources.sh`, short Note 10 check.
+- **Done when:** the phone shows the reviewed text, a USB-powered board reads "USB" and cannot start an `SI-` capture, and BACKLOG 80 is closed as decided.
 
 ---
 

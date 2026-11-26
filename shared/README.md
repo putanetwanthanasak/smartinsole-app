@@ -20,7 +20,7 @@ Files shared between the Flutter app (`mobile/`) and the new simulator
   app's TS parser; the Flutter parser is tested against them. See
   `test_vectors/README.md` (regenerate with
   `node shared/test_vectors/generate.mjs`).
-- **`model_input.json`** — Model A's 28 input channels (DATA-CONTRACT v1.6 §7.1; version 2 since S8D, version 1 had 24 for the 6-FSR insole)
+- **`model_input.json`** — Model A's 24 input channels (DATA-CONTRACT v1.7 §7.1; version 3 since S11, the same names as version 1; version 2 had 28 for the v1.6 8-FSR insole)
   in order, with their units (FSR kPa, accel g, gyro °/s), the 50 Hz rate
   and the 100-sample window / 50-sample stride. The app's
   `mobile/lib/device/model_channels.dart` must match it (a Dart test checks
@@ -33,8 +33,8 @@ Files shared between the Flutter app (`mobile/`) and the new simulator
   checks it and its pubspec entry) and reads the window and stride for
   Model A from it (S8A).
 - **`model_preprocess.json`** (S9) — Model A preprocessing "ทางเอ"
-  (DATA-CONTRACT v1.6 §7.1): 30 s quiet-standing median baseline on all
-  28 channels, then Min-Max with the training subjects' min/max, no
+  (DATA-CONTRACT v1.7 §7.1): 30 s quiet-standing median baseline on all
+  24 channels, then Min-Max with the training subjects' min/max, no
   clipping. `tools/model/preprocess.py` (Python reference) and
   `mobile/lib/gait/preprocess.dart` both refuse any other value; the app
   bundles a byte-identical copy (a test checks it).
@@ -45,23 +45,29 @@ Files shared between the Flutter app (`mobile/`) and the new simulator
   app's own capture code, each with its export `manifest.json`,
   `alerts.csv` and `expected.json` (the model rows the app's `pairFeet` +
   `modelRow` make):
-  - `schema2/` (S8D, capture schema 2, 8 FSR + 8 temperature sites):
-    28-channel rows, two temperature readings per foot (one site that
-    could not be read, one with poor contact) and a `TEMP_DELTA` with its
+  - `schema3/` (S11, capture schema 3, 6 FSR + 6 temperature sites):
+    24-channel rows, temperature readings per foot (one site that could
+    not be read, one with poor contact) and a `TEMP_DELTA` with its
     `temp_sites`. `mobile/test/capture/capture_fixture_test.dart` checks
     the code still writes exactly these files. Regenerate only after an
     intended format change: `UPDATE_CAPTURE_FIXTURE=1 flutter test
     test/capture/capture_fixture_test.dart` (in `mobile/`; writes
-    `schema2/` only).
+    `schema3/` only).
+  - `schema2/` (frozen since S11, never regenerated): the S8D session,
+    8 FSR + 8 temperature sites, 28-channel rows.
   - `schema1/` (frozen, never regenerated): the 6-FSR schema-1 session
-    from before S8D, 24-channel rows. It keeps old files loadable.
-  `load_capture.py --selftest` must reproduce both `expected.json` files.
-- **`sensor_layout.json`** (S8D, DATA-CONTRACT v1.6 §3.1) — the 8 sites per
-  foot in wire order (index = FSR channel = temperature site; NTC i sits
+    from before S8D, 24-channel rows (the v1 layout).
+  They keep old files loadable: `load_capture.py --selftest` must
+  reproduce all three `expected.json` files.
+- **`sensor_layout.json`** (S8D; version 2 since S11, DATA-CONTRACT v1.7
+  §3.1) — the 6 sites per foot in wire order (index = FSR channel = temperature site; NTC i sits
   next to FSR i): stable id, English and Thai name, region and the
   position in mm (left foot; the right foot mirrors), plus the display
   transform that places a site on the app's 120×268 foot map. Ids 0–5 are
-  the ids stored alerts and capture files already use. The app mirrors it
+  the ids stored alerts and capture files already use. `retired` names
+  v1.6's sites 6 (`medialArch`) and 7 (`lateralHeel`), no longer read:
+  only to name v1.6 data (stored alerts, days, capture schema 2), never
+  drawn. The app mirrors it
   in `mobile/lib/config/foot_layout.dart` (`test/config/foot_layout_test.dart`
   keeps them identical); `tools/capture/load_capture.py` reads its ids.
 
