@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Capture what a real insole board sends over BLE, from the laptop (bleak).
 
-For checking the hardware team's firmware against DATA-CONTRACT v1.6
+For checking the hardware team's firmware against DATA-CONTRACT v1.7
 (Appendix C) before any phone connects. Read-only apart from the control
 writes the check needs: START_STREAM, STOP_STREAM and, with
 --app-sequence, SYNC_TIME before START (the app's own connect sequence,

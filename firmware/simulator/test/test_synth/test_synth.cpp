@@ -136,8 +136,9 @@ void test_temperature_plausible_and_below_delta_threshold() {
 }
 
 void test_eight_channel_anatomy() {
-  // Lateral heel (7) loads at heel strike with the heel centre (5), before
-  // the medial arch (6), which carries a light mid-stance load (< 25 kPa).
+  // The fsr8 build check (v1.6 layout): lateral heel (7) loads at heel
+  // strike with the heel centre (5), before the medial arch (6), which
+  // carries a light mid-stance load (< 25 kPa).
   auto peakTime = [](uint8_t c) {
     uint32_t best = 0;
     uint16_t v = 0;

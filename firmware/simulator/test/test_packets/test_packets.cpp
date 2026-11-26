@@ -105,8 +105,9 @@ int16_t centi(JsonVariant c) {
   return c.isNull() ? kTempUnreadable : static_cast<int16_t>(std::lround(c.as<double>() * 100));
 }
 
-// Temperature v2 (contract v1.6 §3.2). The v1 file (temperature.json) is
-// no longer encodable: the simulator sends v2 only.
+// Temperature v2 (contract v1.7 §3.2, 6 sites). The v1 file
+// (temperature.json) and the v1.6 8-site file (temperature_v2_8sites.json)
+// are not encodable: the simulator sends 6-site v2 only.
 void test_temperature_v2() {
   JsonDocument doc = load("temperature_v2.json");
   int checked = 0, skipped = 0;
@@ -125,7 +126,7 @@ void test_temperature_v2() {
     }
     uint8_t buf[kTemperatureBytes];
     size_t len = encodeTemperature(buf, e["seq"], e["t_ms"], r);
-    TEST_ASSERT_EQUAL(32, len);
+    TEST_ASSERT_EQUAL(26, len);
     checkHex(c, toHex(buf, len), checked);
   }
   printf("temperature_v2.json: %d matched, %d not encodable\n", checked, skipped);
@@ -156,7 +157,8 @@ void test_packet_sizes() {
   TEST_ASSERT_EQUAL(232, sensorPacketSize(8, 8));  // the v1.6 insole
   TEST_ASSERT_EQUAL(120, sensorPacketSize(4, 8));
   TEST_ASSERT_EQUAL(28, sampleSize(8));
-  TEST_ASSERT_EQUAL(32, kTemperatureBytes);
+  TEST_ASSERT_EQUAL(26, kTemperatureBytes);
+  TEST_ASSERT_EQUAL(32, temperatureBytes(8));  // the v1.6 packet the app refuses
   TEST_ASSERT_TRUE(kMaxSensorPacketBytes <= kTargetMtu - kAttHeaderBytes);
 }
 

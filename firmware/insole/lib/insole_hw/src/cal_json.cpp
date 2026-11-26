@@ -66,7 +66,7 @@ const char* calErrorText(CalError e) {
     case CalError::DeviceId: return "device_id must be 1-32 printable characters, no \" or \\";
     case CalError::Pulldown: return "r_pulldown_ohm must be a whole number of ohms, 1-10000000";
     case CalError::Area: return "sensor_area_m2 must be a number above 0";
-    case CalError::Channels: return "channels must list exactly 8 entries";
+    case CalError::Channels: return "channels must list exactly 6 entries";
     case CalError::Index: return "channel index must be 0-7 in order";
     case CalError::Coefficient: return "a and b must be numbers, a not 0";
     case CalError::Offset: return "offset_adc must be a whole number 0-4095";

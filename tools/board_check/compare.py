@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compare a real board's BLE capture with DATA-CONTRACT v1.6 (Appendix C).
+"""Compare a real board's BLE capture with DATA-CONTRACT v1.7 (Appendix C).
 
 Reads one or more capture folders written by board_capture.py (offline: no
 Bluetooth, no serial port) and checks every packet against the contract,
@@ -43,11 +43,17 @@ import sim_check as sc  # noqa: E402
 
 VECTORS = REPO / "shared" / "test_vectors"
 THRESHOLDS = json.loads((REPO / "shared" / "thresholds.json").read_text())
-N_FSR = 8
-SENSOR_BYTES = 8 + 8 * (2 * N_FSR + 12)  # 232
-TEMP_BYTES = 32
+# Sites, their count and names from shared/sensor_layout.json (v1.7: 6 per
+# foot, the same count of pressure and temperature sites).
+LAYOUT = json.loads((REPO / "shared" / "sensor_layout.json").read_text())
+SITES = [s["id"] for s in LAYOUT["sites"]]  # hallux, meta1, ... (short, for the dump columns)
+N_FSR = len(SITES)
+assert N_FSR == sc.TEMP_SITES, "sensor_layout.json and sim_check.py disagree on the site count"
+SAMPLE_BYTES = 2 * N_FSR + 12
+SENSOR_BYTES = 8 + 8 * SAMPLE_BYTES  # 200
+TEMP_BYTES = sc.temp_bytes(N_FSR)  # 26
 STATUS_BYTES = 8
-MIN_MTU = SENSOR_BYTES + 3  # 235
+MIN_MTU = SENSOR_BYTES + 3  # 203
 TEMP_JUDGE_AFTER_S = 35  # one 30 s temperature period (§3.2) + 5 s
 # The capture pre-check's battery floor lives in Dart, not thresholds.json.
 CAPTURE_MIN_BATTERY = int(re.search(
@@ -57,8 +63,6 @@ NO_NTC = False  # set from --no-ntc
 ERROR_CODES = {0: "none", 1: "IMU not responding", 2: "NTC unreadable",
                3: "ADC saturated (short circuit?)", 4: "battery critically low",
                5: "internal memory full"}
-SITES = ["hallux", "MTH1", "MTH2-3", "MTH5", "lateral midfoot", "heel centre",
-         "medial arch", "lateral heel"]
 
 
 class Out:
@@ -109,19 +113,20 @@ def sensor_fields():
     f = [(0, 2, "<H", "seq"), (2, 4, "<I", "t0_ms"), (6, 1, "<B", "count"), (7, 1, "<B", "flags")]
     for i in range(N_FSR):
         f.append((8 + 2 * i, 2, "<H", f"s0 fsr[{i}] {SITES[i]}"))
+    imu = 8 + 2 * N_FSR
     for j, ax in enumerate("xyz"):
-        f.append((24 + 2 * j, 2, "<h", f"s0 accel {ax}"))
+        f.append((imu + 2 * j, 2, "<h", f"s0 accel {ax}"))
     for j, ax in enumerate("xyz"):
-        f.append((30 + 2 * j, 2, "<h", f"s0 gyro {ax}"))
+        f.append((imu + 6 + 2 * j, 2, "<h", f"s0 gyro {ax}"))
     return f
 
 
 def temp_fields():
     f = [(0, 2, "<H", "seq"), (2, 4, "<I", "t_ms"), (6, 1, "<B", "count"), (7, 1, "<B", "reserved")]
-    for i in range(8):
+    for i in range(N_FSR):
         f.append((8 + 2 * i, 2, "<h", f"temp[{i}] {SITES[i]}"))
-    for i in range(8):
-        f.append((24 + i, 1, "<B", f"quality[{i}]"))
+    for i in range(N_FSR):
+        f.append((8 + 2 * N_FSR + i, 1, "<B", f"quality[{i}]"))
     return f
 
 
@@ -145,7 +150,8 @@ def dump_side_by_side(o: Out, title: str, board: bytes, example: bytes, ex_name:
         o.p(f"  0x{off:02x}  {name:28s} {bb:12s} {bv:>8s} | {eb:12s} {ev:>8s}")
     if len(board) > max(off + size for off, size, _, _ in fields) and fields[0][3] == "seq" \
             and "s0 fsr[0] hallux" in [f[3] for f in fields]:
-        o.p(f"  ... samples 1-7 follow at 0x24, 0x40, ... (28 bytes each); board total {len(board)} bytes")
+        o.p(f"  ... samples 1-7 follow at 0x{8 + SAMPLE_BYTES:02x}, 0x{8 + 2 * SAMPLE_BYTES:02x}, ... "
+            f"({SAMPLE_BYTES} bytes each); board total {len(board)} bytes")
     o.p("  ```")
 
 
@@ -193,10 +199,10 @@ def analyse(o: Out, run_dir: Path, run: str, prev_last_t0):
     mtu = connected["mtu"]
     if connected.get("mtu_acquired") is False:
         # bleak's default 23, not the board's: nothing to judge.
-        o.check(run, "connection", f"MTU >= {MIN_MTU} (232-byte packet + 3)", "§2.3", "INFO",
+        o.check(run, "connection", f"MTU >= {MIN_MTU} ({SENSOR_BYTES}-byte packet + 3)", "§2.3", "INFO",
                 f"not measured (bleak could not acquire it; it reports {mtu})")
     else:
-        o.check(run, "connection", f"MTU >= {MIN_MTU} (232-byte packet + 3)", "§2.3",
+        o.check(run, "connection", f"MTU >= {MIN_MTU} ({SENSOR_BYTES}-byte packet + 3)", "§2.3",
                 "PASS" if mtu >= MIN_MTU else "FAIL", f"{mtu}")
     if mtu < MIN_MTU and connected.get("mtu_acquired") is not False:
         o.finding("blocker", "connection", "§2.3", f"MTU >= {MIN_MTU}", f"MTU {mtu} on the laptop",
@@ -324,10 +330,11 @@ def analyse(o: Out, run_dir: Path, run: str, prev_last_t0):
                       "calibration rejected: the app refuses the insole, nothing streams")
         if cal:
             n = len(cal["channels"])
-            o.check(run, "calibration", "exactly 8 channels, indexes 0-7", "§5.1, App. C item 4",
+            o.check(run, "calibration", f"exactly {N_FSR} channels, indexes 0-{N_FSR - 1}",
+                    "§5.1, App. C item 4",
                     "PASS" if n == N_FSR else "FAIL", f"N = {n}")
             if n != N_FSR:
-                o.finding("blocker", "calibration", "App. C item 4", "channels lists exactly 8 entries",
+                o.finding("blocker", "calibration", "App. C item 4", f"channels lists exactly {N_FSR} entries",
                           f"N = {n}", "calibrationFsrCount: the app refuses the insole, nothing streams")
             o.check(run, "calibration", "r_pulldown_ohm / sensor_area_m2", "§5.1", "INFO",
                     f"{cal['r_pulldown_ohm']} ohm / {cal['sensor_area_m2']} m2")
@@ -402,10 +409,10 @@ def analyse(o: Out, run_dir: Path, run: str, prev_last_t0):
                 per = (len(b) - 8) / b[6]
                 guess.append(f"count {b[6]} -> {per:g} bytes/sample -> N = {(per - 12) / 2:g}")
                 break
-        o.finding("blocker", "sensor", "§3.1, App. C item 2", f"{SENSOR_BYTES}-byte packets (N = 8, 8 samples)",
+        o.finding("blocker", "sensor", "§3.1, App. C item 2", f"{SENSOR_BYTES}-byte packets (N = {N_FSR}, 8 samples)",
                   f"lengths {bad}{' (' + guess[0] + ')' if guess else ''}",
                   "lengthMismatch / truncated: the app drops every such packet")
-    # The stream is judged at the contract's N = 8. If the calibration says
+    # The stream is judged at the contract's N = 6. If the calibration says
     # otherwise the app parses with that N (and refuses the insole first).
     n_cal = len(cal["channels"]) if cal else N_FSR
     if n_cal != N_FSR and during:
@@ -513,7 +520,7 @@ def analyse(o: Out, run_dir: Path, run: str, prev_last_t0):
         o.p(f"\n{run}: FSR raw ADC per channel over {len(S)} samples (min / median / max):")
         for i in range(n_parse):
             col = [s["fsr_adc"][i] for s in S]
-            o.p(f"  ch {i} {SITES[i] if i < 8 else '':16s} {min(col):5d} / {int(statistics.median(col)):5d}"
+            o.p(f"  ch {i} {SITES[i] if i < N_FSR else '':16s} {min(col):5d} / {int(statistics.median(col)):5d}"
                 f" / {max(col):5d}")
         # Unloaded FSRs all read about 0, so only samples where one of the two
         # is loaded say anything; "same" allows ADC noise of +-3.
@@ -531,7 +538,7 @@ def analyse(o: Out, run_dir: Path, run: str, prev_last_t0):
                 ", ".join(f"ch {a}~{b} in {f * 100:.0f} %" for a, b, f in dup) or "none")
         hard = [(a, b, f) for a, b, f in dup if f >= 0.95]
         if hard:
-            o.finding("issue", "sensor", "§3.1, App. C item 1", "8 independent FSR channels",
+            o.finding("issue", "sensor", "§3.1, App. C item 1", f"{N_FSR} independent FSR channels",
                       "the same reading (+-3 ADC): " + ", ".join(f"ch {a} ~ ch {b} in {f * 100:.1f} % of loaded samples"
                                                          for a, b, f in hard),
                       "two sites show one sensor's reading: the map, PTI and concentration get the wrong "
@@ -564,7 +571,7 @@ def analyse(o: Out, run_dir: Path, run: str, prev_last_t0):
                 active.append((idx, i, n_on))
         if active:
             o.check(run, "sensor", "channels pressed, in time order (> median + 300 ADC)", "§3.1", "INFO",
-                    ", ".join(f"ch {i} ({SITES[i] if i < 8 else '?'}) at {S[idx]['t_ms'] - S[0]['t_ms']} ms "
+                    ", ".join(f"ch {i} ({SITES[i] if i < N_FSR else '?'}) at {S[idx]['t_ms'] - S[0]['t_ms']} ms "
                               f"for {n_on * 20} ms" for idx, i, n_on in sorted(active)))
         else:
             o.check(run, "sensor", "channels pressed", "§3.1", "INFO", "no channel rose 300 ADC above its median")
@@ -592,14 +599,14 @@ def analyse(o: Out, run_dir: Path, run: str, prev_last_t0):
                     else f"|a| {min(g):.3f}..{max(g):.3f} g at rest")
             if on == len(stats):
                 o.finding("issue", "sensor", "§3.1, §8.3.2",
-                          "accel about 1 g (4096 LSB) at rest; an IMU is part of the v1.6 board (§1)",
+                          "accel about 1 g (4096 LSB) at rest; an IMU is part of the board (§1)",
                           f"{what}; gate statistic {min(stats):.2f} g",
                           "the walking gate reads 'walking' all the time: the 30 s baseline is refused as "
                           "'moved' (so Model A is not used) and PRESSURE_PEAK's gate is always open; the "
                           "IMU model channels carry no information")
             elif constant:
                 o.finding("issue", "sensor", "§3.1, §8.3.2",
-                          "real accel and gyro readings; an IMU is part of the v1.6 board (§1)", what,
+                          "real accel and gyro readings; an IMU is part of the board (§1)", what,
                           "the walking gate never opens: PRESSURE_PEAK (walking only) can never fire; the "
                           "IMU model channels carry no information")
     # Temperature
@@ -620,19 +627,20 @@ def analyse(o: Out, run_dir: Path, run: str, prev_last_t0):
             + (f"; {len(tbefore)} before START, {len(tafter)} after STOP" if tbefore or tafter else ""))
     if not tdur and long_enough:
         o.finding("issue", "temperature", "§3.2, App. C item 3",
-                  "a 32-byte temperature v2 packet every 30 s; with no NTC fitted, temp -32768 and quality 2 "
-                  "per site", f"no temperature packet in {dur_s:.0f} s",
+                  f"a {TEMP_BYTES}-byte temperature v2 packet every 30 s; with no NTC fitted, temp -32768 "
+                  "and quality 2 per site", f"no temperature packet in {dur_s:.0f} s",
                   "the app shows no temperature (no ΔT, no TEMP_DELTA); Diagnostics never shows "
-                  "'temperature v2, 8 sites'")
+                  f"'temperature v2, {N_FSR} sites'")
     tl = {}
     for _, b in tdur:
         tl[len(b)] = tl.get(len(b), 0) + 1
     if tdur:
-        o.check(run, "temperature", "exactly 32 bytes", "§3.2, App. C item 3",
+        o.check(run, "temperature", f"exactly {TEMP_BYTES} bytes", "§3.2, App. C item 3",
                 "PASS" if set(tl) == {TEMP_BYTES} else "FAIL", str(tl))
         if set(tl) != {TEMP_BYTES}:
-            o.finding("blocker", "temperature", "§3.2", "32-byte temperature v2", f"lengths {tl}"
-                      + (" (12 = the old v1.5 packet)" if 12 in tl else ""),
+            o.finding("blocker", "temperature", "§3.2", f"{TEMP_BYTES}-byte temperature v2", f"lengths {tl}"
+                      + (" (12 = the old v1.5 packet)" if 12 in tl else "")
+                      + (" (32 = the v1.6 8-site packet)" if 32 in tl else ""),
                       "tempLength: the app drops every packet")
     T, trej = [], {}
     for t, b in tdur:
@@ -641,10 +649,10 @@ def analyse(o: Out, run_dir: Path, run: str, prev_last_t0):
         except sc.Reject as e:
             trej[e.reason] = trej.get(e.reason, 0) + 1
     if tdur:
-        o.check(run, "temperature", "parses (count 8, quality 0-2)", "§3.2", "PASS" if not trej else "FAIL",
+        o.check(run, "temperature", f"parses (count {N_FSR}, quality 0-2)", "§3.2", "PASS" if not trej else "FAIL",
                 f"{len(T)} parsed, rejects {trej or 0}")
         for reason in trej:
-            o.finding("blocker", "temperature", "§3.2", "count 8 and quality 0-2", reason,
+            o.finding("blocker", "temperature", "§3.2", f"count {N_FSR} and quality 0-2", reason,
                       f"{reason}: the app drops the packet")
     for t, p, b in T:
         o.check(run, "temperature", f"seq {p['seq']} t_ms {p['t_ms']}: reserved byte", "§3.2",
@@ -688,7 +696,8 @@ def analyse(o: Out, run_dir: Path, run: str, prev_last_t0):
                                              if c["name"] == name)["hex"])
     if during:
         dump_side_by_side(o, f"{run}: first sensor packet after START, header + sample 0",
-                          during[0][1], vec("sensor_n8.json", "n8_8_samples"), "sensor_n8.json n8_8_samples",
+                          during[0][1], vec("sensor.json", "normal_8_samples_200_bytes"),
+                          "sensor.json normal_8_samples_200_bytes",
                           sensor_fields())
     if tdur:
         ex = "unreadable_all" if all(c is None for c in (T[0][1]["celsius"] if T else [None])) else "quality_mixed"
@@ -746,7 +755,7 @@ def main() -> int:
     buf = io.StringIO()
     with redirect_stdout(buf):
         ok = sc.selftest()
-    o.p("# Board capture vs DATA-CONTRACT v1.6")
+    o.p("# Board capture vs DATA-CONTRACT v1.7")
     o.p(f"parsers: sim_check.py {buf.getvalue().strip()}")
     if not ok:
         print(buf.getvalue())

@@ -1,5 +1,5 @@
 // The calibration blob served on the Calibration characteristic (DATA-CONTRACT
-// v1.6 §5.1 and Appendix C item 4): compact JSON, at most 512 bytes, exactly 8
+// v1.7 §5.1 and Appendix C item 4): compact JSON, at most 512 bytes, exactly 6
 // channels. Kept as numbers in NVS (cal_store) and rebuilt with a bounded
 // number of digits, so its length is predictable.
 //
@@ -17,7 +17,7 @@
 namespace insole_hw {
 
 constexpr size_t kMaxCalibrationBytes = 512;  // GATT attribute value limit
-constexpr uint8_t kCalChannels = 8;           // contract v1.6: N = 8
+constexpr uint8_t kCalChannels = 6;           // contract v1.7: N = 6
 constexpr size_t kMaxDeviceIdChars = 32;
 
 struct CalChannel {
