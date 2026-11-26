@@ -1,9 +1,11 @@
-import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_test/flutter_test.dart' hide expect;
 import 'package:smartinsole/ble/ble_protocol.dart';
 import 'package:smartinsole/ble/packets.dart';
 import 'package:smartinsole/rules/alert_copy.dart' show nbsp;
 import 'package:smartinsole/storage/models.dart';
 import 'package:smartinsole/ui/screens/my_feet/temp_chart_model.dart';
+
+import '../helpers/plain_text.dart';
 
 final _day = DateTime(2026, 10, 25, 8);
 final _period = TempLayout.notifyPeriod.inMilliseconds;

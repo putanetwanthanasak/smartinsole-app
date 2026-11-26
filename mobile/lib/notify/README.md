@@ -15,6 +15,7 @@ notifications (S9, DESIGN-SPEC §11.9): `TEMP_DELTA`, `PRESSURE_PEAK`,
 | `alert_notifier.dart` | `AlertNotifier` interface, `AlertNotice`, payload `alert:<id>` (fake in `test/helpers/`) |
 | `local_alert_notifier.dart` | Alerts on the shared plugin: channels `foot_alert` (sound) and `foot_alert_silent`, posted at once, private on the lock screen |
 | `alert_notification_service.dart` | `noticeFor` (the 4 codes, not during a capture, the alert's title and "ควรทำ" line) and the service on `AlertEngine.raised`; started by `ui/alert_notification_host.dart` |
+| `quiet_window.dart` | `NotificationQuietWindow`: with sound on, a foot alert within `alerts.quietNotifyMin` of the last sounded one for the same foot goes silent (S10, BACKLOG 76) |
 | `notification_access.dart` | Pure: whether a reminder would show, on every API level (app switch, Android 13+ permission, app-op); prompt only on 13+ |
 | `android_resources.dart` | Resource names looked up at runtime (kept in release builds) |
 | `reminder_providers.dart` | `ReminderService` (start, sync on settings / today's check changes), `notificationsAllowedProvider` |
@@ -25,6 +26,10 @@ Rules:
   (not after a force stop: Android sends no boot broadcast to a stopped
   app).
 - Sound off → the silent channel (a channel's sound can't change once made).
+- One sound per cause (S10, BACKLOG 76): a foot alert raised within
+  `alerts.quietNotifyMin` (2 min) of the last one that sounded for the same
+  foot is posted on the silent channel (still in the tray). Per foot, timed
+  by the alerts' `atMs`, in memory.
 - Inexact (`inexactAllowWhileIdle`): no exact-alarm permission. Alarms set
   a day or more ahead get a window of up to 1 hour (Note 10: +1 h), so
   19:00 may come as late as 20:00 (DESIGN-SPEC §11.8; accepted for now).
@@ -44,7 +49,11 @@ Rules:
   BACKLOG 73), never during a research capture.
 - No foreground service: alerts are raised only while Android lets the
   app run (BACKLOG 72).
-- The small icons `ic_stat_foot_check` and `ic_stat_foot_alert` are looked up by name, so it is a
+- The small icons `ic_stat_foot_check` (Lucide camera) and
+  `ic_stat_foot_alert` (Lucide footprints since S10) are white outlines on
+  transparent, never the launcher mipmap (an adaptive icon shows as a white
+  blob in the status bar). Both notifications are tinted
+  `AppColors.primary`. Each icon is looked up by name, so it is a
   constant in `android_resources.dart` and kept in
   `android/app/src/main/res/raw/keep.xml`; the release build's resource
   shrinker drops them otherwise (S8C, Note 10). See "Release resources" in

@@ -7,7 +7,10 @@ final clockProvider = Provider<DateTime Function()>((ref) => DateTime.now);
 
 /// Home header date, e.g. "วันศุกร์ 16 ตุลาคม". Thai date symbols are loaded
 /// by `GlobalMaterialLocalizations`, so call this below `MaterialApp`.
-String thaiLongDate(DateTime d) => DateFormat('EEEE d MMMM', 'th').format(d);
+/// The day and the month are joined by a no-break space, so "18 / ตุลาคม"
+/// never splits at large text (S10).
+String thaiLongDate(DateTime d) =>
+    DateFormat('EEEE d\u00A0MMMM', 'th').format(d);
 
 /// Buddhist Era = Gregorian year + 543 (Thai calendar years, as on the
 /// boards: "21 ต.ค. 2569").

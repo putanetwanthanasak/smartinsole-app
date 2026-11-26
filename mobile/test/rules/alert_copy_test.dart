@@ -1,4 +1,4 @@
-import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_test/flutter_test.dart' hide expect;
 import 'package:smartinsole/ble/packets.dart';
 import 'package:smartinsole/config/foot_layout.dart';
 import 'package:smartinsole/rules/alert_code.dart';
@@ -6,6 +6,8 @@ import 'package:smartinsole/rules/alert_copy.dart';
 import 'package:smartinsole/rules/patient_status.dart';
 import 'package:smartinsole/storage/models.dart' show LegacyTempSite;
 import 'package:smartinsole/ui/screens/home/home_copy.dart';
+
+import '../helpers/plain_text.dart';
 
 void main() {
   final thai = RegExp(r'[฀-๿]');
