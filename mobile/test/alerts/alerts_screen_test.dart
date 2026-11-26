@@ -2,7 +2,7 @@ import 'dart:math' as math;
 import 'dart:ui' show Tristate;
 
 import 'package:flutter/material.dart';
-import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_test/flutter_test.dart' hide expect;
 import 'package:smartinsole/ble/packets.dart';
 import 'package:smartinsole/rules/patient_status.dart';
 import 'package:smartinsole/storage/models.dart';
@@ -12,6 +12,8 @@ import 'package:smartinsole/ui/screens/foot_check_found_screen.dart';
 
 import '../helpers/pump_app.dart';
 import 'alerts_rig.dart';
+
+import '../helpers/plain_text.dart';
 
 /// Largest bell rotation (degrees) on the Alerts tab right now.
 double bellAngle(WidgetTester tester) {
@@ -70,12 +72,12 @@ void main() {
       expect(groupTitle(tester, '2026-10-18'), 'วันนี้');
       expect(groupTitle(tester, '2026-10-17'), 'เมื่อวาน · เสาร์ 17 ต.ค.');
       expect(groupTitle(tester, '2026-10-16'), 'ศุกร์ 16 ต.ค.');
-      expect(find.text('แสดงย้อนหลัง 30 วัน'), findsOneWidget);
+      expect(findPlainText('แสดงย้อนหลัง 30 วัน'), findsOneWidget);
       expect(
         tester.getTopLeft(byKey('group-2026-10-18')).dy,
         lessThan(tester.getTopLeft(byKey('group-2026-10-17')).dy),
       );
-      expect(find.text('จากการดูเท้าประจำวัน'), findsOneWidget);
+      expect(findPlainText('จากการดูเท้าประจำวัน'), findsOneWidget);
     });
 
     testWidgets('a finding\'s label carries its source line and advice', (
@@ -84,7 +86,7 @@ void main() {
       final handle = tester.ensureSemantics();
       await pumpAlerts(tester, size: const Size(390, 2000));
       expect(
-        find.bySemanticsLabel(
+        findPlainSemantics(
           'ควรระวัง 09:30 พบสิ่งที่ควรให้แพทย์ดู ยังไม่ได้อ่าน '
           'จากการดูเท้าประจำวัน ควรทำ: ไปพบแพทย์หรือพยาบาลภายใน 1–2 วัน '
           'และนำรูปที่ถ่ายไว้ไปให้ดู',
@@ -97,7 +99,7 @@ void main() {
     testWidgets('empty state', (tester) async {
       await pumpAlerts(tester, seed: false);
       expect(byKey('alerts-empty'), findsOneWidget);
-      expect(find.text('ยังไม่มีการแจ้งเตือน'), findsOneWidget);
+      expect(findPlainText('ยังไม่มีการแจ้งเตือน'), findsOneWidget);
       expect(unreadLine(tester), isNull);
       expect(byKey('alerts-footer'), findsNothing);
     });
@@ -111,7 +113,7 @@ void main() {
         read: {AlertKind.deviceLost, AlertKind.pressurePti},
       );
       expect(unreadLine(tester), 'ยังไม่ได้อ่าน 5 รายการ');
-      expect(find.text('ใหม่'), findsNWidgets(5));
+      expect(findPlainText('ใหม่'), findsNWidgets(5));
     });
 
     testWidgets('the unread line is a live region that stays in the tree', (
@@ -140,7 +142,7 @@ void main() {
       final handle = tester.ensureSemantics();
       final ids = await pumpAlerts(tester, read: {AlertKind.deviceLost});
       expect(
-        find.bySemanticsLabel(
+        findPlainSemantics(
           'ควรพักเท้า 09:00 เท้าขวาอุ่นกว่าเท้าซ้าย ยังไม่ได้อ่าน '
           'ควรทำ: นั่งพักเท้า แล้วตรวจดูว่ามีรอยแดงหรือแผลไหม',
         ),
@@ -155,7 +157,7 @@ void main() {
         ),
       );
       expect(
-        find.bySemanticsLabel(
+        findPlainSemantics(
           'อุปกรณ์ 16:20 แผ่นรองเท้าซ้ายหลุดการเชื่อมต่อ อ่านแล้ว '
           'ควรทำ: ตรวจว่าแผ่นรองเท้าเปิดอยู่ แล้วเชื่อมต่อใหม่',
         ),
@@ -171,7 +173,10 @@ void main() {
     ) async {
       final ids = await pumpAlerts(tester);
       expect(
-        find.descendant(of: byKey('alerts-badge'), matching: find.text('7')),
+        find.descendant(
+          of: byKey('alerts-badge'),
+          matching: findPlainText('7'),
+        ),
         findsOneWidget,
       );
       await openAlert(tester, ids, AlertKind.tempDelta);
@@ -181,7 +186,10 @@ void main() {
       expect(byKey('alerts-header'), findsOneWidget);
       expect(unreadLine(tester), 'ยังไม่ได้อ่าน 6 รายการ');
       expect(
-        find.descendant(of: byKey('alerts-badge'), matching: find.text('6')),
+        find.descendant(
+          of: byKey('alerts-badge'),
+          matching: findPlainText('6'),
+        ),
         findsOneWidget,
       );
       final stored = await tester.runAsync(
@@ -254,7 +262,7 @@ void main() {
 
     testWidgets('Home "ดูเพิ่ม" opens My feet › pressure', (tester) async {
       await pumpApp(tester);
-      final more = find.text('ดูเพิ่ม');
+      final more = findPlainText('ดูเพิ่ม');
       await tester.scrollUntilVisible(more, 200);
       await tester.tap(more);
       await tester.pumpAndSettle();
@@ -288,7 +296,9 @@ void main() {
       // Newest first: above the earlier TEMP_DELTA of today.
       expect(
         tester.getTopLeft(row).dy,
-        lessThan(tester.getTopLeft(find.text('เท้าขวาอุ่นกว่าเท้าซ้าย')).dy),
+        lessThan(
+          tester.getTopLeft(findPlainText('เท้าขวาอุ่นกว่าเท้าซ้าย')).dy,
+        ),
       );
     });
 
@@ -355,7 +365,7 @@ void main() {
       final ids = await pumpAlerts(tester, size: const Size(390, 2400));
       await openAlert(tester, ids, AlertKind.pressurePeak);
       expect(
-        find.bySemanticsLabel('เท้าซ้าย โคนนิ้วหัวแม่เท้ารับน้ำหนักมาก'),
+        findPlainSemantics('เท้าซ้าย โคนนิ้วหัวแม่เท้ารับน้ำหนักมาก'),
         findsOneWidget,
       );
       await tester.tap(byKey('back-link'));
@@ -363,17 +373,20 @@ void main() {
       await openAlert(tester, ids, AlertKind.tempDelta);
       // The sample TEMP_DELTA lists two sites: both are named.
       expect(
-        find.bySemanticsLabel(
+        findPlainSemantics(
           'เท้าขวา กลางส้นเท้า และส้นเท้าด้านนอกอุ่นกว่าเท้าซ้าย',
         ),
         findsOneWidget,
       );
       expect(
-        find.text('จุดที่อุ่นกว่าบนเท้าขวา: กลางส้นเท้า · ส้นเท้าด้านนอก'),
+        // No-break space before "·" (S10, BACKLOG 69).
+        findPlainText(
+          'จุดที่อุ่นกว่าบนเท้าขวา: กลางส้นเท้า\u00A0· ส้นเท้าด้านนอก',
+        ),
         findsOneWidget,
       );
       expect(
-        find.bySemanticsLabel('เท้าซ้าย จุดวัดความอุ่นทั้ง 8 จุด'),
+        findPlainSemantics('เท้าซ้าย จุดวัดความอุ่นทั้ง 8 จุด'),
         findsOneWidget,
       );
       handle.dispose();
