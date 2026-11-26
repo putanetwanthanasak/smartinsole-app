@@ -147,7 +147,7 @@ bytes and a full packet 232 bytes.
 
 | Offset | Size | Type | Field | Unit |
 |---|---|---|---|---|
-| +0 | 16 | uint16 × 8 | `fsr[0..7]` | ADC raw 0–4095 |
+| +0 | 16 | uint16 × 8 | `fsr[0..7]` | divider voltage, 12-bit counts of 3.3 V (0–4095; §5.1) |
 | +16 | 6 | int16 × 3 | `accel[x,y,z]` | 4096 LSB/g |
 | +22 | 6 | int16 × 3 | `gyro[x,y,z]` | 32.8 LSB/(°/s) |
 
@@ -202,13 +202,17 @@ One reading of all 8 sites every 30 s; site i is the NTC next to FSR i
 
 | Offset | ขนาด | ชนิด | ฟิลด์ | คำอธิบาย |
 |---|---|---|---|---|
-| 0 | 1 | uint8 | `battery_pct` | 0–100 |
+| 0 | 1 | uint8 | `battery_pct` | 0–100; 255 = no battery (external power, see below) |
 | 1 | 2 | uint16 | `battery_mv` | แรงดันจริง (mV) |
 | 3 | 1 | uint8 | `foot_side` | 0 = ซ้าย, 1 = ขวา |
 | 4 | 1 | uint8 | `fw_major` | เวอร์ชัน firmware |
 | 5 | 1 | uint8 | `fw_minor` | — |
 | 6 | 1 | uint8 | `state` | 0 = idle, 1 = streaming, 2 = error |
 | 7 | 1 | uint8 | `error_code` | 0 = ไม่มี, ดูภาคผนวก A |
+
+**v1.6 addendum (2026-11-09, FW-1):** a board with no battery (powered over
+USB on the bench) sends `battery_pct` 255 and `battery_mv` 0, never a made-up
+charge level.
 
 ### 3.4 Control Commands (App → Insole)
 
@@ -265,6 +269,13 @@ F_newton = a × R_fsr^b        // a, b จาก curve fitting รายชิ�
 P_kPa = F_newton / A_sensor / 1000   // A_sensor = พื้นที่รับแรงจริง (m²); F_newton / A_sensor คือหน่วย Pa — ต้องหาร 1000 เพื่อแปลงเป็น kPa
 ```
 
+**v1.6 addendum (2026-11-09, FW-1):** `adc` (each `fsr[i]`, and `offset_adc`)
+is the divider's output voltage in 12-bit counts of the 3.3 V supply,
+`count = round(mV × 4095 / 3300)` from the chip's calibrated millivolts, not
+the raw ADC code. An ESP32-C3 reads only up to 2.5 V (about 3100 counts) and
+sets flags bit0 at that ceiling. Both firmware tracks send this unit, and the
+per-sensor `a`/`b` fits use it.
+
 ค่าที่ต่ำกว่าจุดศูนย์ (adc < offset_adc) หมายถึง drift หรือ noise ของเซนเซอร์ ไม่ใช่แรงกดติดลบ — จึง clamp ที่ 0 เสมอ
 
 ทีมฮาร์ดแวร์ต้องส่งมอบ **ตาราง calibration** ในรูปแบบ JSON:
@@ -292,6 +303,14 @@ P_kPa = F_newton / A_sensor / 1000   // A_sensor = พื้นที่รั�
 accel_g   = raw / 4096.0
 gyro_dps  = raw / 32.8
 ```
+
+**v1.6 addendum (2026-11-09, FW-1): axes.** Both insoles use the same
+right-handed frame: x toward the toes, y toward the wearer's left, z up out
+of the insole into the foot. Lying flat at rest, accel z reads +1 g (+4096);
+toes pointing down, x reads −1 g; left edge down, y reads −1 g. Rotation is
+positive counter-clockwise about each axis (seen from its positive end). The
+firmware maps the IMU chip's axes to this frame with a per-foot table,
+because the chip sits differently in each foot's box.
 
 ### 5.3 อุณหภูมิ
 
@@ -912,3 +931,4 @@ battery 87 % (3987 mV), foot_side 0 (left), firmware 1.4, state 1 (streaming), e
 | 1.6 addendum | 2026-11-02 | S9-2 (this repo) | §7.1: one baseline function for capture trial 00 (training) and the Researcher recording (app): the first `baselineSeconds` × 50 samples per foot, refused on a reconnect, lost packets, a TARE, a marked-invalid sample, not 8 FSR, the walking gate, a foot not loaded, or too few samples; training uses the newest valid trial-00 attempt that passes; a trial 00 that ends at most `baselineToleranceSamples` short still passes. `shared/test_vectors/baseline/` (with `slow_clock`). Not yet sent back to the contract owner. |
 | 1.6 addendum | 2026-11-02 | S10 (this repo) | `alerts.quietNotifyMin` (2): a foot alert notification within this many minutes of the last one that sounded for the same foot is posted silently (app notification behaviour only, no alert rule changes; BACKLOG 76, DESIGN-SPEC §11.9). Additive: the file's `"version"` stays 1. Not yet sent back to the contract owner. |
 | 1.6 addendum | 2026-11-09 | SR-1 (this repo) | Appendix C item 4: the calibration JSON is sent compact (no spaces or newlines), at most 512 bytes (the GATT value limit; the Appendix C example is 594 bytes as printed, 478 compact). Found while preparing the first real-board check (report 042). For the hardware team. |
+| 1.6 addendum 2 | 2026-11-09 | FW-1 plan (this repo, user decisions) | §3.1 / §5.1: `fsr` and `offset_adc` are the divider voltage in 12-bit counts of 3.3 V (`mV × 4095 / 3300`), not the raw ADC code; the ESP32-C3 tops out at 2.5 V and sets flags bit0 there. §3.3: `battery_pct` 255 with `battery_mv` 0 = no battery (external power). §5.2: one IMU axis frame for both insoles (x toes, y left, z up), mapped per foot in firmware. |
