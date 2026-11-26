@@ -126,11 +126,11 @@ void main() {
       );
       final banner = tester.widget<SummaryBanner>(find.byType(SummaryBanner));
       expect(banner.level.name, 'rest');
-      // The rest preset: heel centre +2.6, lateral heel +2.3 on the right.
+      // The rest preset: heel centre +2.6, lateral midfoot +2.3 on the right.
       expect(banner.title, 'กลางส้นเท้าขวาอุ่นกว่าซ้าย 2.6 องศา');
       // Top rows: both alerting sites first, with the warmer foot and the
       // Rest icon.
-      for (final site in ['heel', 'lateralHeel']) {
+      for (final site in ['heel', 'midfoot']) {
         final row = byKey('temp-row-$site');
         expect(row, findsOneWidget);
         expect(
@@ -147,7 +147,7 @@ void main() {
       }
       final map = tester.widget<TempSiteMap>(byKey('temp-map-right'));
       expect(map.marks[5], TempSiteMark.warmRinged);
-      expect(map.marks[7], TempSiteMark.warmRinged);
+      expect(map.marks[4], TempSiteMark.warmRinged);
       expect(
         tester.widget<TempSiteMap>(byKey('temp-map-left')).marks,
         everyElement(TempSiteMark.plain),

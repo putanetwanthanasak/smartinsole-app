@@ -250,10 +250,10 @@ String _rejects(LinkStats st) => st.rejects.isEmpty
     ? '0'
     : st.rejects.entries.map((e) => '${e.key.name} ${e.value}').join(', ');
 
-/// The SR first-connection check on one line (DATA-CONTRACT v1.6
+/// The SR first-connection check on one line (DATA-CONTRACT v1.7
 /// Appendix C): the calibration's N, the temperature format once a valid
 /// packet arrived, and the rejects. On real boards it must read
-/// "N 8 · temperature v2, 8 sites · rejects 0".
+/// "N 6 · temperature v2, 6 sites · rejects 0".
 @visibleForTesting
 String formatLine(LinkStats st) {
   final n = st.calibrationFsrCount;

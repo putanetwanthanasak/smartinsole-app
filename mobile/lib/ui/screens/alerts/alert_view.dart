@@ -92,17 +92,34 @@ AlertCopy copyOf(StoredAlert a) {
     side: a.side ?? FootSide.left,
     channel: channelOf(a.zone),
     legacySite: a.legacySite,
+    retired: retiredOf(a.zone),
     value: a.measuredValue,
     threshold: a.threshold,
   );
 }
 
-/// FSR channel of a stored zone id, or null.
+/// FSR channel of a stored zone id, or null (also for a retired v1.6 id).
 int? channelOf(String? zoneId) {
   if (zoneId == null) return null;
   final i = footLayout.zones.indexWhere((z) => z.id == zoneId);
   return i < 0 ? null : i;
 }
+
+/// The retired v1.6 site a stored zone id names (DATA-CONTRACT v1.7 §3.1),
+/// or null: such an alert keeps its name but has no place on the map.
+RetiredSite? retiredOf(String? zoneId) =>
+    zoneId == null ? null : footLayout.retiredById(zoneId);
+
+/// Thai name of any stored site id for running text: a current zone, a
+/// retired v1.6 site, or the raw id if neither (never seen in practice).
+String siteDisplayTh(String zoneId) {
+  final i = channelOf(zoneId);
+  if (i != null) return footLayout.zones[i].displayTh;
+  return retiredOf(zoneId)?.displayTh ?? zoneId;
+}
+
+/// [siteDisplayTh] without the joiners (TalkBack, detail-row labels).
+String sitePlainTh(String zoneId) => footLayout.nameThOf(zoneId) ?? zoneId;
 
 /// The list card's optional source line (§7.2 item 3).
 String? sourceLineOf(StoredAlert a) =>
@@ -181,8 +198,10 @@ AlertAction? actionOf(AlertKind kind) => switch (kind) {
 // --- Detail: the "ตำแหน่งที่พบ" map ----------------------------------------
 
 /// Temperature sites (`TEMP_DELTA`): the warmer foot's site is ringed.
-/// Only for alerts stored since the 8 sites (schema v2): an older alert's
-/// forefoot / heel site is not one of them, so it shows no map.
+/// Only for alerts stored since the per-site readings (schema v2) whose
+/// named site is a current one: an older alert's forefoot / heel site, or a
+/// v1.6 alert at a retired site, shows no map. A retired site among the
+/// other qualifying sites is named in [sitesLine] but not marked.
 class TempMapView {
   const TempMapView({
     required this.warmSide,
@@ -198,8 +217,8 @@ class TempMapView {
   /// Zone index of the site the alert names (ringed).
   final int site;
 
-  /// Every qualifying site on [warmSide] (`details.tempSites`, zone
-  /// indexes, [site] included): marked "จุดที่อุ่นกว่า".
+  /// Every current qualifying site on [warmSide] (`details.tempSites`,
+  /// zone indexes, [site] included): marked "จุดที่อุ่นกว่า".
   final Set<int> sites;
   final String caption;
 
@@ -226,15 +245,16 @@ TempMapView? tempMapOf(StoredAlert a) {
     return null;
   }
   // The named site first, then the others in stored order (largest |ΔT|
-  // first).
-  final sites = <int>{
-    site,
-    for (final e in TempSiteEntry.listOf(a.details)) ?channelOf(e.zone),
+  // first). Ids, so a retired v1.6 site keeps its name (not its mark).
+  final ids = <String>{
+    a.zone!,
+    for (final e in TempSiteEntry.listOf(a.details)) e.zone,
   };
-  final names = [for (final i in sites) footLayout.zones[i].displayTh];
+  final sites = <int>{for (final id in ids) ?channelOf(id)};
+  final names = [for (final id in ids) siteDisplayTh(id)];
   final name = names.first;
   // TalkBack reads names plain (S10: joiners are for line breaks only).
-  final spoken = [for (final i in sites) footLayout.zones[i].nameTh];
+  final spoken = [for (final id in ids) sitePlainTh(id)];
   final s = sideTh(side);
   final o = sideTh(otherSide(side));
   return TempMapView(
@@ -243,7 +263,7 @@ TempMapView? tempMapOf(StoredAlert a) {
     sites: sites,
     caption: '$name$sอุ่นกว่า$name$o',
     // S8D-2 draft.
-    sitesLine: sites.length < 2
+    sitesLine: ids.length < 2
         ? null
         // Each name stays whole, and "·" never starts a line (S10,
         // BACKLOG 69).
@@ -308,8 +328,8 @@ PressureMapView? pressureMapOf(StoredAlert a, Thresholds t) {
       final foot = map[f.name];
       final names = foot is Map ? foot['levels'] : null;
       final kpa = foot is Map ? foot['kpa'] : null;
-      // A map stored before the 8 zones (schema v1) has 6 entries: zones
-      // 6–7 were not recorded then.
+      // Shown over the current 6 zones: a map stored by a v1.6 build (8
+      // entries) keeps its retired zones 6–7 in storage, not on the map.
       final list = names is List
           ? [
               for (var c = 0; c < footLayout.zones.length; c++)
@@ -373,8 +393,8 @@ FootMapView _footMapView(
   if (levels == null || levels.every((l) => l == null)) {
     return FootMapView(side: side);
   }
-  // A null zone in a stored map is one a 6-zone map did not record
-  // (zones 6–7, before S8D); it never makes the foot "no data".
+  // A null zone in a stored map is one it did not record; it never makes
+  // the foot "no data".
   final l = [for (final x in levels) x ?? PressureLevel.low];
   double k(int c) =>
       kpa != null && c < kpa.length ? (kpa[c] as num).toDouble() : 0;
@@ -429,7 +449,9 @@ List<DetailRow> detailRowsOf(StoredAlert a, Thresholds t) {
   final side = a.side;
   final s = side == null ? '' : sideTh(side);
   final channel = channelOf(a.zone);
-  final zone = channel == null ? '' : footLayout.zones[channel].displayTh;
+  final zone = channel != null
+      ? footLayout.zones[channel].displayTh
+      : retiredOf(a.zone)?.displayTh ?? '';
   final level = DetailRow('ระดับภายในระบบ', '${a.level} จาก $maxLevel');
   final at = DetailRow('เวลาที่พบ', thaiDateTimeBE(localTimeOf(a)));
   final source = t.sourceOf(a.kind.wireName);
@@ -455,9 +477,8 @@ List<DetailRow> detailRowsOf(StoredAlert a, Thresholds t) {
       // a name inside running text).
       final name = channel != null
           ? footLayout.zones[channel].nameTh
-          : legacy == null
-          ? ''
-          : legacyTempSiteTh(legacy);
+          : retiredOf(a.zone)?.nameTh ??
+                (legacy == null ? '' : legacyTempSiteTh(legacy));
       final otherName = legacy == null
           ? null
           : legacyTempSiteTh(
@@ -469,10 +490,7 @@ List<DetailRow> detailRowsOf(StoredAlert a, Thresholds t) {
       final other = _d(d, 'otherSiteDeltaC');
       // Every site that qualified (largest |ΔT| first, later ones after).
       final sites = TempSiteEntry.listOf(d);
-      String siteName(String id) {
-        final i = channelOf(id);
-        return i == null ? id : footLayout.zones[i].displayTh;
-      }
+      String siteName(String id) => siteDisplayTh(id);
       rows.addAll([
         if (leftC != null && rightC != null)
           DetailRow(name, 'ซ้าย ${_c(leftC)} °C · ขวา ${_c(rightC)} °C'),

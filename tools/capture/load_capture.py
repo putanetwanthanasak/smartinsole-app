@@ -13,14 +13,18 @@ Standard library only; numpy is used for model_matrix(as_numpy=True) if
 present. Units are already final in the CSV (kPa, g, deg/s, from the app's
 parser, checked against shared/test_vectors): this loader never converts.
 
-Two capture schemas, read per trial (each sidecar names its own, so a
-session started before the 8-sensor update and finished after it loads):
+Three capture schemas, read per trial (each sidecar names its own, so a
+session started before an update and finished after it loads):
   1  6 FSR per foot; temperature temp_forefoot_c / temp_heel_c /
      temp_quality; model rows are the 24-channel v1 layout
   2  8 FSR per foot (DATA-CONTRACT v1.6); temperature temp0_c..temp7_c and
-     temp0_q..temp7_q (site i = FSR i); model rows are the 28 channels of
-     shared/model_input.json version 2
-A schema-1 trial is never padded to 28 channels.
+     temp0_q..temp7_q (site i = FSR i); model rows are the 28-channel v2
+     layout
+  3  6 FSR per foot (DATA-CONTRACT v1.7, sites 0-5 of v1.6); temperature
+     temp0_c..temp5_c and temp0_q..temp5_q; model rows are the 24 channels
+     of shared/model_input.json version 3
+A trial is never padded or cut to another schema's channels: schema 1 and
+schema 3 rows have the same 24 names, but only schema 3 is model_input v3.
 
   python3 tools/capture/load_capture.py check <session-dir>...
   python3 tools/capture/load_capture.py --selftest
@@ -40,8 +44,8 @@ import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
 
-SCHEMA = 2  # what the app writes now
-SCHEMAS = (1, 2)  # what this loader reads
+SCHEMA = 3  # what the app writes now
+SCHEMAS = (1, 2, 3)  # what this loader reads
 REPO = Path(__file__).resolve().parents[2]
 MODEL_INPUT = REPO / "shared" / "model_input.json"
 SENSOR_LAYOUT = REPO / "shared" / "sensor_layout.json"
@@ -55,27 +59,31 @@ INT_COLUMNS = {
     "device_ms", "conn_session", "seq", "i", "missing_before",
     "saturated", "calibrating", "valid",
 }
-TEMP_SITES = 8
-# Per schema: FSR channels per foot, temperature columns (forward-filled).
-FSR_COUNT = {1: 6, 2: 8}
+# Per schema: FSR channels per foot, temperature sites (schema 1 has the
+# forefoot / heel pair instead), temperature columns (forward-filled).
+FSR_COUNT = {1: 6, 2: 8, 3: 6}
+TEMP_SITES = {2: 8, 3: 6}
 TEMP_COLUMNS = {
     1: ("temp_unix_ms", "temp_forefoot_c", "temp_heel_c", "temp_quality"),
-    2: ("temp_unix_ms",
-        *(f"temp{i}_c" for i in range(TEMP_SITES)),
-        *(f"temp{i}_q" for i in range(TEMP_SITES))),
+    **{s: ("temp_unix_ms",
+           *(f"temp{i}_c" for i in range(n)),
+           *(f"temp{i}_q" for i in range(n)))
+       for s, n in TEMP_SITES.items()},
 }
-TEXT_COLUMNS = {"side", "temp_quality", *(f"temp{i}_q" for i in range(TEMP_SITES))}
+TEXT_COLUMNS = {"side", "temp_quality",
+                *(f"temp{i}_q" for i in range(max(TEMP_SITES.values())))}
 TEMP_QUALITIES = ("normal", "poorContact", "sensorFault")
 
 
 def model_channels(schema: int, model_input: dict | None = None) -> list[str]:
-    """Model channel names of a trial of [schema]: schema 2 is
-    shared/model_input.json (version 2); schema 1 is the 24-channel v1
-    layout it was recorded for, kept here because model_input.json moved on."""
-    if schema == 2:
+    """Model channel names of a trial of [schema]: schema 3 is
+    shared/model_input.json (version 3); schemas 1 and 2 are the 24-channel
+    v1 and 28-channel v2 layouts they were recorded for, kept here because
+    model_input.json moved on."""
+    if schema == SCHEMA:
         mi = model_input or load_model_input()
-        if mi["version"] != 2:
-            raise ValueError(f"model_input.json version {mi['version']}, schema 2 needs 2")
+        if mi["version"] != 3:
+            raise ValueError(f"model_input.json version {mi['version']}, schema 3 needs 3")
         return list(mi["channels"])
     n = FSR_COUNT[schema]
     return [c for side in SIDES for c in (
@@ -108,9 +116,15 @@ ALERT_LEVELS = {
     "DEVICE_LOST": 1, "BATTERY_LOW": 1,
 }
 ZONE_CODES = {"PRESSURE_WATCH", "PRESSURE_PEAK", "PRESSURE_PTI", "LOAD_CONCENTRATION"}
-# Zone / temperature-site ids in channel order (DATA-CONTRACT v1.6 §3.1).
-ZONES = tuple(s["id"] for s in json.loads(
-    SENSOR_LAYOUT.read_text(encoding="utf-8"))["sites"])
+# Zone / temperature-site ids in channel order (DATA-CONTRACT v1.7 §3.1),
+# then the v1.6 sites v1.7 retired (6 medialArch, 7 lateralHeel): an alert
+# stored by a v1.6 build can name them, and alerts.csv cannot say which
+# build raised a row, so the v2 header accepts all 8.
+_LAYOUT = json.loads(SENSOR_LAYOUT.read_text(encoding="utf-8"))
+ZONES = tuple(s["id"] for s in _LAYOUT["sites"])
+RETIRED_ZONES = tuple(s["id"] for s in sorted(
+    _LAYOUT["retired"]["sites"], key=lambda s: s["index"]))
+ALERT_ZONES = ZONES + RETIRED_ZONES
 SITES = ("forefoot", "heel")  # TEMP_DELTA stored before the update
 PATIENT_STATUSES = ("noData", "safe", "careful", "rest")
 
@@ -264,8 +278,8 @@ def pair_feet(left: list[dict], right: list[dict], tolerance_ms: float) -> list[
 
 def model_matrix(trial: Trial, model_input: dict | None = None,
                  valid_only: bool = True, as_numpy: bool = False):
-    """[n, 28] rows (schema 2) in shared/model_input.json channel order, or
-    [n, 24] rows (schema 1) in the v1 order ([model_channels]), the feet
+    """[n, 24] rows (schema 3) in shared/model_input.json channel order, or
+    the v1 (schema 1, 24) / v2 (schema 2, 28) order ([model_channels]), the feet
     paired by its `pairing` rule. Rows marked invalid are dropped before
     pairing when valid_only. Returns (rows, pairs) where pairs holds the
     (left unix_ms, right unix_ms) of each row."""
@@ -357,9 +371,9 @@ def check_trial(trial: Trial, meta: dict) -> list[tuple[str, str]]:
         out.append(("WARN", f"stopped early at {sc['durationS']:.1f} of {sc['plannedS']} s"))
     else:
         bad(f"ended {sc['endReason']}")
-    # Temperature quality names (schema 2 per site).
-    if trial.schema == 2:
-        q_cols = [f"temp{i}_q" for i in range(TEMP_SITES)]
+    # Temperature quality names (schemas 2 and 3 per site).
+    if trial.schema in TEMP_SITES:
+        q_cols = [f"temp{i}_q" for i in range(TEMP_SITES[trial.schema])]
         odd = {r[c] for side in SIDES for r in trial.rows[side] for c in q_cols
                if r[c] is not None and r[c] not in TEMP_QUALITIES}
         if odd:
@@ -403,7 +417,7 @@ def check_alerts(session: Session) -> list[tuple[str, str]]:
             bad(f"patient_status {a['patient_status']!r}")
         if a["side"] not in SIDES:
             bad(f"side {a['side']!r}")
-        zones = ZONES if v2 else ZONES[:6]
+        zones = ALERT_ZONES if v2 else ZONES
         if code in ZONE_CODES:
             if a["zone"] not in zones:
                 bad(f"zone {a['zone']!r}")
@@ -450,7 +464,7 @@ def _temp_sites_problems(cell: str, zone: str) -> list[str]:
     out, seen = [], []
     for part in cell.split(";"):
         bits = part.split(":")
-        if len(bits) != 3 or bits[0] not in ZONES:
+        if len(bits) != 3 or bits[0] not in ALERT_ZONES:
             out.append(f"temp_sites entry {part!r}")
             continue
         try:
@@ -532,17 +546,25 @@ def selftest() -> bool:
         ok = ok and cond
 
     mi = load_model_input()
-    expect(mi["version"] == 2 and len(mi["channels"]) == 28
-           and model_channels(2, mi) == mi["channels"],
-           "model_input.json is version 2, 28 channels")
+    expect(mi["version"] == 3 and len(mi["channels"]) == 24
+           and model_channels(3, mi) == mi["channels"],
+           "model_input.json is version 3, 24 channels")
     expect(len(model_channels(1)) == 24 and model_channels(1)[6] == "L_accel_x_g",
            "schema 1 keeps its 24-channel v1 layout")
+    expect(len(model_channels(2)) == 28 and model_channels(2)[8] == "L_accel_x_g"
+           and model_channels(2)[14] == "R_fsr0_kpa",
+           "schema 2 keeps its 28-channel v2 layout")
+    expect(ZONES == ("hallux", "meta1", "meta3", "meta5", "midfoot", "heel")
+           and RETIRED_ZONES == ("medialArch", "lateralHeel"),
+           "zones 0-5 from sensor_layout.json, retired 6-7 after them")
 
+    about = {1: "frozen, 6 FSR, 2 temperature sites",
+             2: "frozen, 8 FSR, 8 sites (v1.6)",
+             3: "written by the app, 6 FSR, 6 sites (v1.7)"}
     sessions = {}
     for schema in SCHEMAS:
         fixture = FIXTURES / f"schema{schema}"
-        print(f"selftest: shared/capture_fixture/schema{schema} "
-              f"({'frozen, 6 FSR' if schema == 1 else 'written by the app, 8 FSR'})")
+        print(f"selftest: shared/capture_fixture/schema{schema} ({about[schema]})")
         session_dir = next(p for p in fixture.iterdir() if p.is_dir())
         expected = json.loads((fixture / "expected.json").read_text(encoding="utf-8"))
         expect(verify_manifest(session_dir) == [], "manifest checksums match")
@@ -580,32 +602,44 @@ def selftest() -> bool:
         expect(session.alerts[0]["zone"] == "meta1" and session.alerts[0]["side"] == "L",
                "alerts.csv row: left meta1")
 
-    # Schema 2 temperatures: 8 sites, forward-filled, an unread site empty.
+    # Per-site temperatures: forward-filled, an unread site empty.
+    s3 = sessions[3]
+    t3 = s3.trials[0]
+    first = next(r for r in t3.rows["L"] if r["temp_unix_ms"] is not None)
+    expect(first["temp0_c"] == 31.0 and first["temp4_c"] is None
+           and first["temp0_q"] == "normal",
+           "schema 3: left reading has 6 sites, site 4 unread")
+    expect("temp5_c" in t3.columns and "temp6_c" not in t3.columns
+           and "fsr5_kpa" in t3.columns and "fsr6_kpa" not in t3.columns,
+           "schema 3: 6 FSR and 6 temperature columns, nothing for sites 6-7")
+    right = next(r for r in t3.rows["R"] if r["temp_unix_ms"] is not None)
+    expect(right["temp2_q"] == "poorContact", "schema 3: right site 2 in poor contact")
+    expect(t3.rows["L"][-1]["temp5_c"] is not None, "schema 3: readings forward-fill")
     s2 = sessions[2]
     t2 = s2.trials[0]
     first = next(r for r in t2.rows["L"] if r["temp_unix_ms"] is not None)
     expect(first["temp0_c"] == 31.0 and first["temp6_c"] is None
-           and first["temp0_q"] == "normal",
-           "schema 2: left reading has 8 sites, site 6 unread")
-    right = next(r for r in t2.rows["R"] if r["temp_unix_ms"] is not None)
-    expect(right["temp2_q"] == "poorContact", "schema 2: right site 2 in poor contact")
-    expect(t2.rows["L"][-1]["temp7_c"] is not None, "schema 2: readings forward-fill")
+           and t2.rows["L"][-1]["temp7_c"] is not None,
+           "schema 2 (v1.6): 8 sites, site 6 unread, forward-filled")
     s1 = sessions[1]
     expect("temp_forefoot_c" in s1.trials[0].columns
            and "fsr6_kpa" not in s1.trials[0].columns,
            "schema 1: 6 FSR, forefoot/heel temperature columns")
 
-    temp = next(a for a in s2.alerts if a["code"] == "TEMP_DELTA")
+    temp = next(a for a in s3.alerts if a["code"] == "TEMP_DELTA")
     expect(temp["zone"] == "heel" and temp["site"] == ""
-           and temp["temp_sites"].split(";")[1].startswith("lateralHeel:"),
-           "alerts.csv TEMP_DELTA: zone heel, temp_sites heel then lateralHeel")
+           and temp["temp_sites"].split(";")[1].startswith("midfoot:"),
+           "alerts.csv TEMP_DELTA (schema 3): zone heel, temp_sites heel then midfoot")
+    temp2 = next(a for a in s2.alerts if a["code"] == "TEMP_DELTA")
+    expect(temp2["temp_sites"].split(";")[1].startswith("lateralHeel:"),
+           "alerts.csv TEMP_DELTA (schema 2): temp_sites heel then lateralHeel")
 
     def alert_problems(session: Session, rows: list[dict]) -> list[str]:
         s = Session(session.path, session.meta, [], rows, session.alert_columns)
         return [m for level, m in check_alerts(s) if level == "FAIL"]
     for schema, session in sessions.items():
         good = dict(session.alerts[0])
-        tag = f"alerts.csv v{1 if schema == 1 else 2}"
+        tag = f"alerts.csv v{1 if schema == 1 else 2} (schema {schema})"
         expect(alert_problems(session, [{**good, "level": "4"}]) != [], f"{tag}: a wrong level fails")
         expect(alert_problems(session, [{**good, "code": "PRESSURE_HIGH"}]) != [],
                f"{tag}: an unknown code fails")
@@ -618,7 +652,7 @@ def selftest() -> bool:
         expect(alert_problems(session, [legacy]) == [],
                f"{tag}: a TEMP_DELTA row stored before the update (site forefoot) passes")
         # Since S6B a pressure alert's details also hold both feet's foot map.
-        n = 6 if schema == 1 else 8
+        n = FSR_COUNT[schema]
         with_map = json.dumps({"walking": True, "map": {
             "left": {"kpa": [20.0, 236.5] + [20.0] * (n - 2),
                      "levels": ["low", "high"] + ["low"] * (n - 2)},
@@ -627,18 +661,22 @@ def selftest() -> bool:
                f"{tag}: details with a nested foot map passes")
     expect(alert_problems(s1, [{**dict(s1.alerts[0]), "zone": "lateralHeel"}]) != [],
            "alerts.csv v1: an 8-sensor zone fails")
-    expect(alert_problems(s2, [{**dict(s2.alerts[0]), "zone": "lateralHeel"}]) == [],
-           "alerts.csv v2: zone lateralHeel passes")
+    expect(alert_problems(s3, [{**dict(s3.alerts[0]), "zone": "lateralHeel"}]) == [],
+           "alerts.csv v2: a v1.6 alert at a retired zone (lateralHeel) passes")
+    expect(alert_problems(s3, [{**dict(s3.alerts[0]), "zone": "midfoot"}]) == [],
+           "alerts.csv v2: zone midfoot passes")
     for cell, what in (("", "no temp_sites"), ("heel:2.6:1;heel:2.4:2", "a zone twice"),
-                       ("lateralHeel:2.3:1;heel:2.6:1", "the named zone not first"),
+                       ("midfoot:2.3:1;heel:2.6:1", "the named zone not first"),
                        ("toe:2.6:1", "an unknown zone"), ("heel:x:1", "a bad number")):
-        expect(alert_problems(s2, [{**temp, "temp_sites": cell}]) != [],
+        expect(alert_problems(s3, [{**temp, "temp_sites": cell}]) != [],
                f"alerts.csv v2 TEMP_DELTA: {what} fails")
-    expect(alert_problems(s2, [{**temp, "site": "heel"}]) != [],
+    expect(alert_problems(s3, [{**temp, "temp_sites": "heel:2.6:1;lateralHeel:2.3:1"}]) == [],
+           "alerts.csv v2 TEMP_DELTA: a retired site in temp_sites (v1.6 build) passes")
+    expect(alert_problems(s3, [{**temp, "site": "heel"}]) != [],
            "alerts.csv v2 TEMP_DELTA: both a zone and a site fails")
-    expect(alert_problems(s2, [{**dict(s2.alerts[0]), "temp_sites": "heel:2.6:1"}]) != [],
+    expect(alert_problems(s3, [{**dict(s3.alerts[0]), "temp_sites": "heel:2.6:1"}]) != [],
            "alerts.csv v2: temp_sites on a pressure alert fails")
-    old = Session(s2.path, s2.meta, [], None, None)
+    old = Session(s3.path, s3.meta, [], None, None)
     expect(check_alerts(old)[0][0] == "WARN", "alerts.csv missing (pre-S7 export) is a WARN")
 
     # Pairing rule edge cases (same as model_channels_test.dart).
@@ -651,7 +689,7 @@ def selftest() -> bool:
     expect(times_of([100], [110.5]) == [], "pairing: 10 ms inclusive, no further")
     expect(times_of([10, 30], [20]) == [(10, 20)], "pairing: each right row once")
 
-    session_dir = s2.path
+    session_dir = s3.path
     with tempfile.TemporaryDirectory() as tmp:
         bad = Path(tmp) / session_dir.name
         shutil.copytree(session_dir, bad)
@@ -672,31 +710,34 @@ def selftest() -> bool:
             expect(False, "load_session refuses a bad checksum")
         except ValueError:
             expect(True, "load_session refuses a bad checksum")
-        # A session continued after the update: a schema-1 trial next to
-        # schema-2 ones loads, each by its own schema.
+        # A session continued across both updates: schema-1 and schema-2
+        # trials next to schema-3 ones load, each by its own schema.
         mixed = Path(tmp) / "mixed"
         shutil.copytree(session_dir, mixed)
-        old_trial = s1.trials[0]
-        for ext in (".csv", ".json"):
-            src = s1.path / f"{old_trial.name}{ext}"
-            shutil.copy(src, mixed / f"OLD_{old_trial.name}{ext}")
+        for prefix, older in (("OLD1", s1), ("OLD2", s2)):
+            old_trial = older.trials[0]
+            for ext in (".csv", ".json"):
+                src = older.path / f"{old_trial.name}{ext}"
+                shutil.copy(src, mixed / f"{prefix}_{old_trial.name}{ext}")
         m = load_session(mixed, verify=False)
-        expect(sorted(t.schema for t in m.trials) == [1, 2]
-               and all(len(model_matrix(t, mi)[0][0]) == len(model_channels(t.schema, mi))
-                       for t in m.trials),
-               "a session with schema-1 and schema-2 trials loads each by its own schema")
+        expect(sorted(t.schema for t in m.trials) == [1, 2, 3]
+               and [len(model_matrix(t, mi)[0][0]) for t in sorted(m.trials, key=lambda t: t.schema)]
+               == [24, 28, 24],
+               "a session with schema-1, -2 and -3 trials loads each by its own schema")
         # A trial whose columns do not match its schema is refused.
-        lie = Path(tmp) / "lie"
-        shutil.copytree(s1.path, lie)
-        side = next(lie.glob("*_a1.json"))
-        j = json.loads(side.read_text(encoding="utf-8"))
-        j["schema"] = 2
-        side.write_text(json.dumps(j), encoding="utf-8")
-        try:
-            load_session(lie, verify=False)
-            expect(False, "a schema-1 CSV labelled schema 2 is refused")
-        except ValueError:
-            expect(True, "a schema-1 CSV labelled schema 2 is refused")
+        for source, label in ((s1, 2), (s2, 3), (s1, 3), (s3, 2)):
+            lie = Path(tmp) / f"lie{source.trials[0].schema}as{label}"
+            shutil.copytree(source.path, lie)
+            side = next(lie.glob("*_a1.json"))
+            j = json.loads(side.read_text(encoding="utf-8"))
+            j["schema"] = label
+            side.write_text(json.dumps(j), encoding="utf-8")
+            what = f"a schema-{source.trials[0].schema} CSV labelled schema {label} is refused"
+            try:
+                load_session(lie, verify=False)
+                expect(False, what)
+            except ValueError:
+                expect(True, what)
     print("selftest:", "PASS" if ok else "FAIL")
     return ok
 

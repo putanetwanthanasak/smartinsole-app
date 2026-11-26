@@ -150,7 +150,7 @@ void main() {
       insoleId: id,
       recordedAtMs: 0,
       sampleCount: 1500,
-      values: List.filled(14, v),
+      values: List.filled(12, v),
     );
     final stored = [
       b(FootSide.left, 'L-1', 1),
@@ -158,9 +158,9 @@ void main() {
       b(FootSide.left, 'L-2', 3),
     ];
 
-    test('both connected insoles known: left 14, then right 14', () {
+    test('both connected insoles known: left 12, then right 12', () {
       final m = modelBaselineOf(stored, leftId: 'L-2', rightId: 'R-1')!;
-      expect(m, [...List.filled(14, 3.0), ...List.filled(14, 2.0)]);
+      expect(m, [...List.filled(12, 3.0), ...List.filled(12, 2.0)]);
     });
 
     test('either foot without a baseline, or not connected: none', () {
@@ -175,7 +175,7 @@ void main() {
   test('normalizeWindow refuses a baseline of the wrong length', () {
     final norm = demoNorm(spec);
     expect(
-      () => normalizeWindow([List.filled(28, 0)], List.filled(14, 0), norm),
+      () => normalizeWindow([List.filled(24, 0)], List.filled(12, 0), norm),
       throwsArgumentError,
     );
   });

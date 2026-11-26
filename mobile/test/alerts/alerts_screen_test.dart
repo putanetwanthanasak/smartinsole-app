@@ -374,19 +374,19 @@ void main() {
       // The sample TEMP_DELTA lists two sites: both are named.
       expect(
         findPlainSemantics(
-          'เท้าขวา กลางส้นเท้า และส้นเท้าด้านนอกอุ่นกว่าเท้าซ้าย',
+          'เท้าขวา กลางส้นเท้า และขอบเท้าด้านนอกอุ่นกว่าเท้าซ้าย',
         ),
         findsOneWidget,
       );
       expect(
         // No-break space before "·" (S10, BACKLOG 69).
         findPlainText(
-          'จุดที่อุ่นกว่าบนเท้าขวา: กลางส้นเท้า\u00A0· ส้นเท้าด้านนอก',
+          'จุดที่อุ่นกว่าบนเท้าขวา: กลางส้นเท้า\u00A0· ขอบเท้าด้านนอก',
         ),
         findsOneWidget,
       );
       expect(
-        findPlainSemantics('เท้าซ้าย จุดวัดความอุ่นทั้ง 8 จุด'),
+        findPlainSemantics('เท้าซ้าย จุดวัดความอุ่นทั้ง 6 จุด'),
         findsOneWidget,
       );
       handle.dispose();

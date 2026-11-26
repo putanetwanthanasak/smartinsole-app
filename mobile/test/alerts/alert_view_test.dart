@@ -65,6 +65,8 @@ void main() {
             'consecutive': 3,
             TempSiteEntry.listKey: [
               TempSiteEntry(zone: 'heel', deltaC: 2.6, atMs: atMs).toJson(),
+              // Stored by a v1.6 build: the lateral heel is retired in
+              // v1.7 and keeps its Thai name (never the raw id).
               TempSiteEntry(
                 zone: 'lateralHeel',
                 deltaC: 2.3,
@@ -88,36 +90,39 @@ void main() {
       });
     });
 
-    test('TEMP_DELTA stored before the 8 sites keeps its old rows', () {
-      final rows = rowsOf(
-        alert(
-          AlertKind.tempDelta,
-          level: 4,
-          side: FootSide.right,
-          legacySite: LegacyTempSite.heel,
-          value: 2.6,
-          threshold: 2.2,
-          details: {
-            'leftC': 31.4,
-            'rightC': 34.0,
-            'consecutive': 3,
-            'otherSiteDeltaC': 0.4,
-          },
-        ),
-      );
-      expect(rows, {
-        'รหัส': 'TEMP_DELTA',
-        'ส้นเท้า': 'ซ้าย 31.4 °C · ขวา 34.0 °C',
-        'ผลต่างที่ส้นเท้า': '2.6 °C (เกณฑ์ 2.2 °C)',
-        'วัดเกินเกณฑ์ติดกัน':
-            '3 ครั้ง (เกณฑ์ ${testThresholds.consecutiveReadings} ครั้ง '
-            'วัดทุก 30 วินาที)',
-        'ผลต่างที่หน้าเท้า': '0.4 °C',
-        'ระดับภายในระบบ': '4 จาก 5',
-        'เวลาที่พบ': '21 ต.ค. 2569 14:32:10',
-        'ที่มาของเกณฑ์': 'Lavery et al. (2004)',
-      });
-    });
+    test(
+      'TEMP_DELTA stored before the per-site readings keeps its old rows',
+      () {
+        final rows = rowsOf(
+          alert(
+            AlertKind.tempDelta,
+            level: 4,
+            side: FootSide.right,
+            legacySite: LegacyTempSite.heel,
+            value: 2.6,
+            threshold: 2.2,
+            details: {
+              'leftC': 31.4,
+              'rightC': 34.0,
+              'consecutive': 3,
+              'otherSiteDeltaC': 0.4,
+            },
+          ),
+        );
+        expect(rows, {
+          'รหัส': 'TEMP_DELTA',
+          'ส้นเท้า': 'ซ้าย 31.4 °C · ขวา 34.0 °C',
+          'ผลต่างที่ส้นเท้า': '2.6 °C (เกณฑ์ 2.2 °C)',
+          'วัดเกินเกณฑ์ติดกัน':
+              '3 ครั้ง (เกณฑ์ ${testThresholds.consecutiveReadings} ครั้ง '
+              'วัดทุก 30 วินาที)',
+          'ผลต่างที่หน้าเท้า': '0.4 °C',
+          'ระดับภายในระบบ': '4 จาก 5',
+          'เวลาที่พบ': '21 ต.ค. 2569 14:32:10',
+          'ที่มาของเกณฑ์': 'Lavery et al. (2004)',
+        });
+      },
+    );
 
     test('PRESSURE_PEAK: walking, gait class, stored threshold wins', () {
       final rows = rowsOf(
@@ -217,7 +222,7 @@ void main() {
       expect(v.site, 5);
       expect(v.caption, 'กลางส้นเท้าขวาอุ่นกว่ากลางส้นเท้าซ้าย');
       expect(v.labels[FootSide.right], 'เท้าขวา กลางส้นเท้าอุ่นกว่าเท้าซ้าย');
-      expect(v.labels[FootSide.left], 'เท้าซ้าย จุดวัดความอุ่นทั้ง 8 จุด');
+      expect(v.labels[FootSide.left], 'เท้าซ้าย จุดวัดความอุ่นทั้ง 6 จุด');
     });
 
     test('TEMP_DELTA one site: only it is marked, ringed; no sites line', () {
@@ -237,12 +242,12 @@ void main() {
         alert(
           AlertKind.tempDelta,
           side: FootSide.right,
-          zone: 'lateralHeel',
+          zone: 'midfoot',
           details: {
             TempSiteEntry.listKey: [
               for (final (z, d) in const [
                 ('heel', 2.7),
-                ('lateralHeel', 2.6),
+                ('midfoot', 2.6),
                 ('meta1', 2.3),
               ])
                 TempSiteEntry(zone: z, deltaC: d, atMs: 0).toJson(),
@@ -250,30 +255,86 @@ void main() {
           },
         ),
       )!;
-      expect(v.site, 7);
-      expect(v.sites, {7, 5, 1});
+      expect(v.site, 4);
+      expect(v.sites, {4, 5, 1});
       final marks = v.marksOf(FootSide.right);
-      expect(marks[7], TempSiteMark.warmRinged);
+      expect(marks, hasLength(6));
+      expect(marks[4], TempSiteMark.warmRinged);
       expect(marks[5], TempSiteMark.warm);
       expect(marks[1], TempSiteMark.warm);
       expect(marks[0], TempSiteMark.plain);
       expect(v.marksOf(FootSide.left), everyElement(TempSiteMark.plain));
       // The caption names the alert's site; the line lists all, it first.
-      expect(v.caption, 'ส้นเท้าด้านนอกขวาอุ่นกว่าส้นเท้าด้านนอกซ้าย');
+      expect(v.caption, 'ขอบเท้าด้านนอกขวาอุ่นกว่าขอบเท้าด้านนอกซ้าย');
       expect(
         v.sitesLine,
         // No-break space before each "·" (S10, BACKLOG 69).
-        'จุดที่อุ่นกว่าบนเท้าขวา: ส้นเท้าด้านนอก\u00A0· กลางส้นเท้า\u00A0· '
+        'จุดที่อุ่นกว่าบนเท้าขวา: ขอบเท้าด้านนอก\u00A0· กลางส้นเท้า\u00A0· '
         'โคนนิ้วหัวแม่เท้า',
       );
       expect(
         v.labels[FootSide.right],
-        'เท้าขวา ส้นเท้าด้านนอก กลางส้นเท้า และโคนนิ้วหัวแม่เท้า'
+        'เท้าขวา ขอบเท้าด้านนอก กลางส้นเท้า และโคนนิ้วหัวแม่เท้า'
         'อุ่นกว่าเท้าซ้าย',
       );
     });
 
-    test('TEMP_DELTA stored before the 8 sites has no map', () {
+    test('TEMP_DELTA from a v1.6 build: a retired site among the others is '
+        'named, never marked', () {
+      final v = tempMapOf(
+        alert(
+          AlertKind.tempDelta,
+          side: FootSide.right,
+          zone: 'heel',
+          details: {
+            TempSiteEntry.listKey: [
+              for (final (z, d) in const [('heel', 2.7), ('lateralHeel', 2.6)])
+                TempSiteEntry(zone: z, deltaC: d, atMs: 0).toJson(),
+            ],
+          },
+        ),
+      )!;
+      expect(v.sites, {5});
+      expect(
+        v.marksOf(FootSide.right).where((m) => m != TempSiteMark.plain),
+        hasLength(1),
+      );
+      expect(
+        v.sitesLine,
+        'จุดที่อุ่นกว่าบนเท้าขวา: กลางส้นเท้า\u00A0· ส้นเท้าด้านนอก',
+      );
+      expect(
+        v.labels[FootSide.right],
+        'เท้าขวา กลางส้นเท้า และส้นเท้าด้านนอกอุ่นกว่าเท้าซ้าย',
+      );
+    });
+
+    test('TEMP_DELTA from a v1.6 build named at a retired site: no map, '
+        'the detail still names it', () {
+      final a = alert(
+        AlertKind.tempDelta,
+        side: FootSide.right,
+        zone: 'lateralHeel',
+        value: 2.6,
+        threshold: 2.2,
+        details: {'leftC': 31.4, 'rightC': 34.0, 'consecutive': 2},
+      );
+      expect(tempMapOf(a), isNull);
+      final rows = rowsOf(a);
+      expect(rows['ส้นเท้าด้านนอก'], 'ซ้าย 31.4 °C · ขวา 34.0 °C');
+      expect(rows['ผลต่างที่ส้นเท้าด้านนอก'], '2.6 °C (เกณฑ์ 2.2 °C)');
+      expect(copyOf(a).detail, contains('ส้นเท้าด้านนอก'));
+    });
+
+    test('pressure from a v1.6 build at a retired zone: no map, the copy '
+        'names its region', () {
+      final a = alert(AlertKind.pressurePeak, zone: 'lateralHeel', value: 236);
+      expect(pressureMapOf(a, testThresholds), isNull);
+      expect(copyOf(a).title, startsWith('ส้นเท้า'));
+      expect(copyOf(a).detail, startsWith('ส้นเท้าด้านนอก'));
+    });
+
+    test('TEMP_DELTA stored before the per-site readings has no map', () {
       expect(
         tempMapOf(
           alert(
@@ -315,6 +376,8 @@ void main() {
       )!;
       expect(v.recorded, isTrue);
       expect(v.channel, 1);
+      // Stored by a v1.6 build (8 zones): shown over the current 6.
+      expect(v.levels[FootSide.left], hasLength(6));
       expect(v.levels[FootSide.left]![1], PressureLevel.high);
       expect(v.levels[FootSide.right], isNull);
       expect(v.caption, 'จุดที่มีวงล้อม: โคนนิ้วหัวแม่เท้าซ้าย');
@@ -324,7 +387,7 @@ void main() {
       );
     });
 
-    test('a map stored before the 8 zones: zones 6–7 not recorded', () {
+    test('a 6-zone map (before S8D, and again since v1.7) reads in full', () {
       final v = pressureMapOf(
         alert(
           AlertKind.pressurePeak,
@@ -346,12 +409,10 @@ void main() {
         testThresholds,
       )!;
       expect(v.recorded, isTrue);
-      expect(v.levels[FootSide.left], hasLength(8));
+      expect(v.levels[FootSide.left], hasLength(6));
       expect(v.levels[FootSide.left]![1], PressureLevel.high);
-      expect(v.levels[FootSide.left]!.sublist(6), [null, null]);
-      // The other foot was recorded: its label comes from its 6 zones,
-      // never "ยังไม่มีข้อมูล" because zones 6–7 did not exist then.
-      expect(v.levels[FootSide.right]!.sublist(6), [null, null]);
+      expect(v.levels[FootSide.left], everyElement(isNotNull));
+      expect(v.levels[FootSide.right], everyElement(isNotNull));
       expect(v.labels[FootSide.right], 'เท้าขวา ส้นเท้ารับน้ำหนักปานกลาง');
     });
 
@@ -368,10 +429,8 @@ void main() {
         null,
         null,
         PressureLevel.high,
-        null,
-        null,
       ]);
-      expect(v.levels[FootSide.right], List.filled(8, null));
+      expect(v.levels[FootSide.right], List.filled(6, null));
       expect(v.labels[FootSide.right], 'เท้าขวา');
     });
 
@@ -381,7 +440,7 @@ void main() {
           alert(kind, zone: 'heel', value: 92),
           testThresholds,
         )!;
-        expect(v.levels[FootSide.left], List.filled(8, null));
+        expect(v.levels[FootSide.left], List.filled(6, null));
         expect(v.channel, 5);
       }
     });

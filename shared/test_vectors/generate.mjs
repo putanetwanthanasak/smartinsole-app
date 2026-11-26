@@ -398,9 +398,9 @@ function temperatureV2File() {
     description: 'Temperature v2 packets (DATA-CONTRACT v1.7 §3.2): 8 + 3 × count bytes with count = 6, so 26 bytes; '
       + 'site i = NTC i next to FSR i. Constructed: the TS parser cannot read v2, so "celsius" is raw / 100 of the inputs '
       + 'and null for -32768 ("could not read"). "rejected" is the Dart RejectReason, checked in this order: tempLength '
-      + 'for the old 12-byte v1 packet or anything shorter than the 8-byte header, tempCount for count ≠ 6 (the v1.6 '
-      + '32-byte packet has count 8), tempLength for a length other than 8 + 3 × count, invalidQuality for a quality '
-      + 'byte above 2.',
+      + 'for anything shorter than the 8-byte header, the old 12-byte v1 packet, or a length other than 8 + 3 × count for '
+      + 'the packet\'s own count; tempCount for a self-consistent packet with count ≠ 6 (the v1.6 32-byte packet has '
+      + 'count 8); invalidQuality for a quality byte above 2.',
     cases: [
       c('normal_6_sites', { seq: 1, tMs: 30000, ...base }),
       c('negative_and_fractional', { seq: 2, tMs: 60000, temps: [-105, 1, -1, 0, 2999, -2999], quality: ok }),
@@ -418,8 +418,14 @@ function temperatureV2File() {
       c('header_only_8_bytes', { seq: 10, tMs: 280000, ...base, length: 8 }, 'tempLength'),
       c('short_7_bytes', { seq: 15, tMs: 290000, ...base, length: 7 }, 'tempLength'),
       c('empty', { seq: 0, tMs: 0, ...base, length: 0 }, 'tempLength'),
-      c('count_8', { seq: 11, tMs: 330000, count: 8, ...base }, 'tempCount'),
-      c('count_0', { seq: 12, tMs: 360000, count: 0, ...base }, 'tempCount'),
+      c('count_8_in_26_bytes', { seq: 11, tMs: 330000, count: 8, ...base }, 'tempLength'),
+      c('count_0_in_26_bytes', { seq: 12, tMs: 360000, count: 0, ...base }, 'tempLength'),
+      { name: 'count_5_self_consistent', reference: 'constructed',
+        hex: hex(tempV2Packet(5, { seq: 16, tMs: 430000, temps: temps.slice(0, 5), quality: ok.slice(0, 5) })),
+        expected: { rejected: 'tempCount' } },
+      { name: 'count_0_header_only', reference: 'constructed',
+        hex: hex(tempV2Packet(0, { seq: 17, tMs: 440000, temps: [], quality: [] })),
+        expected: { rejected: 'tempCount' } },
       c('quality_3', { seq: 13, tMs: 390000, temps, quality: [0, 0, 0, 3, 0, 0] }, 'invalidQuality'),
     ],
   };

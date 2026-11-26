@@ -41,8 +41,8 @@ class ModelClassifier implements GaitClassifier {
     return resultOf(out.probs, input.atMs);
   }
 
-  /// Preprocesses and runs [rows] (raw 28-channel rows) with [baseline]
-  /// (28 model channels). Runs are queued, never overlapped: the runner
+  /// Preprocesses and runs [rows] (raw 24-channel rows) with [baseline]
+  /// (24 model channels). Runs are queued, never overlapped: the runner
   /// answers one window at a time.
   Future<ModelOutput> runRows(List<List<double>> rows, List<double> baseline) {
     final window = normalizeWindow(rows, baseline, normalization);

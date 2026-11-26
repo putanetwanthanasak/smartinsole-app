@@ -16,10 +16,10 @@ void main() {
       await rig.temperatures.add(
         side: FootSide.left,
         atMs: t0,
-        celsius: [for (var i = 0; i < 8; i++) i == 2 ? null : 30 + i / 10],
+        celsius: [for (var i = 0; i < 6; i++) i == 2 ? null : 30 + i / 10],
         quality: sitesQ(TempQuality.normal, {
           2: TempQuality.sensorFault,
-          6: TempQuality.poorContact,
+          4: TempQuality.poorContact,
         }),
         timeFromArrival: true,
       );
@@ -27,14 +27,14 @@ void main() {
       expect(r.atMs, t0);
       expect(r.localDate, '2026-10-24');
       expect(r.side, FootSide.left);
-      expect(r.siteC, [30.0, 30.1, null, 30.3, 30.4, 30.5, 30.6, 30.7]);
+      expect(r.siteC, [30.0, 30.1, null, 30.3, 30.4, 30.5]);
       expect(r.siteQuality[2], TempQuality.sensorFault);
-      expect(r.siteQuality[6], TempQuality.poorContact);
+      expect(r.siteQuality[4], TempQuality.poorContact);
       expect(r.quality, TempQuality.sensorFault, reason: 'the worst site');
       expect(r.isLegacy, isFalse);
       expect(r.usableC(0), 30.0);
       expect(r.usableC(2), isNull, reason: 'could not read (-32768)');
-      expect(r.usableC(6), isNull, reason: 'poor contact is not a value');
+      expect(r.usableC(4), isNull, reason: 'poor contact is not a value');
       expect(r.legacyForefootC, isNull);
       expect(r.timeFromArrival, isTrue);
       expect(await rig.temperatures.latest(FootSide.right), isNull);
@@ -43,7 +43,7 @@ void main() {
     test('the row quality is the worst site\'s', () {
       expect(worstQuality(sitesQ()), TempQuality.normal);
       expect(
-        worstQuality(sitesQ(TempQuality.normal, {7: TempQuality.poorContact})),
+        worstQuality(sitesQ(TempQuality.normal, {5: TempQuality.poorContact})),
         TempQuality.poorContact,
       );
       expect(

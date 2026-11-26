@@ -215,7 +215,7 @@ abstract final class TempChartColors {
   static const baseline = AppColors.divider;
   static const axisLabel = AppColors.inkMuted;
 
-  /// The one line: the largest |ΔT| of the 8 sites (S8D-2).
+  /// The one line: the largest |ΔT| of the 6 sites (S8D-2).
   static const line = AppColors.primary;
   static const lineWidth = 3.5;
 

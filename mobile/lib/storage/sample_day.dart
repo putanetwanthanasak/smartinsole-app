@@ -32,10 +32,10 @@ class SampleDayShape {
   final double? gapTo;
 
   static SampleDayShape of(MockPreset preset) => switch (preset) {
-    // The heel centre and lateral heel stay above the threshold up to the
+    // The heel centre and lateral midfoot stay above the threshold up to the
     // end, joining the live mock's right heel (2.6 and 2.3 °C warmer).
     MockPreset.rest => const SampleDayShape(
-      aboveSites: [5, 7],
+      aboveSites: [5, 4],
       aboveFrom: 0.75,
       aboveTo: 1,
       gapFrom: 0.30,

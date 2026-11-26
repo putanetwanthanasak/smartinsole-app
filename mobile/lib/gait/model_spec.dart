@@ -37,7 +37,7 @@ class ModelInputSpec {
   /// the same one.
   final int version;
 
-  /// The 28 channel names, in model order.
+  /// The 24 channel names, in model order.
   final List<String> channels;
   final int sampleRateHz;
   final int windowSamples;
@@ -60,8 +60,8 @@ final modelInputSpecProvider = Provider<ModelInputSpec>(
 /// `normalization.json`, delivered with the model: the training subjects'
 /// min and max per channel, after each subject's baseline was subtracted
 /// (contract §7.1, preprocessing "ทางเอ", `shared/model_preprocess.json`).
-/// Format: `{"version": 2, "method": "baseline-minmax", "channels": [28
-/// names], "min": [28], "max": [28]}`. A z-score file (`mean` / `std`,
+/// Format: `{"version": 3, "method": "baseline-minmax", "channels": [24
+/// names], "min": [24], "max": [24]}`. A z-score file (`mean` / `std`,
 /// before S9) is refused.
 class Normalization {
   const Normalization({

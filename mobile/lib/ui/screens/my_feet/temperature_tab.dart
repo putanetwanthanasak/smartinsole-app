@@ -54,8 +54,8 @@ DateTime? _latestOf(List<TemperatureReading> readings) => readings.isEmpty
     : DateTime.fromMillisecondsSinceEpoch(readings.last.atMs);
 
 /// My feet › "อุณหภูมิ" (DESIGN-SPEC §8.2, layout A): banner, the map card
-/// (both feet's 8 sites and the top 3), today's chart (one line, the
-/// largest |ΔT| of the 8 sites), and the table and rows behind
+/// (both feet's 6 sites and the top 3), today's chart (one line, the
+/// largest |ΔT| of the 6 sites), and the table and rows behind
 /// "ดูตัวเลขละเอียด". Two-foot values are "—" unless both feet stream
 /// (rule 4).
 class TemperatureTab extends ConsumerWidget {

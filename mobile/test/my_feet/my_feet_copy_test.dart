@@ -37,7 +37,7 @@ PressureFootView _none(FootSide side) =>
     PressureFootView(map: FootMapView(side: side));
 
 final _lows = List.filled(footLayout.zones.length, _low);
-final _flat = [40, 45, 50, 30, 25, 60, 20, 35];
+final _flat = [40, 45, 50, 30, 25, 60];
 
 /// MTH1 and the heel centre.
 const _fore = 1;
@@ -190,8 +190,8 @@ void main() {
       final v = PressureTabView(
         left: _foot(
           FootSide.left,
-          [40, 210, 50, 30, 25, 60, 20, 35],
-          [_low, _high, _low, _low, _low, _low, _low, _low],
+          [40, 210, 50, 30, 25, 60],
+          [_low, _high, _low, _low, _low, _low],
         ),
         right: _foot(FootSide.right, _flat, _lows),
       );
@@ -340,17 +340,8 @@ void main() {
         left: _temp().left,
         right: _temp().right,
         minute: DateTime(2026),
-        deltaC: const [0.1, 2.2, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1],
-        warmerAbove: warmerOf(const [
-          0.1,
-          2.21,
-          0.1,
-          0.1,
-          0.1,
-          0.1,
-          0.1,
-          0.1,
-        ], t.deltaC),
+        deltaC: const [0.1, 2.2, 0.1, 0.1, 0.1, 0.1],
+        warmerAbove: warmerOf(const [0.1, 2.21, 0.1, 0.1, 0.1, 0.1], t.deltaC),
       );
       final s = tempSites(v)[_fore];
       expect(s.deltaC, 2.2);
@@ -407,21 +398,21 @@ void main() {
         'order', () {
       List<int> top(TempTabView v) => [for (final s in topSites(v)) s.site];
       expect(top(_temp()), [_fore, 0, 2], reason: '0.3, then 0.1s in order');
-      final big = _deltas([0.1, 0.2, 1.4, 0.1, 0.1, 0.1, 0.1, -1.9]);
-      expect(top(big), [7, 2, 1]);
+      final big = _deltas([0.1, 0.2, 1.4, 0.1, 0.1, -1.9]);
+      expect(top(big), [5, 2, 1]);
       final alerting = _deltas(
-        [0.1, 0.2, 2.9, 0.1, 0.1, -2.3, 0.1, -2.5],
-        alerts: {5: _alert(5, 2.3), 7: _alert(7, 2.5, consecutive: null)},
+        [0.1, 0.2, 2.9, 0.1, -2.5, -2.3],
+        alerts: {5: _alert(5, 2.3), 4: _alert(4, 2.5, consecutive: null)},
       );
-      expect(top(alerting), [7, 5, 2]);
+      expect(top(alerting), [4, 5, 2]);
     });
 
     test('map labels name the warmer sites', () {
-      final v = _deltas([0.1, 0.2, 0.1, 0.1, 0.1, -2.3, 0.1, -2.5]);
+      final v = _deltas([0.1, 0.2, 0.1, 0.1, -2.5, -2.3]);
       final sites = tempSites(v);
       expect(
         tempMapLabel(FootSide.right, sites),
-        'เท้าขวา กลางส้นเท้า และส้นเท้าด้านนอกอุ่นกว่าเท้าซ้าย',
+        'เท้าขวา ขอบเท้าด้านนอก และกลางส้นเท้าอุ่นกว่าเท้าซ้าย',
       );
       expect(
         tempMapLabel(FootSide.left, sites),
@@ -463,9 +454,9 @@ void main() {
       expect(row('เกณฑ์'), contains('ติดกัน ${t.consecutiveReadings} ครั้ง'));
     });
 
-    test('all good: "ดีทั้ง 16 จุด"', () {
+    test('all good: "ดีทั้ง 12 จุด"', () {
       final rows = tempDetailRows(_temp(), t, latestAt: null, since: const {});
-      expect(rows.last.value, 'ดีทั้ง 16 จุด');
+      expect(rows.last.value, 'ดีทั้ง 12 จุด');
     });
 
     test('no reading yet or a site not read: never "ดี" (rule 5)', () {
@@ -473,7 +464,7 @@ void main() {
       final right = TempFootView(
         side: FootSide.right,
         usable: true,
-        celsius: [30.7, null, 30.6, 30.6, 30.6, 30.6, 30.6, 30.6],
+        celsius: [30.7, null, 30.6, 30.6, 30.6, 30.6],
         quality: List.filled(TempLayout.siteCount, TempQuality.normal),
       );
       final rows = tempDetailRows(
@@ -525,7 +516,7 @@ void main() {
       );
     });
 
-    test('the table: จุด / ซ้าย / ขวา / ต่าง for the 8 sites', () {
+    test('the table: จุด / ซ้าย / ขวา / ต่าง for the 6 sites', () {
       final table = tempTable(_temp(fore: -0.3));
       expect(table, hasLength(TempLayout.siteCount));
       expect(

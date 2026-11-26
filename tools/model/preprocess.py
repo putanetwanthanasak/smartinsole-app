@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """Model A preprocessing "ทางเอ": the Python reference (S9).
 
-DATA-CONTRACT v1.6 §7.1 and shared/model_preprocess.json. Two steps, the
+DATA-CONTRACT v1.7 §7.1 and shared/model_preprocess.json. Two steps, the
 same in the app (mobile/lib/gait/preprocess.dart) and in training:
 
 1. Personal baseline. Per foot and channel, the median of that foot's
    samples over the 30 s quiet-standing calibration recorded before the
    trials (capture trial 00). It is subtracted from every model channel
-   (all 28: 8 FSR kPa + accel g + gyro deg/s per foot). The window and
+   (all 24: 6 FSR kPa + accel g + gyro deg/s per foot). The window and
    its rejection rules are the app's one baseline function
    (foot_baseline_window here, FootBaselineWindow in
    mobile/lib/gait/baseline_window.dart, BACKLOG 74): the first
@@ -16,6 +16,10 @@ same in the app (mobile/lib/gait/preprocess.dart) and in training:
 2. Min-Max to 0-1: (x - baseline - min) / (max - min), with min/max per
    channel from the training subjects only (per LOSO fold), shipped in
    normalization.json (method "baseline-minmax"). No clipping.
+
+Only capture schema 3 (6 FSR per foot, model_input.json version 3) gives
+a baseline or training rows: a schema-1 or schema-2 trial is never cut or
+padded to these channels (the app refuses such an insole the same way).
 
 Arithmetic is float64 in a fixed order, then rounded to float32 (round to
 nearest even, as numpy's astype(float32) and Dart's Float32List). The
@@ -103,14 +107,14 @@ def median(values: list[float]) -> float:
 
 
 def foot_baseline(rows: list[list[float]]) -> list[float]:
-    """Per channel median of one foot's calibration rows (n x 14)."""
+    """Per channel median of one foot's calibration rows (n x 12)."""
     if not rows:
         raise ValueError("no calibration rows")
     return [median([r[c] for r in rows]) for c in range(len(rows[0]))]
 
 
 def model_baseline(left: list[float], right: list[float], model_input: dict) -> list[float]:
-    """The two feet's baselines (14 each, foot order) as 28 values in
+    """The two feet's baselines (12 each, foot order) as 24 values in
     model channel order."""
     per_side = {"L": list(left), "R": list(right)}
     out = []
@@ -211,7 +215,11 @@ def min_samples(spec: dict) -> int:
     return window_samples(spec) - spec["baselineToleranceSamples"]
 
 
-FSR_COLUMNS = [f"fsr{i}_kpa" for i in range(8)]
+# FSR channels per foot (model_input.json): the summed load, and the
+# "not this insole" rule (a row with more FSR columns is another insole).
+FSR_COUNT = load_json(MODEL_INPUT)["fsrChannelsPerFoot"]
+FSR_COLUMNS = [f"fsr{i}_kpa" for i in range(FSR_COUNT)]
+EXTRA_FSR_COLUMN = f"fsr{FSR_COUNT}_kpa"
 ACCEL_COLUMNS = ["accel_x_g", "accel_y_g", "accel_z_g"]
 
 
@@ -221,7 +229,7 @@ def foot_baseline_window(rows: list[dict], cols: list[str], n: int, thresholds: 
     """One foot's baseline from its rows in order (capture CSV row dicts):
     (values, None, n) once the first n rows pass, else (None, failure id,
     rows kept). Rules, in order: a new conn_session or missing_before > 0
-    after the first row, calibrating, valid 0, not 8 FSR, the walking gate,
+    after the first row, calibrating, valid 0, not 6 FSR, the walking gate,
     summed kPa at or below steps.contactKpa. Rows that end with every rule
     passed give a baseline from the k rows kept when k >= min_n (default
     n; baselineToleranceSamples below it), else tooShort."""
@@ -239,7 +247,7 @@ def foot_baseline_window(rows: list[dict], cols: list[str], n: int, thresholds: 
             return None, "calibrating", len(kept)
         if r["valid"] != 1:
             return None, "markedInvalid", len(kept)
-        if any(r.get(c) is None for c in cols):
+        if any(r.get(c) is None for c in cols) or r.get(EXTRA_FSR_COLUMN) is not None:
             return None, "wrongInsole", len(kept)
         session = r["conn_session"]
         if gate.add(r["unix_ms"], [r[c] for c in ACCEL_COLUMNS]):
@@ -258,8 +266,11 @@ def foot_baseline_window(rows: list[dict], cols: list[str], n: int, thresholds: 
 def trial_baseline(trial, model_input: dict | None = None, spec: dict | None = None,
                    thresholds: dict | None = None) -> dict:
     """A capture trial's baseline per foot: {"L": (values, failure, count),
-    "R": ...}, through foot_baseline_window."""
+    "R": ...}, through foot_baseline_window. A trial of another capture
+    schema is wrongInsole on both feet."""
     model_input = model_input or load_json(MODEL_INPUT)
+    if trial.schema != _load_capture().SCHEMA:
+        return {side: (None, "wrongInsole", 0) for side in SIDES}
     spec = spec or load_spec()
     thresholds = thresholds or load_thresholds()
     return {side: foot_baseline_window(trial.rows[side], foot_columns(model_input, side),
@@ -290,7 +301,7 @@ def _load_capture():
 
 
 def session_baseline(session, model_input: dict) -> list[float]:
-    """The subject's baseline (28, model order) from the newest valid
+    """The subject's baseline (24, model order) from the newest valid
     calibration attempt (trial 00) whose two feet pass the baseline rules
     (user decision 2026-11-02); else ValueError naming each attempt's
     reason."""
@@ -310,13 +321,14 @@ def session_baseline(session, model_input: dict) -> list[float]:
 
 
 def session_gait_rows(session, model_input: dict) -> list[list[float]]:
-    """Baseline-subtracted 28-channel rows of the session's valid gait
-    trials (01-05), paired as the app pairs them."""
+    """Baseline-subtracted 24-channel rows of the session's valid gait
+    trials (01-05) of the current capture schema, paired as the app pairs
+    them."""
     lc = _load_capture()
     baseline = session_baseline(session, model_input)
     out = []
     for t in session.trials:
-        if t.label == CALIBRATION_LABEL or not t.valid or t.schema != 2:
+        if t.label == CALIBRATION_LABEL or not t.valid or t.schema != lc.SCHEMA:
             continue
         rows, _ = lc.model_matrix(t, model_input)
         out.extend(subtract(rows, baseline))
@@ -346,7 +358,7 @@ def _case(rng: random.Random, name: str, n_cal: int, n_rows: int, model_input: d
     def value(c: int) -> float:
         # FSR-like kPa, accel-like g, gyro-like deg/s, with ties and negatives.
         k = c % per_foot
-        if k < 8:
+        if k < FSR_COUNT:
             return rng.choice([0.01, 12.5, 12.5, rng.uniform(0, 300)])
         if k < 11:
             return rng.uniform(-2, 2)
@@ -383,8 +395,8 @@ def make_vectors(path: Path = VECTORS) -> dict:
     doc = {
         "about": "Model A preprocessing vectors (S9, shared/model_preprocess.json). "
                  "Made by tools/model/preprocess.py --make-vectors; never hand-edited. "
-                 "calibration: per foot, n x 14 rows in the foot's model channel order; "
-                 "rows: raw 28-channel model rows; expected.windowF32Bits: "
+                 "calibration: per foot, n x 12 rows in the foot's model channel order; "
+                 "rows: raw 24-channel model rows; expected.windowF32Bits: "
                  "((x - baseline) - min) / (max - min) as float32 bits (big-endian hex).",
         "modelInputVersion": model_input["version"],
         "preprocessVersion": 1,
@@ -424,12 +436,12 @@ def check_vectors(path: Path = VECTORS) -> list[str]:
 
 # --- Baseline vectors (trial-00 fixture, BACKLOG 74) ----------------------------
 
-CAPTURE_FIXTURE_SIDECAR = (ROOT / "shared" / "capture_fixture" / "schema2"
-                           / "TEST-009_20261110-090000" / "TEST-009_00_calibration_a1.json")
+CAPTURE_FIXTURE = ROOT / "shared" / "capture_fixture" / "schema3" / "TEST-010_20261110-090000"
+CAPTURE_FIXTURE_SIDECAR = CAPTURE_FIXTURE / "TEST-010_00_calibration_a1.json"
 
 
 def _trial_csv(rng: random.Random, seconds: float, change=None, step: float = 19.95) -> str:
-    """A synthetic schema-2 trial-00 CSV as the app writes it (column order
+    """A synthetic schema-3 trial-00 CSV as the app writes it (column order
     from the capture fixture's sidecar, the app's number formats): both
     feet standing still, 8-sample packets, a DeviceClock-like [step] (19.95 ms by default)
     between samples, the trial window [start, start + seconds). [change](side, i, row)
@@ -440,7 +452,7 @@ def _trial_csv(rng: random.Random, seconds: float, change=None, step: float = 19
     feet = {}
     for side, offset in (("L", 3.0), ("R", 13.0)):
         rows = []
-        stand = [rng.uniform(15, 60) for _ in range(8)]
+        stand = [rng.uniform(15, 60) for _ in range(FSR_COUNT)]
         i = 0
         while True:
             t = start + offset + i * step
@@ -498,7 +510,7 @@ def _baseline_cases() -> list[tuple[str, str, float, object, float]]:
             row["accel"] = [0.0, 0.0, 1.6 if i % 2 else 0.4]
 
     shake = lambda row, i: [0.0, 0.0, 1.5 if i % 2 else 0.5]  # noqa: E731
-    light = lambda row, i: [0.4] * 8  # noqa: E731
+    light = lambda row, i: [0.4] * FSR_COUNT  # noqa: E731
     # The failure cases are 4 s (the other foot then reads tooShort), to
     # keep the fixture small; only "ok" needs the whole window.
     return [
@@ -546,12 +558,12 @@ def make_baseline_vectors(path: Path = BASELINE_VECTORS) -> dict:
                       "expected": _expected(read_trial_csv(csv_path), model_input, spec,
                                             thresholds)})
     doc = {
-        "about": "Trial-00 baseline vectors (S9-2, BACKLOG 74): synthetic schema-2 capture "
+        "about": "Trial-00 baseline vectors (S9-2, BACKLOG 74): synthetic schema-3 capture "
                  "trial CSVs, each run through the one baseline function "
                  "(tools/model/preprocess.py foot_baseline_window; the app's "
                  "FootBaselineWindow must give the same). Made by preprocess.py "
                  "--make-vectors; never hand-edited. expected per foot: failure id (null = "
-                 "ok), rows kept, the 14 float64 medians in the foot's model channel order.",
+                 "ok), rows kept, the 12 float64 medians in the foot's model channel order.",
         "baselineSeconds": spec["baselineSeconds"],
         "baselineToleranceSamples": spec["baselineToleranceSamples"],
         "thresholds": thresholds,
@@ -587,10 +599,11 @@ def selftest() -> bool:
     expect(median([3.0, 1.0, 2.0]) == 2.0, "median of an odd count")
     expect(median([4.0, 1.0, 3.0, 2.0]) == 2.5, "median of an even count")
     mi = load_json(MODEL_INPUT)
-    expect(len(foot_columns(mi, "L")) == 14 and foot_columns(mi, "L")[8] == "accel_x_g",
-           "foot columns are the capture CSV's names in model order")
-    b = model_baseline(list(range(14)), list(range(100, 114)), mi)
-    expect(b[:14] == list(range(14)) and b[14:] == list(range(100, 114)),
+    expect(mi["version"] == 3 and FSR_COUNT == 6 and len(foot_columns(mi, "L")) == 12
+           and foot_columns(mi, "L")[6] == "accel_x_g",
+           "foot columns are the capture CSV's names in model order (v3, 6 FSR)")
+    b = model_baseline(list(range(12)), list(range(100, 112)), mi)
+    expect(b[:12] == list(range(12)) and b[12:] == list(range(100, 112)),
            "baseline in model channel order")
     out = apply([[2.0, -1.0]], [1.0, 0.0], [0.0, 0.0], [2.0, 2.0])
     expect(out == [[0.5, -0.5]], "no clipping below 0")
@@ -608,15 +621,14 @@ def selftest() -> bool:
     expect(not gate.add(0.0, [0.0, 0.0, 1.0]) and gate.add(20.0, [0.0, 0.0, 1 + 4 * th["accelG"]]),
            "the walking gate turns on at a mean deviation of walkingAccelG")
     lc = _load_capture()
-    fixture = lc.load_session(ROOT / "shared" / "capture_fixture" / "schema2"
-                              / "TEST-009_20261110-090000")
+    fixture = lc.load_session(CAPTURE_FIXTURE)
     # The capture fixture's trial 00 (6.4 s, synthetic accel far from 1 g)
     # breaks the rules: no baseline, and the error names the attempt.
     try:
         session_baseline(fixture, mi)
         expect(False, "a calibration that breaks the rules gives no baseline")
     except ValueError as e:
-        expect("TEST-009_00_calibration_a1: L " in str(e),
+        expect("TEST-010_00_calibration_a1: L " in str(e),
                "a calibration that breaks the rules gives no baseline, naming the attempt")
     for p in check_baseline_vectors():
         print("FAIL " + p)
@@ -640,7 +652,14 @@ def selftest() -> bool:
     n, lo = window_samples(spec), min_samples(spec)
     expect(all(slow[s]["failure"] is None and lo <= slow[s]["sampleCount"] < n for s in SIDES),
            "a trial a few rows short (slow board clock) still gives a baseline")
-    cols = [f"c{i}" for i in range(14)]
+    old = lc.load_session(ROOT / "shared" / "capture_fixture" / "schema2"
+                          / "TEST-009_20261110-090000")
+    expect(trial_baseline(old.trials[0], mi) == {s: (None, "wrongInsole", 0) for s in SIDES},
+           "a schema-2 (8-FSR, v1.6) trial gives no baseline: wrongInsole")
+    expect(foot_baseline_window([{**old.trials[0].rows["L"][0]}], foot_columns(mi, "L"), 1,
+                                load_thresholds())[1] == "wrongInsole",
+           "a row with an FSR column beyond the 6 is wrongInsole")
+    cols = [f"c{i}" for i in range(12)]
     def standing(k):
         return [{"unix_ms": 1000.0 + i * 20, "conn_session": 1, "missing_before": 0,
                  "calibrating": 0, "valid": 1, **{c: 30.0 for c in FSR_COLUMNS},

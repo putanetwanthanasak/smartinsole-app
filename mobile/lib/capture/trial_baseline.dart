@@ -22,7 +22,7 @@ class FootTrialBaseline {
   /// Rows kept (the whole window when it passed).
   final int sampleCount;
 
-  /// The 14 per-channel medians in model order, when it passed.
+  /// The 12 per-channel medians in model order, when it passed.
   final List<double>? values;
 }
 
@@ -54,7 +54,7 @@ TrialBaseline trialBaselineOf(
   final unix = at('unix_ms'), side = at('side'), session = at('conn_session');
   final missing = at('missing_before'), calibrating = at('calibrating');
   final valid = at('valid');
-  // Not 8 FSR (a schema-1 trial): no model row, so wrongInsole.
+  // Not 6 FSR (a schema-2 trial of v1.6): no model row, so wrongInsole.
   final kpa = [
     for (var i = 0; col.containsKey('fsr${i}_kpa'); i++) col['fsr${i}_kpa']!,
   ];

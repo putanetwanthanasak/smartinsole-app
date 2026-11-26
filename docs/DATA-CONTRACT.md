@@ -210,10 +210,11 @@ quality bytes start at `8 + 2 × count`; `count` must be 6, so the packet is
   data" for that site, never a number. A board with no NTC fitted sends
   `-32768` with quality 2 at every site.
 - The app rejects, and counts per foot on Diagnostics, checked in this
-  order: the v1.5 12-byte packet and anything shorter than the 8-byte
-  header (`tempLength`); a `count` other than 6 (`tempCount`, so a v1.6
-  32-byte packet with count 8 shows as "count 8"); a length other than
-  `8 + 3 × count` (`tempLength`); a quality byte above 2 (`invalidQuality`).
+  order: anything shorter than the 8-byte header, the v1.5 12-byte packet,
+  or a length other than `8 + 3 × count` for the packet's own `count`
+  (`tempLength`); a packet whose length matches its count but whose
+  `count` is not 6 (`tempCount`, so a v1.6 32-byte packet with count 8
+  shows as "count 8"); a quality byte above 2 (`invalidQuality`).
 - The v1.5 packet (12 bytes: `temp_forefoot`, `temp_heel`, one `quality`)
   and the v1.6 8-site packet are not accepted.
 

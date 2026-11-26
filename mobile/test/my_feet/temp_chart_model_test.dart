@@ -14,7 +14,7 @@ const _both = {FootSide.left: true, FootSide.right: true};
 
 const _mth1 = 1;
 const _heel = 5;
-const _lateralHeel = 7;
+const _midfoot = 4;
 
 /// One reading: 31 °C at every site except [sites] (site → °C, null:
 /// could not read); [quality] at every site.
@@ -101,14 +101,14 @@ void main() {
     expect(_chart(rs, now: _day, usable: _both).isEmpty, isTrue);
   });
 
-  test('one line: the largest |ΔT| of the 8 sites, with its site', () {
+  test('one line: the largest |ΔT| of the 6 sites, with its site', () {
     final rs = [
       _r(FootSide.left, t0, sites: {_heel: 30}),
-      _r(FootSide.right, t0 + 1000, sites: {_mth1: 32.0, _lateralHeel: 33.1}),
+      _r(FootSide.right, t0 + 1000, sites: {_mth1: 32.0, _midfoot: 33.1}),
     ];
     final d = _chart(rs, now: _day, usable: _both);
     final p = d.runs.single.single;
-    expect(p.site, _lateralHeel);
+    expect(p.site, _midfoot);
     expect(p.deltaC, closeTo(2.1, 1e-9));
   });
 
@@ -152,23 +152,23 @@ void main() {
       10,
       right: (i) => switch (i) {
         8 => const {_mth1: 33.6},
-        9 => const {_lateralHeel: 33.5},
+        9 => const {_midfoot: 33.5},
         _ => const {_mth1: 31.3},
       },
     );
     final end = DateTime.fromMillisecondsSinceEpoch(rs.last.atMs);
     final d = _chart(rs, now: end, usable: _both);
     final last2 = d.runs.single.sublist(d.runs.single.length - 2);
-    expect([for (final p in last2) p.site], [_mth1, _lateralHeel]);
+    expect([for (final p in last2) p.site], [_mth1, _midfoot]);
     expect(last2.every((p) => p.deltaC > _deltaC), isTrue);
-    expect(chartEndLabel(d.last!), 'ส้นเท้าด้านนอก');
+    expect(chartEndLabel(d.last!), 'ขอบเท้าด้านนอก');
     // The summary reads as one stretch above the band, named by the last
     // point's site.
     expect(
       chartSummary(d, deltaC: _deltaC),
       'กราฟความต่างของความอุ่นวันนี้ '
       'จุดที่ต่างกันมากที่สุดขึ้นถึงระดับที่ควรระวังตั้งแต่ราว 08:04 '
-      'ตอนนี้ 2.5$nbspองศาที่ส้นเท้าด้านนอก',
+      'ตอนนี้ 2.5$nbspองศาที่ขอบเท้าด้านนอก',
     );
   });
 

@@ -80,16 +80,15 @@ class DriftTemperatureRepository implements TemperatureRepository {
             site3C: c(3),
             site4C: c(4),
             site5C: c(5),
-            site6C: c(6),
-            site7C: c(7),
+            // site6/7 (v1.6's medial arch and lateral heel) are never
+            // written since v1.7 (S11): they stay null in new rows, and v1.6
+            // rows keep their values.
             site0Q: q(0),
             site1Q: q(1),
             site2Q: q(2),
             site3Q: q(3),
             site4Q: q(4),
             site5Q: q(5),
-            site6Q: q(6),
-            site7Q: q(7),
           ),
         );
   }
@@ -150,18 +149,14 @@ class DriftTemperatureRepository implements TemperatureRepository {
   }
 }
 
+/// The 6 current sites (v1.7). A v1.6 row's site6/7 values stay in the
+/// table and are not read; its `quality` is still the worst of its 8.
 TemperatureReading _toModel(TemperatureRow r) => TemperatureReading(
   atMs: r.atMs,
   localDate: r.localDate,
   side: r.side,
-  siteC: [
-    r.site0C, r.site1C, r.site2C, r.site3C, //
-    r.site4C, r.site5C, r.site6C, r.site7C,
-  ],
-  siteQuality: [
-    r.site0Q, r.site1Q, r.site2Q, r.site3Q, //
-    r.site4Q, r.site5Q, r.site6Q, r.site7Q,
-  ],
+  siteC: [r.site0C, r.site1C, r.site2C, r.site3C, r.site4C, r.site5C],
+  siteQuality: [r.site0Q, r.site1Q, r.site2Q, r.site3Q, r.site4Q, r.site5Q],
   quality: r.quality,
   timeFromArrival: r.timeFromArrival,
   legacyForefootC: r.forefootC,

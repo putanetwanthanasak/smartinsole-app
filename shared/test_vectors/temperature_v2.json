@@ -1,5 +1,5 @@
 {
-  "description": "Temperature v2 packets (DATA-CONTRACT v1.7 §3.2): 8 + 3 × count bytes with count = 6, so 26 bytes; site i = NTC i next to FSR i. Constructed: the TS parser cannot read v2, so \"celsius\" is raw / 100 of the inputs and null for -32768 (\"could not read\"). \"rejected\" is the Dart RejectReason, checked in this order: tempLength for the old 12-byte v1 packet or anything shorter than the 8-byte header, tempCount for count ≠ 6 (the v1.6 32-byte packet has count 8), tempLength for a length other than 8 + 3 × count, invalidQuality for a quality byte above 2.",
+  "description": "Temperature v2 packets (DATA-CONTRACT v1.7 §3.2): 8 + 3 × count bytes with count = 6, so 26 bytes; site i = NTC i next to FSR i. Constructed: the TS parser cannot read v2, so \"celsius\" is raw / 100 of the inputs and null for -32768 (\"could not read\"). \"rejected\" is the Dart RejectReason, checked in this order: tempLength for anything shorter than the 8-byte header, the old 12-byte v1 packet, or a length other than 8 + 3 × count for the packet's own count; tempCount for a self-consistent packet with count ≠ 6 (the v1.6 32-byte packet has count 8); invalidQuality for a quality byte above 2.",
   "cases": [
     {
       "name": "normal_6_sites",
@@ -174,17 +174,37 @@
       }
     },
     {
-      "name": "count_8",
+      "name": "count_8_in_26_bytes",
       "reference": "constructed",
       "hex": "0b001009050008006c0c8f0c7e0c320ca80c210c000000000000",
+      "expected": {
+        "rejected": "tempLength",
+        "expected_bytes": 26,
+        "actual_bytes": 26
+      }
+    },
+    {
+      "name": "count_0_in_26_bytes",
+      "reference": "constructed",
+      "hex": "0c00407e050000006c0c8f0c7e0c320ca80c210c000000000000",
+      "expected": {
+        "rejected": "tempLength",
+        "expected_bytes": 26,
+        "actual_bytes": 26
+      }
+    },
+    {
+      "name": "count_5_self_consistent",
+      "reference": "constructed",
+      "hex": "1000b08f060005006c0c8f0c7e0c320ca80c0000000000",
       "expected": {
         "rejected": "tempCount"
       }
     },
     {
-      "name": "count_0",
+      "name": "count_0_header_only",
       "reference": "constructed",
-      "hex": "0c00407e050000006c0c8f0c7e0c320ca80c210c000000000000",
+      "hex": "1100c0b606000000",
       "expected": {
         "rejected": "tempCount"
       }

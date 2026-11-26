@@ -30,11 +30,12 @@ abstract final class BleOpcode {
 }
 
 abstract final class SensorLayout {
-  /// FSR channels on the study insole (DATA-CONTRACT v1.6 §3.1, one per
-  /// site of `shared/sensor_layout.json`). The parser reads any N from the
-  /// calibration blob; the connect sequence refuses an insole whose N is
-  /// not this (`calibrationFsrCount`), so no zone is ever made up.
-  static const fsrCount = 8;
+  /// FSR (Velostat) channels on the study insole (DATA-CONTRACT v1.7 §3.1,
+  /// one per site of `shared/sensor_layout.json`; v1.6 had 8). The parser
+  /// reads any N from the calibration blob; the connect sequence refuses an
+  /// insole whose N is not this (`calibrationFsrCount`), so no zone is ever
+  /// made up.
+  static const fsrCount = 6;
 
   /// `seq` u16, `t0_ms` u32, `count` u8, `flags` u8.
   static const headerBytes = 8;
@@ -52,8 +53,8 @@ abstract final class SensorLayout {
   static const flagCalibrating = 0x02;
 
   /// One sample block: N uint16 FSR values, then the IMU (FLUTTER-PLAN §5:
-  /// `2N + 12` bytes, N from the calibration blob). The contract's 28-byte
-  /// block is the N = 8 case.
+  /// `2N + 12` bytes, N from the calibration blob). The contract's 24-byte
+  /// block is the N = 6 case (v1.6: 28 bytes at N = 8).
   static int sampleBytes(int fsrCount) => 2 * fsrCount + imuBytes;
 
   /// Bytes of one packet carrying [samples] samples of [fsrCount] channels.
@@ -92,20 +93,28 @@ abstract final class MtuLayout {
       attOverhead;
 }
 
-/// Temperature v2 (DATA-CONTRACT v1.6 §3.2): `seq` u16, `t_ms` u32,
-/// `count` u8 (= [siteCount]), reserved u8, temperature int16 × 8 (0.01 °C),
-/// quality u8 × 8. Site i is the NTC next to FSR i (`sensor_layout.json`).
-/// The v1 packet (12 bytes, forefoot and heel only) is refused since v1.6.
+/// Temperature v2 (DATA-CONTRACT v1.7 §3.2): `seq` u16, `t_ms` u32,
+/// `count` u8 (= [siteCount]), reserved u8, temperature int16 × count
+/// (0.01 °C), quality u8 × count: `8 + 3 × count` bytes. Site i is the NTC
+/// next to FSR i (`sensor_layout.json`). The v1 packet (12 bytes, forefoot
+/// and heel only) is refused since v1.6, the v1.6 8-site packet (32 bytes)
+/// since v1.7.
 abstract final class TempLayout {
-  /// Exactly this many bytes; anything else is `tempLength`.
-  static const packetBytes = 32;
-
   /// Sites per packet; any other `count` byte is `tempCount`.
-  static const siteCount = 8;
+  static const siteCount = 6;
+
+  /// seq, t_ms, count, reserved.
+  static const headerBytes = 8;
+
+  /// Length of a packet with [count] sites.
+  static int bytesFor(int count) => headerBytes + 3 * count;
+
+  /// Exactly this many bytes (26); anything else is `tempLength`.
+  static const packetBytes = headerBytes + 3 * siteCount;
 
   static const countOffset = 6;
-  static const tempOffset = 8;
-  static const qualityOffset = 24;
+  static const tempOffset = headerBytes;
+  static const qualityOffset = headerBytes + 2 * siteCount;
 
   /// The refused v1 packet's length, named in the rejection detail.
   static const legacyPacketBytes = 12;

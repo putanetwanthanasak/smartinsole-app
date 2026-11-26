@@ -15,7 +15,7 @@ void main() {
   final t = testThresholds;
   final duration = testPreprocess.baselineSeconds * 1000;
   // Standing: 25 kPa under each site (well above steps.contactKpa), still.
-  final standKpa = List<double>.filled(8, 25);
+  final standKpa = List<double>.filled(6, 25);
   const still = [0.0, 0.0, 1.0];
 
   BaselineRecorder make() => BaselineRecorder(
@@ -54,11 +54,11 @@ void main() {
                 FootSample(
                   unixMs: fromMs + (p * perPacket + k) * period,
                   deviceMs: 0,
-                  fsrAdc: List.filled(8, 0),
+                  fsrAdc: List.filled(6, 0),
                   fsrKpa:
                       kpa?.call(side, p * perPacket + k) ??
                       [
-                        for (var c = 0; c < 8; c++)
+                        for (var c = 0; c < 6; c++)
                           standKpa[c] + (p * perPacket + k) % 3,
                       ],
                   accelG: accel?.call(p * perPacket + k) ?? still,
@@ -86,12 +86,12 @@ void main() {
     final left = out.first;
     expect(left.sampleCount, duration ~/ period);
     expect(left.recordedAtMs, 1234);
-    expect(left.values, hasLength(14));
+    expect(left.values, hasLength(12));
     // kPa cycle 25, 26, 27: median 26; accel as given; gyro y 0/0.5 → the
     // mean of the two middle values of an even count.
-    expect(left.values.sublist(0, 8), List.filled(8, 26.0));
-    expect(left.values.sublist(8, 11), still);
-    expect(left.values[12], 0.25);
+    expect(left.values.sublist(0, 6), List.filled(6, 26.0));
+    expect(left.values.sublist(6, 9), still);
+    expect(left.values[10], 0.25);
   });
 
   test('a lost packet fails it, naming the foot', () {
@@ -126,12 +126,12 @@ void main() {
 
   test('a foot not loaded above steps.contactKpa fails it', () {
     final r = make();
-    final light = t.stepContactKpa / 8;
+    final light = t.stepContactKpa / 6;
     feed(
       r,
       ms: 1000,
       kpa: (side, i) =>
-          side == FootSide.right && i > 20 ? List.filled(8, light) : standKpa,
+          side == FootSide.right && i > 20 ? List.filled(6, light) : standKpa,
     );
     expect(r.failure, BaselineFailure.notLoaded);
     expect(r.failedSide, FootSide.right);

@@ -12,7 +12,9 @@ import 'models.dart';
 
 part 'database.g.dart';
 
-// Schema v1 (S6A), v2 (S8D: 8 temperature sites, DATA-CONTRACT v1.6).
+// Schema v1 (S6A), v2 (S8D: 8 temperature sites, DATA-CONTRACT v1.6), v3
+// (S9: baselines). S11 (v1.7, 6 sites) changed no table: site6/7 are no
+// longer written and v1.6 rows keep them (no migration, nothing rewritten).
 // Every time is UTC ms (`*_ms`); `local_date` is the phone's calendar day
 // `YYYY-MM-DD` at that time (`LocalDates`). Enums are stored by name
 // (`textEnum`), so renaming an enum value is a migration. v2 only adds
@@ -76,12 +78,14 @@ class TemperatureReadings extends Table {
   RealColumn get forefootC => real().nullable()();
   RealColumn get heelC => real().nullable()();
 
-  /// v1: the packet's quality. v2: the worst of the 8 sites' qualities.
+  /// v1: the packet's quality. v2: the worst of the packet's sites'
+  /// qualities (8 in v1.6 rows, 6 since v1.7).
   TextColumn get quality => textEnum<TempQuality>()();
   BoolColumn get timeFromArrival => boolean()();
 
   // v2: one value and one quality per site (index = zone, NTC i next to
-  // FSR i); null in v1 rows, and a null value = could not read.
+  // FSR i); null in v1 rows, and a null value = could not read. Since v1.7
+  // (S11) only site0-5 are written; site6/7 hold v1.6 rows' retired sites.
   RealColumn get site0C => real().named('site0_c').nullable()();
   RealColumn get site1C => real().named('site1_c').nullable()();
   RealColumn get site2C => real().named('site2_c').nullable()();
@@ -124,8 +128,8 @@ class DailySummaries extends Table {
   RealColumn get maxDeltaForefootC => real().nullable()();
   RealColumn get maxDeltaHeelC => real().nullable()();
 
-  /// v2: the day's largest |ΔT| over the 8 sites and the site it was at
-  /// (zone index).
+  /// v2: the day's largest |ΔT| over the sites and the site it was at
+  /// (zone index; 6 or 7 on a v1.6 day = a retired site).
   RealColumn get maxDeltaC => real().nullable()();
   IntColumn get maxDeltaSite => integer().nullable()();
   IntColumn get alertsL1 => integer().withDefault(const Constant(0))();
@@ -164,7 +168,7 @@ class FootChecks extends Table {
 
 /// Each insole's latest quiet-standing baseline (S9, Model A
 /// preprocessing "ทางเอ", `shared/model_preprocess.json`): the per-channel
-/// median of one foot's 14 model channels over the researcher's 30 s
+/// median of one foot's model channels (12; 14 in v1.6) over the researcher's 30 s
 /// recording. One row per foot and insole; a new recording replaces it.
 @DataClassName('BaselineRow')
 class Baselines extends Table {
@@ -176,7 +180,9 @@ class Baselines extends Table {
   IntColumn get recordedAtMs => integer()();
   IntColumn get sampleCount => integer()();
 
-  /// JSON list of 14 doubles, the foot's model channels in §7.1 order.
+  /// JSON list of the foot's model channels in §7.1 order: 12 doubles since
+  /// v1.7, 14 in a row recorded by a v1.6 build (not used any more:
+  /// `BaselineRepository` reads it as no baseline, record again).
   TextColumn get values => text()();
 
   @override

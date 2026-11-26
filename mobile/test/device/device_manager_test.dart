@@ -151,13 +151,13 @@ void main() {
   });
 
   group('ΔT per site (rule 4)', () {
-    test('is left minus right at each of the 8 sites', () {
+    test('is left minus right at each of the 6 sites', () {
       fakeAsync((async) {
         final rig = Rig(async)..bothStreaming(l: 31.0, r: 33.6);
         final s = rig.manager.snapshot();
-        expect(s.deltaC, hasLength(8));
+        expect(s.deltaC, hasLength(6));
         expect(s.deltaC[1], closeTo(-2.6, 1e-9));
-        for (final i in [0, 2, 3, 4, 5, 6, 7]) {
+        for (final i in [0, 2, 3, 4, 5]) {
           expect(s.deltaC[i], closeTo(-0.4, 1e-9), reason: 'site $i');
         }
         expect(s.maxDeltaSite, 1);
@@ -194,9 +194,9 @@ void main() {
       for (final q in [TempQuality.poorContact, TempQuality.sensorFault]) {
         fakeAsync((async) {
           final rig = Rig(async)..bothStreaming();
-          rig.right.temp(30.4, sites: {1: 31.5}, qualityAt: {6: q});
+          rig.right.temp(30.4, sites: {1: 31.5}, qualityAt: {4: q});
           final d = rig.manager.snapshot().deltaC;
-          expect(d[6], isNull, reason: q.name);
+          expect(d[4], isNull, reason: q.name);
           expect(d[1], closeTo(31.8 - 31.5, 1e-9));
           expect(d.where((v) => v == null), hasLength(1));
         });
@@ -314,7 +314,7 @@ void main() {
         for (var i = 1; i < unix.length; i++) {
           expect(unix[i] - unix[i - 1], inInclusiveRange(19.75, 20.25));
         }
-        expect(rig.batches.first.samples.first.fsrAdc, hasLength(8));
+        expect(rig.batches.first.samples.first.fsrAdc, hasLength(6));
       });
     });
 
@@ -411,7 +411,7 @@ void main() {
           ..temp(
             30.2,
             sites: {1: 31.4},
-            qualityAt: {7: TempQuality.poorContact},
+            qualityAt: {4: TempQuality.poorContact},
           )
           ..temp(40, quality: TempQuality.sensorFault);
         rig.walkLeft(const Duration(minutes: 10));
@@ -421,7 +421,7 @@ void main() {
         final points = rig.manager.history(FootSide.left).points(rig.now());
         expect(points.map((p) => p.celsius[1]), [31.4, 31.9]);
         // Per site: the poor-contact site is a gap, not a temperature.
-        expect(points.first.celsius[7], isNull);
+        expect(points.first.celsius[4], isNull);
         expect(points.first.celsius[5], 30.2);
       });
     });

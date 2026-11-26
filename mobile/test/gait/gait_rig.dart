@@ -67,11 +67,11 @@ Step step(
   ptiKpaMs: [for (final v in ptiKpaS) v * 1000],
 );
 
-/// `shared/capture_fixture/schema2/expected.json`: the 28-channel rows the
+/// `shared/capture_fixture/schema3/expected.json`: the 24-channel rows the
 /// app's pairFeet + modelRow make from the fixture's samples, and their
 /// (left, right) times.
 Map<String, dynamic> captureFixture() => jsonDecode(
-  File('../shared/capture_fixture/schema2/expected.json').readAsStringSync(),
+  File('../shared/capture_fixture/schema3/expected.json').readAsStringSync(),
 ) as Map<String, dynamic>;
 
 /// The fixture's first [n] rows back as the two feet's samples.

@@ -29,8 +29,8 @@ void main() {
       await DriftTemperatureRepository(db, bangkok).add(
         side: FootSide.values[i % 2],
         atMs: at + i * 30000,
-        celsius: List.filled(8, 30.8),
-        quality: List.filled(8, TempQuality.normal),
+        celsius: List.filled(6, 30.8),
+        quality: List.filled(6, TempQuality.normal),
         timeFromArrival: false,
       );
     }
@@ -38,7 +38,7 @@ void main() {
     await DriftDailySummaryRepository(
       db,
       bangkok,
-    ).recordDelta(at, [null, null, null, null, null, 2.6, null, null]);
+    ).recordDelta(at, [null, null, null, null, null, 2.6]);
     await db.close();
     expect(file.existsSync(), isTrue);
 

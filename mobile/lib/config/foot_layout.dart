@@ -5,9 +5,10 @@ import '../text/thai_break.dart';
 
 /// Where each FSR channel and temperature site sits on the foot map.
 ///
-/// Mirrors `shared/sensor_layout.json` (DATA-CONTRACT v1.6 §3.1, user
-/// decision 2026-10-29): 8 sites per foot, NTC i next to FSR i, positions
-/// in mm. `test/config/foot_layout_test.dart` keeps the two identical, as
+/// Mirrors `shared/sensor_layout.json` (DATA-CONTRACT v1.7 §3.1, user
+/// decision 2026-11-25): 6 sites per foot, NTC i next to FSR i, positions
+/// in mm; the v1.6 sites 6 and 7 are kept as [FootLayout.retired], names
+/// only. `test/config/foot_layout_test.dart` keeps the two identical, as
 /// `model_channels.dart` does for `model_input.json`. This file is the one
 /// place that holds the outline, the channel → zone mapping and every
 /// position.
@@ -22,6 +23,7 @@ class FootLayout {
     required this.outlineLeft,
     required this.outlineRight,
     required this.zones,
+    required this.retired,
   });
 
   final Size viewBox;
@@ -32,8 +34,34 @@ class FootLayout {
   final String outlineRight;
 
   /// Indexed by FSR channel (= temperature site index: NTC i sits with
-  /// FSR i, DATA-CONTRACT v1.6).
+  /// FSR i, DATA-CONTRACT v1.7).
   final List<FootZone> zones;
+
+  /// Sites of v1.6 that v1.7 no longer reads (`sensor_layout.json`
+  /// `retired`). Only to name data stored by a v1.6 build (an alert's zone
+  /// or `tempSites`, a day's largest-ΔT site); never drawn on a map, never
+  /// in new data.
+  final List<RetiredSite> retired;
+
+  /// The current zone with this id, or null (also for a retired id).
+  FootZone? zoneById(String id) {
+    for (final z in zones) {
+      if (z.id == id) return z;
+    }
+    return null;
+  }
+
+  /// The retired v1.6 site with this id, or null.
+  RetiredSite? retiredById(String id) {
+    for (final r in retired) {
+      if (r.id == id) return r;
+    }
+    return null;
+  }
+
+  /// Thai name of a stored site id, current or retired; null when unknown.
+  String? nameThOf(String id) =>
+      zoneById(id)?.nameTh ?? retiredById(id)?.nameTh;
 
   String outline(FootSide side) =>
       side == FootSide.left ? outlineLeft : outlineRight;
@@ -54,7 +82,6 @@ class MmToView {
 enum FootRegion {
   forefoot('ปลายเท้า'),
   lateral('ขอบเท้าด้านนอก'),
-  arch('อุ้งเท้า'),
   heel('ส้นเท้า');
 
   const FootRegion(this.th);
@@ -78,7 +105,8 @@ class FootZone {
     required this.mm,
   });
 
-  /// Stable id, stored in alerts and capture files (ids 0–5 predate v1.6).
+  /// Stable id, stored in alerts and capture files (ids 0–5 have not
+  /// changed since before v1.6).
   final String id;
   final String nameEn;
   final String nameTh;
@@ -160,22 +188,54 @@ const footLayout = FootLayout(
       region: FootRegion.heel,
       mm: Offset(43, 38),
     ),
-    FootZone(
+  ],
+  retired: [
+    RetiredSite(
+      index: 6,
       id: 'medialArch',
       nameEn: 'Medial arch',
       nameTh: 'อุ้งเท้า',
-      region: FootRegion.arch,
-      mm: Offset(59, 126),
+      regionTh: 'อุ้งเท้า',
     ),
-    FootZone(
+    RetiredSite(
+      index: 7,
       id: 'lateralHeel',
       nameEn: 'Lateral heel',
       nameTh: 'ส้นเท้าด้านนอก',
-      region: FootRegion.heel,
-      mm: Offset(22, 82),
+      regionTh: 'ส้นเท้า',
     ),
   ],
 );
+
+/// A v1.6 site that v1.7 no longer reads (DATA-CONTRACT v1.7 §3.1). Its
+/// Velostat pad stays in the insole, unread; it has no position on the
+/// app's map.
+class RetiredSite {
+  const RetiredSite({
+    required this.index,
+    required this.id,
+    required this.nameEn,
+    required this.nameTh,
+    required this.regionTh,
+  });
+
+  /// Its v1.6 channel index.
+  final int index;
+  final String id;
+  final String nameEn;
+  final String nameTh;
+
+  /// The v1.6 region's Thai name (`arch` "อุ้งเท้า", `heel` "ส้นเท้า"), for
+  /// an old alert's plain-Thai sentence.
+  final String regionTh;
+
+  /// [nameTh] for the screen: never split across lines (S10).
+  String get displayTh => keepTogether(nameTh);
+
+  /// [regionTh] in running text and in titles (as [FootRegion]).
+  String get regionDisplayTh => keepTogether(regionTh);
+  String get regionTitleTh => keepTogetherInTitle(regionTh);
+}
 
 /// Parses the absolute M / C / Z subset of SVG path data used by the
 /// placeholder outlines.

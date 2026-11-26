@@ -24,7 +24,7 @@ const chartPairWithin = TempLayout.notifyPeriod;
 /// higher values are drawn at the top.
 const chartMaxC = 3.5;
 
-/// One point of the chart's line: the largest |ΔT| of the 8 sites at one
+/// One point of the chart's line: the largest |ΔT| of the 6 sites at one
 /// paired reading, and the site it came from.
 @immutable
 class ChartPoint {
@@ -93,7 +93,7 @@ class TempChartData {
   final int startMs;
   final int endMs;
 
-  /// The one line (S8D-2, layout A: the largest |ΔT| of the 8 sites at
+  /// The one line (S8D-2, layout A: the largest |ΔT| of the 6 sites at
   /// each reading) as runs of points; the line breaks between runs.
   final List<List<ChartPoint>> runs;
 
@@ -134,14 +134,14 @@ bool _runsEqual(List<List<ChartPoint>> a, List<List<ChartPoint>> b) {
 /// [usable] says which feet stream now: a foot that does not has an open
 /// gap from its last reading, however recent.
 ///
-/// - A point is the largest |ΔT| over the 8 sites whenever a reading of
+/// - A point is the largest |ΔT| over the 6 sites whenever a reading of
 ///   one foot meets the other foot's newest reading no more than
 ///   [chartPairWithin] older, the same pairing as the alert engine (each
 ///   foot's newest reading); a site counts only when both feet read it
 ///   with normal quality, and a pair with no such site gives no point.
 ///   The point keeps its site, so two points in a row can come from
 ///   different sites (the alert counts each site on its own, rule 6).
-///   Rows stored before the 8 sites (schema v1) give no points: their
+///   Rows stored before the per-site readings (schema v1) give no points: their
 ///   sites are not these.
 /// - The line breaks where two points are more than [chartGapAfter] apart.
 /// - A foot with no row for longer than [chartGapAfter] is a gap, open
@@ -256,7 +256,7 @@ String chartEndLabel(ChartPoint p) => _siteTh(p.site);
 /// TalkBack summary of the chart (§8.2), e.g. "กราฟความต่างของความอุ่นวันนี้
 /// จุดที่ต่างกันมากที่สุดขึ้นถึงระดับที่ควรระวังตั้งแต่ราว 13:45 ตอนนี้
 /// 2.6 องศาที่กลางส้นเท้า". **Draft copy** (DESIGN-SPEC Appendix A, S6B;
-/// one line of the 8 sites since S8D-2).
+/// one line of the sites since S8D-2).
 String chartSummary(TempChartData d, {required double deltaC}) {
   const title = 'กราฟความต่างของความอุ่นวันนี้';
   if (d.isEmpty) return '$title ยังไม่มีข้อมูล';

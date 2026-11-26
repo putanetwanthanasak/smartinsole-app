@@ -57,9 +57,9 @@ Map<String, Object?> calibrationBlob(int n) => {
 };
 
 /// Site temperatures in 0.01 °C for [buildTempPacket]'s default.
-const defaultTempRaw = [3180, 3120, 3150, 3100, 3200, 3090, 3240, 3070];
+const defaultTempRaw = [3180, 3120, 3150, 3100, 3200, 3090];
 
-/// A temperature v2 packet (contract v1.6 §3.2). [count] defaults to the
+/// A temperature v2 packet (contract v1.7 §3.2: 6 sites, 26 bytes). [count] defaults to the
 /// number of sites; [quality] to all 0.
 Uint8List buildTempPacket({
   int seq = 0,
@@ -68,13 +68,18 @@ Uint8List buildTempPacket({
   List<int>? quality,
   int? count,
 }) {
-  final data = ByteData(TempLayout.packetBytes)
+  // Laid out for raw.length sites (8 + 3 × sites bytes); [count] only
+  // changes the count byte.
+  final data = ByteData(TempLayout.bytesFor(raw.length))
     ..setUint16(0, seq, Endian.little)
     ..setUint32(2, tMs, Endian.little)
     ..setUint8(TempLayout.countOffset, count ?? raw.length);
   for (var i = 0; i < raw.length; i++) {
     data.setInt16(TempLayout.tempOffset + 2 * i, raw[i], Endian.little);
-    data.setUint8(TempLayout.qualityOffset + i, quality?[i] ?? 0);
+    data.setUint8(
+      TempLayout.headerBytes + 2 * raw.length + i,
+      quality?[i] ?? 0,
+    );
   }
   return data.buffer.asUint8List();
 }

@@ -2,8 +2,10 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:smartinsole/ble/ble_protocol.dart';
 import 'package:smartinsole/ble/packets.dart';
 import 'package:smartinsole/config/foot_layout.dart';
+import 'package:smartinsole/device/model_channels.dart';
 
 void main() {
   final json = jsonDecode(
@@ -11,7 +13,7 @@ void main() {
   ) as Map<String, Object?>;
   final sites = (json['sites']! as List).cast<Map<String, Object?>>();
 
-  test('8 zones in wire order, identical to shared/sensor_layout.json', () {
+  test('6 zones in wire order, identical to shared/sensor_layout.json', () {
     expect(footLayout.zones.map((z) => z.id), [
       'hallux',
       'meta1',
@@ -19,8 +21,6 @@ void main() {
       'meta5',
       'midfoot',
       'heel',
-      'medialArch',
-      'lateralHeel',
     ]);
     expect(sites, hasLength(footLayout.zones.length));
     for (var i = 0; i < sites.length; i++) {
@@ -33,6 +33,35 @@ void main() {
       expect(s['region'], z.region.name);
       expect(s['mm'], [z.mm.dx, z.mm.dy]);
     }
+  });
+
+  test('one count everywhere: zones = FSR channels = temperature sites = '
+      'model FSR channels = shared/sensor_layout.json (v1.7)', () {
+    expect(footLayout.zones, hasLength(6));
+    expect(SensorLayout.fsrCount, footLayout.zones.length);
+    expect(TempLayout.siteCount, footLayout.zones.length);
+    expect(modelFsrCount, footLayout.zones.length);
+    expect(sites, hasLength(footLayout.zones.length));
+    expect(TempLayout.packetBytes, 26);
+    expect(SensorLayout.packetBytes(SensorLayout.fsrCount, 8), 200);
+  });
+
+  test('the retired v1.6 sites match the JSON and are not zones', () {
+    final retired = ((json['retired']! as Map)['sites']! as List)
+        .cast<Map<String, Object?>>();
+    expect(retired, hasLength(footLayout.retired.length));
+    for (var i = 0; i < retired.length; i++) {
+      final r = footLayout.retired[i];
+      expect(retired[i]['index'], r.index);
+      expect(retired[i]['id'], r.id);
+      expect(retired[i]['nameEn'], r.nameEn);
+      expect(retired[i]['nameTh'], r.nameTh);
+      expect(footLayout.zoneById(r.id), isNull);
+      expect(footLayout.nameThOf(r.id), r.nameTh);
+    }
+    expect(footLayout.retired.map((r) => r.index), [6, 7]);
+    expect(footLayout.nameThOf('heel'), 'กลางส้นเท้า');
+    expect(footLayout.nameThOf('nope'), isNull);
   });
 
   test('regions and the display transform match the JSON', () {
