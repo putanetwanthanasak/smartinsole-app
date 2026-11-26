@@ -787,7 +787,9 @@ order.
    (0.01 °C, -32768 = could not read), quality uint8 × 8 (0 normal, 1 poor
    contact, 2 sensor error).
 4. **Calibration JSON** (`...b45905`): `channels` lists exactly 8 entries,
-   indexes 0–7.
+   indexes 0–7. Send it compact (no spaces or newlines), at most 512 bytes:
+   a GATT characteristic value holds at most 512 bytes. The example below
+   is spaced out for reading (594 bytes as printed, 478 compact).
 
 **The app needs N = 8 exactly.** It does not guess around a mismatch: it
 refuses, and shows why per foot on Researcher › Diagnostics.
@@ -909,3 +911,4 @@ battery 87 % (3987 mV), foot_side 0 (left), firmware 1.4, state 1 (streaming), e
 | 1.6 addendum | 2026-11-01 | S9 (this repo) | Model A preprocessing "ทางเอ" (§7.1): personal quiet-standing baseline (median, all 28 channels) subtracted, then Min-Max with the training subjects' min/max (per LOSO fold), no clipping; replaces the z-score. `shared/model_preprocess.json` version 1, `normalization.json` `method` `"baseline-minmax"` with `min`/`max` (the z-score format is refused), shared test vectors; without both insoles' baselines Model A is not used. §8.1 note: the baseline is a model input step only. `steps.mergeGapMs` (§8 addendum, BACKLOG 51). Not yet sent back to the contract owner. |
 | 1.6 addendum | 2026-11-02 | S9-2 (this repo) | §7.1: one baseline function for capture trial 00 (training) and the Researcher recording (app): the first `baselineSeconds` × 50 samples per foot, refused on a reconnect, lost packets, a TARE, a marked-invalid sample, not 8 FSR, the walking gate, a foot not loaded, or too few samples; training uses the newest valid trial-00 attempt that passes; a trial 00 that ends at most `baselineToleranceSamples` short still passes. `shared/test_vectors/baseline/` (with `slow_clock`). Not yet sent back to the contract owner. |
 | 1.6 addendum | 2026-11-02 | S10 (this repo) | `alerts.quietNotifyMin` (2): a foot alert notification within this many minutes of the last one that sounded for the same foot is posted silently (app notification behaviour only, no alert rule changes; BACKLOG 76, DESIGN-SPEC §11.9). Additive: the file's `"version"` stays 1. Not yet sent back to the contract owner. |
+| 1.6 addendum | 2026-11-09 | SR-1 (this repo) | Appendix C item 4: the calibration JSON is sent compact (no spaces or newlines), at most 512 bytes (the GATT value limit; the Appendix C example is 594 bytes as printed, 478 compact). Found while preparing the first real-board check (report 042). For the hardware team. |

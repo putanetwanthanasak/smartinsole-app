@@ -1,6 +1,10 @@
 # assets/models/ — the Model A slot
 
-Put exactly these two files here (DATA-CONTRACT v1.6 §7, `lib/gait/README.md`):
+Put exactly these two files here (DATA-CONTRACT v1.6 §7, `lib/gait/README.md`).
+**They are never committed** (user decision 2026-11-09): they are derived
+from the participants' data, and this repo is public. `.gitignore` lists
+both; the app builds with them locally until the consent form and IRB have
+been checked (`mobile/CLAUDE.md`, "Study data and the public repo").
 
 - `model_a.tflite` — input `[1, 100, 28]` float32 (8 FSR + 6 IMU per foot;
   channel order and units
