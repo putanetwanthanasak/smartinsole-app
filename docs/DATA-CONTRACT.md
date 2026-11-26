@@ -837,7 +837,7 @@ v1.6 addendum 2, little-endian byte order.
    with count 6: **26 bytes**. seq uint16, t_ms uint32, count uint8 = 6,
    reserved uint8 = 0, temp int16 × 6 (0.01 °C, -32768 = could not read),
    quality uint8 × 6 (0 normal, 1 poor contact, 2 sensor error). The
-   quality bytes start at offset `8 + 2 × count` = 16. A site with no NTC
+   quality bytes start at offset `8 + 2 × count` = 20 (0x14). A site with no NTC
    fitted sends -32768 with quality 2.
 4. **Calibration JSON** (`...b45905`): `channels` lists exactly 6 entries,
    indexes 0–5. Send it compact (no spaces or newlines), at most 512 bytes:
@@ -896,7 +896,7 @@ Header: seq 1234, t0_ms 98765, count 8, flags 0. Sample 0 (bytes 8–31): fsr [1
 0010  a8 0c 21 0c 00 01 02 00 01 00
 ```
 
-seq 6, t_ms 180000, count 6, reserved 0; °C per site 0–5 [31.8, 32.15, 31.98, 31.22, 32.4, 31.05]; quality per site 0–5 [0, 1, 2, 0, 1, 0] (from offset 0x10).
+seq 6, t_ms 180000, count 6, reserved 0; °C per site 0–5 [31.8, 32.15, 31.98, 31.22, 32.4, 31.05]; quality per site 0–5 [0, 1, 2, 0, 1, 0] (bytes 0x14–0x19).
 
 A site that could not be read (`unreadable_one_site`): site 4 is `00 80` (-32768) → no value (could not read).
 

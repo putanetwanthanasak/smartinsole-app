@@ -360,7 +360,7 @@ def _case(rng: random.Random, name: str, n_cal: int, n_rows: int, model_input: d
         k = c % per_foot
         if k < FSR_COUNT:
             return rng.choice([0.01, 12.5, 12.5, rng.uniform(0, 300)])
-        if k < 11:
+        if k < FSR_COUNT + 3:
             return rng.uniform(-2, 2)
         return rng.uniform(-250, 250)
 

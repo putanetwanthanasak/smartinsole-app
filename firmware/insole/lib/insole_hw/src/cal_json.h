@@ -55,7 +55,7 @@ const char* calErrorText(CalError e);
 size_t buildCalibrationJson(const CalData& cal, char* out, size_t cap);
 
 // Strict parse of a calibration JSON (from the serial `cal set` command):
-// exact keys, 8 channels in index order, value ranges. Numbers are stored at
+// exact keys, 6 channels in index order, value ranges. Numbers are stored at
 // the precision above. On success fills `out` and returns CalError::None;
 // `out` is untouched otherwise. The rebuilt compact JSON must fit 512 bytes.
 CalError parseCalibration(const char* text, size_t len, CalData& out);
