@@ -345,22 +345,26 @@ function temperatureFile() {
   };
 }
 
-// ─── Temperature v2 vectors (DATA-CONTRACT v1.6 §3.2) ─────────────
+// ─── Temperature v2 vectors (DATA-CONTRACT v1.7 §3.2) ─────────────
 
-const TEMP_V2_BYTES = 32;
-const TEMP_V2_SITES = 8;
+// v1.7 generalizes v2: 8 + 3 × count bytes, quality at 8 + 2 × count; the
+// app needs count = TEMP_V2_SITES (6, 26 bytes). The v1.6 8-site file is
+// still generated as the record of the old packet: every case is refused now.
+const TEMP_V2_SITES = 6;
 const TEMP_UNREADABLE = -32768;
+const tempV2Bytes = (sites) => 8 + 3 * sites;
 
-/** seq u16, t_ms u32, count u8, reserved u8, temp int16 × 8 (0.01 °C), quality u8 × 8; little-endian. */
-function tempV2Bytes({ seq, tMs, count = TEMP_V2_SITES, reserved = 0, temps, quality, length = TEMP_V2_BYTES }) {
-  const dv = new DataView(new ArrayBuffer(Math.max(length, TEMP_V2_BYTES)));
+/** seq u16, t_ms u32, count u8, reserved u8, temp int16 × sites (0.01 °C), quality u8 × sites; little-endian. */
+function tempV2Packet(sites, { seq, tMs, count = sites, reserved = 0, temps, quality, length = tempV2Bytes(sites) }) {
+  const full = tempV2Bytes(sites);
+  const dv = new DataView(new ArrayBuffer(Math.max(length, full)));
   dv.setUint16(0, seq, true);
   dv.setUint32(2, tMs, true);
   dv.setUint8(6, count);
   dv.setUint8(7, reserved);
   temps.forEach((v, i) => dv.setInt16(8 + 2 * i, v, true));
-  quality.forEach((q, i) => dv.setUint8(24 + i, q));
-  for (let i = TEMP_V2_BYTES; i < length; i++) dv.setUint8(i, 0xa5);
+  quality.forEach((q, i) => dv.setUint8(8 + 2 * sites + i, q));
+  for (let i = full; i < length; i++) dv.setUint8(i, 0xa5);
   return new Uint8Array(dv.buffer).slice(0, length);
 }
 
@@ -368,46 +372,78 @@ function tempV2Bytes({ seq, tMs, count = TEMP_V2_SITES, reserved = 0, temps, qua
  * No TS parser reads v2, so a parsed case expects the inputs the packet was built from
  * (°C = raw / 100, -32768 → null; contract §5.3). `rejected` is the Dart RejectReason.
  */
-function tempV2Case(name, spec, rejected = null) {
-  const bytes = tempV2Bytes(spec);
-  const lengths = rejected === 'tempLength' ? { expected_bytes: TEMP_V2_BYTES, actual_bytes: bytes.length } : {};
+function tempV2Case(sites, name, spec, rejected = null) {
+  const bytes = tempV2Packet(sites, spec);
+  const lengths = rejected === 'tempLength' ? { expected_bytes: tempV2Bytes(sites), actual_bytes: bytes.length } : {};
   const expected = rejected
     ? { rejected, ...lengths }
     : {
-      rejected: null, seq: spec.seq, t_ms: spec.tMs, count: spec.count ?? TEMP_V2_SITES,
+      rejected: null, seq: spec.seq, t_ms: spec.tMs, count: spec.count ?? sites,
       celsius: spec.temps.map((v) => (v === TEMP_UNREADABLE ? null : v / 100)),
       quality: spec.quality,
     };
   return { name, reference: 'constructed', hex: hex(bytes), expected };
 }
 
+/** The study packet (v1.7): 6 sites, 26 bytes. */
 function temperatureV2File() {
-  const temps = [3180, 3215, 3198, 3122, 3240, 3105, 3260, 3090];
-  const ok = Array(TEMP_V2_SITES).fill(0);
+  const n = TEMP_V2_SITES;
+  const temps = [3180, 3215, 3198, 3122, 3240, 3105];
+  const ok = Array(n).fill(0);
   const base = { temps, quality: ok };
   const legacy = tempBytes({ seq: 10, tMs: 300000, forefoot: 3180, heel: 3025, quality: 0 });
+  const v16 = tempV2Packet(8, { seq: 14, tMs: 420000, temps: [3180, 3215, 3198, 3122, 3240, 3105, 3260, 3090], quality: Array(8).fill(0) });
+  const c = (...args) => tempV2Case(n, ...args);
   return {
-    description: 'Temperature v2 packets (DATA-CONTRACT v1.6 §3.2): exactly 32 bytes, count = 8, site i = NTC i '
-      + 'next to FSR i. Constructed: the TS parser cannot read v2, so "celsius" is raw / 100 of the inputs and null '
-      + 'for -32768 ("could not read"). "rejected" is the Dart RejectReason: tempLength for any length other than 32 '
-      + '(including the old 12-byte v1 packet), tempCount for count ≠ 8, invalidQuality for a quality byte above 2.',
+    description: 'Temperature v2 packets (DATA-CONTRACT v1.7 §3.2): 8 + 3 × count bytes with count = 6, so 26 bytes; '
+      + 'site i = NTC i next to FSR i. Constructed: the TS parser cannot read v2, so "celsius" is raw / 100 of the inputs '
+      + 'and null for -32768 ("could not read"). "rejected" is the Dart RejectReason, checked in this order: tempLength '
+      + 'for the old 12-byte v1 packet or anything shorter than the 8-byte header, tempCount for count ≠ 6 (the v1.6 '
+      + '32-byte packet has count 8), tempLength for a length other than 8 + 3 × count, invalidQuality for a quality '
+      + 'byte above 2.',
     cases: [
-      tempV2Case('normal_8_sites', { seq: 1, tMs: 30000, ...base }),
-      tempV2Case('negative_and_fractional', { seq: 2, tMs: 60000, temps: [-105, 1, -1, 0, 2999, -2999, 100, -100], quality: ok }),
-      tempV2Case('int16_extremes', { seq: 3, tMs: 90000, temps: [32767, -32767, 32767, -32767, 0, 0, 0, 0], quality: ok }),
-      tempV2Case('unreadable_one_site', { seq: 4, tMs: 120000, temps: temps.map((v, i) => (i === 6 ? TEMP_UNREADABLE : v)), quality: ok }),
-      tempV2Case('unreadable_all', { seq: 5, tMs: 150000, temps: Array(TEMP_V2_SITES).fill(TEMP_UNREADABLE), quality: Array(TEMP_V2_SITES).fill(2) }),
-      tempV2Case('quality_mixed', { seq: 6, tMs: 180000, temps, quality: [0, 1, 2, 0, 1, 2, 0, 0] }),
-      tempV2Case('seq_and_t_max', { seq: 65535, tMs: 4294967295, ...base }),
-      tempV2Case('reserved_nonzero_ignored', { seq: 7, tMs: 210000, reserved: 0x5a, ...base }),
+      c('normal_6_sites', { seq: 1, tMs: 30000, ...base }),
+      c('negative_and_fractional', { seq: 2, tMs: 60000, temps: [-105, 1, -1, 0, 2999, -2999], quality: ok }),
+      c('int16_extremes', { seq: 3, tMs: 90000, temps: [32767, -32767, 32767, -32767, 0, 0], quality: ok }),
+      c('unreadable_one_site', { seq: 4, tMs: 120000, temps: temps.map((v, i) => (i === 4 ? TEMP_UNREADABLE : v)), quality: ok }),
+      c('unreadable_all', { seq: 5, tMs: 150000, temps: Array(n).fill(TEMP_UNREADABLE), quality: Array(n).fill(2) }),
+      c('quality_mixed', { seq: 6, tMs: 180000, temps, quality: [0, 1, 2, 0, 1, 0] }),
+      c('seq_and_t_max', { seq: 65535, tMs: 4294967295, ...base }),
+      c('reserved_nonzero_ignored', { seq: 7, tMs: 210000, reserved: 0x5a, ...base }),
       { name: 'legacy_v1_12_bytes', reference: 'constructed', hex: hex(legacy),
-        expected: { rejected: 'tempLength', expected_bytes: TEMP_V2_BYTES, actual_bytes: legacy.length } },
-      tempV2Case('short_31_bytes', { seq: 8, tMs: 240000, ...base, length: 31 }, 'tempLength'),
-      tempV2Case('long_33_bytes', { seq: 9, tMs: 270000, ...base, length: 33 }, 'tempLength'),
-      tempV2Case('empty', { seq: 0, tMs: 0, ...base, length: 0 }, 'tempLength'),
-      tempV2Case('count_6', { seq: 11, tMs: 330000, count: 6, ...base }, 'tempCount'),
-      tempV2Case('count_0', { seq: 12, tMs: 360000, count: 0, ...base }, 'tempCount'),
-      tempV2Case('quality_3', { seq: 13, tMs: 390000, temps, quality: [0, 0, 0, 3, 0, 0, 0, 0] }, 'invalidQuality'),
+        expected: { rejected: 'tempLength', expected_bytes: tempV2Bytes(n), actual_bytes: legacy.length } },
+      { name: 'v16_8_sites_32_bytes', reference: 'constructed', hex: hex(v16), expected: { rejected: 'tempCount' } },
+      c('short_25_bytes', { seq: 8, tMs: 240000, ...base, length: 25 }, 'tempLength'),
+      c('long_27_bytes', { seq: 9, tMs: 270000, ...base, length: 27 }, 'tempLength'),
+      c('header_only_8_bytes', { seq: 10, tMs: 280000, ...base, length: 8 }, 'tempLength'),
+      c('short_7_bytes', { seq: 15, tMs: 290000, ...base, length: 7 }, 'tempLength'),
+      c('empty', { seq: 0, tMs: 0, ...base, length: 0 }, 'tempLength'),
+      c('count_8', { seq: 11, tMs: 330000, count: 8, ...base }, 'tempCount'),
+      c('count_0', { seq: 12, tMs: 360000, count: 0, ...base }, 'tempCount'),
+      c('quality_3', { seq: 13, tMs: 390000, temps, quality: [0, 0, 0, 3, 0, 0] }, 'invalidQuality'),
+    ],
+  };
+}
+
+/**
+ * The v1.6 packet (8 sites, 32 bytes), kept as the record of the old format: `expected`
+ * is what a v1.6 reader made of it; since v1.7 the Dart test checks that every case is refused.
+ */
+function temperatureV2EightSitesFile() {
+  const n = 8;
+  const temps = [3180, 3215, 3198, 3122, 3240, 3105, 3260, 3090];
+  const ok = Array(n).fill(0);
+  const base = { temps, quality: ok };
+  const c = (...args) => tempV2Case(n, ...args);
+  return {
+    description: 'Temperature v2 packets of DATA-CONTRACT v1.6 (8 sites, exactly 32 bytes, count = 8). Kept as the '
+      + 'record of the old format: "expected" is the v1.6 reading. Since v1.7 (6 sites, 26 bytes) the app refuses '
+      + 'every one of these packets (tempCount or tempLength); the Dart test checks that.',
+    cases: [
+      c('normal_8_sites', { seq: 1, tMs: 30000, ...base }),
+      c('unreadable_one_site', { seq: 4, tMs: 120000, temps: temps.map((v, i) => (i === 6 ? TEMP_UNREADABLE : v)), quality: ok }),
+      c('quality_mixed', { seq: 6, tMs: 180000, temps, quality: [0, 1, 2, 0, 1, 2, 0, 0] }),
+      c('count_6_in_32_bytes', { seq: 11, tMs: 330000, count: 6, ...base }, 'tempCount'),
     ],
   };
 }
@@ -518,6 +554,7 @@ const FILES = {
   'sensor_n8.json': sensorNFile(8),
   'temperature.json': temperatureFile(),
   'temperature_v2.json': temperatureV2File(),
+  'temperature_v2_8sites.json': temperatureV2EightSitesFile(),
   'status.json': statusFile(),
   'calibration.json': calibrationFile(),
 };

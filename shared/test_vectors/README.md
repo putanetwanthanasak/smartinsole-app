@@ -26,10 +26,11 @@ byte-identical files.
 
 | File | Contents |
 |---|---|
-| `sensor.json` | Sensor Stream packets, 6 FSR channels (the pre-v1.6 insole): the normal 200-byte packet, `count` < 8, `count` 0, ADC 0/4095, `offset_adc`, flags, IMU extremes, truncated, too short |
-| `sensor_n8.json` | Sensor Stream packets with 8 FSR channels, the study insole since DATA-CONTRACT v1.6 (28-byte sample block, 232-byte packet): normal, `count` 4, ADC extremes, `offset_adc`, flags, seq/t0 maximum, one byte short, trailing bytes |
+| `sensor.json` | Sensor Stream packets, 6 FSR channels (the study insole again since DATA-CONTRACT v1.7; also the pre-v1.6 insole): the normal 200-byte packet, `count` < 8, `count` 0, ADC 0/4095, `offset_adc`, flags, IMU extremes, truncated, too short |
+| `sensor_n8.json` | Sensor Stream packets with 8 FSR channels, the v1.6 insole (28-byte sample block, 232-byte packet; the parser still reads any N, the app refuses N ≠ 6 at connect): normal, `count` 4, ADC extremes, `offset_adc`, flags, seq/t0 maximum, one byte short, trailing bytes |
 | `sensor_n4.json` | Sensor Stream packets with 4 FSR channels (the parser reads any N; sample block = `2N + 12` bytes) |
-| `temperature_v2.json` | Temperature v2 packets (contract v1.6 §3.2, 32 bytes, 8 sites): normal, negative, int16 extremes, `-32768` (→ `null`) at one and all sites, mixed quality, reserved byte ignored; rejected: the old 12-byte packet, 0/31/33 bytes (`tempLength`), count 0 and 6 (`tempCount`), quality 3 (`invalidQuality`) |
+| `temperature_v2.json` | Temperature v2 packets (contract v1.7 §3.2, `8 + 3 × count` bytes, count 6 = 26 bytes): normal, negative, int16 extremes, `-32768` (→ `null`) at one and all sites, mixed quality, reserved byte ignored; rejected: the old 12-byte packet, 0/7/8/25/27 bytes (`tempLength`), the v1.6 32-byte packet, count 0 and 8 (`tempCount`), quality 3 (`invalidQuality`) |
+| `temperature_v2_8sites.json` | Temperature v2 packets of contract v1.6 (32 bytes, 8 sites), `expected` as v1.6 read them. Kept as the record of the old format: since v1.7 the Dart test checks that **every one is refused** |
 | `temperature.json` | Temperature v1 packets (12 bytes, forefoot and heel), the TS parser's output. Kept as the record of the old format: since v1.6 the Dart test checks that **every one is refused** (`tempLength`) |
 | `status.json` | Device Status packets: every state, both feet, error codes 0–5, too short |
 | `calibration.json` | Calibration blobs: valid ones, plus malformed ones together with the reason they must be rejected |
@@ -75,6 +76,6 @@ Each case has a `"reference"`:
 
 Sample time is `t0_ms + i × 20` (FLUTTER-PLAN rule 1).
 
-`2N + 12` is the sample block for any N; DATA-CONTRACT v1.6 §3.1 fixes
-N = 8 (28 bytes) for the study insole, and the app refuses any other N at
+`2N + 12` is the sample block for any N; DATA-CONTRACT v1.7 §3.1 fixes
+N = 6 (24 bytes; v1.6 had N = 8) for the study insole, and the app refuses any other N at
 connect (`calibrationFsrCount`), while the parser itself stays N-generic.

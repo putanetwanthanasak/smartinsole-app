@@ -1,0 +1,52 @@
+{
+  "description": "Temperature v2 packets of DATA-CONTRACT v1.6 (8 sites, exactly 32 bytes, count = 8). Kept as the record of the old format: \"expected\" is the v1.6 reading. Since v1.7 (6 sites, 26 bytes) the app refuses every one of these packets (tempCount or tempLength); the Dart test checks that.",
+  "cases": [
+    {
+      "name": "normal_8_sites",
+      "reference": "constructed",
+      "hex": "01003075000008006c0c8f0c7e0c320ca80c210cbc0c120c0000000000000000",
+      "expected": {
+        "rejected": null,
+        "seq": 1,
+        "t_ms": 30000,
+        "count": 8,
+        "celsius": [31.8, 32.15, 31.98, 31.22, 32.4, 31.05, 32.6, 30.9],
+        "quality": [0, 0, 0, 0, 0, 0, 0, 0]
+      }
+    },
+    {
+      "name": "unreadable_one_site",
+      "reference": "constructed",
+      "hex": "0400c0d4010008006c0c8f0c7e0c320ca80c210c0080120c0000000000000000",
+      "expected": {
+        "rejected": null,
+        "seq": 4,
+        "t_ms": 120000,
+        "count": 8,
+        "celsius": [31.8, 32.15, 31.98, 31.22, 32.4, 31.05, null, 30.9],
+        "quality": [0, 0, 0, 0, 0, 0, 0, 0]
+      }
+    },
+    {
+      "name": "quality_mixed",
+      "reference": "constructed",
+      "hex": "060020bf020008006c0c8f0c7e0c320ca80c210cbc0c120c0001020001020000",
+      "expected": {
+        "rejected": null,
+        "seq": 6,
+        "t_ms": 180000,
+        "count": 8,
+        "celsius": [31.8, 32.15, 31.98, 31.22, 32.4, 31.05, 32.6, 30.9],
+        "quality": [0, 1, 2, 0, 1, 2, 0, 0]
+      }
+    },
+    {
+      "name": "count_6_in_32_bytes",
+      "reference": "constructed",
+      "hex": "0b001009050006006c0c8f0c7e0c320ca80c210cbc0c120c0000000000000000",
+      "expected": {
+        "rejected": "tempCount"
+      }
+    }
+  ]
+}
