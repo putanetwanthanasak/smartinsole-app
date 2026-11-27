@@ -80,7 +80,7 @@ their 8 pads, and the firmware reads 6.
 | Check | Result |
 |---|---|
 | `flutter analyze` | No issues |
-| `flutter test` (goldens included) | **1129 passed** |
+| `flutter test` (goldens included) | **1135 passed** (1129 + the 6 Appendix C tests) |
 | Goldens | 71 regenerated and reviewed side by side with the old ones (§5) |
 | `node shared/test_vectors/generate.mjs --check` | Up to date |
 | `load_capture.py --selftest` | PASS: 96 checks, schemas 1, 2 and 3 plus a mixed session |
@@ -91,6 +91,7 @@ their 8 pads, and the firmware reads 6.
 | `compare.py` on an old capture | A v1.6 board's run (SR-1, offline file) is judged against v1.7: 232-byte packets → `lengthMismatch`, 32-byte temperature → `tempCount`, as intended |
 | Simulator boards reflashed (user OK, 2026-11-27) | **Left:** boot `side L, fsr_count 6`; live `sim_check --side L --duration 300`: 56/56 PASS, 1,875 packets of 200 bytes, 0 gaps, 6.250 Hz, temperature 26 bytes at 6 sites every 30 s, calibration N = 6 (381 bytes, long read), TARE/REBOOT/reconnects as before. **Right:** boot `side R, fsr_count 6`; the same run, 56/56 PASS, 1,875 packets, 0 gaps, 6.251 Hz |
 | `spec-reviewer` on `git diff main...HEAD` | 1 blocker and 2 minor findings, all fixed (§7) |
+| `test/ble/appendix_c_test.dart` (new, §7) | 6 tests pass. Mutation check: with "= 16" put back in the doc, it fails (expected 20, got 16); with the sentence reworded, it fails naming the missing statement |
 
 The first left upload stopped mid-transfer ("Packet content transfer
 stopped"); the retry verified. The right board had just been plugged in
@@ -129,8 +130,8 @@ migration. Nothing is deleted or rewritten.
 - **One deliberate drop.** A stored v1.6 alert at `lateralHeel` no longer
   gets the `heel_walking` gait note, because the note now covers `heel`
   only (`gait_note.dart`). The spec-reviewer noted that §8.3.1 doesn't
-  cover this case. **Decision for you:** keep the drop, or name
-  `lateralHeel` in the note too, for old alerts only.
+  cover this case. **User decision (2026-11-27): the drop is fine.** All
+  stored alerts are test data, and they are cleared before the study.
 
 ## 4. Changes from the plan
 
@@ -221,6 +222,37 @@ fixed in `296d1f7`:
   boundary. Fixed, the vectors were regenerated, and the app's test still
   matches bit for bit.
 - **Cosmetic:** a Diagnostics log line said "contract v1.6". Fixed.
+
+**Guard against this happening again** (user request, 2026-11-27):
+`mobile/test/ble/appendix_c_test.dart` reads Appendix C from
+`docs/DATA-CONTRACT.md` and checks it against the code.
+- **Stated numbers.** Every number the appendix states must equal the
+  parser's constants (`SensorLayout`, `MtuLayout`, `TempLayout`):
+  - the sample, packet and fallback lengths and the two MTUs;
+  - sample 0's byte range and where sample 1 starts;
+  - `8 + 3 × count` and the 26 bytes;
+  - temp and quality × 6;
+  - the quality offset, in decimal and hex, and the quality byte range
+    under the example;
+  - 6 calibration entries with indexes 0–5;
+  - the counts in the reject table;
+  - the Diagnostics `format` line.
+- **Hex examples.** Each one must be byte for byte the vector case its
+  caption names. Every caption now names its file:
+  (`temperature_v2.json` → `case`). The test also checks:
+  - the offset column;
+  - the stated length;
+  - that the app's parser accepts the example, or rejects it with the
+    reason the caption gives.
+- **Decoded values.** The values written under the sensor and
+  `quality_mixed` examples must equal what the parser reads from those
+  bytes.
+- **Calibration JSON.** Both calibration examples must decode to the
+  vector's `calibrations.varied`, and the app must accept them with
+  N = 6. The stated 381 bytes must be the compact block's real length.
+
+A statement the test can no longer find fails it by name, so rewording
+the appendix means updating the test too.
 
 Checked by the review and found fine:
 - the parser order in Dart, `sim_check.py` and every vector;

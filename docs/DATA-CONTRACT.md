@@ -898,7 +898,7 @@ Header: seq 1234, t0_ms 98765, count 8, flags 0. Sample 0 (bytes 8–31): fsr [1
 
 seq 6, t_ms 180000, count 6, reserved 0; °C per site 0–5 [31.8, 32.15, 31.98, 31.22, 32.4, 31.05]; quality per site 0–5 [0, 1, 2, 0, 1, 0] (bytes 0x14–0x19).
 
-A site that could not be read (`unreadable_one_site`): site 4 is `00 80` (-32768) → no value (could not read).
+A site that could not be read (`temperature_v2.json` → `unreadable_one_site`): site 4 is `00 80` (-32768) → no value (could not read).
 
 ```
 0000  04 00 c0 d4 01 00 06 00 6c 0c 8f 0c 7e 0c 32 0c
@@ -937,13 +937,13 @@ The same, spaced out for reading:
 }
 ```
 
-**Rejected: the old 12-byte temperature packet** (`legacy_v1_12_bytes`, reason `tempLength`):
+**Rejected: the old 12-byte temperature packet** (`temperature_v2.json` → `legacy_v1_12_bytes`, reason `tempLength`):
 
 ```
 0000  0a 00 e0 93 04 00 6c 0c d1 0b 00 00
 ```
 
-**Rejected: the v1.6 packet, 32 bytes with count 8** (`v16_8_sites_32_bytes`, reason `tempCount`; the parser's reason text: "temperature count 8, needs 6 (the v1.6 8-site packet)"):
+**Rejected: the v1.6 packet, 32 bytes with count 8** (`temperature_v2.json` → `v16_8_sites_32_bytes`, reason `tempCount`; the parser's reason text: "temperature count 8, needs 6 (the v1.6 8-site packet)"):
 
 ```
 0000  0e 00 a0 68 06 00 08 00 6c 0c 8f 0c 7e 0c 32 0c
