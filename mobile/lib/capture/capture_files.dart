@@ -12,10 +12,12 @@ import 'capture_protocol.dart';
 /// `session.json`. The Python loader (`tools/capture/load_capture.py`)
 /// reads exactly these names; bump [captureSchema] on any change.
 ///
-/// Schema 2 (S8D, DATA-CONTRACT v1.6): 8 FSR channels per foot and 8
-/// temperature sites (`temp0_c`…`temp7_c`, `temp0_q`…`temp7_q`) in place
-/// of schema 1's `temp_forefoot_c` / `temp_heel_c` / `temp_quality`.
-const captureSchema = 2;
+/// Schema 3 (S11, DATA-CONTRACT v1.7): 6 FSR channels per foot and 6
+/// temperature sites (`temp0_c`…`temp5_c`, `temp0_q`…`temp5_q`), the same
+/// column names as schema 2 for fewer sites. Schema 2 (S8D, v1.6) had 8 and
+/// 8; schema 1 had 6 FSR and `temp_forefoot_c` / `temp_heel_c` /
+/// `temp_quality`. The loader reads each trial by its own schema.
+const captureSchema = 3;
 
 /// Root of all capture data in the app's private storage.
 const researchDirName = 'research';

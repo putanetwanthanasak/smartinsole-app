@@ -20,7 +20,7 @@ enum BaselineFailure {
   /// only; a live recording has no marks).
   markedInvalid,
 
-  /// The insole does not give the 14 model channels (not 8 FSR).
+  /// The insole does not give the 12 model channels (not 6 FSR).
   wrongInsole,
 
   /// The walking gate turned on: the person moved.
@@ -69,8 +69,8 @@ class BaselineRow {
   final List<double> fsrKpa;
   final List<double> accelG;
 
-  /// The foot's 14 model channels (`footModelChannels`), or null when the
-  /// insole does not have 8 FSR.
+  /// The foot's 12 model channels (`footModelChannels`), or null when the
+  /// insole does not have 6 FSR.
   final List<double>? model;
 }
 
@@ -86,7 +86,7 @@ class BaselineRow {
 /// (`baselineToleranceSamples` short). Any row before then that breaks a rule ends it
 /// with a [BaselineFailure], checked in this order: a new session after
 /// the first row, packets lost after the first row, a TARE, a row marked
-/// invalid, not 8 FSR, the walking gate on, summed kPa at or below
+/// invalid, not 6 FSR, the walking gate on, summed kPa at or below
 /// `steps.contactKpa`.
 class FootBaselineWindow {
   FootBaselineWindow({

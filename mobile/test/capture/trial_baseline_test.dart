@@ -91,8 +91,8 @@ void main() {
               FootSample(
                 unixMs: d(v, 'unix_ms'),
                 deviceMs: int.parse(v[at('device_ms')]),
-                fsrAdc: List.filled(8, 0),
-                fsrKpa: [for (var i = 0; i < 8; i++) d(v, 'fsr${i}_kpa')],
+                fsrAdc: List.filled(6, 0),
+                fsrKpa: [for (var i = 0; i < 6; i++) d(v, 'fsr${i}_kpa')],
                 accelG: [for (final a in 'xyz'.split('')) d(v, 'accel_${a}_g')],
                 gyroDps: [
                   for (final a in 'xyz'.split('')) d(v, 'gyro_${a}_dps'),
@@ -117,7 +117,7 @@ void main() {
     }
   });
 
-  test('a schema-1 trial (6 FSR) is wrongInsole', () {
+  test('a schema-2 trial (8 FSR, v1.6) is wrongInsole', () {
     final header = [
       'unix_ms',
       'side',
@@ -125,7 +125,7 @@ void main() {
       'missing_before',
       'calibrating',
       'valid',
-      for (var i = 0; i < 6; i++) 'fsr${i}_kpa',
+      for (var i = 0; i < 8; i++) 'fsr${i}_kpa',
       'accel_x_g',
       'accel_y_g',
       'accel_z_g',
@@ -134,7 +134,7 @@ void main() {
       'gyro_z_dps',
     ].join(',');
     final r = trialBaselineOf(
-      [header, '1000,L,1,0,0,1,${List.filled(6, '30').join(',')},0,0,1,0,0,0'],
+      [header, '1000,L,1,0,0,1,${List.filled(8, '30').join(',')},0,0,1,0,0,0'],
       spec: testPreprocess,
       thresholds: testThresholds,
     );

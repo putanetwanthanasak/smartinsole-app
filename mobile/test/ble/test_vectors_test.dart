@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:smartinsole/ble/ble_protocol.dart';
 import 'package:smartinsole/ble/calibration.dart';
 import 'package:smartinsole/ble/fsr_conversion.dart';
 import 'package:smartinsole/ble/packet_parser.dart';
@@ -37,6 +38,7 @@ void main() {
     'sensor_n8.json': _checkSensor,
     'temperature.json': _checkTempV1,
     'temperature_v2.json': _checkTemp,
+    'temperature_v2_8sites.json': _checkTempV2EightSites,
     'status.json': _checkStatus,
     'calibration.json': _checkCalibration,
   };
@@ -175,14 +177,30 @@ void _checkSensor(_Json file, _Json c) {
 
 /// The v1 (12-byte) vectors stay as the record of the old format; since
 /// DATA-CONTRACT v1.6 every one of them must be refused, never misread as
-/// 8 sites.
+/// sites.
 void _checkTempV1(_Json file, _Json c) {
   final bytes = _hex(c['hex'] as String);
   final result = parseTempPacket(bytes);
   _expectRejected(result, {
-    'expected_bytes': 32,
+    'expected_bytes': TempLayout.packetBytes,
     'actual_bytes': bytes.length,
   }, 'tempLength');
+}
+
+/// The v1.6 8-site (32-byte) vectors stay as the record of the old format;
+/// since v1.7 every one of them must be refused (count 8: `tempCount`; a
+/// count that does not match 32 bytes: `tempLength`), never read as 6
+/// sites.
+void _checkTempV2EightSites(_Json file, _Json c) {
+  final bytes = _hex(c['hex'] as String);
+  final result = parseTempPacket(bytes);
+  expect(result, isA<Rejected<TempPacket>>(), reason: '${c['name']}');
+  final count = bytes[TempLayout.countOffset];
+  expect(
+    (result as Rejected<TempPacket>).reason,
+    count == 8 ? RejectReason.tempCount : RejectReason.tempLength,
+    reason: '${c['name']}',
+  );
 }
 
 void _checkTemp(_Json file, _Json c) {

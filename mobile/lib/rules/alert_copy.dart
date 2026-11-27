@@ -63,13 +63,16 @@ class AlertCopy {
 /// The copy for [code] about [side], at zone [channel] (the FSR channel
 /// for pressure codes, the temperature site for `TEMP_DELTA`; site i =
 /// zone i). A `TEMP_DELTA` stored before schema v2 names its v1 site in
-/// [legacySite] instead. [value] is the measured value in the code's unit,
-/// [threshold] the boundary it crossed.
+/// [legacySite] instead; an alert stored by a v1.6 build at a site v1.7 no
+/// longer reads names it in [retired] (DATA-CONTRACT v1.7 §3.1). [value] is
+/// the measured value in the code's unit, [threshold] the boundary it
+/// crossed.
 AlertCopy alertCopyFor(
   AlertCode code, {
   required FootSide side,
   int? channel,
   LegacyTempSite? legacySite,
+  RetiredSite? retired,
   double? value,
   double? threshold,
 }) {
@@ -82,13 +85,15 @@ AlertCopy alertCopyFor(
   // side stays a separate word: a joined unit wider than the line (a long
   // name at the largest text on a narrow phone) would make Flutter break
   // the rest of the paragraph by character.
-  final regionS = '${zone?.region.displayTh ?? 'เท้า'}$s';
+  final regionS =
+      '${zone?.region.displayTh ?? retired?.regionDisplayTh ?? 'เท้า'}$s';
   // Titles (28 px): a short region name is kept whole; a joined
   // "ขอบเท้าด้านนอก" (or a region joined to its side) is wider than the
   // line at the largest text (measured in S10), so the long name breaks
   // between its halves and the side stays a separate word.
-  final regionTitle = '${zone?.region.titleTh ?? 'เท้า'}$s';
-  final zoneS = '${zone?.displayTh ?? 'เท้า'}$s';
+  final regionTitle =
+      '${zone?.region.titleTh ?? retired?.regionTitleTh ?? 'เท้า'}$s';
+  final zoneS = '${zone?.displayTh ?? retired?.displayTh ?? 'เท้า'}$s';
   final footS = keepTogether('เท้า$s');
   final footOther = keepTogether('เท้า$other');
   // A short last word kept with the one before it (BACKLOG 46).
@@ -102,7 +107,9 @@ AlertCopy alertCopyFor(
   switch (code) {
     case AlertCode.tempDelta:
       final siteName =
-          zone?.displayTh ?? keepTogether(legacyTempSiteTh(legacySite));
+          zone?.displayTh ??
+          retired?.displayTh ??
+          keepTogether(legacyTempSiteTh(legacySite));
       final x = value == null ? '' : ' ${formatDelta(value)}$nbspองศา';
       return AlertCopy(
         title: '$footS$warmer$footOther',

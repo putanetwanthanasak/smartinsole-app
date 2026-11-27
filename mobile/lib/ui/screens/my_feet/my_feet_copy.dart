@@ -331,7 +331,7 @@ class TempSiteView {
   int get hashCode => Object.hash(site, deltaC, warmer, alerting);
 }
 
-/// Each of the 8 sites, in zone order. With a foot missing every site is
+/// Each of the 6 sites, in zone order. With a foot missing every site is
 /// unreadable (rule 4).
 List<TempSiteView> tempSites(TempTabView v) => [
   for (var i = 0; i < footLayout.zones.length; i++) _tempSite(v, i),

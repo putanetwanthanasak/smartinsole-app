@@ -15,7 +15,7 @@ import 'rules_rig.dart';
 
 void main() {
   final t = testThresholds;
-  const zero = <double>[0, 0, 0, 0, 0, 0, 0, 0];
+  const zero = <double>[0, 0, 0, 0, 0, 0];
 
   /// [k] kPa at [channel] only, during every stance.
   List<double> at(int channel, double k) => [
@@ -23,7 +23,7 @@ void main() {
   ];
 
   /// A light normal walk, nothing near any boundary.
-  const light = Gait(kpa: [20, 20, 20, 20, 20, 20, 20, 20]);
+  const light = Gait(kpa: [20, 20, 20, 20, 20, 20]);
 
   /// Strides for [steps] steps of one foot.
   Duration strides(int steps, Gait g) =>
@@ -167,8 +167,8 @@ void main() {
   });
 
   group('LOAD_CONCENTRATION (level 3; same zone, consecutive steps)', () {
-    // 40 of 100 = exactly 40 % (the share over all 8 zones).
-    Gait conc(double top) => Gait(kpa: [top, 10, 10, 10, 10, 10, 0, 10]);
+    // 40 of 100 = exactly 40 % (the share over all 6 zones).
+    Gait conc(double top) => Gait(kpa: [top, 12, 12, 12, 12, 12]);
 
     test('above concentrationPct, not at it', () {
       final rig = RulesRig()..stream();
@@ -193,14 +193,14 @@ void main() {
       rig.walkBoth(const Duration(milliseconds: 1000), conc(60));
       expect(codes(rig), contains(AlertCode.loadConcentration));
       // The heel takes over: a new run of the heel, from 1.
-      const heel = Gait(kpa: [10, 10, 10, 10, 10, 60, 10, 10]);
+      const heel = Gait(kpa: [10, 10, 10, 10, 10, 60]);
       rig.walkBoth(const Duration(milliseconds: 1000), heel);
       expect(codes(rig), isNot(contains(AlertCode.loadConcentration)));
     });
 
     test('never while standing', () {
       final rig = RulesRig()..stream();
-      final g = Gait.standing(const [60, 10, 10, 10, 10, 0, 0, 0]);
+      final g = Gait.standing(const [60, 10, 10, 10, 10, 0]);
       rig.run(const Duration(seconds: 30), left: g, right: g);
       expect(codes(rig), isNot(contains(AlertCode.loadConcentration)));
     });
@@ -357,19 +357,19 @@ void main() {
     test('one alert per warmer foot: it names the largest |ΔT| and lists '
         'every qualifying site, largest first', () async {
       final rig = RulesRig()..stream();
-      final sites = {5: 31 + over, 7: 31 + over + 0.3, 2: 31 + over};
+      final sites = {5: 31 + over, 4: 31 + over + 0.3, 2: 31 + over};
       pair(rig, right: sites);
       pair(rig, right: sites);
       final temps = rig.view().conditions.where(
         (c) => c.code == AlertCode.tempDelta,
       );
       expect(temps, hasLength(1));
-      expect(temps.single.channel, 7);
+      expect(temps.single.channel, 4);
       final a = (await rig.stored()).single;
-      expect(a.zone, 'lateralHeel');
+      expect(a.zone, 'midfoot');
       expect(a.measuredValue, closeTo(over + 0.3, 1e-9));
       // Equal |ΔT|: the lower index first.
-      expect(zonesOf(a), ['lateralHeel', 'meta3', 'heel']);
+      expect(zonesOf(a), ['midfoot', 'meta3', 'heel']);
     });
 
     test('both feet warmer at different sites: one alert each', () async {
@@ -401,10 +401,10 @@ void main() {
         pair(rig, right: {5: 31 + over});
         pair(rig, right: {5: 31 + over});
         expect(zonesOf(await only(rig)), ['heel']);
-        pair(rig, right: {5: 31 + over, 7: 31 + over - 0.2});
-        pair(rig, right: {5: 31 + over, 7: 31 + over - 0.2});
+        pair(rig, right: {5: 31 + over, 4: 31 + over - 0.2});
+        pair(rig, right: {5: 31 + over, 4: 31 + over - 0.2});
         final a = await only(rig);
-        expect(zonesOf(a), ['heel', 'lateralHeel']);
+        expect(zonesOf(a), ['heel', 'midfoot']);
         await pumpEventQueue();
         expect(raised.map((r) => r.id), [a.id]);
         expect(raised.single.alert.zone, 'heel');
@@ -428,15 +428,15 @@ void main() {
         pair(rig, right: {5: 31 + over});
         await only(rig);
         rig.pause(Duration(minutes: t.repeatMin + 1));
-        pair(rig, right: {5: 31 + over, 7: 31 + over});
-        pair(rig, right: {5: 31 + over, 7: 31 + over});
+        pair(rig, right: {5: 31 + over, 4: 31 + over});
+        pair(rig, right: {5: 31 + over, 4: 31 + over});
         final all = [
           for (final a in await rig.stored())
             if (a.kind == AlertKind.tempDelta) a,
         ];
         expect(all, hasLength(2));
         expect(zonesOf(all.first), ['heel'], reason: 'the old one unchanged');
-        expect(zonesOf(all.last), ['heel', 'lateralHeel']);
+        expect(zonesOf(all.last), ['heel', 'midfoot']);
       });
 
       test('survives an app restart (memory from the alerts table)', () async {
@@ -793,9 +793,11 @@ void main() {
       expect(note('toe_walking', min - 0.01, 'meta1'), isNull);
       expect(note('toe_walking', 0.9, 'heel'), isNull, reason: 'zone');
       expect(note('heel_walking', 0.9, 'heel'), contains('ลงส้น'));
-      // Both heel sites (user decision 2026-10-29); not the arch.
-      expect(note('heel_walking', 0.9, 'lateralHeel'), contains('ลงส้น'));
+      // The heel centre only since v1.7 (the lateral heel, site 7, is no
+      // longer read); the retired ids never match.
+      expect(note('heel_walking', 0.9, 'lateralHeel'), isNull);
       expect(note('heel_walking', 0.9, 'medialArch'), isNull);
+      expect(note('heel_walking', 0.9, 'midfoot'), isNull);
       expect(note('toe_walking', 0.9, 'lateralHeel'), isNull);
       expect(note('antalgic', 0.9, 'meta5'), contains('ไม่สมมาตร'));
       expect(note('normal', 0.9, 'meta1'), isNull);
@@ -866,8 +868,8 @@ void main() {
       rig.walkBoth(const Duration(seconds: 3), light);
       expect(
         rig.engine.pressureFigures(FootSide.left).concentrationPct,
-        closeTo(100 / 8, 1e-9),
-        reason: 'an even load over 8 zones (BACKLOG 64)',
+        closeTo(100 / 6, 1e-9),
+        reason: 'an even load over 6 zones (contract v1.7 §8.2)',
       );
       final stand = Gait.standing(zero);
       rig.run(
@@ -949,7 +951,7 @@ void main() {
       rig.walkBoth(const Duration(seconds: 3), light);
       rig.walkBoth(
         const Duration(seconds: 4),
-        Gait(kpa: [20, t.alertKpa + 30, t.watchKpa + 10, 20, 20, 60, 20, 20]),
+        Gait(kpa: [20, t.alertKpa + 30, t.watchKpa + 10, 20, 20, 60]),
         right: light,
       );
       final peak = (await rig.stored()).firstWhere(
@@ -965,16 +967,7 @@ void main() {
         ]);
       }
       final left = map['left']! as Map<String, Object?>;
-      expect(left['levels'], [
-        'low',
-        'high',
-        'medium',
-        'low',
-        'low',
-        'low',
-        'low',
-        'low',
-      ]);
+      expect(left['levels'], ['low', 'high', 'medium', 'low', 'low', 'low']);
       // The rest of the details are unchanged.
       expect(peak.details!['walking'], true);
     });
@@ -1035,8 +1028,6 @@ void main() {
       'meta5',
       'midfoot',
       'heel',
-      'medialArch',
-      'lateralHeel',
     ]);
     expect(zero, hasLength(footLayout.zones.length));
   });

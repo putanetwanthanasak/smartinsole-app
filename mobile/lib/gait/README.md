@@ -16,14 +16,14 @@ Nothing here sets a level: the gait result is never a risk level (rule 11).
   consecutive raw rows.
 - `preprocess.dart` (S9) — preprocessing "ทางเอ" (contract §7.1,
   `shared/model_preprocess.json`): per-foot median baseline, then
-  `((x − baseline) − min) / (max − min)` → `[1,100,28]` `Float32List`, the
+  `((x − baseline) − min) / (max − min)` → `[1,100,24]` `Float32List`, the
   same float32 bits as `tools/model/preprocess.py`
   (`shared/test_vectors/model_preprocess/`); `modelBaselineOf` finds the
   connected insoles' stored baselines.
 - `baseline_window.dart` (S9-2, BACKLOG 74) — `FootBaselineWindow`, the
   one baseline function: the first `baselineSeconds` × 50 samples per foot
   that pass, or a named `BaselineFailure` (reconnected, lost packets,
-  TARE, marked invalid, not 8 FSR, moved, not loaded, too short; a trial 00
+  TARE, marked invalid, not 6 FSR, moved, not loaded, too short; a trial 00
   that ends at most `baselineToleranceSamples` short still passes). Capture
   trial 00 (`capture/trial_baseline.dart`) and the recorder below both use
   it; `tools/model/preprocess.py foot_baseline_window` is its port,

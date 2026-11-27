@@ -33,9 +33,15 @@ Rules:
   `max_delta_site` (the old forefoot / heel maxima stay); a new
   `TEMP_DELTA` stores its site in `zone`, an old one keeps `site`
   (`LegacyTempSite`) and gets nothing appended.
+- **S11 (contract v1.7, 6 sites) changes no table.** New readings write
+  `site0…site5` only; `site6_*`/`site7_*` stay for v1.6 rows and reads
+  return sites 0–5 (`test/storage/v16_rows_test.dart` opens a database a
+  v1.6 build wrote).
 - **Schema v3 (S9) is additive:** a new `baselines` table (side,
-  insole `device_id`, time, sample count, 14 medians as JSON; one row per
-  foot and insole). "Clear app database (test data)" empties it too.
+  insole `device_id`, time, sample count, the medians as JSON; one row per
+  foot and insole). 12 medians since S11 (6 FSR + 6 IMU); a stored row of
+  another length (v1.6's 14) is kept but is not a baseline ("record
+  again"), and the next recording replaces it. "Clear app database (test data)" empties it too.
 - Schema change: bump `schemaVersion`, then from `mobile/` run
   `dart run build_runner build` and `dart run drift_dev make-migrations`
   (dumps `drift_schemas/`, writes migration steps and tests in `test/drift/`).

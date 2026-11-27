@@ -52,7 +52,7 @@ class GaitEstimator {
   /// The model slot, once loaded (null while loading).
   ModelSlot? slot;
 
-  /// The connected insoles' quiet-standing baselines as 28 model channels,
+  /// The connected insoles' quiet-standing baselines as 24 model channels,
   /// or null when either has none (S9; `baselineNowProvider`). Without
   /// one Model A is not used.
   List<double>? Function() baselineNow = () => null;

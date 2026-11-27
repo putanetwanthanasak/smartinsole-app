@@ -19,8 +19,8 @@ JsonDocument gThresholds;
 // Headroom over motion.walkingAccelG for the lowest gate window.
 constexpr double kGateMarginG = 0.01;
 
-// FSR channels of the default board (FSR_COUNT, Data Contract v1.6).
-constexpr uint8_t kN = 8;
+// FSR channels of the default board (FSR_COUNT, Data Contract v1.7).
+constexpr uint8_t kN = 6;
 
 double th(const char* block, const char* key) { return gThresholds[block][key].as<double>(); }
 

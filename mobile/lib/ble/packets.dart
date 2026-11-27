@@ -59,7 +59,7 @@ class SensorPacket {
   final int byteLength;
 }
 
-/// One temperature reading of all 8 sites of a foot (DATA-CONTRACT v1.6
+/// One temperature reading of all 6 sites of a foot (DATA-CONTRACT v1.7
 /// §3.2). Site i is the NTC next to FSR i, so it shares the zone's index in
 /// `footLayout.zones`.
 class TempPacket {

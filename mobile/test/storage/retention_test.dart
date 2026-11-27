@@ -37,8 +37,8 @@ void main() {
   Future<void> temp(StorageRig rig, int atMs) => rig.temperatures.add(
     side: FootSide.left,
     atMs: atMs,
-    celsius: List.filled(8, 30),
-    quality: List.filled(8, TempQuality.normal),
+    celsius: List.filled(6, 30),
+    quality: List.filled(6, TempQuality.normal),
     timeFromArrival: false,
   );
 

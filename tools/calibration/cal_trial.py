@@ -58,9 +58,11 @@ def parse(lines):
             continue
         ts, body = m.groups()
         if body.startswith("[raw] "):  # FW-1: 1 s means in counts of 3.3 V
+            # "[raw] t T n N mean v0 .. v5 min ...": one mean per site the
+            # firmware reads (6 since contract v1.7, 8 in v1.6 logs).
             f = body.split()
-            k = f.index("mean")
-            out.append((ts, dict(enumerate(int(x) for x in f[k + 1:k + 9])), "fw1"))
+            k, e = f.index("mean"), f.index("min")
+            out.append((ts, dict(enumerate(int(x) for x in f[k + 1:e])), "fw1"))
         elif body.startswith("MUX raw ADC"):
             cur, t0 = {}, ts
         else:

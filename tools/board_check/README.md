@@ -1,7 +1,7 @@
 # tools/board_check — checking a real insole board against the contract
 
 Laptop tools for the hardware team's boards (session SR-1, report 042). They
-check what a board sends against `docs/DATA-CONTRACT.md` v1.6 (Appendix C)
+check what a board sends against `docs/DATA-CONTRACT.md` v1.7 (Appendix C)
 before any phone connects. They are not the simulator's tools:
 `firmware/simulator/tools/sim_check.py` judges simulator behaviour
 (battery ≥ 50 %, every temperature site readable, TARE, REBOOT) that a real
@@ -56,7 +56,7 @@ python3 tools/board_check/compare.py $RUN/run1-start-stop $RUN/run2-app-sequence
 
 `compare.py` runs `sim_check.py`'s parser selftest against
 `shared/test_vectors/` first, then checks advertising, GATT, MTU, status,
-calibration, the sensor stream (232 bytes, count 8, seq from 0 with no gaps,
+calibration, the sensor stream (200 bytes, count 8, seq from 0 with no gaps,
 t0 + 160 ms per packet, 6.25 Hz, flags, ADC range, IMU, walking-gate
 statistic, channels pressed in time order) and temperature v2, prints the
 first packet of each kind next to its Appendix C example, and ends with a

@@ -1,108 +1,108 @@
 {
-  "description": "Temperature v2 packets (DATA-CONTRACT v1.6 §3.2): exactly 32 bytes, count = 8, site i = NTC i next to FSR i. Constructed: the TS parser cannot read v2, so \"celsius\" is raw / 100 of the inputs and null for -32768 (\"could not read\"). \"rejected\" is the Dart RejectReason: tempLength for any length other than 32 (including the old 12-byte v1 packet), tempCount for count ≠ 8, invalidQuality for a quality byte above 2.",
+  "description": "Temperature v2 packets (DATA-CONTRACT v1.7 §3.2): 8 + 3 × count bytes with count = 6, so 26 bytes; site i = NTC i next to FSR i. Constructed: the TS parser cannot read v2, so \"celsius\" is raw / 100 of the inputs and null for -32768 (\"could not read\"). \"rejected\" is the Dart RejectReason, checked in this order: tempLength for anything shorter than the 8-byte header, the old 12-byte v1 packet, or a length other than 8 + 3 × count for the packet's own count; tempCount for a self-consistent packet with count ≠ 6 (the v1.6 32-byte packet has count 8); invalidQuality for a quality byte above 2.",
   "cases": [
     {
-      "name": "normal_8_sites",
+      "name": "normal_6_sites",
       "reference": "constructed",
-      "hex": "01003075000008006c0c8f0c7e0c320ca80c210cbc0c120c0000000000000000",
+      "hex": "01003075000006006c0c8f0c7e0c320ca80c210c000000000000",
       "expected": {
         "rejected": null,
         "seq": 1,
         "t_ms": 30000,
-        "count": 8,
-        "celsius": [31.8, 32.15, 31.98, 31.22, 32.4, 31.05, 32.6, 30.9],
-        "quality": [0, 0, 0, 0, 0, 0, 0, 0]
+        "count": 6,
+        "celsius": [31.8, 32.15, 31.98, 31.22, 32.4, 31.05],
+        "quality": [0, 0, 0, 0, 0, 0]
       }
     },
     {
       "name": "negative_and_fractional",
       "reference": "constructed",
-      "hex": "020060ea0000080097ff0100ffff0000b70b49f464009cff0000000000000000",
+      "hex": "020060ea0000060097ff0100ffff0000b70b49f4000000000000",
       "expected": {
         "rejected": null,
         "seq": 2,
         "t_ms": 60000,
-        "count": 8,
-        "celsius": [-1.05, 0.01, -0.01, 0, 29.99, -29.99, 1, -1],
-        "quality": [0, 0, 0, 0, 0, 0, 0, 0]
+        "count": 6,
+        "celsius": [-1.05, 0.01, -0.01, 0, 29.99, -29.99],
+        "quality": [0, 0, 0, 0, 0, 0]
       }
     },
     {
       "name": "int16_extremes",
       "reference": "constructed",
-      "hex": "0300905f01000800ff7f0180ff7f018000000000000000000000000000000000",
+      "hex": "0300905f01000600ff7f0180ff7f018000000000000000000000",
       "expected": {
         "rejected": null,
         "seq": 3,
         "t_ms": 90000,
-        "count": 8,
-        "celsius": [327.67, -327.67, 327.67, -327.67, 0, 0, 0, 0],
-        "quality": [0, 0, 0, 0, 0, 0, 0, 0]
+        "count": 6,
+        "celsius": [327.67, -327.67, 327.67, -327.67, 0, 0],
+        "quality": [0, 0, 0, 0, 0, 0]
       }
     },
     {
       "name": "unreadable_one_site",
       "reference": "constructed",
-      "hex": "0400c0d4010008006c0c8f0c7e0c320ca80c210c0080120c0000000000000000",
+      "hex": "0400c0d4010006006c0c8f0c7e0c320c0080210c000000000000",
       "expected": {
         "rejected": null,
         "seq": 4,
         "t_ms": 120000,
-        "count": 8,
-        "celsius": [31.8, 32.15, 31.98, 31.22, 32.4, 31.05, null, 30.9],
-        "quality": [0, 0, 0, 0, 0, 0, 0, 0]
+        "count": 6,
+        "celsius": [31.8, 32.15, 31.98, 31.22, null, 31.05],
+        "quality": [0, 0, 0, 0, 0, 0]
       }
     },
     {
       "name": "unreadable_all",
       "reference": "constructed",
-      "hex": "0500f04902000800008000800080008000800080008000800202020202020202",
+      "hex": "0500f04902000600008000800080008000800080020202020202",
       "expected": {
         "rejected": null,
         "seq": 5,
         "t_ms": 150000,
-        "count": 8,
-        "celsius": [null, null, null, null, null, null, null, null],
-        "quality": [2, 2, 2, 2, 2, 2, 2, 2]
+        "count": 6,
+        "celsius": [null, null, null, null, null, null],
+        "quality": [2, 2, 2, 2, 2, 2]
       }
     },
     {
       "name": "quality_mixed",
       "reference": "constructed",
-      "hex": "060020bf020008006c0c8f0c7e0c320ca80c210cbc0c120c0001020001020000",
+      "hex": "060020bf020006006c0c8f0c7e0c320ca80c210c000102000100",
       "expected": {
         "rejected": null,
         "seq": 6,
         "t_ms": 180000,
-        "count": 8,
-        "celsius": [31.8, 32.15, 31.98, 31.22, 32.4, 31.05, 32.6, 30.9],
-        "quality": [0, 1, 2, 0, 1, 2, 0, 0]
+        "count": 6,
+        "celsius": [31.8, 32.15, 31.98, 31.22, 32.4, 31.05],
+        "quality": [0, 1, 2, 0, 1, 0]
       }
     },
     {
       "name": "seq_and_t_max",
       "reference": "constructed",
-      "hex": "ffffffffffff08006c0c8f0c7e0c320ca80c210cbc0c120c0000000000000000",
+      "hex": "ffffffffffff06006c0c8f0c7e0c320ca80c210c000000000000",
       "expected": {
         "rejected": null,
         "seq": 65535,
         "t_ms": 4294967295,
-        "count": 8,
-        "celsius": [31.8, 32.15, 31.98, 31.22, 32.4, 31.05, 32.6, 30.9],
-        "quality": [0, 0, 0, 0, 0, 0, 0, 0]
+        "count": 6,
+        "celsius": [31.8, 32.15, 31.98, 31.22, 32.4, 31.05],
+        "quality": [0, 0, 0, 0, 0, 0]
       }
     },
     {
       "name": "reserved_nonzero_ignored",
       "reference": "constructed",
-      "hex": "070050340300085a6c0c8f0c7e0c320ca80c210cbc0c120c0000000000000000",
+      "hex": "070050340300065a6c0c8f0c7e0c320ca80c210c000000000000",
       "expected": {
         "rejected": null,
         "seq": 7,
         "t_ms": 210000,
-        "count": 8,
-        "celsius": [31.8, 32.15, 31.98, 31.22, 32.4, 31.05, 32.6, 30.9],
-        "quality": [0, 0, 0, 0, 0, 0, 0, 0]
+        "count": 6,
+        "celsius": [31.8, 32.15, 31.98, 31.22, 32.4, 31.05],
+        "quality": [0, 0, 0, 0, 0, 0]
       }
     },
     {
@@ -111,28 +111,56 @@
       "hex": "0a00e09304006c0cd10b0000",
       "expected": {
         "rejected": "tempLength",
-        "expected_bytes": 32,
+        "expected_bytes": 26,
         "actual_bytes": 12
       }
     },
     {
-      "name": "short_31_bytes",
+      "name": "v16_8_sites_32_bytes",
       "reference": "constructed",
-      "hex": "080080a9030008006c0c8f0c7e0c320ca80c210cbc0c120c00000000000000",
+      "hex": "0e00a068060008006c0c8f0c7e0c320ca80c210cbc0c120c0000000000000000",
       "expected": {
-        "rejected": "tempLength",
-        "expected_bytes": 32,
-        "actual_bytes": 31
+        "rejected": "tempCount"
       }
     },
     {
-      "name": "long_33_bytes",
+      "name": "short_25_bytes",
       "reference": "constructed",
-      "hex": "0900b01e040008006c0c8f0c7e0c320ca80c210cbc0c120c0000000000000000a5",
+      "hex": "080080a9030006006c0c8f0c7e0c320ca80c210c0000000000",
       "expected": {
         "rejected": "tempLength",
-        "expected_bytes": 32,
-        "actual_bytes": 33
+        "expected_bytes": 26,
+        "actual_bytes": 25
+      }
+    },
+    {
+      "name": "long_27_bytes",
+      "reference": "constructed",
+      "hex": "0900b01e040006006c0c8f0c7e0c320ca80c210c000000000000a5",
+      "expected": {
+        "rejected": "tempLength",
+        "expected_bytes": 26,
+        "actual_bytes": 27
+      }
+    },
+    {
+      "name": "header_only_8_bytes",
+      "reference": "constructed",
+      "hex": "0a00c04504000600",
+      "expected": {
+        "rejected": "tempLength",
+        "expected_bytes": 26,
+        "actual_bytes": 8
+      }
+    },
+    {
+      "name": "short_7_bytes",
+      "reference": "constructed",
+      "hex": "0f00d06c040006",
+      "expected": {
+        "rejected": "tempLength",
+        "expected_bytes": 26,
+        "actual_bytes": 7
       }
     },
     {
@@ -141,22 +169,42 @@
       "hex": "",
       "expected": {
         "rejected": "tempLength",
-        "expected_bytes": 32,
+        "expected_bytes": 26,
         "actual_bytes": 0
       }
     },
     {
-      "name": "count_6",
+      "name": "count_8_in_26_bytes",
       "reference": "constructed",
-      "hex": "0b001009050006006c0c8f0c7e0c320ca80c210cbc0c120c0000000000000000",
+      "hex": "0b001009050008006c0c8f0c7e0c320ca80c210c000000000000",
+      "expected": {
+        "rejected": "tempLength",
+        "expected_bytes": 26,
+        "actual_bytes": 26
+      }
+    },
+    {
+      "name": "count_0_in_26_bytes",
+      "reference": "constructed",
+      "hex": "0c00407e050000006c0c8f0c7e0c320ca80c210c000000000000",
+      "expected": {
+        "rejected": "tempLength",
+        "expected_bytes": 26,
+        "actual_bytes": 26
+      }
+    },
+    {
+      "name": "count_5_self_consistent",
+      "reference": "constructed",
+      "hex": "1000b08f060005006c0c8f0c7e0c320ca80c0000000000",
       "expected": {
         "rejected": "tempCount"
       }
     },
     {
-      "name": "count_0",
+      "name": "count_0_header_only",
       "reference": "constructed",
-      "hex": "0c00407e050000006c0c8f0c7e0c320ca80c210cbc0c120c0000000000000000",
+      "hex": "1100c0b606000000",
       "expected": {
         "rejected": "tempCount"
       }
@@ -164,7 +212,7 @@
     {
       "name": "quality_3",
       "reference": "constructed",
-      "hex": "0d0070f3050008006c0c8f0c7e0c320ca80c210cbc0c120c0000000300000000",
+      "hex": "0d0070f3050006006c0c8f0c7e0c320ca80c210c000000030000",
       "expected": {
         "rejected": "invalidQuality"
       }

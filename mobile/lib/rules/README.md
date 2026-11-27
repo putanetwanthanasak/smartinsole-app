@@ -1,6 +1,6 @@
 # lib/rules/
 
-The alert rules (S7): DATA-CONTRACT §8.3's 8 codes (v1.6 since S8D: 8 zones, 8 temperature sites), their internal
+The alert rules (S7): DATA-CONTRACT §8.3's 8 codes (v1.7 since S11: 6 zones, 6 temperature sites), their internal
 level 1–5, and the mapping to the patient's 3 levels (FLUTTER-PLAN §7).
 Every number comes from `shared/thresholds.json` through `Thresholds`
 (rule 12): `test/rules/no_threshold_literals_test.dart` fails on any
@@ -48,8 +48,11 @@ is the one file it skips).
   map; the detail then draws only the ringed zone (PEAK: its level;
   PTI / LOAD_CONCENTRATION: a plain outline, no level claimed) and every
   other zone as a plain outline circle, never the No-data style. A map
-  stored before S8D has 6 entries; zones 6–7 draw as not recorded.
-- **`TEMP_DELTA` with 8 sites (S8D, contract v1.6 §8.3).** Each site keeps
+  stored by a v1.6 build (S8D–S10) has 8 entries; the detail draws the
+  first 6 (sites 0–5 kept their meaning). An alert whose own zone is a
+  retired site (`medialArch`, `lateralHeel`) is named from
+  `footLayout.retiredById` and draws no map.
+- **`TEMP_DELTA` per site (S8D; 6 sites since S11, contract v1.7 §8.3).** Each site keeps
   its own run of reading pairs above `deltaC` (rule 6 per site). One alert
   per warmer foot: it names the qualifying site with the largest |ΔT|
   (`zone`), and `details.tempSites` lists every qualifying site with its
@@ -67,7 +70,7 @@ is the one file it skips).
 
 | Code | Holds while (per foot, and per zone or site) |
 |---|---|
-| `TEMP_DELTA` (4) | `consecutiveReadings` reading pairs in a row with \|ΔT\| > `deltaC` at one of the 8 sites; a pair with no ΔT at that site resets its run, a missed reading does not. Both feet usable. Side = the warmer foot; one alert per foot |
+| `TEMP_DELTA` (4) | `consecutiveReadings` reading pairs in a row with \|ΔT\| > `deltaC` at one of the 6 sites; a pair with no ΔT at that site resets its run, a missed reading does not. Both feet usable. Side = the warmer foot; one alert per foot |
 | `PRESSURE_WATCH` (2) | A sample above `watchKpa` in the last `peakHoldMs` |
 | `PRESSURE_PEAK` (3) | A sample above `alertKpa` **while the gate is on** in the last `peakHoldMs` (rule 7) |
 | `PRESSURE_PTI` (3) | Mean per-step PTI over the last `ptiWindowMin` > `ptiKpaS`, ≥ `ptiMinSteps` steps, still walking |

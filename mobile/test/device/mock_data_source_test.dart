@@ -194,13 +194,13 @@ void main() {
       expect(
         [for (final k in l.channelPeaks) band(k)],
         [
-          medium, high, medium, low, low, medium, low, low, //
+          medium, high, medium, low, low, medium, //
         ],
       );
       expect(
         [for (final k in r.channelPeaks) band(k)],
         [
-          low, medium, low, low, low, medium, low, low, //
+          low, medium, low, low, low, medium, //
         ],
       );
       // It is the forefoot: meta1 (channel 1) carries the highest PTI.
@@ -214,7 +214,7 @@ void main() {
       expectDeltaBelow(l, r);
     });
 
-    test('rest: the right heel centre and lateral heel warmer beyond ΔT on '
+    test('rest: the right heel centre and lateral midfoot warmer beyond ΔT on '
         'consecutive readings, every other site below', () {
       final (l, r) = runPreset(MockPreset.rest);
       final n = math.min(l.temps.length, r.temps.length);
@@ -222,7 +222,7 @@ void main() {
       for (var site = 0; site < footLayout.zones.length; site++) {
         for (var i = 0; i < n; i++) {
           final d = r.site(site)[i] - l.site(site)[i];
-          if (site == 5 || site == 7) {
+          if (site == 5 || site == 4) {
             expect(d, greaterThan(deltaC), reason: 'site $site');
           } else {
             expect(d.abs(), lessThan(deltaC), reason: 'site $site');
@@ -232,7 +232,7 @@ void main() {
       // The heel centre is the largest, so the alert names it.
       expect(
         r.site(5).first - l.site(5).first,
-        greaterThan(r.site(7).first - l.site(7).first),
+        greaterThan(r.site(4).first - l.site(4).first),
       );
       expectSafe(l, 'left');
       expectSafe(r, 'right');
@@ -263,7 +263,6 @@ void main() {
         expect(f.maxWalkingAccel, greaterThanOrEqualTo(walkingAccelG));
         // 0 kPa comes back through the ADC as a hair above 0.
         expect(f.channelPeaks[5], lessThan(1), reason: '$foot heel');
-        expect(f.channelPeaks[7], lessThan(1), reason: '$foot lateral heel');
       }
     });
 
@@ -295,7 +294,7 @@ void main() {
           expect(fr.seq, i);
           expect(fr.session, 1);
           expect(fr.missingBefore, 0);
-          expect(fr.samples, hasLength(8));
+          expect(fr.samples, hasLength(8)); // samples per packet
           if (i > 0) {
             expect(
               fr.samples.first.deviceMs -
@@ -317,7 +316,7 @@ void main() {
       final s = l.frames
           .expand((f) => f.samples)
           .firstWhere((s) => s.fsrAdc.any((a) => a > 0));
-      expect(s.fsrAdc, hasLength(8));
+      expect(s.fsrAdc, hasLength(6));
       expect(s.fsrKpa.reduce(math.max), greaterThan(1));
     });
 

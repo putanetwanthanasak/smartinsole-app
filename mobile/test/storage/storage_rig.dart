@@ -68,13 +68,13 @@ FootCheckDraft draftOf(
   photos: photos,
 );
 
-/// One reading's 8 sites: [c] at every site, [at] overriding some (null:
+/// One reading's 6 sites: [c] at every site, [at] overriding some (null:
 /// the sensor could not read).
 List<double?> sitesC(double? c, [Map<int, double?> at = const {}]) => [
   for (var i = 0; i < TempLayout.siteCount; i++) at.containsKey(i) ? at[i] : c,
 ];
 
-/// One reading's 8 qualities: [q] at every site, [at] overriding some.
+/// One reading's 6 qualities: [q] at every site, [at] overriding some.
 List<TempQuality> sitesQ([
   TempQuality q = TempQuality.normal,
   Map<int, TempQuality> at = const {},

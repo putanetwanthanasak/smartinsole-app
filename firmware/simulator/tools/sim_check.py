@@ -103,20 +103,30 @@ def parse_sensor(b: bytes, n: int) -> dict:
             "samples": samples}
 
 
-TEMP_BYTES = 32  # temperature v2, Data Contract v1.6 §3.2
-TEMP_SITES = 8
+TEMP_HEADER_BYTES = 8  # temperature v2, Data Contract v1.7 §3.2
+TEMP_SITES = 6
+LEGACY_TEMP_BYTES = 12  # the v1 forefoot/heel packet
+
+
+def temp_bytes(count: int) -> int:
+    """Temperature v2 length for [count] sites: 8 + 3 x count."""
+    return TEMP_HEADER_BYTES + 3 * count
 
 
 def parse_temperature(b: bytes) -> dict:
-    """Temperature v2 as the app reads it: exactly 32 bytes (the old 12-byte
-    packet included: tempLength), count 8 (tempCount), quality 0-2."""
-    if len(b) != TEMP_BYTES:
+    """Temperature v2 as the app reads it, in its order: shorter than the
+    header, the old 12-byte packet, or a length other than 8 + 3 x its own
+    count is tempLength; a count other than 6 is tempCount (the v1.6
+    32-byte packet has count 8); a quality above 2 is invalidQuality."""
+    if len(b) < TEMP_HEADER_BYTES or len(b) == LEGACY_TEMP_BYTES:
         raise Reject("tempLength")
     seq, t, count, _reserved = struct.unpack_from("<HIBB", b)
+    if len(b) != temp_bytes(count):
+        raise Reject("tempLength")
     if count != TEMP_SITES:
         raise Reject("tempCount")
-    raw = struct.unpack_from(f"<{TEMP_SITES}h", b, 8)
-    quality = list(b[24:24 + TEMP_SITES])
+    raw = struct.unpack_from(f"<{count}h", b, TEMP_HEADER_BYTES)
+    quality = list(b[TEMP_HEADER_BYTES + 2 * count:])
     if any(q > 2 for q in quality):
         raise Reject("invalidQuality")
     c = lambda v: None if v == -32768 else v / 100
@@ -232,15 +242,19 @@ def selftest() -> bool:
                     fail(file, c["name"], f"{k} {got[k]} != {v}")
             checked += 1
 
-    # The old 12-byte packets are all refused since v1.6.
-    for c in json.loads((VECTORS / "temperature.json").read_text())["cases"]:
-        try:
-            parse_temperature(bytes.fromhex(c["hex"]))
-            fail("temperature.json", c["name"], "a v1 packet parsed as v2")
-        except Reject as e:
-            if e.reason != "tempLength":
-                fail("temperature.json", c["name"], f"rejected {e.reason}, expected tempLength")
-        checked += 1
+    # The old 12-byte packets are all refused since v1.6, the v1.6 8-site
+    # packets since v1.7.
+    for file in ("temperature.json", "temperature_v2_8sites.json"):
+        for c in json.loads((VECTORS / file).read_text())["cases"]:
+            b = bytes.fromhex(c["hex"])
+            want = "tempCount" if file != "temperature.json" and b[6] == 8 else "tempLength"
+            try:
+                parse_temperature(b)
+                fail(file, c["name"], "an old packet parsed as 6-site v2")
+            except Reject as e:
+                if e.reason != want:
+                    fail(file, c["name"], f"rejected {e.reason}, expected {want}")
+            checked += 1
 
     for c in json.loads((VECTORS / "calibration.json").read_text())["cases"]:
         try:
@@ -486,7 +500,8 @@ def evaluate(run: Run, cal: dict, st_after: dict, c: Checks, args):
         try:
             temps.append((t, parse_temperature(b)))
         except Reject as e:
-            c.check(False, "temperature v2 packet (32 bytes, count 8)", f"{len(b)} bytes ({e.reason})")
+            c.check(False, f"temperature v2 packet ({temp_bytes(TEMP_SITES)} bytes, "
+                    f"count {TEMP_SITES})", f"{len(b)} bytes ({e.reason})")
     if temps:
         first_delay = temps[0][0] - run.start_at
         c.check(first_delay < 2.0, "first temperature right after START_STREAM",
@@ -500,7 +515,7 @@ def evaluate(run: Run, cal: dict, st_after: dict, c: Checks, args):
         tseq = [p["seq"] for _, p in temps]
         c.check(tseq == list(range(len(tseq))), "temperature seq 0, 1, 2, ...")
         c.check(all(p["quality"] == [0] * TEMP_SITES and None not in p["celsius"]
-                    for _, p in temps), "temperature v2: all 8 sites readable, quality 0")
+                    for _, p in temps), f"temperature v2: all {TEMP_SITES} sites readable, quality 0")
         print(f"  temperature v2: first {temps[0][1]['celsius']} C, "
               f"last {temps[-1][1]['celsius']} C")
     else:
@@ -693,8 +708,8 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--side", choices=["L", "R"], default="L")
     ap.add_argument("--duration", type=float, default=120, help="seconds of streaming")
-    ap.add_argument("--fsr-count", type=int, default=8,
-                    help="expected calibration N (8 since Data Contract v1.6)")
+    ap.add_argument("--fsr-count", type=int, default=6,
+                    help="expected calibration N (6 since Data Contract v1.7)")
     ap.add_argument("--scan-timeout", type=float, default=20)
     ap.add_argument("--reconnects", type=int, default=2,
                     help="disconnect/reconnect cycles after the main run")

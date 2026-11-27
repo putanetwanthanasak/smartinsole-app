@@ -10,7 +10,7 @@ import '../theme/typography.dart';
 import 'foot_map.dart' show dashedPath;
 
 /// "ความต่างของความอุ่นวันนี้" (DESIGN-SPEC §1, §8.2): one line, the
-/// largest |ΔT| of the 8 sites at each reading, with the last point's site
+/// largest |ΔT| of the 6 sites at each reading, with the last point's site
 /// named beside it; the alert band and dashed line at [deltaC], and
 /// connection gaps. One screen-reader image with [semanticLabel] (the
 /// summary).

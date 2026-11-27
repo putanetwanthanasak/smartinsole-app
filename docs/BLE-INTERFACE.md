@@ -12,13 +12,17 @@ this interface end to end and are verified working against real hardware: an
 ESP32 BLE simulator (NimBLE-Arduino 2.x, advertises as `SMARTINSOLE-L`) and a
 standalone Web Bluetooth test page. Neither is checked into this repo.
 
-**v1.6 (2026-10-29, S8D): 8 FSR + 8 NTC per foot.** The wire sections
-below are updated to DATA-CONTRACT v1.6 (§3.1, §3.2, §5.1, Appendix C):
-28-byte samples and 232-byte sensor packets at N = 8, a 32-byte
-temperature packet with 8 sites, a calibration JSON with exactly 8
-channels. The Flutter app (`mobile/lib/ble/`) implements v1.6; the frozen
-web app (`src/ts/`) still implements v1.5 and cannot read v1.6 boards
-(report 037).
+**v1.7 (2026-11-25, S11): 6 sites per foot, a Velostat pressure sensor
+and an NTC at each.** The wire sections below are updated to
+DATA-CONTRACT v1.7 (§3.1, §3.2, §5.1, Appendix C): 24-byte samples and
+200-byte sensor packets at N = 6, a temperature v2 packet of
+`8 + 3 × count` bytes with count 6 (26 bytes), a calibration JSON with
+exactly 6 channels. The insoles keep 8 pads; the firmware reads sites
+0–5. v1.6 (S8D, 2026-10-29) had 8 + 8: 232-byte sensor packets and a
+32-byte temperature packet, both refused since v1.7. The Flutter app
+(`mobile/lib/ble/`) implements v1.7; the frozen web app (`src/ts/`)
+still implements v1.5 (N = 6, the 12-byte temperature packet; report
+037).
 
 ---
 
@@ -46,8 +50,8 @@ digits differ.
 
 | Characteristic | UUID | Properties | Frequency | Size |
 | --- | --- | --- | --- | --- |
-| Sensor Stream | `f0a5c000-9b4d-4e8a-a3c1-72d6e1b45901` | Notify | 6.25 Hz (8 samples/packet → 50 Hz effective sample rate) | 232 bytes at N = 8 (v1.6) |
-| Temperature | `f0a5c000-9b4d-4e8a-a3c1-72d6e1b45902` | Notify | 1/30 Hz | 32 bytes (v2, v1.6) |
+| Sensor Stream | `f0a5c000-9b4d-4e8a-a3c1-72d6e1b45901` | Notify | 6.25 Hz (8 samples/packet → 50 Hz effective sample rate) | 200 bytes at N = 6 (v1.7) |
+| Temperature | `f0a5c000-9b4d-4e8a-a3c1-72d6e1b45902` | Notify | 1/30 Hz | 26 bytes (v2 at 6 sites, v1.7) |
 | Device Status | `f0a5c000-9b4d-4e8a-a3c1-72d6e1b45903` | Read, Notify | on change | 8 bytes |
 | Control | `f0a5c000-9b4d-4e8a-a3c1-72d6e1b45904` | Write | on demand | 1–16 bytes |
 | Calibration | `f0a5c000-9b4d-4e8a-a3c1-72d6e1b45905` | Read | once, at connect | up to 512 bytes |
@@ -65,8 +69,8 @@ isn't; five is the full set per the contract.
 | Slave latency | 0 | — |
 | Supervision timeout | 4000 ms | — |
 
-At N = 8 a full packet is 232 bytes (fits MTU 247); the 4-sample fallback
-needs 120 bytes, i.e. MTU ≥ 123. The app treats a smaller MTU as a visible
+At N = 6 a full packet is 200 bytes (needs MTU ≥ 203; MTU 247 fits it);
+the 4-sample fallback needs 104 bytes, i.e. MTU ≥ 107. The app treats a smaller MTU as a visible
 `mtuTooSmall` problem.
 
 **Android must call `requestMTU(247)` after connecting and *before* enabling
@@ -75,12 +79,12 @@ already verified against real hardware — see "Behavioural facts" below.
 
 ---
 
-## Sensor Stream packet (232 bytes at N = 8, little-endian)
+## Sensor Stream packet (200 bytes at N = 6, little-endian)
 
 One packet carries **8 samples**, sent at 6.25 Hz → 50 Hz effective sample
 rate. Samples are 20 ms apart, fixed: sample `i`'s time is `t0_ms + (i × 20)`.
-A packet is `8 + count × (2N + 12)` bytes, N from the calibration JSON; v1.6
-requires N = 8.
+A packet is `8 + count × (2N + 12)` bytes, N from the calibration JSON; v1.7
+requires N = 6.
 
 ### Header (8 bytes)
 
@@ -101,15 +105,15 @@ The old sibling-repo simulator instead restarted `t0_ms` on each
 (rule 9) is BACKLOG 20. A `REBOOT` restarts `t0_ms` near 0, so "`t0` never
 goes backwards" holds only within one connection.
 
-### Sample block (28 bytes × 8 at N = 8, immediately following the header)
+### Sample block (24 bytes × 8 at N = 6, immediately following the header)
 
 | Offset (within block) | Length | Type | Field | Unit / scaling |
 | --- | --- | --- | --- | --- |
-| +0 | 16 | uint16 × 8 | `fsr[0..7]` | raw ADC, 0–4095 (see FSR scaling below — device sends raw, app computes kPa) |
-| +16 | 6 | int16 × 3 | `accel[x,y,z]` | 4096 LSB/g |
-| +22 | 6 | int16 × 3 | `gyro[x,y,z]` | 32.8 LSB/(°/s) |
+| +0 | 12 | uint16 × 6 | `fsr[0..5]` | 0–4095 (see FSR scaling below — device sends counts, app computes kPa) |
+| +12 | 6 | int16 × 3 | `accel[x,y,z]` | 4096 LSB/g |
+| +18 | 6 | int16 × 3 | `gyro[x,y,z]` | 32.8 LSB/(°/s) |
 
-### Sensor sites (v1.6; index must match on both feet)
+### Sensor sites (v1.7; index must match on both feet)
 
 FSR i and NTC i sit together: index i is FSR channel i and temperature
 site i. Positions in mm (left foot from above, x from the lateral edge,
@@ -124,32 +128,39 @@ DATA-CONTRACT §3.1 and `shared/sensor_layout.json`.
 | 3 | 5th metatarsal head (MTH5) | `meta5` |
 | 4 | Lateral midfoot | `midfoot` |
 | 5 | Heel centre | `heel` |
-| 6 | Medial arch (new in v1.6) | `medialArch` |
-| 7 | Lateral heel (new in v1.6) | `lateralHeel` |
-
-Indexes 0–5 keep their v1.5 meaning. The frozen web app's
-`FSR_CHANNEL_ORDER` (`src/ts/constants.ts`) has only 0–5.
+Indexes 0–5 keep their v1.5 and v1.6 meaning. v1.6's sites 6 (medial
+arch, `medialArch`) and 7 (lateral heel, `lateralHeel`) are retired in
+v1.7: their pads stay in the insole, unread, and the app keeps the two
+ids only to name data stored by a v1.6 build (`sensor_layout.json`
+`retired`). The frozen web app's `FSR_CHANNEL_ORDER`
+(`src/ts/constants.ts`) has 0–5.
 
 ---
 
-## Temperature packet v2 (32 bytes, little-endian, v1.6)
+## Temperature packet v2 (26 bytes at 6 sites, little-endian, v1.7)
+
+`8 + 3 × count` bytes; the app requires count 6.
 
 | Offset | Length | Type | Field | Unit |
 | --- | --- | --- | --- | --- |
 | 0 | 2 | uint16 | `seq` | — |
 | 2 | 4 | uint32 | `t_ms` | ms since device boot |
-| 6 | 1 | uint8 | `count` | number of sites, must be 8 |
+| 6 | 1 | uint8 | `count` | number of sites, must be 6 |
 | 7 | 1 | uint8 | `reserved` | = 0, ignored |
-| 8 | 16 | int16 × 8 | `temp[0..7]` | 0.01 °C (e.g. 3180 = 31.80 °C), site i = §3.1 index i |
-| 24 | 8 | uint8 × 8 | `quality[0..7]` | per site: 0 = normal, 1 = poor contact, 2 = sensor fault |
+| 8 | 2 × count (12) | int16 × 6 | `temp[0..5]` | 0.01 °C (e.g. 3180 = 31.80 °C), site i = §3.1 index i |
+| 8 + 2 × count (20) | count (6) | uint8 × 6 | `quality[0..5]` | per site: 0 = normal, 1 = poor contact, 2 = sensor fault |
 
 **`-32768` means "could not read"** — the app must render that as a
 no-data state, never as a number (`TempPacket.celsius[i]` is null in the
 Flutter app).
 
-The Flutter app rejects and counts, per foot on Diagnostics: any length
-other than 32, including the v1.5 12-byte packet (`tempLength`); a count
-other than 8 (`tempCount`); a quality byte above 2 (`invalidQuality`).
+The Flutter app rejects and counts, per foot on Diagnostics, in this
+order: the v1.5 12-byte packet, a packet shorter than its 8-byte header,
+or a length other than `8 + 3 × count` for its own count byte
+(`tempLength`); a self-consistent packet with a count other than 6, such
+as v1.6's 32-byte count-8 packet (`tempCount`); a quality byte above 2
+(`invalidQuality`). The v1.6 8-site packets are kept in
+`shared/test_vectors/temperature_v2_8sites.json`, every case refused.
 The v1.5 12-byte layout (`temp_forefoot`, `temp_heel`, one `quality`) is
 kept only in `shared/test_vectors/temperature.json`, as the record of v1.
 
@@ -281,8 +292,8 @@ Calibration blob shape (JSON, read from the Calibration characteristic):
 }
 ```
 
-`channels[i].index` corresponds to the sensor site table above. v1.6: the
-list must have exactly 8 channels with indexes 0–7; the Flutter app
+`channels[i].index` corresponds to the sensor site table above. v1.7: the
+list must have exactly 6 channels with indexes 0–5; the Flutter app
 refuses an insole with any other count ("calibration rejected", reject
 `calibrationFsrCount`).
 
@@ -296,7 +307,7 @@ gyro_dps = raw / 32.8
 ### Temperature scaling
 
 ```
-temp_c = raw / 100.0     // per site (v1.6: 8 sites)
+temp_c = raw / 100.0     // per site (v1.7: 6 sites)
 ```
 
 (The ESP32 has already applied the Steinhart-Hart conversion from the NTC's

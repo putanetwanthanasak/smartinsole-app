@@ -471,7 +471,7 @@ class BleDataSource implements InsoleDataSource, InsoleControl {
             ..calibrationFsrCount = value.fsrCount;
           _log.add(
             'calibration ${value.deviceId}: N = ${value.fsrCount}, the app '
-            'needs N = ${SensorLayout.fsrCount} (contract v1.6)',
+            'needs N = ${SensorLayout.fsrCount} (contract v1.7)',
             side: side,
           );
           _problem(

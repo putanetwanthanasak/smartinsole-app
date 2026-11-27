@@ -28,7 +28,7 @@ class TareMean {
   // changes) if one is already running.
   bool begin();
 
-  // Feeds one sample's 8 wire counts. Returns Running while the window
+  // Feeds one sample's 6 wire counts. Returns Running while the window
   // fills, then Done (offsets() valid) or Moved (movedChannel() says which),
   // then Idle until the next begin().
   Outcome feed(const uint16_t counts[kCalChannels]);

@@ -22,7 +22,7 @@ insole::TemperatureReading noNtcReading();
 constexpr uint8_t kBatteryExternalPct = 255;
 constexpr uint16_t kBatteryExternalMv = 0;
 
-// One sample: the 8 wire counts in contract site order, and the IMU's raw
+// One sample: the 6 wire counts in contract site order, and the IMU's raw
 // chip axes mapped to the insole frame.
 insole::Sample makeSample(const uint16_t counts[kCalChannels], const int16_t accelChip[3],
                           const int16_t gyroChip[3], const AxisMap& axes);

@@ -5,13 +5,13 @@
 """Make the dummy Model A for the app's model slot (S8A).
 
 The weights are untrained (fixed seed): the file only proves the slot, i.e.
-that the app loads a model of the contract's shapes, feeds it the 28
+that the app loads a model of the contract's shapes, feeds it the 24
 channels in the order of shared/model_input.json, preprocesses them as
 training does ("ทางเอ", tools/model/preprocess.py: baseline subtracted, then
 Min-Max with normalization.json), and runs it fast enough. It is never a
 gait result.
 
-DATA-CONTRACT v1.6 §7.1/§7.2: input [1, 100, 28] float32; outputs gait_probs
+DATA-CONTRACT v1.7 §7.1/§7.2: input [1, 100, 24] float32; outputs gait_probs
 [1, 5] (softmax) and gait_embedding [1, 32] (the layer before softmax). The
 model is converted with TFLite builtin ops only; the real model must be too
 (the app bundles no Flex delegate).
@@ -43,9 +43,9 @@ import preprocess  # noqa: E402  (tools/model/preprocess.py, beside this file)
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 MODEL_INPUT = ROOT / "shared" / "model_input.json"
-FIXTURE = ROOT / "shared" / "capture_fixture" / "schema2" / "expected.json"
-FIXTURE_SESSION = (ROOT / "shared" / "capture_fixture" / "schema2"
-                   / "TEST-009_20261110-090000")
+FIXTURE = ROOT / "shared" / "capture_fixture" / "schema3" / "expected.json"
+FIXTURE_SESSION = (ROOT / "shared" / "capture_fixture" / "schema3"
+                   / "TEST-010_20261110-090000")
 OUT = ROOT / "mobile" / "assets" / "models_dummy"
 SEED = 20261025
 CLASSES = 5
@@ -93,10 +93,17 @@ def main() -> None:
         raise SystemExit(f"capture fixture has {len(rows)} rows, need {window}")
 
     # The reference preprocessing, so the dummy's files are what training
-    # would ship. The fixture is one calibration trial: its own baseline.
+    # would ship. The fixture is one calibration trial: its own baseline,
+    # the per-foot median of its valid rows. Dummy only: the fixture's
+    # synthetic IMU breaks the trial-00 rules (S9-2), so session_baseline
+    # would refuse it.
     preprocess.load_spec()
     session = preprocess._load_capture().load_session(FIXTURE_SESSION)
-    baseline = preprocess.session_baseline(session, spec)
+    (trial,) = session.trials
+    feet = {side: preprocess.foot_baseline([
+        [r[c] for c in preprocess.foot_columns(spec, side)]
+        for r in trial.rows[side] if r["valid"] == 1]) for side in preprocess.SIDES}
+    baseline = preprocess.model_baseline(feet["L"], feet["R"], spec)
     sub = preprocess.subtract(rows, baseline)
     mins = [min(r[c] for r in sub) for c in range(channels)]
     maxs = [max(r[c] for r in sub) for c in range(channels)]
@@ -127,10 +134,10 @@ def main() -> None:
             # Must carry model_input.json's version (the app refuses another).
             preprocess.normalization_json(
                 mins, maxs, spec,
-                "DUMMY (S8A; 28 channels since S8D; baseline + Min-Max since "
-                "S9): min/max over shared/capture_fixture/schema2 rows after "
-                "its calibration baseline, not a training set. Made by "
-                "tools/model/make_dummy_model.py."),
+                "DUMMY (S8A; 24 channels since S11, 28 in S8D-S10; baseline "
+                "+ Min-Max since S9): min/max over shared/capture_fixture/"
+                "schema3 rows after its calibration baseline, not a training "
+                "set. Made by tools/model/make_dummy_model.py."),
             indent=2,
         )
         + "\n"
@@ -138,7 +145,7 @@ def main() -> None:
     (OUT / "check.json").write_text(
         json.dumps(
             {
-                "version": 2,
+                "version": spec["version"],
                 "about": "The capture fixture's first rows, the baseline, the "
                 "window preprocessed with them and normalization.json "
                 "(tools/model/preprocess.py), and the dummy's outputs from "

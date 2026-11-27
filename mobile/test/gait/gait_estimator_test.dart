@@ -50,7 +50,7 @@ void main() {
 
   const walk = Gait();
   // No load at either heel site (heel centre 5, lateral heel 7).
-  const toe = Gait(kpa: [10, 10, 10, 10, 10, 0, 10, 0]);
+  const toe = Gait(kpa: [10, 10, 10, 10, 10, 0]);
 
   test('no model: the rules classify while both feet walk', () async {
     final (rig, est) = makeRig();
@@ -71,7 +71,7 @@ void main() {
     final last = est.current!;
     rig.walkBoth(
       const Duration(seconds: 5),
-      const Gait.standing([10, 10, 10, 10, 10, 10, 10, 10]),
+      const Gait.standing([10, 10, 10, 10, 10, 10]),
     );
     expect(est.current, isNull);
     // The newest result shown, from the last strides of the walk.
@@ -213,7 +213,7 @@ void main() {
         // Standing: no new estimate; after a window + stride it is stale.
         rig.walkBoth(
           const Duration(seconds: 4),
-          const Gait.standing([10, 10, 10, 10, 10, 10, 10, 10]),
+          const Gait.standing([10, 10, 10, 10, 10, 10]),
         );
         expect(est.modelEstimateFor(FootSide.right), isNull);
 
@@ -228,7 +228,7 @@ void main() {
       'rule 11: the note never changes a level; rotated_foot gets none',
       () async {
         // A walk with a 240 kPa meta1 peak raises PRESSURE_PEAK (level 3).
-        const peak = Gait(kpa: [0, 240, 0, 0, 0, 0, 0, 0]);
+        const peak = Gait(kpa: [0, 240, 0, 0, 0, 0]);
         final stored = <int>{};
         final shown = <Object>{};
         for (final probs in [
@@ -282,7 +282,7 @@ void main() {
     rig.walkBoth(
       const Duration(seconds: 6),
       walk,
-      right: const Gait(kpa: [5, 5, 5, 5, 5, 5, 5, 5], phaseMs: 500),
+      right: const Gait(kpa: [5, 5, 5, 5, 5, 5], phaseMs: 500),
     );
     // Mean whole-foot PTI 80 vs 40 per step: |80 − 40| / 60 × 100.
     expect(est.ptiAsymmetryPct(), closeTo(66.7, 0.5));

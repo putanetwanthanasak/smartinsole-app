@@ -25,7 +25,7 @@ enum TempSiteMark {
   unreadable,
 }
 
-/// One foot with its 8 temperature sites (site i = zone i,
+/// One foot with its 6 temperature sites (site i = zone i,
 /// `shared/sensor_layout.json`), one [TempSiteMark] per site. Used by the
 /// `TEMP_DELTA` alert detail ("ตำแหน่งที่พบ", §7.3) and the Temperature
 /// tab's map card (§8.2). [dashedOutline]: a foot with no data on My feet.

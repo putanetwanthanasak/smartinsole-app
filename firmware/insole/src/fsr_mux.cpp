@@ -62,7 +62,7 @@ const char* calibrationScheme() {
 void read(Frame& out) {
   out.saturated = false;
   out.lowRangeMask = 0;
-  for (uint8_t site = 0; site < 8; ++site) {
+  for (uint8_t site = 0; site < config::kFsrCount; ++site) {
     select(gMap[site]);
     delayMicroseconds(config::kMuxSettleUs);
 

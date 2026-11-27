@@ -15,7 +15,7 @@ import 'model_spec.dart';
 ///
 /// 1. **Personal baseline:** per foot and channel, the median of that
 ///    foot's samples over the 30 s quiet-standing recording
-///    ([footBaseline]), subtracted from every one of the 28 channels.
+///    ([footBaseline]), subtracted from every one of the 24 channels.
 /// 2. **Min-Max:** `((x − baseline) − min) / (max − min)` with the
 ///    training subjects' min/max from `normalization.json`, no clipping
 ///    ([normalizeWindow]).
@@ -112,7 +112,7 @@ double medianOf(List<double> values) {
 }
 
 /// One foot's baseline: the per-channel median of its rows (each the
-/// foot's 14 model channels, `footModelChannels`).
+/// foot's 12 model channels, `footModelChannels`).
 List<double> footBaseline(List<List<double>> rows) {
   if (rows.isEmpty) throw ArgumentError('no rows for a baseline');
   return [
@@ -121,14 +121,14 @@ List<double> footBaseline(List<List<double>> rows) {
   ];
 }
 
-/// The two feet's baselines as the 28 model channels (§7.1: the left
-/// foot's 14, then the right's).
+/// The two feet's baselines as the 24 model channels (§7.1: the left
+/// foot's 12, then the right's).
 List<double> modelBaseline(List<double> left, List<double> right) => [
   ...left,
   ...right,
 ];
 
-/// The 28-channel baseline for the insoles connected now ([leftId],
+/// The 24-channel baseline for the insoles connected now ([leftId],
 /// [rightId]: their calibration `device_id`s) from the [stored] ones, or
 /// null when either insole is unknown or has none: then Model A is not
 /// used (S9). A baseline belongs to its insole, so a swapped insole needs
@@ -151,7 +151,7 @@ List<double>? modelBaselineOf(
   return l == null || r == null ? null : modelBaseline(l, r);
 }
 
-/// [rows] (raw 28-channel rows) preprocessed into the model's float32
+/// [rows] (raw 24-channel rows) preprocessed into the model's float32
 /// input, row-major `[1, rows, channels]`: the [baseline] subtracted, then
 /// Min-Max with [norm]. No clipping.
 Float32List normalizeWindow(

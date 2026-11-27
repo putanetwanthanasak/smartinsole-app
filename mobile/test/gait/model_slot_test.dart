@@ -40,9 +40,9 @@ void main() {
       );
     });
 
-    test('window 2 s, stride 1 s, the app\'s 28 channels (version 2)', () {
-      expect(spec.version, 2);
-      expect(spec.channels, hasLength(28));
+    test('window 2 s, stride 1 s, the app\'s 24 channels (version 3)', () {
+      expect(spec.version, 3);
+      expect(spec.channels, hasLength(24));
       expect(spec.windowMs, 2000);
       expect(spec.strideMs, 1000);
       expect(spec.samplePeriodMs, 20);
@@ -98,32 +98,36 @@ void main() {
       }
     });
 
-    test('a version-1 file from the 6-FSR insole (24 channels) is '
-        'refused, never padded (S8D)', () {
-      final v1 = {
-        'version': 1,
-        'channels': [
-          for (final side in const ['L', 'R']) ...[
-            for (var i = 0; i < 6; i++) '${side}_fsr${i}_kpa',
-            for (final a in const ['x', 'y', 'z']) '${side}_accel_${a}_g',
-            for (final a in const ['x', 'y', 'z']) '${side}_gyro_${a}_dps',
+    // Same 24 names as v3, but recorded for another insole: refused by
+    // version, never reused. A v2 (8-FSR, 28 channels) file the same way.
+    for (final (version, fsr) in const [(1, 6), (2, 8)]) {
+      test('a version-$version file ($fsr FSR per foot) is refused, never '
+          'cut or padded (S8D, S11)', () {
+        final old = {
+          'version': version,
+          'channels': [
+            for (final side in const ['L', 'R']) ...[
+              for (var i = 0; i < fsr; i++) '${side}_fsr${i}_kpa',
+              for (final a in const ['x', 'y', 'z']) '${side}_accel_${a}_g',
+              for (final a in const ['x', 'y', 'z']) '${side}_gyro_${a}_dps',
+            ],
           ],
-        ],
-        'method': Normalization.method,
-        'min': List.filled(24, 0.0),
-        'max': List.filled(24, 1.0),
-      };
-      expect(
-        () => Normalization.parse(jsonEncode(v1), spec),
-        throwsA(
-          isA<FormatException>().having(
-            (e) => e.message,
-            'message',
-            'normalization.json version is 1, model_input.json 2',
+          'method': Normalization.method,
+          'min': List.filled(2 * (fsr + 6), 0.0),
+          'max': List.filled(2 * (fsr + 6), 1.0),
+        };
+        expect(
+          () => Normalization.parse(jsonEncode(old), spec),
+          throwsA(
+            isA<FormatException>().having(
+              (e) => e.message,
+              'message',
+              'normalization.json version is $version, model_input.json 3',
+            ),
           ),
-        ),
-      );
-    });
+        );
+      });
+    }
 
     test('a max not above its min is refused', () {
       for (final d in [0.0, -1.0]) {

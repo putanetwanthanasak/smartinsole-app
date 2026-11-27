@@ -35,7 +35,7 @@
 | Home status | 3 levels shown to patients (Safe / Be careful / Rest your feet) + No data |
 | Risk-level mapping | See section 7 |
 | Storage | On-device only |
-| Sensor count | **8 FSR + 8 NTC per foot, NTC i next to FSR i** (final, user decision 2026-10-29; DATA-CONTRACT v1.6, `shared/sensor_layout.json`). The parser stays N-generic, but the app refuses an insole whose calibration has N ≠ 8, and the 12-byte v1.5 temperature packet. The UI shows all 8 zones and 8 sites (S8D-2: DESIGN-SPEC §5 geometry, §8.2 Temperature layout A). |
+| Sensor count | **6 sites per foot, a Velostat pressure sensor ("FSR") and an NTC at each, NTC i next to FSR i** (user decision 2026-11-25, S11; DATA-CONTRACT v1.7, `shared/sensor_layout.json`). The insoles keep 8 pads; the firmware reads sites 0–5. v1.6 (S8D, 2026-10-29) had 8 + 8; its sites 6 and 7 are kept only as names for stored v1.6 data. The parser stays N-generic, but the app refuses an insole whose calibration has N ≠ 6, a temperature packet that is not 6 sites, and the 12-byte v1.5 temperature packet. The UI shows 6 zones and 6 sites (DESIGN-SPEC §5 geometry, §8.2 Temperature layout A). |
 | Risk decision | Contract rules (RuleBasedEngine). Gait result is context only. |
 | Daily foot check | 4 photos + 3 questions, no AI, photos stored on device only |
 | Study day | **The phone app is the only central for each insole and captures all research data (S4C).** There is no laptop fallback (user decision 2026-10-31, BACKLOG 63): if the phone fails mid-session, that participant is stopped and rescheduled inside the IRB window (`docs/STUDY-CAPTURE.md`). The photo feature is not used with volunteers, so no feature flag is needed. |
@@ -68,8 +68,8 @@ smartinsole-app/
 │   └── CLAUDE.md
 ├── shared/
 │   ├── thresholds.json
-│   ├── sensor_layout.json   ← 8 sites per foot: ids, names, mm positions (v1.6)
-│   ├── model_input.json     ← Model A channel order (28 channels)
+│   ├── sensor_layout.json   ← 6 sites per foot: ids, names, mm positions (v1.7)
+│   ├── model_input.json     ← Model A channel order (24 channels)
 │   ├── capture_fixture/     ← schema1/ (6 FSR, frozen) and schema2/ (8 FSR)
 │   └── test_vectors/
 ├── firmware/simulator/      ← new simulator (PlatformIO, NimBLE)
@@ -102,13 +102,13 @@ Check the latest stable version of each package when installing. Fonts must be b
 
 ## 5. Technical requirements (must match the repo docs)
 
-- **Sensor packet:** 8 samples/packet at 6.25 Hz (= 50 Hz), 232 bytes at N = 8 (v1.6), little-endian, 8-byte header (`seq`, `t0_ms`, `count`, `flags`)
-- **Sample size:** `2N + 12` bytes, N = FSR count from the calibration blob; N must be 8 (28 bytes)
+- **Sensor packet:** 8 samples/packet at 6.25 Hz (= 50 Hz), 200 bytes at N = 6 (v1.7), little-endian, 8-byte header (`seq`, `t0_ms`, `count`, `flags`)
+- **Sample size:** `2N + 12` bytes, N = FSR count from the calibration blob; N must be 6 (24 bytes)
 - **Service UUID:** `f0a5c000-9b4d-4e8a-a3c1-72d6e1b45900` (scan by UUID, not by name)
 - **Connect sequence:** connect → `requestMtu(247)` → read status (check `foot_side`) → read calibration → enable notifications → `SYNC_TIME` → `START_STREAM`
 - **FSR:** `max(0, adc − offset_adc)` → V → R → `F = a·R^b` → `P = F / A / 1000` (kPa)
-- **Temperature:** v2 packet, 32 bytes, 8 sites (`temp[8]`, `quality[8]`); `raw / 100` °C; `-32768` = could not read
-- **Model A input:** `[1, 100, 28]` (8 FSR + 3 accel + 3 gyro per foot), `shared/model_input.json` version 2
+- **Temperature:** v2 packet, `8 + 3 × count` bytes, 6 sites = 26 bytes (`temp[6]`, `quality[6]`); `raw / 100` °C; `-32768` = could not read
+- **Model A input:** `[1, 100, 24]` (6 FSR + 3 accel + 3 gyro per foot), `shared/model_input.json` version 3
 
 ---
 
@@ -195,7 +195,7 @@ Levels 1–5 are still stored internally for reporting and for expert review.
 
 | From | Need | Before session |
 |---|---|---|
-| Phumirapee (hardware) | Real boards ready for SR, firmware on DATA-CONTRACT v1.6 (8 FSR + 8 NTC, temperature v2, 8-channel calibration JSON; Appendix C), exact-length packets, SET_RATE. Count and positions are final (2026-10-29) | **~2026-11-08** (SR 8–11 Nov; study starts 12 Nov) |
+| Phumirapee (hardware) | Real boards ready for SR, firmware on DATA-CONTRACT v1.7 (6 FSR + 6 NTC read of the 8 pads, temperature v2 at 6 sites, 6-channel calibration JSON; Appendix C), exact-length packets, SET_RATE. Count reduced to 6 + 6 on 2026-11-25 | **~2026-11-08** (SR 8–11 Nov; study starts 12 Nov) |
 | Putanet | Two ESP32 boards + PlatformIO installed | S2B |
 | Putanet | Approval of the remaining 5 screen designs | S6B |
 | Medical expert | Review of the alert/advice text that volunteers will see | **2026-11-05** (before the study) |

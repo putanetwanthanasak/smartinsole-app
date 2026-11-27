@@ -95,28 +95,35 @@ ParseResult<SensorPacket> parseSensorPacket(
   );
 }
 
-/// Temperature v2 (DATA-CONTRACT v1.6 §3.2). Strict: exactly 32 bytes,
-/// `count` 8 and every quality byte 0–2, else a named rejection. The old
-/// 12-byte packet is never read as v2 (it would give made-up numbers).
+/// Temperature v2 (DATA-CONTRACT v1.7 §3.2). Strict, checked in this
+/// order: shorter than the 8-byte header, the old 12-byte packet, or a
+/// length other than `8 + 3 × count` for its own `count` byte is
+/// `tempLength`; a self-consistent packet whose `count` is not
+/// [TempLayout.siteCount] (6) is `tempCount` (so the v1.6 32-byte packet
+/// shows "count 8"); a quality byte above 2 is `invalidQuality`. The old
+/// packets are never read as v2 (they would give made-up numbers).
 ParseResult<TempPacket> parseTempPacket(Uint8List bytes) {
-  if (bytes.length != TempLayout.packetBytes) {
-    final legacy = bytes.length == TempLayout.legacyPacketBytes
-        ? ' (the v1 forefoot/heel packet: firmware older than contract v1.6)'
-        : '';
-    return Rejected(
-      RejectReason.tempLength,
-      'temperature packet has ${bytes.length} bytes, needs exactly '
-      '${TempLayout.packetBytes}$legacy',
-      expectedBytes: TempLayout.packetBytes,
-      actualBytes: bytes.length,
+  Rejected<TempPacket> wrongLength(String hint) => Rejected(
+    RejectReason.tempLength,
+    'temperature packet has ${bytes.length} bytes, needs exactly '
+    '${TempLayout.packetBytes}$hint',
+    expectedBytes: TempLayout.packetBytes,
+    actualBytes: bytes.length,
+  );
+  if (bytes.length == TempLayout.legacyPacketBytes) {
+    return wrongLength(
+      ' (the v1 forefoot/heel packet: firmware older than contract v1.6)',
     );
   }
+  if (bytes.length < TempLayout.headerBytes) return wrongLength('');
   final data = ByteData.sublistView(bytes);
   final count = data.getUint8(TempLayout.countOffset);
+  if (bytes.length != TempLayout.bytesFor(count)) return wrongLength('');
   if (count != TempLayout.siteCount) {
+    final v16 = count == 8 ? ' (the v1.6 8-site packet)' : '';
     return Rejected(
       RejectReason.tempCount,
-      'temperature count $count, needs ${TempLayout.siteCount}',
+      'temperature count $count, needs ${TempLayout.siteCount}$v16',
     );
   }
   final quality = <TempQuality>[];

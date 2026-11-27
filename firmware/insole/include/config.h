@@ -17,10 +17,13 @@
 #endif
 static_assert(FOOT_SIDE == 0 || FOOT_SIDE == 1, "FOOT_SIDE must be 0 or 1");
 
+// The insole keeps its 8 Velostat pads; the firmware reads sites 0-5 only
+// (DATA-CONTRACT v1.7, user decision 2026-11-25). The pads at v1.6's
+// sites 6 (medial arch) and 7 (lateral heel) stay in the insole, unread.
 #ifndef FSR_COUNT
-#define FSR_COUNT 8
+#define FSR_COUNT 6
 #endif
-static_assert(FSR_COUNT == 8, "the real insole has 8 FSR channels (contract v1.6)");
+static_assert(FSR_COUNT == 6, "the real insole reads 6 FSR sites (contract v1.7)");
 
 // ---- Filled in from the hardware team's answers --------------------------
 #define PINMAP_FILLED_IN 0
@@ -58,11 +61,14 @@ constexpr int kPinSdCs = kNoPin;            // held high: the SD card stays off 
 constexpr uint8_t kMpuAddress = 0x68;       // seen at boot in SR-1
 
 // Mux channel (C00..C15) of each contract site, index = site:
-// 0 hallux, 1 MTH1, 2 MTH2-3, 3 MTH5, 4 lateral midfoot, 5 heel centre,
-// 6 medial arch, 7 lateral heel. Per foot (each foot's own board).
-constexpr uint8_t kMuxChannelOfSite[2][8] = {
-    {0, 1, 2, 3, 4, 5, 6, 7},  // left (placeholder)
-    {0, 1, 2, 3, 4, 5, 6, 7},  // right (placeholder; SR-1 press test, report 043)
+// 0 hallux, 1 MTH1, 2 MTH2-3, 3 MTH5, 4 lateral midfoot, 5 heel centre
+// (v1.7). Per foot (each foot's own board). Placeholders until the hardware
+// team's pin map. On the right board the hallux press showed on C05 and C06
+// together (report 043): the six channels chosen here must not include
+// both halves of a bridged pair.
+constexpr uint8_t kMuxChannelOfSite[2][kFsrCount] = {
+    {0, 1, 2, 3, 4, 5},  // left (placeholder)
+    {0, 1, 2, 3, 4, 5},  // right (placeholder; SR-1 press test, report 043)
 };
 
 // IMU chip axes -> insole frame (contract §5.2 addendum 2), per foot: the box
@@ -97,7 +103,7 @@ static_assert(okPin(kPinMuxS[0]) && okPin(kPinMuxS[1]) && okPin(kPinMuxS[2]) &&
 static_assert(insole_hw::isProperRotation(kAxisMap[0]) && insole_hw::isProperRotation(kAxisMap[1]),
               "an axis map is not a rotation (a mirrored map is a typo: chips can't be mirrored)");
 constexpr bool muxMapValid(const uint8_t* m) {
-  for (int i = 0; i < 8; ++i) {
+  for (int i = 0; i < kFsrCount; ++i) {
     if (m[i] > 15) return false;
     for (int j = 0; j < i; ++j)
       if (m[i] == m[j]) return false;

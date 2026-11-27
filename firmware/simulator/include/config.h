@@ -9,11 +9,11 @@
 #endif
 static_assert(FOOT_SIDE == 0 || FOOT_SIDE == 1, "FOOT_SIDE must be 0 or 1");
 
-// FSR channels per sample. Data Contract v1.6 fixes 8 (28-byte sample,
-// 232-byte packet); the app refuses any other N at connect. Other values
-// (the left_fsr6 env) are build checks of the 2N + 12 layout only.
+// FSR channels per sample. Data Contract v1.7 fixes 6 (24-byte sample,
+// 200-byte packet; v1.6 had 8); the app refuses any other N at connect.
+// Other values (the fsr8 env) are build checks of the 2N + 12 layout only.
 #ifndef FSR_COUNT
-#define FSR_COUNT 8
+#define FSR_COUNT 6
 #endif
 static_assert(FSR_COUNT >= 1 && FSR_COUNT <= insole::kMaxFsrCount,
               "FSR_COUNT must be 1..8");

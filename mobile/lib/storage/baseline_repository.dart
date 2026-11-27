@@ -4,7 +4,8 @@ import '../ble/packets.dart';
 import 'database.dart';
 
 /// One insole's quiet-standing baseline (S9, Model A preprocessing "ทางเอ"):
-/// the per-channel median of the foot's 14 model channels.
+/// the per-channel median of the foot's model channels (12 since v1.7,
+/// 14 in a v1.6 build's rows).
 class FootBaseline {
   const FootBaseline({
     required this.side,
@@ -23,7 +24,7 @@ class FootBaseline {
   /// Samples the median was taken over.
   final int sampleCount;
 
-  /// 14 values, the foot's model channels in contract §7.1 order.
+  /// The foot's model channels in contract §7.1 order (12 since v1.7).
   final List<double> values;
 }
 

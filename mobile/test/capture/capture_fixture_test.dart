@@ -14,18 +14,19 @@ import 'package:smartinsole/storage/models.dart';
 
 import 'capture_rig.dart';
 
-/// `shared/capture_fixture/schema2/`: one rehearsal session recorded by the
-/// real capture code (capture schema 2: 8 FSR, 8 temperature sites),
-/// exported with its manifest, plus `expected.json` — the 28-channel rows
-/// the app's own [pairFeet] + [modelRow] make from the same samples.
-/// `tools/capture/load_capture.py --selftest` must reproduce them from the
-/// files, which checks the column order and the pairing rule across the two
-/// languages. `schema1/` is the frozen schema-1 (6-FSR) fixture: the loader
-/// must keep reading it; nothing writes it any more.
+/// `shared/capture_fixture/schema3/`: one rehearsal session recorded by the
+/// real capture code (capture schema 3: 6 FSR, 6 temperature sites,
+/// contract v1.7), exported with its manifest, plus `expected.json` — the
+/// 24-channel rows the app's own [pairFeet] + [modelRow] make from the same
+/// samples. `tools/capture/load_capture.py --selftest` must reproduce them
+/// from the files, which checks the column order and the pairing rule
+/// across the two languages. `schema1/` (6 FSR, 2 temperature sites) and
+/// `schema2/` (8 FSR, 8 sites, v1.6) are frozen: the loader must keep
+/// reading them; nothing writes them any more.
 ///
-/// Regenerate after an intended format change (rewrites `schema2/` only):
+/// Regenerate after an intended format change (rewrites `schema3/` only):
 ///   UPDATE_CAPTURE_FIXTURE=1 flutter test test/capture/capture_fixture_test.dart
-const fixtureDir = '../shared/capture_fixture/schema2';
+const fixtureDir = '../shared/capture_fixture/schema3';
 
 /// Values exactly representable at the CSV's decimals (kPa 3, g 6, dps 4),
 /// different per channel and per sample, so a swapped column shows.
@@ -44,7 +45,7 @@ void main() {
   test('capture fixture matches the code that writes it', () {
     final generated = Directory.systemTemp.createTempSync('fixture_');
     fakeAsync((async) {
-      final rig = CaptureRig(async, code: 'TEST-009');
+      final rig = CaptureRig(async, code: 'TEST-010');
       final batches = <FootBatch>[];
       rig.manager.batches.listen(batches.add);
       final s = rig.session..startRecording();
@@ -56,11 +57,11 @@ void main() {
           // left sensor could not read, one right site in poor contact.
           rig.left.temp(
             null,
-            sites: {for (var i = 0; i < 8; i++) i: i == 6 ? null : 31 + i / 8},
+            sites: {for (var i = 0; i < 6; i++) i: i == 4 ? null : 31 + i / 8},
           );
           rig.right.temp(
             null,
-            sites: {for (var i = 0; i < 8; i++) i: 31.5 + i / 4 + k / 100},
+            sites: {for (var i = 0; i < 6; i++) i: 31.5 + i / 4 + k / 100},
             qualityAt: {2: TempQuality.poorContact},
           );
         }
@@ -131,7 +132,7 @@ void main() {
                     atMs: (start + 3000).round(),
                   ).toJson(),
                   TempSiteEntry(
-                    zone: 'lateralHeel',
+                    zone: 'midfoot',
                     deltaC: 2.31,
                     atMs: (start + 4000).round(),
                   ).toJson(),

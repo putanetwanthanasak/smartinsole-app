@@ -271,7 +271,7 @@ class DailySummary {
   final int? walkingMin;
   final int? wornMin;
 
-  /// Largest |ΔT| of the day over the 8 sites, from two-foot readings only
+  /// Largest |ΔT| of the day over the sites, from two-foot readings only
   /// (rule 4), and the site (zone index) it was at.
   final double? maxDeltaC;
   final int? maxDeltaSite;

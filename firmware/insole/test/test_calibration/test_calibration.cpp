@@ -1,5 +1,5 @@
 // Calibration JSON (contract §5.1, Appendix C item 4): compact, <= 512 bytes,
-// 8 channels; strict parse for the serial `cal set` command.
+// 6 channels; strict parse for the serial `cal set` command.
 #include <unity.h>
 
 #include <ArduinoJson.h>
@@ -46,8 +46,8 @@ void test_test_calibration_json() {
   TEST_ASSERT_TRUE(j.find('\n') == std::string::npos);
   JsonDocument doc;
   TEST_ASSERT_FALSE(deserializeJson(doc, j));
-  TEST_ASSERT_EQUAL(8, doc["channels"].size());
-  TEST_ASSERT_EQUAL(7, doc["channels"][7]["index"].as<int>());
+  TEST_ASSERT_EQUAL(6, doc["channels"].size());
+  TEST_ASSERT_EQUAL(5, doc["channels"][5]["index"].as<int>());
   TEST_ASSERT_TRUE(isTestCalibration(c));
   TEST_ASSERT_EQUAL_STRING("INSOLE-L-TEST", testCalibration(0, 1000, 0.000113).deviceId);
 }
@@ -64,8 +64,8 @@ void test_round_trip() {
   CalData back{};
   TEST_ASSERT_EQUAL(static_cast<int>(CalError::None), static_cast<int>(parse(j, back)));
   TEST_ASSERT_EQUAL_STRING(j.c_str(), build(back).c_str());
-  TEST_ASSERT_EQUAL_DOUBLE(98772.4, back.ch[7].a);  // the correctly rounded double
-  TEST_ASSERT_EQUAL_UINT16(659, back.ch[7].offsetAdc);
+  TEST_ASSERT_EQUAL_DOUBLE(98770.4, back.ch[5].a);  // the correctly rounded double
+  TEST_ASSERT_EQUAL_UINT16(585, back.ch[5].offsetAdc);
   TEST_ASSERT_FALSE(isTestCalibration(back));
 }
 
@@ -94,9 +94,13 @@ void test_refusals() {
   expect(CalError::Pulldown, replace(ok, "\"r_pulldown_ohm\":1000", "\"r_pulldown_ohm\":0"));
   expect(CalError::Area, replace(ok, "0.000113", "0"));
   expect(CalError::Area, replace(ok, "0.000113", "\"x\""));
-  // 7 channels (N != 8 is refused by the app: calibrationFsrCount).
-  size_t last = ok.rfind(",{\"index\":7");
+  // 5 channels, or v1.6's 8 (N != 6 is refused by the app:
+  // calibrationFsrCount).
+  size_t last = ok.rfind(",{\"index\":5");
   expect(CalError::Channels, ok.substr(0, last) + "]}");
+  const std::string ch5 = ok.substr(last, ok.rfind("]}") - last);
+  expect(CalError::Channels, replace(ok, "]}", replace(ch5, "\"index\":5", "\"index\":6") +
+                                                   replace(ch5, "\"index\":5", "\"index\":7") + "]}"));
   expect(CalError::Index, replace(ok, "{\"index\":1,", "{\"index\":2,"));
   expect(CalError::Coefficient, replace(ok, "{\"index\":0,\"a\":123000", "{\"index\":0,\"a\":0"));
   expect(CalError::Coefficient, replace(ok, "{\"index\":0,\"a\":123000", "{\"index\":0,\"a\":true"));
@@ -124,15 +128,19 @@ void test_extra_digits_are_stored_rounded_and_visible() {
   TEST_ASSERT_EQUAL_STRING(six.c_str(), build(c).c_str());
 }
 
-void test_too_long_is_refused_by_both() {
+void test_widest_fits_and_a_short_buffer_is_refused() {
+  // Since v1.7 (6 channels) even the widest blob fits the 512-byte
+  // characteristic: a 32-character id and every number at its widest
+  // stored digits (it was over 512 with v1.6's 8 channels).
   CalData c = testCalibration(1, 1000, 0.000113);
   std::strcpy(c.deviceId, "INSOLE-R-0123456789-ABCDEFGHIJKL");  // 32 characters
   for (CalChannel& ch : c.ch) ch = {-1.23457e+08, -1.235e-05, 4095};
   char buf[kMaxCalibrationBytes + 1];
-  TEST_ASSERT_EQUAL(0, buildCalibrationJson(c, buf, sizeof buf));
-  char big[1024];
-  size_t n = buildCalibrationJson(c, big, sizeof big);
-  TEST_ASSERT_EQUAL(0, n);  // longer than 512 even with room for it
+  size_t n = buildCalibrationJson(c, buf, sizeof buf);
+  TEST_ASSERT_EQUAL(481, n);
+  TEST_ASSERT_TRUE(n <= kMaxCalibrationBytes);
+  char small[200];
+  TEST_ASSERT_EQUAL(0, buildCalibrationJson(c, small, sizeof small));  // never cut off
 }
 
 void test_realistic_worst_case_fits() {
@@ -153,7 +161,7 @@ int main() {
   RUN_TEST(test_spaced_input_is_rebuilt_compact);
   RUN_TEST(test_refusals);
   RUN_TEST(test_extra_digits_are_stored_rounded_and_visible);
-  RUN_TEST(test_too_long_is_refused_by_both);
+  RUN_TEST(test_widest_fits_and_a_short_buffer_is_refused);
   RUN_TEST(test_realistic_worst_case_fits);
   return UNITY_END();
 }

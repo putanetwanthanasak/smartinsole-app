@@ -1,5 +1,5 @@
 {
- "about": "Trial-00 baseline vectors (S9-2, BACKLOG 74): synthetic schema-2 capture trial CSVs, each run through the one baseline function (tools/model/preprocess.py foot_baseline_window; the app's FootBaselineWindow must give the same). Made by preprocess.py --make-vectors; never hand-edited. expected per foot: failure id (null = ok), rows kept, the 14 float64 medians in the foot's model channel order.",
+ "about": "Trial-00 baseline vectors (S9-2, BACKLOG 74): synthetic schema-3 capture trial CSVs, each run through the one baseline function (tools/model/preprocess.py foot_baseline_window; the app's FootBaselineWindow must give the same). Made by preprocess.py --make-vectors; never hand-edited. expected per foot: failure id (null = ok), rows kept, the 12 float64 medians in the foot's model channel order.",
  "baselineSeconds": 30,
  "baselineToleranceSamples": 5,
  "thresholds": {
@@ -17,40 +17,36 @@
      "failure": null,
      "sampleCount": 1500,
      "values": [
-      40.5025,
-      59.2855,
-      32.0165,
-      43.8535,
-      20.3995,
-      17.0795,
-      52.745999999999995,
-      24.0805,
-      1.8e-05,
-      -0.0001975,
-      0.9999990000000001,
-      -0.00935,
-      0.022949999999999998,
-      -0.045
+      40.494,
+      59.255,
+      32.0205,
+      43.826499999999996,
+      20.4115,
+      17.042,
+      5.4499999999999997e-05,
+      -0.000737,
+      1.000009,
+      0.0194,
+      -0.033350000000000005,
+      -0.025
      ]
     },
     "R": {
      "failure": null,
      "sampleCount": 1500,
      "values": [
-      53.2745,
-      30.097,
-      27.0615,
-      47.7535,
-      32.539,
-      38.4015,
-      36.355,
-      25.116999999999997,
-      -2.95e-05,
-      -3.1e-05,
-      1.0002715,
-      -0.0529,
-      -0.05995,
-      -0.01715
+      30.197499999999998,
+      52.141000000000005,
+      54.061,
+      37.94,
+      28.558500000000002,
+      47.2855,
+      0.0001395,
+      -0.00048499999999999997,
+      0.999803,
+      -0.00925,
+      0.0021,
+      -0.017300000000000003
      ]
     }
    }
@@ -183,40 +179,36 @@
      "failure": null,
      "sampleCount": 1497,
      "values": [
-      18.32,
-      41.601,
-      28.208,
-      51.053,
-      20.087,
-      46.428,
-      47.69,
-      54.678,
-      -0.000207,
-      0.000241,
-      0.999973,
-      -0.0283,
-      0.0008,
-      -0.0092
+      29.607,
+      48.462,
+      18.764,
+      48.085,
+      51.9,
+      22.076,
+      -0.000322,
+      0.000157,
+      0.999664,
+      0.0138,
+      -0.0421,
+      -0.0299
      ]
     },
     "R": {
      "failure": null,
      "sampleCount": 1496,
      "values": [
-      43.657,
-      24.8575,
-      39.548,
-      41.7185,
-      49.224000000000004,
-      28.404,
-      56.249,
-      52.697,
-      0.000152,
-      -0.0002795,
-      1.0000525,
-      0.00825,
-      -0.0392,
-      -0.048299999999999996
+      30.9345,
+      43.900000000000006,
+      27.0715,
+      39.098,
+      27.198,
+      57.4725,
+      -0.00036899999999999997,
+      -4.6e-05,
+      0.999638,
+      0.03375,
+      0.028749999999999998,
+      -0.0071
      ]
     }
    }

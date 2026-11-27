@@ -20,7 +20,7 @@ class Gait {
   const Gait({
     this.strideMs = 1000,
     this.stanceMs = 600,
-    this.kpa = const [10, 10, 10, 10, 10, 10, 10, 10],
+    this.kpa = const [10, 10, 10, 10, 10, 10],
     this.walking = true,
     this.phaseMs = 0,
   });

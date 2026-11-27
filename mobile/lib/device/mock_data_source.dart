@@ -177,8 +177,8 @@ class MockFootProfile {
   final List<double> siteC;
   final MockGait gait;
 
-  /// A plausible resting sole: the arch warmest, toes and heel coolest.
-  static const baseSiteC = [31.4, 31.6, 31.7, 31.5, 31.9, 31.2, 32.3, 31.1];
+  /// A plausible resting sole: the midfoot warmest, toes and heel coolest.
+  static const baseSiteC = [31.4, 31.6, 31.7, 31.5, 31.9, 31.2];
 
   /// [baseSiteC] shifted by [by] °C, plus [extra] °C at chosen sites.
   static List<double> sites(double by, [Map<int, double> extra = const {}]) => [
@@ -190,7 +190,7 @@ class MockFootProfile {
   static const normalWalk = MockGait(
     strideMs: 1100,
     stanceMs: 660,
-    peakKpa: [40, 45, 50, 30, 25, 60, 15, 45],
+    peakKpa: [40, 45, 50, 30, 25, 60],
   );
 
   static MockFootProfile of(MockPreset preset, FootSide side) {
@@ -205,7 +205,7 @@ class MockFootProfile {
             ? const MockGait(
                 strideMs: 1100,
                 stanceMs: 660,
-                peakKpa: [40, 95, 50, 30, 25, 60, 15, 45],
+                peakKpa: [40, 95, 50, 30, 25, 60],
               )
             : normalWalk,
       ),
@@ -217,7 +217,7 @@ class MockFootProfile {
             ? const MockGait(
                 strideMs: 1600,
                 stanceMs: 1200,
-                peakKpa: [120, 240, 140, 50, 30, 110, 25, 70],
+                peakKpa: [120, 240, 140, 50, 30, 110],
                 windows: [
                   (0.60, 1.00),
                   (0.20, 0.98),
@@ -225,19 +225,18 @@ class MockFootProfile {
                   (0.35, 0.90),
                   (0.15, 0.60),
                   (0.00, 0.45),
-                  (0.20, 0.65),
-                  (0.00, 0.40),
                 ],
                 plateau: {1, 2},
               )
             : const MockGait(
                 strideMs: 1600,
                 stanceMs: 960,
-                peakKpa: [45, 120, 50, 30, 25, 100, 15, 60],
+                peakKpa: [45, 120, 50, 30, 25, 100],
               ),
       ),
       MockPreset.rest => MockFootProfile(
-        siteC: left ? sites(-0.4) : sites(-0.4, const {5: 2.6, 7: 2.3}),
+        // Two warmer sites on the right: heel centre and lateral midfoot.
+        siteC: left ? sites(-0.4) : sites(-0.4, const {5: 2.6, 4: 2.3}),
       ),
       MockPreset.noData => const MockFootProfile(streams: false),
       MockPreset.oneFootMissing => MockFootProfile(streams: left, siteC: usual),
@@ -245,13 +244,13 @@ class MockFootProfile {
         siteC: usual,
         batteryPct: left ? 10 : 92,
       ),
-      // Sums 182 and 208 kPa: 47 : 53, "พอ ๆ กัน" (PAI 13 %).
+      // Sums 142 and 162 kPa: 47 : 53, "พอ ๆ กัน" (PAI 13 %).
       MockPreset.standing => MockFootProfile(
         siteC: usual,
         gait: MockGait.standing(
           left
-              ? const [18, 24, 22, 14, 16, 48, 10, 30]
-              : const [20, 28, 26, 16, 18, 54, 12, 34],
+              ? const [18, 24, 22, 14, 16, 48]
+              : const [20, 28, 26, 16, 18, 54],
         ),
       ),
       // Forefoot loaded through most of stance, the heel never.
@@ -260,14 +259,12 @@ class MockFootProfile {
         gait: const MockGait(
           strideMs: 1000,
           stanceMs: 600,
-          peakKpa: [55, 60, 65, 40, 20, 0, 8, 0],
+          peakKpa: [55, 60, 65, 40, 20, 0],
           windows: [
             (0.30, 1.00),
             (0.05, 0.95),
             (0.05, 0.95),
             (0.05, 0.90),
-            (0.05, 0.50),
-            (0.00, 0.10),
             (0.05, 0.50),
             (0.00, 0.10),
           ],

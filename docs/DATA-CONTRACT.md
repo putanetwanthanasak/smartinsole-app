@@ -1,5 +1,5 @@
 **STATUS: FILLED IN AND RECONCILED — MERGED TO v1.4, EXTENDED IN THIS REPO TO
-v1.5 AND v1.6 (see the v1.6 paragraph below).** This file merges the
+v1.5, v1.6 AND v1.7 (see the v1.6 and v1.7 paragraphs below).** This file merges the
 contract owner's authoritative `DATA-CONTRACT-v1.4-new.md` (adds §8.0
 clinical background; drops `GAIT_ABNORMAL` and replaces it with the §8.3.1
 gait-pattern advisory layer; carries the 1.2→1.3→1.4 revision history) with
@@ -25,21 +25,32 @@ except where explicitly marked (§8.3 carried one such flag through the v1.2
 merge, now resolved by this version's own §8.3/§8.3.1 rewrite).
 
 **v1.6 (2026-10-29, S8D) is defined in this repo, not by the contract
-owner.** The real insole has 8 FSR and 8 NTC per foot, NTC i next to FSR i
-(user decision 2026-10-29). Sections changed for v1.6 are written in English
-(repo rule); the rest is the owner's text as before. Appendix C is the
-one-page summary for the hardware team. Not yet confirmed by the hardware
+owner.** The real insole had 8 FSR and 8 NTC per foot, NTC i next to FSR i
+(user decision 2026-10-29; reduced to 6 + 6 by v1.7). Sections changed for v1.6 are written in English
+(repo rule); the rest is the owner's text as before. Appendix C was the
+one-page summary for the hardware team (rewritten for v1.7). Not yet confirmed by the hardware
 team (Appendix B) or the contract owner.
+
+**v1.7 (2026-11-25, S11) is defined in this repo, not by the contract
+owner.** Each foot has 6 sites, the v1.6 indexes 0–5 with their v1.6
+meaning: a Velostat pressure sensor ("FSR" in this document) and an NTC
+next to it at each site (user decision 2026-11-25). The insoles keep 8
+Velostat pads physically; the firmware reads only sites 0–5. The v1.6
+medial arch (6) and lateral heel (7) are no longer read. Sensor packets are
+200 bytes (N = 6), the temperature v2 packet is `8 + 3 × count` bytes with
+count 6 (26 bytes), the calibration JSON lists exactly 6 channels and
+Model A takes `[1, 100, 24]`. Appendix C is rewritten for the hardware
+team. Not yet confirmed by the hardware team or the contract owner.
 
 ---
 
-# SmartInsole — Data Contract v1.6
+# SmartInsole — Data Contract v1.7
 
 **เอกสารสัญญาข้อมูลกลาง** สำหรับทีมฮาร์ดแวร์ (ESP32), ทีมแอปพลิเคชัน (React Native) และทีมปัญญาประดิษฐ์
 
 | | |
 |---|---|
-| เวอร์ชัน | 1.6 |
+| เวอร์ชัน | 1.7 |
 | สถานะ | ร่างเพื่อพิจารณา — ต้องได้รับการยืนยันจากทั้ง 3 ทีมก่อนเริ่มพัฒนา |
 | ขอบเขต | นิยาม BLE protocol, หน่วยวัด, โครงสร้างข้อมูล, และ interface ของโมเดล |
 
@@ -53,8 +64,8 @@ team (Appendix B) or the contract owner.
 ┌─────────────────┐         ┌─────────────────┐
 │  Insole ซ้าย     │         │  Insole ขวา      │
 │  ESP32-C3       │         │  ESP32-C3       │
-│  FSR×8, IMU×1   │         │  FSR×8, IMU×1   │
-│  NTC×8          │         │  NTC×8          │
+│  FSR×6, IMU×1   │         │  FSR×6, IMU×1   │
+│  NTC×6          │         │  NTC×6          │
 └────────┬────────┘         └────────┬────────┘
          │                           │
          └────────── BLE ────────────┘
@@ -98,8 +109,8 @@ team (Appendix B) or the contract owner.
 
 | Characteristic | UUID (ต่อท้าย) | Properties | ความถี่ | ขนาด |
 |---|---|---|---|---|
-| Sensor Stream | `...b45901` | Notify | 6.25 Hz | 232 bytes (v1.6: N = 8, 8 samples) |
-| Temperature | `...b45902` | Notify | 1/30 Hz | 32 bytes (v1.6: temperature v2) |
+| Sensor Stream | `...b45901` | Notify | 6.25 Hz | 200 bytes (v1.7: N = 6, 8 samples) |
+| Temperature | `...b45902` | Notify | 1/30 Hz | 26 bytes (v1.7: temperature v2, 6 sites) |
 | Device Status | `...b45903` | Read, Notify | เมื่อเปลี่ยนแปลง | 8 bytes |
 | Control | `...b45904` | Write | ตามคำสั่ง | 1–16 bytes |
 | Calibration | `...b45905` | Read | ครั้งเดียวตอน connect | สูงสุด 512 bytes |
@@ -113,10 +124,10 @@ team (Appendix B) or the contract owner.
 | Slave Latency | 0 | — |
 | Supervision Timeout | 4000 ms | — |
 
-> **v1.6:** a full packet at N = 8 is 232 bytes, which fits MTU 247 (232 +
-> 3 ATT header bytes). The 4-sample fallback needs 8 + 4 × 28 = 120 bytes,
-> i.e. MTU ≥ 123; below that the app shows a visible "MTU too small" problem
-> instead of a silent link.
+> **v1.7:** a full packet at N = 6 is 200 bytes, which fits MTU 247 (200 +
+> 3 ATT header bytes). The 4-sample fallback needs 8 + 4 × 24 = 104 bytes,
+> i.e. MTU ≥ 107; below that the app shows a visible "MTU too small" problem
+> instead of a silent link. (v1.6, N = 8: 232 bytes, fallback 120.)
 
 > **หมายเหตุสำหรับทีมแอป:** Android ต้องเรียก `requestMTU(247)` หลัง connect สำเร็จ **ก่อน** เปิด notification ส่วน iOS จัดการเองอัตโนมัติ
 
@@ -126,13 +137,13 @@ team (Appendix B) or the contract owner.
 
 ทุกค่าเป็น **little-endian**
 
-### 3.1 Sensor Stream Packet (232 bytes at N = 8, v1.6)
+### 3.1 Sensor Stream Packet (200 bytes at N = 6, v1.7)
 
 รวม 8 samples ต่อ 1 packet → ส่ง 6.25 ครั้ง/วินาที (ได้อัตราสุ่มจริง 50 Hz)
 
-**v1.6:** a packet is `8 + count × (2N + 12)` bytes, where N is the number
-of FSR channels in the calibration JSON (§5.1). N must be 8: a sample is 28
-bytes and a full packet 232 bytes.
+**v1.7:** a packet is `8 + count × (2N + 12)` bytes, where N is the number
+of FSR channels in the calibration JSON (§5.1). N must be 6: a sample is 24
+bytes and a full packet 200 bytes. (v1.6 had N = 8: 28 and 232 bytes.)
 
 **Header (8 bytes)**
 
@@ -143,17 +154,17 @@ bytes and a full packet 232 bytes.
 | 6 | 1 | uint8 | `count` | จำนวน sample ในแพ็กเก็ตนี้ (ปกติ = 8) |
 | 7 | 1 | uint8 | `flags` | bit0 = ข้อมูลอิ่มตัว (saturated), bit1 = อยู่ระหว่าง calibration |
 
-**Sample Block (28 bytes × 8, v1.6)**
+**Sample Block (24 bytes × 8, v1.7)**
 
 | Offset | Size | Type | Field | Unit |
 |---|---|---|---|---|
-| +0 | 16 | uint16 × 8 | `fsr[0..7]` | divider voltage, 12-bit counts of 3.3 V (0–4095; §5.1) |
-| +16 | 6 | int16 × 3 | `accel[x,y,z]` | 4096 LSB/g |
-| +22 | 6 | int16 × 3 | `gyro[x,y,z]` | 32.8 LSB/(°/s) |
+| +0 | 12 | uint16 × 6 | `fsr[0..5]` | divider voltage, 12-bit counts of 3.3 V (0–4095; §5.1) |
+| +12 | 6 | int16 × 3 | `accel[x,y,z]` | 4096 LSB/g |
+| +18 | 6 | int16 × 3 | `gyro[x,y,z]` | 32.8 LSB/(°/s) |
 
 ระยะห่างระหว่าง sample = 20 ms คงที่ → เวลาของ sample ที่ `i` คือ `t0_ms + (i × 20)`
 
-**Sensor sites (v1.6; the same index on both feet).** FSR i and NTC i sit
+**Sensor sites (v1.7; the same index on both feet).** FSR i and NTC i sit
 together: index i is FSR channel i in the sensor stream and temperature
 site i in the temperature packet (§3.2). Positions are approximate, in mm,
 on the left foot seen from above: x from the insole's lateral edge toward
@@ -170,33 +181,42 @@ its own lateral edge and heel). The machine-readable copy is
 | 3 | 5th metatarsal head (MTH5) | `meta5` | "โคนนิ้วก้อย" | 22, 197 | |
 | 4 | Lateral midfoot | `midfoot` | "ขอบเท้าด้านนอก" | 18, 140 | |
 | 5 | Heel centre | `heel` | "กลางส้นเท้า" | 43, 38 | |
-| 6 | Medial arch | `medialArch` | "อุ้งเท้า" | 59, 126 | new in v1.6 |
-| 7 | Lateral heel | `lateralHeel` | "ส้นเท้าด้านนอก" | 22, 82 | new in v1.6 |
 
-Indexes 0–5 keep their v1.5 meaning, so data recorded with 6 FSR keeps its
-channel numbers and ids.
+Indexes 0–5 have meant the same since v1.5, so every file and stored alert
+keeps its channel numbers and ids. **Retired in v1.7:** v1.6 also had
+6 = medial arch (`medialArch`, "อุ้งเท้า", 59, 126) and 7 = lateral heel
+(`lateralHeel`, "ส้นเท้าด้านนอก", 22, 82). Their Velostat pads are still in
+the insole but are not read and have no NTC. The ids stay reserved: data
+recorded in v1.6 may name them, and the app shows those old records with
+these names (no new data uses them).
 
-### 3.2 Temperature Packet v2 (32 bytes, v1.6)
+### 3.2 Temperature Packet v2 (26 bytes at 6 sites, v1.7)
 
-One reading of all 8 sites every 30 s; site i is the NTC next to FSR i
-(§3.1).
+One reading of all 6 sites every 30 s; site i is the NTC next to FSR i
+(§3.1). **v1.7 generalizes v2:** the packet is `8 + 3 × count` bytes and the
+quality bytes start at `8 + 2 × count`; `count` must be 6, so the packet is
+26 bytes. (v1.6 had count 8: 32 bytes, quality at 24.)
 
 | Offset | Size | Type | Field | Unit |
 |---|---|---|---|---|
 | 0 | 2 | uint16 | `seq` | — |
 | 2 | 4 | uint32 | `t_ms` | ms since boot |
-| 6 | 1 | uint8 | `count` | number of sites; must be 8 |
+| 6 | 1 | uint8 | `count` | number of sites; must be 6 |
 | 7 | 1 | uint8 | `reserved` | 0 (ignored by the app) |
-| 8 | 16 | int16 × 8 | `temp[0..7]` | 0.01 °C (3180 = 31.80 °C) |
-| 24 | 8 | uint8 × 8 | `quality[0..7]` | per site: 0 = normal, 1 = poor contact, 2 = sensor error |
+| 8 | 12 | int16 × 6 | `temp[0..5]` | 0.01 °C (3180 = 31.80 °C) |
+| 20 | 6 | uint8 × 6 | `quality[0..5]` | per site: 0 = normal, 1 = poor contact, 2 = sensor error |
 
 - `-32768` in `temp[i]` means site i could not be read. The app shows "no
-  data" for that site, never a number.
-- The app rejects, and counts per foot on Diagnostics: any length other
-  than 32 bytes, including the v1.5 12-byte packet (`tempLength`); a `count`
-  other than 8 (`tempCount`); a quality byte above 2 (`invalidQuality`).
+  data" for that site, never a number. A board with no NTC fitted sends
+  `-32768` with quality 2 at every site.
+- The app rejects, and counts per foot on Diagnostics, checked in this
+  order: anything shorter than the 8-byte header, the v1.5 12-byte packet,
+  or a length other than `8 + 3 × count` for the packet's own `count`
+  (`tempLength`); a packet whose length matches its count but whose
+  `count` is not 6 (`tempCount`, so a v1.6 32-byte packet with count 8
+  shows as "count 8"); a quality byte above 2 (`invalidQuality`).
 - The v1.5 packet (12 bytes: `temp_forefoot`, `temp_heel`, one `quality`)
-  is no longer accepted.
+  and the v1.6 8-site packet are not accepted.
 
 ### 3.3 Device Status Packet (8 bytes)
 
@@ -291,11 +311,11 @@ per-sensor `a`/`b` fits use it.
 }
 ```
 
-> **v1.6:** `channels` must list exactly 8 FSR channels, indexes 0–7 (§3.1).
+> **v1.7:** `channels` must list exactly 6 FSR channels, indexes 0–5 (§3.1).
 > The app takes N from this list and refuses an insole whose list has any
 > other count: the connection shows "calibration rejected", nothing streams,
-> and Diagnostics shows `N 6 (needs 8)` (for example) and the reject
-> `calibrationFsrCount`.
+> and Diagnostics shows `N 8 (needs 6)` (for example) and the reject
+> `calibrationFsrCount`. (v1.6 needed 8.)
 
 ### 5.2 IMU
 
@@ -318,7 +338,7 @@ because the chip sits differently in each foot's box.
 temp_c = raw / 100.0
 ```
 
-v1.6: the same for each of the 8 sites; `-32768` is no value (§3.2).
+v1.7: the same for each of the 6 sites; `-32768` is no value (§3.2).
 
 ESP32 แปลงจาก Steinhart-Hart ให้เรียบร้อยแล้ว เนื่องจากค่าคงที่ของ NTC ไม่ต้องปรับรายชิ้น
 
@@ -332,15 +352,15 @@ type FootSide = 'L' | 'R';
 interface SensorSample {
   tUnixMs: number;
   side: FootSide;
-  fsrKpa: number[];      // 8 values (v1.6), kPa, index = §3.1
+  fsrKpa: number[];      // 6 values (v1.7), kPa, index = §3.1
   accelG: [number, number, number];
   gyroDps: [number, number, number];
 }
 
-interface TempReading {     // v1.6
+interface TempReading {     // v1.7
   tUnixMs: number;
   side: FootSide;
-  celsius: (number | null)[];  // 8 sites, index = §3.1; null = could not read
+  celsius: (number | null)[];  // 6 sites, index = §3.1; null = could not read
   quality: (0 | 1 | 2)[];      // per site
 }
 
@@ -358,7 +378,7 @@ interface RiskAssessment {
   statusLevel: 1 | 2 | 3 | 4 | 5;
   gaitClass: GaitClass;
   confidence: number;          // 0.0–1.0
-  deltaTC: (number | null)[];  // v1.6: per site, left − right; null unless
+  deltaTC: (number | null)[];  // v1.7: per site, left − right; null unless
                                // both feet read that site with quality 0
   peakKpa: { L: number; R: number };
   ptiKpaS: { L: number; R: number };
@@ -408,7 +428,7 @@ interface IDataSource {
 |---|---|---|
 | หน้าที่ | จำแนกรูปแบบการเดิน | ประเมินระดับความเสี่ยงรวม |
 | สถาปัตยกรรม | CNN-LSTM (Single-Branch) | Dual-Branch Intermediate Fusion |
-| Input | 28 channels จาก FSR + IMU (v1.6) | Embedding จาก A + อุณหภูมิ + ตัวชี้วัดสมมาตร |
+| Input | 24 channels จาก FSR + IMU (v1.7) | Embedding จาก A + อุณหภูมิ + ตัวชี้วัดสมมาตร |
 | Window | 2 วินาที | 5 นาที |
 | ความถี่ทำนาย | 1 Hz | ทุก 5 นาที |
 | Output | Gait class (5 คลาส) | Status Level 1–5 |
@@ -421,35 +441,38 @@ interface IDataSource {
 
 | รายการ | ค่า |
 |---|---|
-| Shape | `[1, 100, 28]` (v1.6) |
+| Shape | `[1, 100, 24]` (v1.7) |
 | Window | 100 timesteps = 2 วินาที @ 50 Hz |
 | Stride | 50 timesteps (overlap 50%) → ทำนายทุก 1 วินาที |
-| Channels | 28 = (8 FSR + 3 accel + 3 gyro) × 2 feet (v1.6) |
-| Preprocessing | S9 ("ทางเอ", decided 2026-10-25): (1) personal baseline — per foot and channel, the median of that foot's samples over a 30 s quiet-standing recording, subtracted from all 28 channels; (2) Min-Max — `((x − baseline) − min) / (max − min)` with min/max per channel from the training subjects only (per LOSO fold), no clipping. Was: z-score with the training mean/std |
+| Channels | 24 = (6 FSR + 3 accel + 3 gyro) × 2 feet (v1.7) |
+| Preprocessing | S9 ("ทางเอ", decided 2026-10-25): (1) personal baseline — per foot and channel, the median of that foot's samples over a 30 s quiet-standing recording, subtracted from all 24 channels; (2) Min-Max — `((x − baseline) − min) / (max − min)` with min/max per channel from the training subjects only (per LOSO fold), no clipping. Was: z-score with the training mean/std |
 | dtype | float32 |
 
 **ลำดับ channel (ห้ามสลับ)**
 
 ```
- 0– 7 : FSR left    index 0–7
- 8–10 : Accel left  x,y,z
-11–13 : Gyro left   x,y,z
-14–21 : FSR right   index 0–7
-22–24 : Accel right x,y,z
-25–27 : Gyro right  x,y,z
+ 0– 5 : FSR left    index 0–5
+ 6– 8 : Accel left  x,y,z
+ 9–11 : Gyro left   x,y,z
+12–17 : FSR right   index 0–5
+18–20 : Accel right x,y,z
+21–23 : Gyro right  x,y,z
 ```
 
-v1.6: `shared/model_input.json` version 2 lists the 28 channel names in
-this order. Temperature is still not a Model A input.
+v1.7: `shared/model_input.json` version 3 lists the 24 channel names in
+this order. The names are the same as version 1's (the 6-FSR insole before
+v1.6); the new number keeps a `normalization.json` made for version 1 or 2
+refused. Temperature is still not a Model A input. (v1.6, version 2: 28
+channels, 8 FSR per foot.)
 
-> ทีม AI ต้องส่งมอบไฟล์ `normalization.json` ที่มี min/max ของทั้ง 28 channels (v1.6, S9) มาพร้อมกับโมเดล มิฉะนั้นแอปจะ normalize ไม่ตรงกับตอนเทรน และผลจะเพี้ยนทั้งหมด
+> ทีม AI ต้องส่งมอบไฟล์ `normalization.json` ที่มี min/max ของทั้ง 24 channels (v1.7) มาพร้อมกับโมเดล มิฉะนั้นแอปจะ normalize ไม่ตรงกับตอนเทรน และผลจะเพี้ยนทั้งหมด
 
 **Preprocessing, S9 (2026-11-01).** The two steps are fixed in `shared/model_preprocess.json` (version 1: `baselineSeconds` 30, `baselineStatistic` `"median"`, `baselineChannels` `"all"`, `scale` `"minmax"`, `clip` false, `normalizationMethod` `"baseline-minmax"`); the app and the Python reference refuse any other method value. `baselineSeconds` is read like a threshold (the app's recording length; training uses capture trial 00, 30 s by the protocol). Python reference: `tools/model/preprocess.py` (the training scripts use it); app: `mobile/lib/gait/preprocess.dart`. Both compute `((x − baseline) − min) / (max − min)` in float64 in that order, then round to float32; the median of an even count is `(a + b) × 0.5` of the two middle values. `shared/test_vectors/model_preprocess/vectors.json` (made by the Python script) is checked by the app's tests bit for bit.
 
 - **Baseline in training:** each subject's capture trial 00 (the 30 s standing calibration, `docs/STUDY-CAPTURE.md`), per foot: the newest valid attempt whose two feet pass the baseline function below; without one the subject has no baseline (the error names each attempt's failure). The capture Saved screen shows this result right after trial 00, and `load_capture.py check` reports it.
 - **Baseline in the app:** Researcher › "บันทึกค่ายืนนิ่ง 30 วินาที", from the 50 Hz path. Stored per foot and insole (calibration `device_id`, §5.1), the latest only. **Without a baseline for both connected insoles the app does not use Model A** (the rules classify, §7.5, and the Gait tab says why).
-- **One baseline function (S9-2, BACKLOG 74, user decisions 2026-11-02):** both baselines come from the same per-foot function, `FootBaselineWindow` (`mobile/lib/gait/baseline_window.dart`) and its port `foot_baseline_window` (`tools/model/preprocess.py`), fed one sample at a time in order. **Window:** the first `baselineSeconds` × 50 samples that pass (1500 at 30 s; a sample count is that much sample time by rule 1, and a capture trial window `[start, start + 30 s)` holds about 1500 samples per foot when nothing is lost, 1499–1501 by the board clock against the phone's); later samples are ignored. **Refused**, in this order, with a named failure: a new streaming session after the first sample (`reconnected`), packets lost after the first sample (`lostPackets`), a TARE running (`calibrating`), a sample inside a segment the researcher marked invalid (`markedInvalid`, trial 00 only), not 8 FSR (`wrongInsole`), the walking gate (§8.3.2) on (`moved`), the foot's summed kPa at or below `steps.contactKpa` (`notLoaded`); samples ending before the window is full with every rule passed still give a baseline from the samples kept when they are at most `baselineToleranceSamples` (`model_preprocess.json`, 5 = 0.1 s; user decision 2026-11-02, found by the S9-2 spec review: a board clock a little slow against the phone puts 1499 samples in a clean 30 s trial 00), otherwise `tooShort` (e.g. a rehearsal's 10 s calibration). The live recording always fills the window. `shared/test_vectors/baseline/` (trial-00 CSVs made by `preprocess.py --make-vectors`) is matched exactly by the app through its trial-00 path and its live recorder.
-- **`normalization.json` (version = `model_input.json`'s, 2):** `{"version": 2, "method": "baseline-minmax", "channels": [28 names], "min": [28], "max": [28]}`; min/max over the training subjects' gait trials 01–05 after each subject's baseline is subtracted. A z-score file (`mean` / `std`), another method, a different channel order or a max not above its min is refused. `tools/model/preprocess.py fit <session dirs> --out DIR` writes one per LOSO fold.
+- **One baseline function (S9-2, BACKLOG 74, user decisions 2026-11-02):** both baselines come from the same per-foot function, `FootBaselineWindow` (`mobile/lib/gait/baseline_window.dart`) and its port `foot_baseline_window` (`tools/model/preprocess.py`), fed one sample at a time in order. **Window:** the first `baselineSeconds` × 50 samples that pass (1500 at 30 s; a sample count is that much sample time by rule 1, and a capture trial window `[start, start + 30 s)` holds about 1500 samples per foot when nothing is lost, 1499–1501 by the board clock against the phone's); later samples are ignored. **Refused**, in this order, with a named failure: a new streaming session after the first sample (`reconnected`), packets lost after the first sample (`lostPackets`), a TARE running (`calibrating`), a sample inside a segment the researcher marked invalid (`markedInvalid`, trial 00 only), not 6 FSR (`wrongInsole`; v1.6: 8), the walking gate (§8.3.2) on (`moved`), the foot's summed kPa at or below `steps.contactKpa` (`notLoaded`); samples ending before the window is full with every rule passed still give a baseline from the samples kept when they are at most `baselineToleranceSamples` (`model_preprocess.json`, 5 = 0.1 s; user decision 2026-11-02, found by the S9-2 spec review: a board clock a little slow against the phone puts 1499 samples in a clean 30 s trial 00), otherwise `tooShort` (e.g. a rehearsal's 10 s calibration). The live recording always fills the window. `shared/test_vectors/baseline/` (trial-00 CSVs made by `preprocess.py --make-vectors`) is matched exactly by the app through its trial-00 path and its live recorder.
+- **`normalization.json` (version = `model_input.json`'s, 3):** `{"version": 3, "method": "baseline-minmax", "channels": [24 names], "min": [24], "max": [24]}`; min/max over the training subjects' gait trials 01–05 after each subject's baseline is subtracted. A z-score file (`mean` / `std`), another method, a different channel order or a max not above its min is refused. `tools/model/preprocess.py fit <session dirs> --out DIR` writes one per LOSO fold.
 
 ### 7.2 Model A — Output
 
@@ -496,10 +519,10 @@ this order. Temperature is still not a Model A input.
 | 6 | Peak Asymmetry Index | % |
 | 7 | PTI Asymmetry Index | % |
 
-> **v1.6, to be redefined:** features 0–5 name the v1.5 forefoot and heel
-> sites. With 8 sites per foot they have to be redefined (for example per
+> **v1.7, to be redefined:** features 0–5 name the v1.5 forefoot and heel
+> sites. With 6 sites per foot they have to be redefined (for example per
 > site, or the largest |ΔT| and its site) before Model B is trained. Out of
-> scope for S8D (`docs/BACKLOG.md`).
+> scope for S8D and S11 (`docs/BACKLOG.md` item 66).
 
 ### 7.4 Model B — Output
 
@@ -561,17 +584,17 @@ Model A ต้องเสร็จก่อน Model B เสมอ เนื�
 |---|---|---|
 | Peak Asymmetry Index (PAI) | `abs(L−R) / ((L+R)/2) × 100` | > 15% = เฝ้าระวัง |
 | PTI Asymmetry Index | เทียบแรงกดสะสมซ้าย-ขวา | > 20% = เฝ้าระวัง |
-| Load Concentration | `จุดที่สูงสุด / ผลรวม 8 จุด × 100` (v1.6) | จุดเดียว > 40% = เสี่ยง |
+| Load Concentration | `จุดที่สูงสุด / ผลรวม 6 จุด × 100` (v1.7) | จุดเดียว > 40% = เสี่ยง |
 | Within-Session Drift | เทียบ 5 นาทีแรกกับ 5 นาทีท้าย | เพิ่ม > 25% = ล้า/ชดเชยท่าเดิน |
 
 > **ข้อควรระวัง** — การเทียบซ้าย-ขวาใช้ FSR คนละชุด หากเซนเซอร์สองข้างให้ค่าไม่ตรงกันจะเกิดความไม่สมมาตรปลอม (False Asymmetry) จึงต้องทำ **bench calibration** ตอนประกอบ โดยกดแผ่นรองเท้าทั้งคู่ด้วยน้ำหนักมาตรฐานเดียวกันแล้วบันทึกค่าชดเชยลง NVS (ดูข้อ 5.1) ขั้นตอนนี้ทำครั้งเดียวที่โรงงาน/ห้องแล็บ ไม่ต้องเก็บข้อมูลจากผู้ใช้เลย
 
-> **v1.6, flagged for SR:** `asymmetry.concentrationPct` (40 %) was set
-> for 6 sensors and is unchanged (user decision 2026-10-29). Over 8 zones an
-> even load is 12.5 % per zone instead of 16.7 %, and the two new zones add
-> to the sum, so the same 40 % fires less often for the same foot. SR checks
-> it on the real boards, with `steps.contactKpa` (a sum over 8 zones now)
-> and the `gait.*` PTI shares (`docs/BACKLOG.md` items 64 and 65).
+> **v1.7:** the sum is over the 6 sites again, the layout
+> `asymmetry.concentrationPct` (40 %), `steps.contactKpa` (a sum over the
+> zones) and the `gait.*` PTI shares were set for. v1.6 divided by 8 zones
+> and flagged them for SR (`docs/BACKLOG.md` items 64 and 65, resolved by
+> S11). SR still records how often they fire on the real boards, like
+> every provisional value.
 
 ### 8.3 เกณฑ์รายตัว
 
@@ -586,7 +609,7 @@ Model A ต้องเสร็จก่อน Model B เสมอ เนื�
 | `DEVICE_LOST` | ขาดการเชื่อมต่อ > 5 นาที | 1 | — |
 | `BATTERY_LOW` | แบตเตอรี่ < 15% | 1 | — |
 
-> **`TEMP_DELTA` with 8 sites (v1.6, user decision 2026-10-29).** The rule
+> **`TEMP_DELTA` per site (v1.6, user decision 2026-10-29; 6 sites since v1.7).** The rule
 > is applied per site: site i qualifies when |ΔT_i| (left site i − right
 > site i, both read with quality 0 in the same reading pair) is above
 > `deltaC` on `consecutiveReadings` consecutive reading pairs. There is one
@@ -609,16 +632,16 @@ Model A ต้องเสร็จก่อน Model B เสมอ เนื�
 
 | รูปแบบการเดิน | โซนที่เกี่ยวข้อง | ข้อความเสริม (ไทย) | ที่มา |
 |---|---|---|---|
-| `heel_walking` | heel, lateralHeel (v1.6) | "ตรวจพบรูปแบบเดินลงส้น ซึ่งอาจเพิ่มแรงกดบริเวณส้นเท้า" | ส้นเท้าเป็นหนึ่งในบริเวณเสี่ยงแผลกดทับหลักตามวรรณกรรม (Ahmad Sharoni et al., 2021) |
+| `heel_walking` | heel | "ตรวจพบรูปแบบเดินลงส้น ซึ่งอาจเพิ่มแรงกดบริเวณส้นเท้า" | ส้นเท้าเป็นหนึ่งในบริเวณเสี่ยงแผลกดทับหลักตามวรรณกรรม (Ahmad Sharoni et al., 2021) |
 | `toe_walking` | hallux, meta1 | "ตรวจพบรูปแบบเดินเขย่งปลายเท้า ซึ่งอาจเพิ่มแรงกดบริเวณปลายเท้า" | นิ้วหัวแม่เท้าและหัวกระดูกฝ่าเท้าที่ 1 เป็นบริเวณเสี่ยงแผลกดทับหลักตามวรรณกรรม (Ahmad Sharoni et al., 2021); PPP บริเวณปลายเท้าสูงกว่ากลุ่มควบคุมในผู้ป่วยเบาหวานที่มีเส้นประสาทเสื่อม (Mueller et al.) |
 | `rotated_foot` (in-toeing) | midfoot, meta5 | "ตรวจพบรูปแบบเดินบิดเท้าเข้า ซึ่งงานวิจัยพบว่าเพิ่มแรงกดด้านนอกเท้าได้ถึง 61% (กลางเท้า) และ 49% (ปลายเท้า)" | Chang et al. — การเดิน in-toeing เพิ่มภาระกลางเท้า/ปลายเท้าฝั่งนอกอย่างมีนัยสำคัญ |
 | `rotated_foot` (out-toeing) | midfoot, meta1 | "ตรวจพบรูปแบบเดินบิดเท้าออก ซึ่งงานวิจัยพบว่าเพิ่มแรงกดด้านในเท้าได้ถึง 72% (กลางเท้า) และ 52% (ปลายเท้า)" | Chang et al. — การเดิน out-toeing เพิ่มภาระกลางเท้า/ปลายเท้าฝั่งในอย่างมีนัยสำคัญ |
 | `antalgic` | — (ไม่ระบุจุดเจาะจง) | "ตรวจพบรูปแบบเดินไม่สมมาตร ควรตรวจสอบแรงกดทั้งสองข้างเทียบกัน" | ความไม่สมมาตรของการเดินสัมพันธ์กับแรงกดฝ่าเท้าที่เพิ่มขึ้นและความเสี่ยงต่อเนื้อเยื่ออ่อน (งานวิจัยกลุ่มผู้พิการขาส่วนล่าง — ใช้เป็นหลักฐานเชิงกลไก ไม่ใช่ประชากรเดียวกับกลุ่มทดสอบ) |
 | `normal` | — | ไม่เติมข้อความ | — |
 
-> **v1.6 zones:** the heel is site 5 (heel centre) and site 7 (lateral
-> heel); `toe_walking` stays hallux and meta1; the medial arch (6) gets no
-> note.
+> **v1.7 zones:** the heel is site 5 (heel centre); `toe_walking` stays
+> hallux and meta1. (v1.6 also counted site 7, the lateral heel; the medial
+> arch, 6, had no note.)
 
 **ข้อจำกัดที่ต้องระบุในเล่มกำกับตารางนี้เสมอ:**
 1. งานวิจัยทั้งหมดข้างต้นวัด**การกระจายตัวของแรงกด** ไม่ใช่**อัตราการเกิดแผลจริง** จากรูปแบบการเดินนั้นๆ โดยตรง — ความเชื่อมโยงกับความเสี่ยงแผลกดทับมาจากการต่อกับความรู้แยกต่างหากว่าบริเวณแรงกดสูง = บริเวณเสี่ยงแผล ไม่ใช่ข้อสรุปที่วัดตรงในงานวิจัยเดียวกัน
@@ -654,7 +677,7 @@ Model A ต้องเสร็จก่อน Model B เสมอ เนื�
 | เฝ้าระวัง | 75 kPa | วงกลมสีส้มบน heatmap | ไม่ push notification |
 | แจ้งเตือน | 200 kPa | วงกลมสีแดง + ป้าย ALERT | push notification |
 
-> **หมายเหตุทางเทคนิคที่ต้องระบุในเล่ม** — ค่า 200 kPa จากงานวิจัยได้มาจากแผ่นวัดที่มีเซนเซอร์หลายร้อยจุด ขณะที่ระบบนี้มี FSR เพียง 8 จุดต่อข้าง (v1.6) จึงมีโอกาสวัดไม่ตรงตำแหน่งที่แรงกดสูงสุดจริง ทำให้ค่าที่อ่านได้มีแนวโน้มต่ำกว่าความเป็นจริง ตัวชี้วัดเชิงสมมาตรในข้อ 8.2 จึงถูกออกแบบมาเพื่อชดเชยข้อจำกัดเชิงพื้นที่นี้โดยเฉพาะ
+> **หมายเหตุทางเทคนิคที่ต้องระบุในเล่ม** — ค่า 200 kPa จากงานวิจัยได้มาจากแผ่นวัดที่มีเซนเซอร์หลายร้อยจุด ขณะที่ระบบนี้มี FSR เพียง 6 จุดต่อข้าง (v1.7) จึงมีโอกาสวัดไม่ตรงตำแหน่งที่แรงกดสูงสุดจริง ทำให้ค่าที่อ่านได้มีแนวโน้มต่ำกว่าความเป็นจริง ตัวชี้วัดเชิงสมมาตรในข้อ 8.2 จึงถูกออกแบบมาเพื่อชดเชยข้อจำกัดเชิงพื้นที่นี้โดยเฉพาะ
 
 **ค่าเกณฑ์ทั้งหมดต้องเก็บในไฟล์ `thresholds.json` ห้าม hardcode ในโค้ด** เพราะจะต้องปรับหลังการทดสอบกับฮาร์ดแวร์จริงอย่างแน่นอน
 
@@ -692,13 +715,13 @@ S7 adds keys to the same file (local addendum below):
 
 > **S8A keys, readings and the Model A slot, added 2026-10-25, a local addendum to v1.5.** Additive only (the file's `"version"` stays 1); outside the original document and not yet sent back to the contract owner.
 > - **New keys:** `"model": { "highConfidence": 0.85 }` (the Gait tab shows 3 confidence segments "สูง" from here, 2 "ปานกลาง" from `minConfidence`; display only) and `"gait": { "ruleSteps": 4, "toeHeelPtiPct": 10, "heelForefootPtiPct": 15, "stanceAsymmetryPct": 15 }`.
-> - **`RuleBasedEngine` for gait (§7.5), provisional:** while both feet are usable and each foot's latest walking step (S7's definition above) ended within `steps.maxStanceMs`, on the last `gait.ruleSteps` walking steps of each foot (S7's step definition above), with zone PTI (∫kPa dt per step) summed over those steps of both feet, checked in this order: `toe_walking` when the heel zones' share of the total is below `toeHeelPtiPct`; `heel_walking` when the forefoot zones' share is below `heelForefootPtiPct` (v1.6: heel = sites 5 and 7, forefoot = sites 0–3; the lateral midfoot and the medial arch count only in the total); `antalgic` when the PAI formula (§8.2) on the two feet's mean stance durations is above `stanceAsymmetryPct`; otherwise `normal`. The rules never give `rotated_foot` (the FSR cannot see foot rotation). The four values are best guesses tuned on the app's mock walks and the simulator; SR records the rules' class for each instructed gait trial and tunes them before the study starts on 2026-11-12 (`docs/SESSIONS.md`). Rule-based results never add a gait note (§8.3.1 uses Model A results only) and, like every gait result, never change a level (§8.4).
+> - **`RuleBasedEngine` for gait (§7.5), provisional:** while both feet are usable and each foot's latest walking step (S7's definition above) ended within `steps.maxStanceMs`, on the last `gait.ruleSteps` walking steps of each foot (S7's step definition above), with zone PTI (∫kPa dt per step) summed over those steps of both feet, checked in this order: `toe_walking` when the heel zones' share of the total is below `toeHeelPtiPct`; `heel_walking` when the forefoot zones' share is below `heelForefootPtiPct` (v1.7: heel = site 5, forefoot = sites 0–3; the lateral midfoot counts only in the total; v1.6 also had the lateral heel in the heel and the medial arch in the total); `antalgic` when the PAI formula (§8.2) on the two feet's mean stance durations is above `stanceAsymmetryPct`; otherwise `normal`. The rules never give `rotated_foot` (the FSR cannot see foot rotation). The four values are best guesses tuned on the app's mock walks and the simulator; SR records the rules' class for each instructed gait trial and tunes them before the study starts on 2026-11-12 (`docs/SESSIONS.md`). Rule-based results never add a gait note (§8.3.1 uses Model A results only) and, like every gait result, never change a level (§8.4).
 > - **PTI Asymmetry Index (§8.2, Model B feature 7), display only:** the PAI formula on each foot's mean whole-foot PTI per walking step (the sum of the zones' ∫kPa dt) over the walking steps of the last 5 minutes; no value unless both feet are usable. Shown on the Gait tab with `asymmetry.ptiPct` as a reference ("ยังไม่ใช้แจ้งเตือน"); no alert uses it yet.
-> - **Model A slot (§7.1–7.2):** the app reads `mobile/assets/models/model_a.tflite` and `normalization.json`. `normalization.json` was `{"version": 2, "channels": [28 names in the order of shared/model_input.json], "mean": [28], "std": [28]}` until S9; **since S9 it is the min/max format of §7.1** (`"method": "baseline-minmax"`) and a z-score file is refused (v1.6; version 1 had 24 channels and is refused) (any other keys are ignored); a `"version"` other than `shared/model_input.json`'s, a different channel order, a missing channel or a max not above its min is refused (the reason shows on the BLE debug screen). The model must take `[1, 100, 28]` float32 (v1.6) and give `[1, 5]` and `[1, 32]` float32 outputs (found by shape, so their order does not matter), using TFLite builtin ops only (no Flex / Select TF ops). An optional `check.json` (a window, since S9 its baseline, its preprocessed form and the expected outputs) is run once and shown on the BLE debug screen. A missing or refused model means rules only, with the reason on that screen.
+> - **Model A slot (§7.1–7.2):** the app reads `mobile/assets/models/model_a.tflite` and `normalization.json`. `normalization.json` was `{"version": 2, "channels": [28 names in the order of shared/model_input.json], "mean": [28], "std": [28]}` until S9; **since S9 it is the min/max format of §7.1** (`"method": "baseline-minmax"`) and a z-score file is refused (v1.7: version 3, 24 channels; versions 1 and 2 are refused) (any other keys are ignored); a `"version"` other than `shared/model_input.json`'s, a different channel order, a missing channel or a max not above its min is refused (the reason shows on the BLE debug screen). The model must take `[1, 100, 24]` float32 (v1.7) and give `[1, 5]` and `[1, 32]` float32 outputs (found by shape, so their order does not matter), using TFLite builtin ops only (no Flex / Select TF ops). An optional `check.json` (a window, since S9 its baseline, its preprocessed form and the expected outputs) is run once and shown on the BLE debug screen. A missing or refused model means rules only, with the reason on that screen.
 
 > **`motion` เพิ่มใน v1.5 — ดูข้อ 8.3.2.** สี่บล็อกแรก (`pressure`/`temperature`/`asymmetry`/`model`) มาจากเจ้าของสัญญา; `motion` เป็นการเพิ่มเติมนอกเอกสารต้นฉบับ ยังไม่ส่งกลับให้เจ้าของสัญญา — เหมือนสถานะของสูตร §5.1 ที่แก้ไขในรีโปนี้แต่ยังไม่อัปสตรีม
 
-`{ "version": 1, ... }` ในบล็อกนี้คือเลขเวอร์ชันของ**ไฟล์ `thresholds.json` เอง** (schema ของไฟล์ค่าคงที่รันไทม์) แยกจากเลขเวอร์ชันของเอกสารสัญญาฉบับนี้ (v1.6) — สองเลขนี้ไม่ผูกกัน
+`{ "version": 1, ... }` ในบล็อกนี้คือเลขเวอร์ชันของ**ไฟล์ `thresholds.json` เอง** (schema ของไฟล์ค่าคงที่รันไทม์) แยกจากเลขเวอร์ชันของเอกสารสัญญาฉบับนี้ (v1.7) — สองเลขนี้ไม่ผูกกัน
 
 ### 8.4 การรวมผล (Fusion)
 
@@ -783,91 +806,103 @@ users/{uid}
 - [ ] ทีมฮาร์ดแวร์ยืนยันว่าเขียน calibration ลง NVS และเปิดให้อ่านผ่าน BLE ได้
 - [ ] วางแผนขั้นตอน bench calibration ซ้าย-ขวาแล้ว (ข้อ 8.2)
 - [ ] ทีม AI ยืนยันว่า Model A ส่งออก embedding 32 มิติได้
-- [ ] Hardware team confirms the 8 FSR + 8 NTC positions and channel order of §3.1 (v1.6)
-- [ ] Hardware team confirms the temperature v2 packet (§3.2) and an 8-channel calibration JSON (§5.1); see Appendix C
+- [ ] Hardware team confirms the 6 sites (Velostat + NTC each) and channel order of §3.1 (v1.7), with sites 0–5 on mux channels that are not bridged
+- [ ] Hardware team confirms the 26-byte temperature v2 packet (§3.2) and a 6-channel calibration JSON (§5.1); see Appendix C
 - [ ] ตกลงว่าใครเป็นผู้ดูแลเอกสารนี้เมื่อมีการเปลี่ยนแปลง
 
-## Appendix C — v1.6 for the hardware team
+## Appendix C — v1.7 for the hardware team
 
-What changes in the firmware for the 8 FSR + 8 NTC insole. Everything not
-listed here is unchanged from v1.5: UUIDs, advertising, the Device Status
-packet, Control commands, the calibration formula, little-endian byte
-order.
+What changes in the firmware for the 6 + 6 insole (v1.7, 2026-11-25).
+Everything not listed here is unchanged: UUIDs, advertising, the Device
+Status packet, Control commands, the calibration formula and the units of
+v1.6 addendum 2, little-endian byte order.
 
-1. **Channels.** 8 FSR per foot, the same order on both feet (§3.1):
-   0 hallux, 1 MTH1, 2 MTH2–3, 3 MTH5, 4 lateral midfoot, 5 heel centre,
-   6 medial arch, 7 lateral heel. NTC i sits next to FSR i. Indexes 0–5
-   mean what they meant in v1.5.
-2. **Sensor Stream** (`...b45901`): the same format with N = 8: 28-byte
-   samples (fsr uint16 × 8, accel int16 × 3, gyro int16 × 3), 8 + 8 × 28 =
-   232-byte packets, which fit MTU 247.
-3. **Temperature v2** (`...b45902`): exactly 32 bytes every 30 s: seq
-   uint16, t_ms uint32, count uint8 = 8, reserved uint8 = 0, temp int16 × 8
-   (0.01 °C, -32768 = could not read), quality uint8 × 8 (0 normal, 1 poor
-   contact, 2 sensor error).
-4. **Calibration JSON** (`...b45905`): `channels` lists exactly 8 entries,
-   indexes 0–7. Send it compact (no spaces or newlines), at most 512 bytes:
+1. **Sites.** 6 per foot, the same order on both feet (§3.1):
+   0 hallux, 1 MTH1, 2 MTH2–3, 3 MTH5, 4 lateral midfoot, 5 heel centre.
+   Indexes 0–5 mean what they meant in v1.5 and v1.6. Each site has one
+   Velostat pressure sensor ("FSR" in this document) and one NTC next to
+   it: NTC i sits next to FSR i.
+   - **The insoles keep their 8 Velostat pads.** The firmware reads only
+     the pads at sites 0–5. The pads at v1.6's sites 6 (medial arch) and
+     7 (lateral heel) stay in the insole, unread, and are never sent.
+   - **Mux channels.** Each site needs its own mux channel. On the right
+     board checked in report 043, pressing the hallux showed on C05 and
+     C06 together: choose the 6 channels so that no two sites share a
+     bridged pair, and tell us which channel each site uses.
+2. **Sensor Stream** (`...b45901`): the same format with N = 6: 24-byte
+   samples (fsr uint16 × 6, accel int16 × 3, gyro int16 × 3), 8 + 8 × 24 =
+   200-byte packets, which fit MTU 247 (the app needs MTU 203; with 4
+   samples per packet, 104 bytes, MTU 107).
+3. **Temperature v2** (`...b45902`): `8 + 3 × count` bytes every 30 s,
+   with count 6: **26 bytes**. seq uint16, t_ms uint32, count uint8 = 6,
+   reserved uint8 = 0, temp int16 × 6 (0.01 °C, -32768 = could not read),
+   quality uint8 × 6 (0 normal, 1 poor contact, 2 sensor error). The
+   quality bytes start at offset `8 + 2 × count` = 20 (0x14). A site with no NTC
+   fitted sends -32768 with quality 2.
+4. **Calibration JSON** (`...b45905`): `channels` lists exactly 6 entries,
+   indexes 0–5. Send it compact (no spaces or newlines), at most 512 bytes:
    a GATT characteristic value holds at most 512 bytes. The example below
-   is spaced out for reading (594 bytes as printed, 478 compact).
+   is 381 bytes compact.
 
-**The app needs N = 8 exactly.** It does not guess around a mismatch: it
-refuses, and shows why per foot on Researcher › Diagnostics.
+**The app needs 6 sites exactly.** It does not guess around a mismatch:
+it refuses, and shows why per foot on Researcher › Diagnostics. It checks
+a temperature packet in this order: its length first, then its count,
+then the quality bytes.
 
 | What the board sends | What the app does | Diagnostics shows |
 |---|---|---|
-| Calibration JSON with a channel count other than 8 | Refuses the insole ("calibration rejected"); nothing streams | format `N 6 (needs 8)` (for example), reject `calibrationFsrCount` |
-| The old 12-byte temperature packet, or any temperature packet that is not 32 bytes | Drops it and counts it | reject `tempLength` |
-| A 32-byte temperature packet whose count is not 8 | Drops it and counts it | reject `tempCount` |
+| Calibration JSON with a channel count other than 6 (for example v1.6's 8) | Refuses the insole ("calibration rejected"); nothing streams | format `N 8 (needs 6)` (for example), reject `calibrationFsrCount` |
+| The old 12-byte temperature packet, a packet shorter than its 8-byte header, or a length other than `8 + 3 × count` for its own count byte | Drops it and counts it | reject `tempLength` |
+| A temperature packet whose length matches its count, but the count is not 6 (the v1.6 32-byte packet has count 8) | Drops it and counts it | reject `tempCount` |
 | A temperature quality byte above 2 | Drops the packet and counts it | reject `invalidQuality` |
-| A sensor packet whose length does not match its count at N = 8 | Drops it and counts it | reject `lengthMismatch` or `truncated` |
+| A sensor packet whose length does not match its count at N = 6 (a 232-byte v1.6 packet included) | Drops it and counts it | reject `lengthMismatch` or `truncated` |
 | A sensor packet shorter than its 8-byte header, or a status packet shorter than 8 bytes | Drops it and counts it | reject `tooShort` |
 
-On a correct board, Diagnostics shows `format N 8 · temperature v2, 8
+On a correct board, Diagnostics shows `format N 6 · temperature v2, 6
 sites · rejects 0` for each foot once the first temperature packet has
 arrived. If it shows anything else on the real boards, the mismatch is on
 the firmware side: compare the board's packets and calibration JSON with
-the examples below before anything else.
+the examples below before anything else (`tools/board_check/compare.py`
+prints a board's first packets next to them).
 
 **Examples.** Generated from the app's test vectors in
 `shared/test_vectors/` (the files the parser tests run against), not typed
 by hand. Offsets on the left are hex.
 
-**Sensor Stream, N = 8, 8 samples, 232 bytes** (`sensor_n8.json` → `n8_8_samples`):
+**Sensor Stream, N = 6, 8 samples, 200 bytes** (`sensor.json` → `normal_8_samples_200_bytes`):
 
 ```
-0000  6c 00 50 c3 00 00 08 00 65 0e 70 00 7b 02 86 04
-0010  91 06 9c 08 a7 0a b2 0c 04 f2 8c 05 00 10 e4 01
-0020  18 fe 00 00 36 02 41 04 4c 06 57 08 62 0a 6d 0c
-0030  78 0e 83 00 3b f3 51 06 db 0f 19 02 d1 fd 0d 00
-0040  07 06 12 08 1d 0a 28 0c 33 0e 3e 00 49 02 54 04
-0050  72 f4 16 07 b6 0f 4e 02 8a fd 1a 00 d8 09 e3 0b
-0060  ee 0d f9 0f 04 02 0f 04 1a 06 25 08 a9 f5 db 07
-0070  91 0f 83 02 43 fd 27 00 a9 0d b4 0f bf 01 ca 03
-0080  d5 05 e0 07 eb 09 f6 0b e0 f6 a0 08 6c 0f b8 02
-0090  fc fc 34 00 7a 01 85 03 90 05 9b 07 a6 09 b1 0b
-00a0  bc 0d c7 0f 17 f8 65 09 47 0f ed 02 b5 fc 41 00
-00b0  4b 05 56 07 61 09 6c 0b 77 0d 82 0f 8d 01 98 03
-00c0  4e f9 2a 0a 22 0f 22 03 6e fc 4e 00 1c 09 27 0b
-00d0  32 0d 3d 0f 48 01 53 03 5e 05 69 07 85 fa ef 0a
-00e0  fd 0e 57 03 27 fc 5b 00
+0000  d2 04 cd 81 01 00 08 00 94 00 9f 02 aa 04 b5 06
+0010  c0 08 cb 0a 37 f1 c5 f0 00 10 4d fc b9 ff 00 00
+0020  65 04 70 06 7b 08 86 0a 91 0c 9c 0e 6e f2 8a f1
+0030  db 0f 82 fc 72 ff 0d 00 36 08 41 0a 4c 0c 57 0e
+0040  62 00 6d 02 a5 f3 4f f2 b6 0f b7 fc 2b ff 1a 00
+0050  07 0c 12 0e 1d 00 28 02 33 04 3e 06 dc f4 14 f3
+0060  91 0f ec fc e4 fe 27 00 d8 0f e3 01 ee 03 f9 05
+0070  04 08 0f 0a 13 f6 d9 f3 6c 0f 21 fd 9d fe 34 00
+0080  a9 03 b4 05 bf 07 ca 09 d5 0b e0 0d 4a f7 9e f4
+0090  47 0f 56 fd 56 fe 41 00 7a 07 85 09 90 0b 9b 0d
+00a0  a6 0f b1 01 81 f8 63 f5 22 0f 8b fd 0f fe 4e 00
+00b0  4b 0b 56 0d 61 0f 6c 01 77 03 82 05 b8 f9 28 f6
+00c0  fd 0e c0 fd c8 fd 5b 00
 ```
 
-Header: seq 108, t0_ms 50000, count 8, flags 0. Sample 0 (bytes 8–35): fsr ADC [3685, 112, 635, 1158, 1681, 2204, 2727, 3250], accel raw [-3580, 1420, 4096], gyro raw [484, -488, 0]; sample 1 starts at byte 36 (t_ms 50020).
+Header: seq 1234, t0_ms 98765, count 8, flags 0. Sample 0 (bytes 8–31): fsr [148, 671, 1194, 1717, 2240, 2763], accel raw [-3785, -3899, 4096], gyro raw [-947, -71, 0]; sample 1 starts at byte 32 (t_ms 98785).
 
-**Temperature v2, 32 bytes** (`temperature_v2.json` → `quality_mixed`):
-
-```
-0000  06 00 20 bf 02 00 08 00 6c 0c 8f 0c 7e 0c 32 0c
-0010  a8 0c 21 0c bc 0c 12 0c 00 01 02 00 01 02 00 00
-```
-
-seq 6, t_ms 180000, count 8, reserved 0; °C per site 0–7 [31.8, 32.15, 31.98, 31.22, 32.4, 31.05, 32.6, 30.9]; quality per site 0–7 [0, 1, 2, 0, 1, 2, 0, 0].
-
-A site that could not be read (`unreadable_one_site`): site 6 is `00 80` (-32768) → no value (could not read).
+**Temperature v2, 26 bytes** (`temperature_v2.json` → `quality_mixed`):
 
 ```
-0000  04 00 c0 d4 01 00 08 00 6c 0c 8f 0c 7e 0c 32 0c
-0010  a8 0c 21 0c 00 80 12 0c 00 00 00 00 00 00 00 00
+0000  06 00 20 bf 02 00 06 00 6c 0c 8f 0c 7e 0c 32 0c
+0010  a8 0c 21 0c 00 01 02 00 01 00
+```
+
+seq 6, t_ms 180000, count 6, reserved 0; °C per site 0–5 [31.8, 32.15, 31.98, 31.22, 32.4, 31.05]; quality per site 0–5 [0, 1, 2, 0, 1, 0] (bytes 0x14–0x19).
+
+A site that could not be read (`temperature_v2.json` → `unreadable_one_site`): site 4 is `00 80` (-32768) → no value (could not read).
+
+```
+0000  04 00 c0 d4 01 00 06 00 6c 0c 8f 0c 7e 0c 32 0c
+0010  00 80 21 0c 00 00 00 00 00 00
 ```
 
 **Device Status, 8 bytes, unchanged** (`status.json` → `left_streaming`):
@@ -878,36 +913,40 @@ A site that could not be read (`unreadable_one_site`): site 6 is `00 80` (-32768
 
 battery 87 % (3987 mV), foot_side 0 (left), firmware 1.4, state 1 (streaming), error_code 0.
 
-**Calibration JSON with 8 channels** (`sensor_n8.json` → `calibrations.INSOLE-N8-TEST`; the values are test values, each board has its own):
+**Calibration JSON with 6 channels** (`sensor.json` → `calibrations.varied`; the values are test values, each board has its own). Sent compact, as here, it is 381 bytes:
+
+```json
+{"device_id":"INSOLE-R-002","r_pulldown_ohm":10000,"sensor_area_m2":0.000113,"channels":[{"index":0,"a":123000,"b":-1.05,"offset_adc":12},{"index":1,"a":98000,"b":-1.02,"offset_adc":0},{"index":2,"a":141000,"b":-1.1,"offset_adc":40},{"index":3,"a":105000,"b":-0.98,"offset_adc":100},{"index":4,"a":87000,"b":-1.07,"offset_adc":7},{"index":5,"a":160000,"b":-1.12,"offset_adc":250}]}
+```
+
+The same, spaced out for reading:
 
 ```json
 {
-  "device_id": "INSOLE-N8-TEST",
+  "device_id": "INSOLE-R-002",
   "r_pulldown_ohm": 10000,
   "sensor_area_m2": 0.000113,
   "channels": [
-    {"index": 0, "a": 100000, "b": -1, "offset_adc": 0},
-    {"index": 1, "a": 107500, "b": -1.02, "offset_adc": 9},
-    {"index": 2, "a": 115000, "b": -1.04, "offset_adc": 18},
-    {"index": 3, "a": 122500, "b": -1.06, "offset_adc": 27},
-    {"index": 4, "a": 130000, "b": -1.08, "offset_adc": 36},
-    {"index": 5, "a": 137500, "b": -1.1, "offset_adc": 45},
-    {"index": 6, "a": 145000, "b": -1.12, "offset_adc": 54},
-    {"index": 7, "a": 152500, "b": -1.14, "offset_adc": 63}
+    {"index": 0, "a": 123000, "b": -1.05, "offset_adc": 12},
+    {"index": 1, "a": 98000, "b": -1.02, "offset_adc": 0},
+    {"index": 2, "a": 141000, "b": -1.1, "offset_adc": 40},
+    {"index": 3, "a": 105000, "b": -0.98, "offset_adc": 100},
+    {"index": 4, "a": 87000, "b": -1.07, "offset_adc": 7},
+    {"index": 5, "a": 160000, "b": -1.12, "offset_adc": 250}
   ]
 }
 ```
 
-**Rejected: the old 12-byte temperature packet** (`legacy_v1_12_bytes`, reason `tempLength`):
+**Rejected: the old 12-byte temperature packet** (`temperature_v2.json` → `legacy_v1_12_bytes`, reason `tempLength`):
 
 ```
 0000  0a 00 e0 93 04 00 6c 0c d1 0b 00 00
 ```
 
-**Rejected: 32 bytes but count 6** (`count_6`, reason `tempCount`):
+**Rejected: the v1.6 packet, 32 bytes with count 8** (`temperature_v2.json` → `v16_8_sites_32_bytes`, reason `tempCount`; the parser's reason text: "temperature count 8, needs 6 (the v1.6 8-site packet)"):
 
 ```
-0000  0b 00 10 09 05 00 06 00 6c 0c 8f 0c 7e 0c 32 0c
+0000  0e 00 a0 68 06 00 08 00 6c 0c 8f 0c 7e 0c 32 0c
 0010  a8 0c 21 0c bc 0c 12 0c 00 00 00 00 00 00 00 00
 ```
 
@@ -932,3 +971,4 @@ battery 87 % (3987 mV), foot_side 0 (left), firmware 1.4, state 1 (streaming), e
 | 1.6 addendum | 2026-11-02 | S10 (this repo) | `alerts.quietNotifyMin` (2): a foot alert notification within this many minutes of the last one that sounded for the same foot is posted silently (app notification behaviour only, no alert rule changes; BACKLOG 76, DESIGN-SPEC §11.9). Additive: the file's `"version"` stays 1. Not yet sent back to the contract owner. |
 | 1.6 addendum | 2026-11-09 | SR-1 (this repo) | Appendix C item 4: the calibration JSON is sent compact (no spaces or newlines), at most 512 bytes (the GATT value limit; the Appendix C example is 594 bytes as printed, 478 compact). Found while preparing the first real-board check (report 042). For the hardware team. |
 | 1.6 addendum 2 | 2026-11-09 | FW-1 plan (this repo, user decisions) | §3.1 / §5.1: `fsr` and `offset_adc` are the divider voltage in 12-bit counts of 3.3 V (`mV × 4095 / 3300`), not the raw ADC code; the ESP32-C3 tops out at 2.5 V and sets flags bit0 there. §3.3: `battery_pct` 255 with `battery_mv` 0 = no battery (external power). §5.2: one IMU axis frame for both insoles (x toes, y left, z up), mapped per foot in firmware. |
+| 1.7 | 2026-11-25 | S11 (this repo, user decision) | 6 sites per foot, the v1.6 indexes 0–5 with their meaning; a Velostat pressure sensor and an NTC at each site, NTC i next to FSR i; the insoles keep 8 pads, sites 6 (medial arch) and 7 (lateral heel) are no longer read and stay only as names for v1.6 data (§1, §3.1, `shared/sensor_layout.json` version 2). Sensor sample 24 bytes, packet 200 bytes at N = 6 (§2.2, §2.3, §3.1); temperature v2 generalized to `8 + 3 × count` bytes, count 6 = 26 bytes, checked length (12-byte v1 hint first), count, then quality (§3.2); the calibration JSON lists exactly 6 channels (§5.1); Model A input `[1, 100, 24]`, `model_input.json` version 3 (§7.1); Model B features over 6 sites (§7.3); load concentration over 6 zones, 40 % as set for 6 sensors (§8.2); heel = heel centre (§8.3.1, S8A addendum). Appendix C rewritten for the hardware team (8 pads stay, 6 read, avoid bridged mux pairs). Defined in this repo; not yet confirmed by the hardware team or the contract owner. |

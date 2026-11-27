@@ -24,9 +24,9 @@ void main() {
 
   Uint8List status({int side = 0, int state = 1}) =>
       Uint8List.fromList([87, 0x93, 0x0f, side, 1, 4, state, 0]);
-  Uint8List temp({int quality = 0, int count = 8}) => buildTempPacket(
+  Uint8List temp({int quality = 0, int? count}) => buildTempPacket(
     tMs: 30000,
-    quality: [0, 0, 0, quality, 0, 0, 0, 0],
+    quality: [0, 0, 0, quality, 0, 0],
     count: count,
   );
   String blob(void Function(Map<String, dynamic> b) edit) {
@@ -110,7 +110,7 @@ void main() {
   });
 
   group('temperature', () {
-    for (final length in [0, 11, 12, 31]) {
+    for (final length in [0, 7, 8, 11, 12, 25]) {
       test('tempLength: $length bytes', () {
         expectReason(
           parseTempPacket(temp().sublist(0, length)),
@@ -119,17 +119,31 @@ void main() {
       });
     }
 
-    test('tempLength: 33 bytes', () {
+    test('tempLength: 27 bytes', () {
       expectReason(
         parseTempPacket(Uint8List.fromList([...temp(), 0])),
         RejectReason.tempLength,
       );
     });
 
-    for (final count in [0, 2, 6, 9]) {
-      test('tempCount: count $count', () {
+    // A count byte that does not match the packet's own length.
+    for (final count in [0, 5, 8]) {
+      test('tempLength: count $count in 26 bytes', () {
         expectReason(
           parseTempPacket(temp(count: count)),
+          RejectReason.tempLength,
+        );
+      });
+    }
+
+    // Self-consistent (8 + 3 × count bytes), but not 6 sites: the v1.6
+    // packet is count 8 in 32 bytes.
+    for (final count in [0, 2, 8, 9]) {
+      test('tempCount: count $count in ${8 + 3 * count} bytes', () {
+        expectReason(
+          parseTempPacket(
+            buildTempPacket(tMs: 30000, raw: List.filled(count, 3100)),
+          ),
           RejectReason.tempCount,
         );
       });

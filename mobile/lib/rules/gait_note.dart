@@ -55,8 +55,9 @@ String? gaitNoteTh({
 /// Class → (zones it explains, or null for any zone; Thai text).
 const _notes = <String, (Set<String>?, String)>{
   'heel_walking': (
-    // Both heel sites (heel centre, lateral heel; user decision 2026-10-29).
-    {'heel', 'lateralHeel'},
+    // The heel site (heel centre; v1.7, user decision 2026-11-25). A
+    // stored v1.6 alert at the retired lateral heel gets no note.
+    {'heel'},
     'ตรวจพบรูปแบบเดินลงส้น ซึ่งอาจเพิ่มแรงกดบริเวณส้นเท้า',
   ),
   'toe_walking': (

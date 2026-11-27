@@ -13,10 +13,11 @@ struct Channel {
   float peakAdc;
 };
 
-// Contract v1.6 FSR order (shared/sensor_layout.json): 0 hallux, 1 MTH1,
-// 2 MTH2-3, 3 MTH5, 4 lateral midfoot, 5 heel centre, 6 medial arch,
-// 7 lateral heel. Heel strike (lateral heel, heel centre) -> midfoot and a
-// light medial-arch load in mid-stance -> lateral (MTH5) -> medial roll-off
+// Contract v1.7 FSR order (shared/sensor_layout.json): 0 hallux, 1 MTH1,
+// 2 MTH2-3, 3 MTH5, 4 lateral midfoot, 5 heel centre; the fsr8 build check
+// adds v1.6's 6 medial arch and 7 lateral heel. Heel strike (heel centre;
+// with 8, the lateral heel too) -> midfoot (and, with 8, a light
+// medial-arch load in mid-stance) -> lateral (MTH5) -> medial roll-off
 // -> toe. Normal walking stays below the app's watch level
 // (shared/thresholds.json pressure.watchKpa = 75) with margin. With the
 // served calibration (contract §5.1 example) the peaks are about hallux 40,
@@ -26,7 +27,8 @@ struct Channel {
 // the load from heel to forefoot: the summed kPa stays above the app's
 // steps.contactKpa through the stance, so each stance is one step (S8A; a
 // narrower midfoot split it into a blip and a shorter step). Indexes 0-5
-// are the pre-v1.6 six-channel walk unchanged (the left_fsr6 env).
+// are the six-channel walk the app reads; the 8-channel walk adds 6 and 7
+// to it unchanged (the fsr8 env).
 constexpr Channel kChannels[kMaxFsrCount] = {
     {0.86f, 0.28f, 1500}, {0.70f, 0.36f, 1710}, {0.64f, 0.36f, 1610},
     {0.55f, 0.36f, 1300}, {0.38f, 0.48f, 1100}, {0.16f, 0.32f, 1880},
@@ -38,16 +40,16 @@ constexpr float kNoiseAdc = 12;
 
 Channel channelFor(uint8_t c, uint8_t fsrCount) {
   if (fsrCount == 6 || fsrCount == kMaxFsrCount) return kChannels[c];
-  // Any other N (build checks only; the app refuses N != 8): spread the
+  // Any other N (build checks only; the app refuses N != 6): spread the
   // channels evenly from toe (index 0) to heel (last index).
   float pos = fsrCount == 1 ? 0.5f : static_cast<float>(c) / (fsrCount - 1);
   return {0.86f - 0.70f * pos, 0.34f, 1610};  // about 45 kPa
 }
 
 // Resting sole temperature per site, 0.01 degC (index = FSR channel): the
-// medial arch warmest, toes and heel coolest.
+// lateral midfoot warmest, toes and heel coolest (v1.6's first 6 sites).
 constexpr int16_t kSiteBaseCentiC[kTempSiteCount] = {
-    3150, 3180, 3190, 3160, 3200, 3120, 3240, 3100,
+    3150, 3180, 3190, 3160, 3200, 3120,
 };
 
 // Deterministic noise in [-1, 1] from (t, channel): no RNG state.

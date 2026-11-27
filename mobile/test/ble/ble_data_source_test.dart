@@ -106,7 +106,7 @@ void main() {
         final s = rig.left.state as LinkStreaming;
         expect(s.mtu, 247);
         expect(s.samplesPerPacket, 8);
-        expect(s.fsrCount, 8);
+        expect(s.fsrCount, 6);
         expect(s.deviceId, 'L1');
         expect(rig.left.stats.sessions, 1);
       });
@@ -196,11 +196,11 @@ void main() {
           for (var i = 0; i < 8; i++) t0 + i * 20,
         ]);
         final cal = (parseCalibration(
-          jsonEncode(calibrationBlob(8)),
+          jsonEncode(calibrationBlob(6)),
         ) as Parsed<Calibration>).value;
-        final spec = sampleSpecs(8, 8).first;
+        final spec = sampleSpecs(6, 8).first;
         expect(f.samples.first.fsrKpa, [
-          for (var ch = 0; ch < 8; ch++)
+          for (var ch = 0; ch < 6; ch++)
             adcToKpa(spec.fsr[ch], cal.channels[ch], cal),
         ]);
         expect(f.samples.first.accelG.first, spec.accel.first / 4096);
@@ -214,23 +214,23 @@ void main() {
         rig.connectLeft('L1');
         rig.link('L1')
           ..sendTemp(
-            raw: [3180, -32768, 3150, 3100, 3200, 3090, 3240, 3070],
-            quality: [0, 2, 0, 0, 0, 0, 1, 0],
+            raw: [3180, -32768, 3150, 3100, 3200, 3090],
+            quality: [0, 2, 0, 0, 1, 0],
           )
           ..sendStatus();
         rig.settle();
         final t = rig.leftTemps.single.packet;
         expect(t.celsius.first, 31.8);
         expect(t.celsius[1], isNull);
-        expect(t.siteCount, 8);
-        expect(t.quality[6], TempQuality.poorContact);
-        expect(t.usableC(6), isNull);
+        expect(t.siteCount, 6);
+        expect(t.quality[4], TempQuality.poorContact);
+        expect(t.usableC(4), isNull);
         expect(rig.left.stats.lastStatus!.batteryPct, 100);
       });
     });
 
-    test('the v1 12-byte and a count ≠ 8 temperature packet are refused, '
-        'counted by reason, never emitted', () {
+    test('the v1 12-byte and the v1.6 8-site temperature packet are '
+        'refused, counted by reason, never emitted', () {
       fakeAsync((async) {
         final rig = Rig(async, insoles: [leftBoard()]);
         rig.connectLeft('L1');
@@ -238,7 +238,10 @@ void main() {
         link
           ..sendLegacyTemp()
           ..sendLegacyTemp()
-          ..push(BleUuids.temperature, buildTempPacket(tMs: link.t0, count: 6));
+          ..push(
+            BleUuids.temperature,
+            buildTempPacket(tMs: link.t0, raw: List.filled(8, 3100)),
+          );
         rig.settle();
         expect(rig.leftTemps, isEmpty);
         expect(rig.left.stats.rejects[RejectReason.tempLength], 2);
@@ -249,7 +252,13 @@ void main() {
   });
 
   group('MTU', () {
-    for (final (mtu, n, fit) in [(247, 8, 8), (235, 8, 8), (123, 8, 4)]) {
+    // N = 6: 200-byte packets need MTU 203, the 4-sample fallback 107.
+    for (final (mtu, n, fit) in [
+      (247, 6, 8),
+      (203, 6, 8),
+      (202, 6, 4),
+      (107, 6, 4),
+    ]) {
       test('MTU $mtu with N = $n streams $fit samples/packet', () {
         fakeAsync((async) {
           final rig = Rig(
@@ -267,7 +276,7 @@ void main() {
       });
     }
 
-    for (final (mtu, n, min) in [(23, 8, 123), (120, 8, 123), (122, 8, 123)]) {
+    for (final (mtu, n, min) in [(23, 6, 107), (104, 6, 107), (106, 6, 107)]) {
       test('MTU $mtu with N = $n is a problem: no START, no retry', () {
         fakeAsync((async) {
           final rig = Rig(
@@ -291,7 +300,7 @@ void main() {
       fakeAsync((async) {
         final rig = Rig(async, insoles: [leftBoard()]);
         rig.connectLeft('L1');
-        rig.link('L1').changeMtu(123);
+        rig.link('L1').changeMtu(107);
         rig.settle();
         expect((rig.left.state as LinkStreaming).samplesPerPacket, 4);
         rig.link('L1').changeMtu(23);
@@ -300,9 +309,9 @@ void main() {
       });
     });
 
-    for (final n in [6, 4, 9]) {
+    for (final n in [8, 4, 9]) {
       test('an insole with N = $n is refused before MTU and START: '
-          'calibration rejected, counted (contract v1.6)', () {
+          'calibration rejected, counted (contract v1.7)', () {
         fakeAsync((async) {
           final rig = Rig(
             async,
@@ -552,7 +561,7 @@ void main() {
         final rig = Rig(async, insoles: [leftBoard()]);
         rig.connectLeft('L1');
         final link = rig.link('L1');
-        final specs = sampleSpecs(8, 8);
+        final specs = sampleSpecs(6, 8);
         Uint8List at(int seq, int t0) =>
             buildSensorPacket(seq: seq, t0Ms: t0, samples: specs);
         link
@@ -651,14 +660,9 @@ void main() {
           ..push(BleUuids.sensorStream, Uint8List.sublistView(good, 0, 199))
           ..push(
             BleUuids.sensorStream,
-            // A 6-FSR board's 8 samples, claiming count 6: 200 bytes where
-            // N = 8 × 6 needs 176.
-            buildSensorPacket(
-              seq: 9,
-              t0Ms: 1,
-              samples: sampleSpecs(6, 8),
-              count: 6,
-            ),
+            // An 8-FSR (v1.6) board's 8 samples: 232 bytes where N = 6
+            // with count 8 needs 200.
+            buildSensorPacket(seq: 9, t0Ms: 1, samples: sampleSpecs(8, 8)),
           )
           ..push(BleUuids.temperature, Uint8List(5))
           ..push(BleUuids.deviceStatus, Uint8List(8)..[3] = 7);
@@ -697,7 +701,7 @@ void main() {
         final rig = Rig(async, insoles: [leftBoard()]);
         rig.connectLeft('L1');
         final insole = rig.central.insoles['L1']!;
-        final blob = calibrationBlob(8);
+        final blob = calibrationBlob(6);
         for (final c in blob['channels']! as List) {
           (c as Map)['offset_adc'] = 19;
         }

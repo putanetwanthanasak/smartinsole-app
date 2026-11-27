@@ -1,6 +1,6 @@
 {
-  "version": 1,
-  "about": "Where each FSR channel and each NTC temperature site sits on the insole (DATA-CONTRACT v1.6 section 3.1, user decision 2026-10-29). Index = FSR channel index on the wire = temperature site index in the v1.6 temperature packet: NTC i sits next to FSR i, so one list serves both. The Flutter app mirrors this file in mobile/lib/config/foot_layout.dart (a Dart test keeps them identical); tools/capture/load_capture.py reads the ids. Ids 0-5 are the ids stored alerts and capture files already use, kept even where the name changed.",
+  "version": 2,
+  "about": "Where each pressure channel and each NTC temperature site sits on the insole (DATA-CONTRACT v1.7 section 3.1, user decision 2026-11-25: 6 sites per foot, the v1.6 indexes 0-5). Index = FSR (Velostat) channel index on the wire = temperature site index in the temperature v2 packet: NTC i sits next to FSR i, so one list serves both. The Flutter app mirrors this file in mobile/lib/config/foot_layout.dart (a Dart test keeps them identical); tools/capture/load_capture.py reads the ids. Ids 0-5 are the ids stored alerts and capture files have always used. Version 1 (v1.6) had 8 sites.",
   "units": "mm",
   "frame": "Left foot seen from above. x is measured from the insole's lateral edge toward the medial side, y from the back edge of the heel toward the toes. The right foot is the mirror image: the same index has the same x and y measured from its own lateral edge and heel.",
   "sites": [
@@ -9,16 +9,20 @@
     { "index": 2, "id": "meta3", "nameEn": "2nd-3rd metatarsal heads (MTH2-3)", "nameTh": "กลางหน้าเท้า", "region": "forefoot", "mm": [48, 205] },
     { "index": 3, "id": "meta5", "nameEn": "5th metatarsal head (MTH5)", "nameTh": "โคนนิ้วก้อย", "region": "forefoot", "mm": [22, 197] },
     { "index": 4, "id": "midfoot", "nameEn": "Lateral midfoot", "nameTh": "ขอบเท้าด้านนอก", "region": "lateral", "mm": [18, 140] },
-    { "index": 5, "id": "heel", "nameEn": "Heel centre", "nameTh": "กลางส้นเท้า", "region": "heel", "mm": [43, 38] },
-    { "index": 6, "id": "medialArch", "nameEn": "Medial arch", "nameTh": "อุ้งเท้า", "region": "arch", "mm": [59, 126] },
-    { "index": 7, "id": "lateralHeel", "nameEn": "Lateral heel", "nameTh": "ส้นเท้าด้านนอก", "region": "heel", "mm": [22, 82] }
+    { "index": 5, "id": "heel", "nameEn": "Heel centre", "nameTh": "กลางส้นเท้า", "region": "heel", "mm": [43, 38] }
   ],
+  "retired": {
+    "about": "Sites of v1.6 (S8D, 8 sites per foot) that v1.7 no longer reads. Their Velostat pads stay in the insole, unread, with no NTC. Kept only to name data recorded in v1.6 (stored alerts, daily summaries, capture schema 2); no new data uses these ids, and the app never draws them on a map.",
+    "sites": [
+      { "index": 6, "id": "medialArch", "nameEn": "Medial arch", "nameTh": "อุ้งเท้า", "region": "arch", "mm": [59, 126] },
+      { "index": 7, "id": "lateralHeel", "nameEn": "Lateral heel", "nameTh": "ส้นเท้าด้านนอก", "region": "heel", "mm": [22, 82] }
+    ]
+  },
   "regions": {
-    "about": "Coarse parts of the foot used in plain-Thai sentences and by the rule-based gait classes (forefoot share = forefoot sites, heel share = heel sites; lateral and arch are in neither).",
+    "about": "Coarse parts of the foot used in plain-Thai sentences and by the rule-based gait classes (forefoot share = forefoot sites, heel share = heel sites; lateral is in neither). v1.6 also had arch [6] and heel [5, 7].",
     "forefoot": [0, 1, 2, 3],
     "lateral": [4],
-    "arch": [6],
-    "heel": [5, 7]
+    "heel": [5]
   },
   "display": {
     "about": "How the app places a site on its stylised foot map (DESIGN-SPEC section 5: a 120 x 268 view box per foot, left foot, toes at the top). view_x = x0 + scale * x_mm, view_y = y0 - scale * y_mm; the right foot uses viewBox width - view_x. One uniform scale, fitted to the old placeholder positions of sites 0-5; every site centre falls inside the outline.",

@@ -39,7 +39,7 @@ JsonDocument vectors(const char* file) {
   return doc;
 }
 
-uint16_t counts[kCalChannels] = {65, 120, 300, 888, 400, 50, 10, 0};
+uint16_t counts[kCalChannels] = {65, 120, 300, 888, 400, 50};
 const int16_t kAccel[3] = {10, 20, 4096};
 const int16_t kGyro[3] = {-3, 4, 5};
 
@@ -53,7 +53,7 @@ void test_no_ntc_matches_vector() {
   TEST_ASSERT_NOT_NULL(want);
   uint8_t out[kTemperatureBytes];
   size_t n = encodeTemperature(out, 5, 150000, noNtcReading());  // the vector's seq and t_ms
-  TEST_ASSERT_EQUAL(32, n);
+  TEST_ASSERT_EQUAL(26, n);
   TEST_ASSERT_EQUAL_STRING(want, hex(out, n).c_str());
 }
 
@@ -87,13 +87,13 @@ void test_saturated_flag_per_packet() {
   uint32_t t = 0;
   // Packet 0: sample 3 hit the ceiling.
   for (int i = 0; i < 8; ++i, t += 20) {
-    bool ready = flag.add(s, smp, i == 3, t, 8, out, false);
+    bool ready = flag.add(s, smp, i == 3, t, kCalChannels, out, false);
     TEST_ASSERT_EQUAL(i == 7, ready);
   }
-  TEST_ASSERT_EQUAL(232, out.len);
+  TEST_ASSERT_EQUAL(200, out.len);
   TEST_ASSERT_EQUAL_HEX8(kFlagSaturated, out.bytes[7]);
   // Packet 1: nothing saturated.
-  for (int i = 0; i < 8; ++i, t += 20) flag.add(s, smp, false, t, 8, out, false);
+  for (int i = 0; i < 8; ++i, t += 20) flag.add(s, smp, false, t, kCalChannels, out, false);
   TEST_ASSERT_EQUAL_HEX8(0, out.bytes[7]);
   TEST_ASSERT_EQUAL(1, out.bytes[0]);  // seq 1
 }
@@ -106,7 +106,7 @@ void test_saturated_with_calibrating_keeps_both_bits() {
   SaturationFlag flag;
   OutPacket out;
   Sample smp = makeSample(counts, kAccel, kGyro, kIdentityAxes);
-  for (int i = 0; i < 8; ++i) flag.add(s, smp, i == 0, 20 * i, 8, out, i == 5);
+  for (int i = 0; i < 8; ++i) flag.add(s, smp, i == 0, 20 * i, kCalChannels, out, i == 5);
   TEST_ASSERT_EQUAL_HEX8(kFlagSaturated | kFlagCalibrating, out.bytes[7]);
 }
 
@@ -118,19 +118,19 @@ void test_stop_and_mtu_drop_clear_the_flag() {
   SaturationFlag flag;
   OutPacket out;
   Sample smp = makeSample(counts, kAccel, kGyro, kIdentityAxes);
-  flag.add(s, smp, true, 0, 8, out, false);  // half a packet, saturated
+  flag.add(s, smp, true, 0, kCalChannels, out, false);  // half a packet, saturated
   s.stop();
   flag.reset();  // ble_server does this on STOP
   s.start(1000);
-  for (int i = 0; i < 8; ++i) flag.add(s, smp, false, 1000 + 20 * i, 8, out, false);
+  for (int i = 0; i < 8; ++i) flag.add(s, smp, false, 1000 + 20 * i, kCalChannels, out, false);
   TEST_ASSERT_EQUAL_HEX8(0, out.bytes[7]);
 
   // A packet dropped because the MTU shrank mid-fill takes its flag with it.
-  for (int i = 0; i < 7; ++i) flag.add(s, smp, i == 0, 2000 + 20 * i, 8, out, false);
-  s.mtu = 200;  // 232 no longer fits; the 8th sample completes and drops it
-  TEST_ASSERT_FALSE(flag.add(s, smp, false, 2140, 8, out, false));
+  for (int i = 0; i < 7; ++i) flag.add(s, smp, i == 0, 2000 + 20 * i, kCalChannels, out, false);
+  s.mtu = 202;  // 200 no longer fits; the 8th sample completes and drops it
+  TEST_ASSERT_FALSE(flag.add(s, smp, false, 2140, kCalChannels, out, false));
   s.mtu = 247;
-  for (int i = 0; i < 8; ++i) flag.add(s, smp, false, 3000 + 20 * i, 8, out, false);
+  for (int i = 0; i < 8; ++i) flag.add(s, smp, false, 3000 + 20 * i, kCalChannels, out, false);
   TEST_ASSERT_EQUAL_HEX8(0, out.bytes[7]);
 }
 
@@ -141,9 +141,9 @@ void test_not_streaming_does_nothing() {
   SaturationFlag flag;
   OutPacket out;
   Sample smp = makeSample(counts, kAccel, kGyro, kIdentityAxes);
-  TEST_ASSERT_FALSE(flag.add(s, smp, true, 0, 8, out, false));
+  TEST_ASSERT_FALSE(flag.add(s, smp, true, 0, kCalChannels, out, false));
   s.start(0);
-  for (int i = 0; i < 8; ++i) flag.add(s, smp, false, 20 * i, 8, out, false);
+  for (int i = 0; i < 8; ++i) flag.add(s, smp, false, 20 * i, kCalChannels, out, false);
   TEST_ASSERT_EQUAL_HEX8(0, out.bytes[7]);
 }
 

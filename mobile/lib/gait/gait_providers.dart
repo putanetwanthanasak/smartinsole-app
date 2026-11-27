@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../ble/packets.dart';
 import '../config/thresholds.dart';
 import '../device/device_providers.dart';
+import '../device/model_channels.dart';
 import '../rules/alert_providers.dart';
 import '../storage/baseline_repository.dart';
 import '../storage/storage_providers.dart';
@@ -83,10 +84,21 @@ final modelCheckProvider = FutureProvider<ModelCheck?>((ref) async {
   );
 });
 
-/// Every stored quiet-standing baseline (S9), kept current.
+/// Every stored quiet-standing baseline (S9) for the current model
+/// channels, kept current. A baseline recorded by a v1.6 build (14 values,
+/// 8 FSR) is left out: it counts as none, so Model A is not used and
+/// Researcher asks for a new recording, which replaces it (same foot and
+/// insole). Its row is never deleted (S11).
 final storedBaselinesProvider = StreamProvider<List<FootBaseline>>(
-  (ref) => ref.watch(baselineRepositoryProvider).watchAll(),
+  (ref) =>
+      ref.watch(baselineRepositoryProvider).watchAll().map(currentBaselines),
 );
+
+/// [all] without the baselines whose length is not [modelChannelsPerFoot].
+List<FootBaseline> currentBaselines(List<FootBaseline> all) => [
+  for (final b in all)
+    if (b.values.length == modelChannelsPerFoot) b,
+];
 
 /// The one gait estimator, alive for the whole app (kept by
 /// `StorageHost`).
